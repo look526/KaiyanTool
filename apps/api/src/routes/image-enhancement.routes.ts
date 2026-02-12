@@ -1,0 +1,280 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { prisma } from '../lib/prisma';
+import { imageEnhancementService } from '../services/image-enhancement.service';
+
+const router = Router();
+
+router.post('/super-resolution', async (req, res) => {
+  try {
+    const { imageId, scale = 2, model = 'realesrgan' } = req.body;
+
+    const image = await prisma.asset.findUnique({
+      where: { id: imageId }
+    });
+
+    if (!image || image.type !== 'image') {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    const task = await prisma.renderTask.create({
+      data: {
+        type: 'super-resolution',
+        status: 'pending',
+        params: { imageId, scale, model },
+        projectId: image.projectId
+      }
+    });
+
+    const result = await imageEnhancementService.superResolution(
+      image.url,
+      scale,
+      model
+    );
+
+    const enhancedAsset = await prisma.asset.create({
+      data: {
+        type: 'image',
+        url: result.url,
+        thumbnailUrl: result.thumbnailUrl || result.url,
+        projectId: image.projectId,
+        metadata: {
+          originalImageId: imageId,
+          scale,
+          model,
+          width: result.width,
+          height: result.height
+        }
+      }
+    });
+
+    await prisma.renderTask.update({
+      where: { id: task.id },
+      data: { status: 'completed', result: { enhancedAssetId: enhancedAsset.id } }
+    });
+
+    res.json({ enhancedAsset });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed' });
+  }
+});
+
+router.post('/inpainting', async (req, res) => {
+  try {
+    const { imageId, maskPrompt, negativePrompt } = req.body;
+
+    const image = await prisma.asset.findUnique({
+      where: { id: imageId }
+    });
+
+    if (!image) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    const result = await imageEnhancementService.inpainting(
+      image.url,
+      maskPrompt,
+      negativePrompt
+    );
+
+    const inpaintedAsset = await prisma.asset.create({
+      data: {
+        type: 'image',
+        url: result.url,
+        projectId: image.projectId,
+        metadata: {
+          originalImageId: imageId,
+          maskPrompt,
+          negativePrompt
+        }
+      }
+    });
+
+    res.json({ inpaintedAsset });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed' });
+  }
+});
+
+router.post('/background-removal', async (req, res) => {
+  try {
+    const { imageId } = req.body;
+
+    const image = await prisma.asset.findUnique({
+      where: { id: imageId }
+    });
+
+    if (!image) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    const result = await imageEnhancementService.removeBackground(image.url);
+
+    const resultAsset = await prisma.asset.create({
+      data: {
+        type: 'image',
+        url: result.url,
+        thumbnailUrl: result.maskUrl,
+        projectId: image.projectId,
+        metadata: {
+          originalImageId: imageId,
+          type: 'background-removed',
+          hasAlpha: true
+        }
+      }
+    });
+
+    res.json({ asset: resultAsset, maskUrl: result.maskUrl });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed' });
+  }
+});
+
+router.post('/face-enhancement', async (req, res) => {
+  try {
+    const { imageId, strength = 1.0 } = req.body;
+
+    const image = await prisma.asset.findUnique({
+      where: { id: imageId }
+    });
+
+    if (!image) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    const result = await imageEnhancementService.faceEnhancement(image.url, strength);
+
+    const enhancedAsset = await prisma.asset.create({
+      data: {
+        type: 'image',
+        url: result.url,
+        projectId: image.projectId,
+        metadata: {
+          originalImageId: imageId,
+          type: 'face-enhanced',
+          strength
+        }
+      }
+    });
+
+    res.json({ enhancedAsset });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed' });
+  }
+});
+
+router.post('/color-correction', async (req, res) => {
+  try {
+    const { imageId, brightness, contrast, saturation, temperature, tint } = req.body;
+
+    const image = await prisma.asset.findUnique({
+      where: { id: imageId }
+    });
+
+    if (!image) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    const result = await imageEnhancementService.colorCorrection(image.url, {
+      brightness: brightness ?? 0,
+      contrast: contrast ?? 0,
+      saturation: saturation ?? 0,
+      temperature: temperature ?? 0,
+      tint: tint ?? 0
+    });
+
+    const correctedAsset = await prisma.asset.create({
+      data: {
+        type: 'image',
+        url: result.url,
+        projectId: image.projectId,
+        metadata: {
+          originalImageId: imageId,
+          type: 'color-corrected',
+          adjustments: { brightness, contrast, saturation, temperature, tint }
+        }
+      }
+    });
+
+    res.json({ correctedAsset });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed' });
+  }
+});
+
+router.post('/style-transfer', async (req, res) => {
+  try {
+    const { imageId, styleReferenceId, strength = 0.5 } = req.body;
+
+    const [image, styleRef] = await Promise.all([
+      prisma.asset.findUnique({ where: { id: imageId } }),
+      styleReferenceId ? prisma.asset.findUnique({ where: { id: styleReferenceId } }) : null
+    ]);
+
+    if (!image) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    const result = await imageEnhancementService.styleTransfer(
+      image.url,
+      styleRef?.url,
+      strength
+    );
+
+    const styledAsset = await prisma.asset.create({
+      data: {
+        type: 'image',
+        url: result.url,
+        projectId: image.projectId,
+        metadata: {
+          originalImageId: imageId,
+          type: 'style-transfer',
+          styleReferenceId,
+          strength
+        }
+      }
+    });
+
+    res.json({ styledAsset });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed' });
+  }
+});
+
+router.post('/upscale', async (req, res) => {
+  try {
+    const { imageId, scale = 2, model = 'realesrgan' } = req.body;
+
+    const image = await prisma.asset.findUnique({
+      where: { id: imageId }
+    });
+
+    if (!image) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    const result = await imageEnhancementService.upscale(image.url, scale, model);
+
+    const upscaledAsset = await prisma.asset.create({
+      data: {
+        type: 'image',
+        url: result.url,
+        projectId: image.projectId,
+        metadata: {
+          originalImageId: imageId,
+          type: 'upscaled',
+          scale,
+          model,
+          width: result.width,
+          height: result.height
+        }
+      }
+    });
+
+    res.json({ upscaledAsset });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed' });
+  }
+});
+
+export default router;

@@ -1,0 +1,154 @@
+// 从新的 API 客户端导入
+import { apiClient as newApiClient } from './api-client';
+import type {
+  User,
+  Project,
+  AIProvider,
+  PaginationMeta,
+  ProjectsResponse,
+  RegisterData,
+  LoginData,
+  AuthResponse,
+  CreateProjectData,
+  CreateAIProviderData,
+  UpdateAIProviderData,
+  Character,
+  Document,
+  Video,
+  ExportData,
+  Member,
+  SearchUser,
+  Scene,
+  Shot,
+  NineGridPanel
+} from '@ai-content-platform/shared';
+
+// 定义 API 客户端接口
+export interface ApiClientInterface {
+  register(data: RegisterData): Promise<AuthResponse>;
+  login(data: LoginData): Promise<AuthResponse>;
+  logout(): Promise<{ message: string }>;
+  getCurrentUser(): Promise<{ user: User; rememberMe?: boolean }>;
+  updateSession(): Promise<{ message: string; rememberMe?: boolean }>;
+  getProjects(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    type?: string;
+    status?: string;
+  }): Promise<ProjectsResponse>;
+  getProject(id: string): Promise<Project>;
+  createProject(data: CreateProjectData): Promise<Project>;
+  updateProject(id: string, data: Partial<CreateProjectData>): Promise<Project>;
+  deleteProject(id: string): Promise<{ message: string }>;
+  getAIProviders(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    type?: string;
+  }): Promise<{ providers: AIProvider[]; pagination: PaginationMeta }>;
+  getAIProvider(id: string): Promise<AIProvider>;
+  createAIProvider(data: CreateAIProviderData): Promise<AIProvider>;
+  updateAIProvider(id: string, data: UpdateAIProviderData): Promise<AIProvider>;
+  deleteAIProvider(id: string): Promise<{ message: string }>;
+  testAIProvider(id: string): Promise<{ success: boolean; message: string }>;
+  exportProject(projectId: string): Promise<ExportData>;
+  exportProjectVideos(projectId: string): Promise<Blob>;
+  exportProjectBundle(projectId: string): Promise<Blob>;
+  getProjectDocuments(projectId: string): Promise<Document[]>;
+  getScenes(projectId: string): Promise<Scene[]>;
+  getCharacters(projectId: string): Promise<Character[]>;
+  getShots(projectId: string): Promise<Shot[]>;
+  createScene(projectId: string, data: Partial<Scene>): Promise<Scene>;
+  updateScene(sceneId: string, data: Partial<Scene>): Promise<Scene>;
+  deleteScene(sceneId: string): Promise<{ message: string }>;
+  createCharacter(projectId: string, data: Partial<Character>): Promise<Character>;
+  updateCharacter(characterId: string, data: Partial<Character>): Promise<Character>;
+  deleteCharacter(characterId: string): Promise<{ message: string }>;
+  createShot(projectId: string, data: Partial<Shot>): Promise<Shot>;
+  updateShot(shotId: string, data: Partial<Shot>): Promise<Shot>;
+  deleteShot(shotId: string): Promise<{ message: string }>;
+  generateShotBothImages(shotId: string, providerId: string): Promise<{ success: boolean; startImageUrl?: string; endImageUrl?: string }>;
+  reorderShots(projectId: string, shots: { id: string; chapterNumber: number; episodeNumber: number; segmentId: number; cellId: number }[]): Promise<{ message: string }>;
+  parseNovel(content: string): Promise<{ chapters: any[]; characters: string[] }>;
+  saveNovel(projectId: string, title: string, content: string): Promise<{ success: boolean }>;
+  createDocument(projectId: string, data: { title: string; type: string; content?: string }): Promise<Document>;
+  updateDocument(projectId: string, documentId: string, data: Partial<{ title: string; content: string }>): Promise<Document>;
+  deleteDocument(projectId: string, documentId: string): Promise<{ message: string }>;
+  generateVideo(projectId: string, documentId: string, data: { aiProviderId: string; model: string }): Promise<{ video: Video }>;
+  generateShotVideo(shotId: string, providerId: string): Promise<{ success: boolean; videoUrl?: string }>;
+  parseScript(content: string): Promise<{ scenes: any[]; characters: string[] }>;
+  saveScript(projectId: string, title: string, content: string): Promise<{ success: boolean; project: Project }>;
+  getScript(scriptId: string): Promise<{ id: string; title: string; content: string; createdAt: string; updatedAt: string }>;
+  getProjectScripts(projectId: string): Promise<Array<{ id: string; title: string; content: string; createdAt: string; updatedAt: string }>>;
+  uploadImage(file: File): Promise<{ url: string; filename: string }>;
+  uploadCharacterImage(file: File): Promise<{ url: string; filename: string }>;
+  uploadSceneImage(file: File): Promise<{ url: string; filename: string }>;
+  generateShotsFromScript(projectId: string, scriptContent: string, visualStyle?: string): Promise<{ success: boolean; count: number; shots: any[] }>;
+  optimizeShotPrompt(shotId: string, referenceImages: string[]): Promise<{ success: boolean; startPrompt: string; endPrompt: string; shot: any }>;
+  getNovels(projectId: string): Promise<{ novels: any[] }>;
+  getNovelById(novelId: string): Promise<any>;
+  createNovel(projectId: string, data: { title?: string; description?: string }): Promise<any>;
+  updateNovel(novelId: string, data: { title?: string; description?: string }): Promise<any>;
+  deleteNovel(novelId: string): Promise<{ success: boolean }>;
+  createChapter(novelId: string, data: { title?: string; content?: string; order?: number }): Promise<any>;
+  updateChapter(chapterId: string, data: { title?: string; content?: string; order?: number }): Promise<any>;
+  deleteChapter(chapterId: string): Promise<{ success: boolean }>;
+  getPanels(shotId: string): Promise<any[]>;
+  createPanel(shotId: string, data: { prompt: string; imageUrl?: string; position?: number }): Promise<any>;
+  updatePanel(panelId: string, data: { prompt?: string; imageUrl?: string; position?: number }): Promise<any>;
+  deletePanel(panelId: string): Promise<{ message: string }>;
+  createBatchPanels(shotId: string, panels: { prompt: string; position: number }[]): Promise<any>;
+  reorderPanels(shotId: string, panels: { id: string; position: number }[]): Promise<{ message: string }>;
+  generatePanelImage(panelId: string, providerId: string): Promise<{ imageUrl: string }>;
+  generateBatchPanels(shotId: string, providerId: string): Promise<{ success: boolean }>;
+  exportNineGrid(shotId: string): Promise<Blob>;
+  getShot(shotId: string): Promise<any>;
+  getProjectVideos(projectId: string): Promise<any[]>;
+  deleteVideo(videoId: string): Promise<{ message: string }>;
+  createVideoMergeTask(projectId: string, videoIds: string[]): Promise<any>;
+  getMergeTaskStatus(taskId: string): Promise<any>;
+  getVideoStatus(shotId: string): Promise<any>;
+  continueScript(content: string, context?: string): Promise<{ success: boolean; content: string }>;
+  rewriteScript(content: string, instruction?: string): Promise<{ success: boolean; content: string }>;
+  createWardrobe(characterId: string, data: { name: string; description?: string; images?: string[] }): Promise<any>;
+  deleteWardrobe(wardrobeId: string): Promise<{ message: string }>;
+  getProjectMembers(projectId: string): Promise<Member[]>;
+  addProjectMember(projectId: string, userId: string, role: 'editor' | 'viewer'): Promise<Member>;
+  removeProjectMember(projectId: string, userId: string): Promise<{ message: string }>;
+  updateProjectMemberRole(projectId: string, userId: string, role: 'editor' | 'viewer'): Promise<Member>;
+  searchUsers(query: string): Promise<SearchUser[]>;
+  getNineGridPanels(shotId: string): Promise<NineGridPanel[]>;
+  createNineGridPanel(shotId: string, data: { position?: number; prompt: string }): Promise<NineGridPanel>;
+  updateNineGridPanel(shotId: string, panelId: string, data: { prompt?: string; imageUrl?: string }): Promise<NineGridPanel>;
+  deleteNineGridPanel(shotId: string, panelId: string): Promise<{ message: string }>;
+  generateNineGridPanels(shotId: string, data?: { providerId?: string; model?: string }): Promise<{ total: number; successful: number; failed: number }>;
+  reorderNineGridPanels(shotId: string, panelIds: string[]): Promise<{ message: string }>;
+}
+
+// 重新导出类型以保持向后兼容性
+export type {
+  User,
+  Project,
+  AIProvider,
+  PaginationMeta,
+  ProjectsResponse,
+  RegisterData,
+  LoginData,
+  AuthResponse,
+  CreateProjectData,
+  CreateAIProviderData,
+  UpdateAIProviderData,
+  Character,
+  Document,
+  Video,
+  ExportData,
+  Member,
+  SearchUser,
+  Scene,
+  Shot,
+  NineGridPanel
+};
+
+// 导出新的 API 客户端实例，保持向后兼容性
+export const apiClient: ApiClientInterface = newApiClient;

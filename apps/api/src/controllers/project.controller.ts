@@ -1,0 +1,240 @@
+import { Request, Response } from 'express';
+import { PrismaClient } from '@prisma/client';
+import { ProjectType } from '@prisma/client';
+import logger from '../lib/logger';
+import { auditService, AuditAction, AuditResource } from '../services/audit.service';
+
+const prisma = new PrismaClient();
+
+export const createProject = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { name, description, type } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: '项目名称是必填项' });
+    }
+
+    if (!Object.values(ProjectType).includes(type)) {
+      return res.status(400).json({ error: '无效的项目类型' });
+    }
+
+    const project = await prisma.project.create({
+      data: {
+        name,
+        description: description || '',
+        type: type || ProjectType.SCRIPT,
+        owner: { connect: { id: userId } },
+      },
+      include: {
+        owner: {
+          select: { id: true, email: true, name: true },
+        },
+      },
+    });
+
+    res.status(201).json(project);
+    logger.info('项目创建成功', { userId, projectId: project.id, name });
+    await auditService.logAction(req, AuditAction.CREATE, AuditResource.PROJECT, project.id, { name, type });
+  } catch (error) {
+    logger.error('创建项目失败', { userId, error });
+    await auditService.logError(req, AuditAction.CREATE, AuditResource.PROJECT, '创建项目失败', undefined, { name, type, error });
+    res.status(500).json({ error: '创建项目失败' });
+  }
+};
+
+export const getProjects = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { page = '1', limit = '10', search, type } = req.query;
+
+    if (!userId) {
+      return res.status(401).json({ error: '未授权' });
+    }
+
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const skip = (pageNum - 1) * limitNum;
+
+    const where: any = {
+      OR: [
+        { ownerId: userId },
+        { members: { some: { userId } } },
+      ],
+    };
+
+    if (search) {
+      where.name = { contains: search as string, mode: 'insensitive' };
+    }
+
+    if (type && Object.values(ProjectType).includes(type as ProjectType)) {
+      where.type = type as ProjectType;
+    }
+
+    const [projects, total] = await Promise.all([
+      prisma.project.findMany({
+        where,
+        skip,
+        take: limitNum,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          owner: {
+            select: { id: true, email: true, name: true },
+          },
+          members: {
+            include: {
+              user: {
+                select: { id: true, email: true, name: true },
+              },
+            },
+          },
+          _count: {
+            select: { shots: true, characters: true },
+          },
+        },
+      }),
+      prisma.project.count({ where }),
+    ]);
+
+    res.json({
+      projects,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (error) {
+    logger.error('获取项目列表失败', { userId, error });
+    res.status(500).json({ error: '获取项目列表失败' });
+  }
+};
+
+export const getProject = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { id } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ error: '未授权' });
+    }
+
+    const project = await prisma.project.findFirst({
+      where: {
+        id,
+        OR: [
+          { ownerId: userId },
+          { members: { some: { userId } } },
+        ],
+      },
+      include: {
+        owner: {
+          select: { id: true, email: true, name: true },
+        },
+        members: {
+          include: {
+            user: {
+              select: { id: true, email: true, name: true },
+            },
+          },
+        },
+        shots: {
+          orderBy: { sequence: 'asc' },
+          take: 10,
+        },
+        characters: {
+          take: 10,
+        },
+        _count: {
+          select: { shots: true, characters: true, members: true },
+        },
+      },
+    });
+
+    if (!project) {
+      logger.warn('项目不存在', { userId, projectId: id });
+      return res.status(404).json({ error: '项目不存在' });
+    }
+
+    res.json(project);
+  } catch (error) {
+    logger.error('获取项目详情失败', { userId, projectId: req.params.id, error });
+    res.status(500).json({ error: '获取项目详情失败' });
+  }
+};
+
+export const updateProject = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = req.params;
+    const { name, description, type } = req.body;
+
+    const project = await prisma.project.findFirst({
+      where: { id, ownerId: userId },
+    });
+
+    if (!project) {
+      logger.warn('项目不存在或无权限', { userId, projectId: id });
+      return res.status(404).json({ error: '项目不存在或无权限' });
+    }
+
+    if (type && !Object.values(ProjectType).includes(type)) {
+      return res.status(400).json({ error: '无效的项目类型' });
+    }
+
+    const updatedProject = await prisma.project.update({
+      where: { id },
+      data: {
+        ...(name && { name }),
+        ...(description !== undefined && { description }),
+        ...(type && { type }),
+      },
+      include: {
+        owner: {
+          select: { id: true, email: true, name: true },
+        },
+      },
+    });
+
+    res.json(updatedProject);
+    logger.info('项目更新成功', { userId, projectId: id });
+    await auditService.logAction(req, AuditAction.UPDATE, AuditResource.PROJECT, id, { name, description, type });
+  } catch (error) {
+    logger.error('更新项目失败', { userId, projectId: req.params.id, error });
+    await auditService.logError(req, AuditAction.UPDATE, AuditResource.PROJECT, '更新项目失败', id, { name, description, type, error });
+    res.status(500).json({ error: '更新项目失败' });
+  }
+};
+
+export const deleteProject = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { id } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ error: '未授权' });
+    }
+
+    const project = await prisma.project.findFirst({
+      where: { id, ownerId: userId },
+    });
+
+    if (!project) {
+      logger.warn('项目不存在或无权限', { userId, projectId: id });
+      return res.status(404).json({ error: '项目不存在或无权限' });
+    }
+
+    await prisma.project.delete({
+      where: { id },
+    });
+
+    res.json({ message: '项目已删除' });
+    logger.info('项目删除成功', { userId, projectId: id });
+    await auditService.logAction(req, AuditAction.DELETE, AuditResource.PROJECT, id, { name: project.name });
+  } catch (error) {
+    logger.error('删除项目失败', { userId, projectId: req.params.id, error });
+    await auditService.logError(req, AuditAction.DELETE, AuditResource.PROJECT, '删除项目失败', req.params.id, { error });
+    res.status(500).json({ error: '删除项目失败' });
+  }
+};

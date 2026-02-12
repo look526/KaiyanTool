@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kaiyan-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kaiyan_platform
+      POSTGRES_USER: kaiyan_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kaiyan_user -d kaiyan_platform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: kaiyan-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build: ./apps/api
+    container_name: kaiyan-api
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - SENTRY_DSN=${SENTRY_DSN}
+      - NODE_ENV=production
+      - PORT=3001
+      - CORS_ORIGIN=https://www.yourdomain.com
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./apps/api:/app
+      - ./uploads:/app/uploads
+    networks:
+      - kaiyan-network
+
+  web:
+    build: ./apps/web
+    container_name: kaiyan-web
+    restart: unless-stopped
+    environment:
+      - VITE_API_BASE_URL=https://api.yourdomain.com
+      - VITE_SENTRY_DSN=${SENTRY_DSN}
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "3000:80"
+    networks:
+      - kaiyan-network
+
+volumes:
+  postgres-data:
+  redis-data:
+  uploads:
+
+networks:
+  kaiyan-network:
+    driver: bridge
