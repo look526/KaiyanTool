@@ -165,8 +165,8 @@ export function Dashboard({ data, onRefresh, onExport }: DashboardProps) {
       <div className="grid grid-cols-4 gap-6">
         <StatCard
           title="总项目数"
-          value={format.totalProjects)}
-          change={stats.trNumber(stats.overviewends.projectsChange}
+          value={formatNumber(stats.overview.totalProjects)}
+          change={stats.trends.projectsChange}
           icon={Projects}
           color="bg-blue-500"
         />
