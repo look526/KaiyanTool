@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Settings,
   User,
@@ -7,13 +7,9 @@ import {
   Palette,
   Key,
   Globe,
-  Mail,
-  Database,
-  Zap,
   CreditCard,
   Building,
-  Save,
-  X
+  Save
 } from 'lucide-react';
 
 interface SettingsSection {
@@ -49,7 +45,7 @@ export function SettingsPanel() {
       case 'notifications':
         return <NotificationSettings onChange={() => setIsDirty(true)} />;
       case 'security':
-        return <SecuritySettings onChange={() => setIsDirty(true)} />;
+        return <SecuritySettings />;
       case 'appearance':
         return <AppearanceSettings onChange={() => setIsDirty(true)} />;
       case 'api':
@@ -219,7 +215,7 @@ function NotificationSettings({ onChange }: { onChange: () => void }) {
   );
 }
 
-function SecuritySettings({ onChange }: { onChange: () => void }) {
+function SecuritySettings() {
   const [passwords, setPasswords] = useState({
     current: '',
     new: '',

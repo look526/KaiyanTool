@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { History, RotateCcw, Tag, Trash2, Download, GitBranch, Eye, Clock, ChevronRight, Search, Filter } from 'lucide-react';
+import { useState } from 'react';
+import { History, RotateCcw, Tag, Trash2, GitBranch, Eye, Clock, ChevronRight, Search } from 'lucide-react';
 
 interface Version {
   id: string;
@@ -17,7 +17,6 @@ interface Version {
 }
 
 interface VersionHistoryProps {
-  projectId: string;
   versions: Version[];
   onRevert: (versionId: string) => void;
   onCompare: (versionId1: string, versionId2: string) => void;
@@ -27,7 +26,6 @@ interface VersionHistoryProps {
 }
 
 export function VersionHistory({
-  projectId,
   versions,
   onRevert,
   onCompare,

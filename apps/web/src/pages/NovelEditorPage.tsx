@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Save, Trash2, GripVertical, FileText, Upload } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Trash2, GripVertical, FileText } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';

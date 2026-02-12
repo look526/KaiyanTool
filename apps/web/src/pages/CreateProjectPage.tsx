@@ -15,7 +15,6 @@ export default function CreateProjectPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [hoveredType, setHoveredType] = useState<string | null>(null);
   const navigate = useNavigate();
   const { theme } = useTheme();
 
@@ -296,13 +295,10 @@ export default function CreateProjectPage() {
                 {projectTypes.map((type) => {
                   const Icon = type.icon;
                   const isSelected = formData.type === type.value;
-                  const isHovered = hoveredType === type.value;
                   return (
                     <div
                       key={type.value}
                       onClick={() => setFormData({ ...formData, type: type.value })}
-                      onMouseEnter={() => setHoveredType(type.value)}
-                      onMouseLeave={() => setHoveredType(null)}
                       style={{
                         padding: '24px',
                         border: '2px solid ' + (isSelected ? 'transparent' : (theme === 'dark' ? '#2a2a2a' : '#e5e7eb')),

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Copy, FolderOpen, Users, Calendar, Star, Eye, Download, Plus, X, Check } from 'lucide-react';
+import { useState } from 'react';
+import { Copy, FolderOpen, Star, Eye, Download, X } from 'lucide-react';
 
 interface Template {
   id: string;

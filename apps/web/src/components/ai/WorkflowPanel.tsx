@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Play,
   Pause,
-  SkipForward,
   X,
   Check,
   Clock,
@@ -10,12 +9,6 @@ import {
   ChevronRight,
   Layers,
   Zap,
-  Settings,
-  ArrowRight,
-  FileText,
-  Image,
-  Video,
-  Download,
   User
 } from 'lucide-react';
 
@@ -198,7 +191,6 @@ export function WorkflowPanel({ projectId, onClose }: WorkflowPanelProps) {
   );
 
   if (execution) {
-    const currentStep = execution.steps.find(s => s.id === execution.currentStepId);
     const completedSteps = execution.steps.filter(s => s.status === 'completed').length;
     const totalDuration = execution.steps.reduce((acc, s) => acc + (s.duration || 0), 0);
 

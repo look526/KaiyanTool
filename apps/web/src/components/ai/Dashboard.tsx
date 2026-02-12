@@ -59,7 +59,7 @@ interface DashboardProps {
 }
 
 export function Dashboard({ data, onRefresh, onExport }: DashboardProps) {
-  const [stats, setStats] = useState<DashboardStats>(data || {
+  const [stats] = useState<DashboardStats>(data || {
     overview: {
       totalProjects: 12,
       totalAssets: 156,
@@ -304,8 +304,8 @@ export function Dashboard({ data, onRefresh, onExport }: DashboardProps) {
   );
 }
 
-export function ProjectStats({ projectId }: { projectId: string }) {
-  const [stats, setStats] = useState({
+export function ProjectStats(): JSX.Element {
+  const [stats] = useState({
     totalShots: 0,
     completedShots: 0,
     totalDuration: 0,
