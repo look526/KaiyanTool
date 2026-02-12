@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { apiClient, User } from '../lib/api';
 
-const ENABLE_AUTH = true;
+const ENABLE_AUTH = false;
 
 interface AuthContextType {
   user: User | null;
