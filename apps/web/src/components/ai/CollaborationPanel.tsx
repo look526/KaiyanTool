@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Users,
   UserPlus,
@@ -11,10 +11,8 @@ import {
   Eye,
   Edit3,
   Trash2,
-  MessageSquare,
   Send,
   Clock,
-  UserCheck,
   UserX
 } from 'lucide-react';
 
@@ -42,7 +40,6 @@ interface Invitation {
 }
 
 interface CollaborationPanelProps {
-  projectId: string;
   members: TeamMember[];
   invitations: Invitation[];
   currentUserRole: 'owner' | 'admin' | 'editor' | 'viewer';
@@ -54,7 +51,6 @@ interface CollaborationPanelProps {
 }
 
 export function CollaborationPanel({
-  projectId,
   members,
   invitations,
   currentUserRole,

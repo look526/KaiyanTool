@@ -335,27 +335,6 @@ class ApiClient {
     });
   }
 
-  async generateScript(projectId: string, storyOutline: string, genre: string, characters: string[], settings: string): Promise<Script> {
-    return this.request<Script>('/api/director/script', {
-      method: 'POST',
-      body: JSON.stringify({ projectId, storyOutline, genre, characters, settings }),
-    });
-  }
-
-  async generateShotsFromScript(projectId: string, scriptContent: string, visualStyle?: string): Promise<{ shots: any[] }> {
-    return this.request<{ shots: any[] }>('/api/director/shots', {
-      method: 'POST',
-      body: JSON.stringify({ projectId, scriptContent, visualStyle }),
-    });
-  }
-
-  async optimizeShotPrompt(shotId: string, referenceImages: string[]): Promise<{ startPrompt: string; endPrompt: string }> {
-    return this.request<{ startPrompt: string; endPrompt: string }>('/api/director/optimize-shot', {
-      method: 'POST',
-      body: JSON.stringify({ shotId, referenceImages }),
-    });
-  }
-
   async saveNovel(projectId: string, title: string, content: string): Promise<{ success: boolean }> {
     return this.request<{ success: boolean }>('/api/novel/save', {
       method: 'POST',

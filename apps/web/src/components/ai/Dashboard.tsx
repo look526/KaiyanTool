@@ -1,18 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   TrendingUp,
   TrendingDown,
   Users,
-  Projects,
+  Projector,
   Images,
-  Videos,
   Clock,
   Award,
   Zap,
   BarChart3,
   PieChart,
   Activity,
-  Calendar,
   Download,
   RefreshCw
 } from 'lucide-react';
@@ -167,7 +165,7 @@ export function Dashboard({ data, onRefresh, onExport }: DashboardProps) {
           title="总项目数"
           value={formatNumber(stats.overview.totalProjects)}
           change={stats.trends.projectsChange}
-          icon={Projects}
+          icon={Projector}
           color="bg-blue-500"
         />
         <StatCard

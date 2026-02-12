@@ -1,21 +1,27 @@
-FROM node:18-alpine as build
+FROM node:18-alpine as builder
 
 WORKDIR /app
 
 COPY package*.json ./
-
-RUN npm install --frozen-lockfile
+RUN npm ci
 
 COPY . .
 
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 RUN npm run build
 
-FROM nginx:1.23-alpine
+FROM node:18-alpine AS runner
 
-COPY --from=build /app/dist /usr/share/nginx/html
+WORKDIR /app
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+ENV NODE_ENV=production
 
-EXPOSE 80
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 
-CMD ["nginx", "-g", "daemon off;"]
+EXPOSE 3000
+
+CMD ["node", "server.js"]

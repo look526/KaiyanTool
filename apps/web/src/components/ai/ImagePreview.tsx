@@ -3,9 +3,6 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCw,
-  RotateCcw,
-  FlipHorizontal,
-  Crop,
   Download,
   Share2,
   Info,
@@ -13,13 +10,8 @@ import {
   Maximize2,
   Minimize2,
   Grid,
-  Layers,
-  Eye,
-  EyeOff,
-  Compare,
   ArrowLeft,
-  ArrowRight,
-  Check
+  ArrowRight
 } from 'lucide-react';
 
 interface ImagePreviewProps {
@@ -232,17 +224,6 @@ export function ImagePreview({
           >
             <Grid className="w-5 h-5 text-white" />
           </button>
-          {comparisonSrc && (
-            <button
-              onClick={() => setCompareMode(!compareMode)}
-              className={`p-2 rounded-lg transition-colors ${
-                compareMode ? 'bg-blue-500' : 'hover:bg-gray-800'
-              }`}
-              title="对比模式"
-            >
-              <Compare className="w-5 h-5 text-white" />
-            </button>
-          )}
           <button
             onClick={() => setShowMetadata(!showMetadata)}
             className={`p-2 rounded-lg transition-colors ${

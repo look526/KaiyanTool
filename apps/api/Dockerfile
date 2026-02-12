@@ -1,18 +1,26 @@
-FROM node:18-alpine
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
 COPY package*.json ./
-
-RUN npm install --production --frozen-lockfile
+RUN npm ci
 
 COPY . .
 
 RUN npm run build
 
-RUN mkdir -p uploads
-RUN chmod 755 uploads
+FROM node:18-alpine AS runner
 
-EXPOSE 3001
+WORKDIR /app
 
-CMD ["npm", "start"]
+ENV NODE_ENV=production
+
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./
+
+RUN mkdir -p uploads && chmod 755 uploads
+
+EXPOSE 5000
+
+CMD ["node", "dist/main.js"]
