@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import logger from '../lib/logger';
-import { auditService } from '../services/audit.service';
+import { auditService, AuditAction, AuditResource } from '../services/audit.service';
 
 const prisma = new PrismaClient();
 
@@ -9,7 +9,7 @@ const ProjectTypeValues = ['script', 'novel', 'mixed'] as const;
 
 export const createProject = async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const currentUser = req.user!.id;
     const { name, description, type } = req.body;
 
     if (!name) {
@@ -25,7 +25,7 @@ export const createProject = async (req: Request, res: Response) => {
         name,
         description: description || '',
         type: type || 'script',
-        owner: { connect: { id: userId } },
+        owner: { connect: { id: currentUser } },
       },
       include: {
         owner: {
@@ -35,9 +35,9 @@ export const createProject = async (req: Request, res: Response) => {
     });
 
     res.status(201).json(project);
-    logger.info('项目创建成功', { userId, projectId: project.id, name });
+    logger.info('项目创建成功', { userId: currentUser, projectId: project.id, name });
   } catch (error) {
-    logger.error('创建项目失败', { userId, error });
+    logger.error('创建项目失败', { userId: currentUser, error });
     res.status(500).json({ error: '创建项目失败' });
   }
 };
@@ -139,7 +139,7 @@ export const getProject = async (req: Request, res: Response) => {
           },
         },
         shots: {
-          orderBy: { sequence: 'asc' },
+          orderBy: { createdAt: 'asc' },
           take: 10,
         },
         characters: {

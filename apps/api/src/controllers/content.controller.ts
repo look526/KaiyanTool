@@ -53,21 +53,21 @@ export const createScript = async (req: Request, res: Response) => {
 
 export const getScripts = async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const currentUser = req.user!.id;
     const { projectId } = req.params;
 
     const project = await prisma.project.findFirst({
       where: {
         id: projectId,
         OR: [
-          { ownerId: userId },
-          { members: { some: { userId } } },
+          { ownerId: currentUser },
+          { members: { some: { userId: currentUser } } },
         ],
       },
     });
 
     if (!project) {
-      logger.warn('项目不存在', { userId, projectId });
+      logger.warn('项目不存在', { userId: currentUser, projectId });
       return res.status(404).json({ error: '项目不存在' });
     }
 
