@@ -58,7 +58,7 @@ export class PremiereExportService {
   private async loadProject(projectId: string): Promise<ProjectData> {
     const shots = await prisma.shot.findMany({
       where: { projectId },
-      orderBy: { sequence: 'asc' }
+      orderBy: { createdAt: 'asc' }
     });
 
     const assets = await prisma.asset.findMany({

@@ -108,10 +108,12 @@ export class QualityScoringService {
           userId,
           type: report.type,
           targetId: report.id,
-          score: report.type === 'text' 
+          score: report.type === 'text'
             ? JSON.stringify(report.score)
             : JSON.stringify(report.score),
-          timestamp: report.timestamp,
+          metadata: JSON.stringify({
+            timestamp: report.timestamp
+          })
         },
       })
       logger.info('质量报告已保存', { userId, type: report.type, id: report.id })
@@ -131,7 +133,7 @@ export class QualityScoringService {
           userId,
           type,
         },
-        orderBy: { timestamp: 'desc' },
+        orderBy: { createdAt: 'desc' },
         take: limit,
       })
 

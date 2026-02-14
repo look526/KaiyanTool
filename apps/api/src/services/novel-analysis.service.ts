@@ -363,15 +363,13 @@ ${JSON.stringify(novelAnalysis, null, 2)}
           projectId,
           name: character.name,
           appearance: JSON.stringify({
+            role: character.role,
+            source: 'novel_analysis',
             description: character.description,
             personality: character.personality,
             arc: character.arc,
             relationships: character.relationships
-          }),
-          metadata: {
-            role: character.role,
-            source: 'novel_analysis'
-          } as any
+          })
         }
       });
     }
@@ -380,17 +378,18 @@ ${JSON.stringify(novelAnalysis, null, 2)}
       await prisma.scene.create({
         data: {
           projectId,
-          description: chapter.summary,
           location: chapter.locations[0],
           time: chapter.tone,
-          metadata: {
+          atmosphere: '',
+          metadata: JSON.stringify({
+            description: chapter.summary,
             name: chapter.title,
             chapterNumber: chapter.number,
             wordCount: chapter.wordCount,
             characters: chapter.characters,
             events: chapter.events,
             keyDialogues: chapter.keyDialogues
-          } as any
+          })
         }
       });
     }

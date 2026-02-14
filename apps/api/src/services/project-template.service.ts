@@ -26,12 +26,40 @@ export class ProjectTemplateService {
         description: validated.description,
         category: validated.category,
         config: validated.settings as any,
-        defaultAssets: validated.defaultAssets as any,
         isPublic: validated.isPublic,
-        tags: validated.tags || [],
         createdBy: userId
       }
     });
+
+    if (validated.defaultAssets?.length) {
+      for (const asset of validated.defaultAssets) {
+        switch (asset.type) {
+          case 'character':
+            await prisma.character.create({
+              data: {
+                projectId: '',
+                name: asset.name,
+                appearance: JSON.stringify({
+                  description: asset.description || '',
+                  prompt: asset.prompt
+                })
+              }
+            });
+            break;
+          case 'scene':
+            await prisma.scene.create({
+              data: {
+                projectId: '',
+                description: asset.description || '',
+                metadata: JSON.stringify({
+                  name: asset.name
+                })
+              }
+            });
+            break;
+        }
+      }
+    }
 
     return template;
   }
@@ -149,14 +177,6 @@ export class ProjectTemplateService {
       }
     }
 
-    await prisma.templateUsage.create({
-      data: {
-        templateId: template.id,
-        projectId: project.id,
-        usedBy: userId
-      }
-    });
-
     return project;
   }
 
@@ -179,9 +199,7 @@ export class ProjectTemplateService {
         name: input.name,
         description: input.description,
         category: input.category,
-        config: input.settings as any,
-        defaultAssets: input.defaultAssets as any,
-        tags: input.tags
+        config: input.settings as any
       }
     });
 

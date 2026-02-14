@@ -149,9 +149,7 @@ class ExportService {
           projectId: project.id,
           location: scene.location,
           time: scene.time,
-          weather: scene.weather,
-          lighting: scene.lighting,
-          mood: scene.mood,
+          atmosphere: scene.mood || '',
           referenceImages: scene.referenceImages,
         },
       });
@@ -191,6 +189,20 @@ class ExportService {
           prompt: panel.prompt,
           style: panel.style,
         },
+      });
+    }
+
+    for (const panel of exportData.panels) {
+      await prisma.shot.update({
+        where: { id: panel.shotId },
+        data: {
+          metadata: JSON.stringify({
+            position: panel.position,
+            imageUrl: panel.imageUrl,
+            prompt: panel.prompt,
+            style: panel.style
+          })
+        }
       });
     }
 
