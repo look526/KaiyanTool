@@ -172,7 +172,7 @@ export const parseScript = async (req: Request, res: Response) => {
 
 export const updateScript = async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const currentUser = req.user!.id;
     const { id } = req.params;
     const { title, content } = req.body;
 
@@ -181,15 +181,15 @@ export const updateScript = async (req: Request, res: Response) => {
         id,
         project: {
           OR: [
-            { ownerId: userId },
-            { members: { some: { userId } } },
+            { ownerId: currentUser },
+            { members: { some: { userId: currentUser } } },
           ],
         },
       },
     });
 
     if (!script) {
-      logger.warn('剧本不存在或无权限', { userId, scriptId: id });
+      logger.warn('剧本不存在或无权限', { userId: currentUser, scriptId: id });
       return res.status(404).json({ error: '剧本不存在或无权限' });
     }
 
@@ -202,9 +202,9 @@ export const updateScript = async (req: Request, res: Response) => {
     });
 
     res.json(updatedScript);
-    logger.info('剧本更新成功', { userId, scriptId: id });
+    logger.info('剧本更新成功', { userId: currentUser, scriptId: id });
   } catch (error) {
-    logger.error('更新剧本失败', { userId, scriptId: req.params.id, error });
+    logger.error('更新剧本失败', { userId: currentUser, scriptId: req.params.id, error });
     res.status(500).json({ error: '更新剧本失败' });
   }
 };

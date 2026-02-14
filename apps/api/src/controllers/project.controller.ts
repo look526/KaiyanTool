@@ -165,16 +165,16 @@ export const getProject = async (req: Request, res: Response) => {
 
 export const updateProject = async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const currentUser = req.user!.id;
     const { id } = req.params;
     const { name, description, type } = req.body;
 
     const project = await prisma.project.findFirst({
-      where: { id, ownerId: userId },
+      where: { id, ownerId: currentUser },
     });
 
     if (!project) {
-      logger.warn('项目不存在或无权限', { userId, projectId: id });
+      logger.warn('项目不存在或无权限', { userId: currentUser, projectId: id });
       return res.status(404).json({ error: '项目不存在或无权限' });
     }
 
@@ -197,9 +197,9 @@ export const updateProject = async (req: Request, res: Response) => {
     });
 
     res.json(updatedProject);
-    logger.info('项目更新成功', { userId, projectId: id });
+    logger.info('项目更新成功', { userId: currentUser, projectId: id });
   } catch (error) {
-    logger.error('更新项目失败', { userId, projectId: req.params.id, error });
+    logger.error('更新项目失败', { userId: currentUser, projectId: req.params.id, error });
     res.status(500).json({ error: '更新项目失败' });
   }
 };
