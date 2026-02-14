@@ -196,7 +196,6 @@ class NineGridController {
       }
 
       const { shotId } = req.params
-      const { providerId } = req.body
 
       const shot = await prisma.shot.findFirst({
         where: {
@@ -236,8 +235,8 @@ class NineGridController {
         })
       )
 
-      const successful = results.filter(r => r.status === 'fulfilled').length
-      const failed = results.filter(r => r.status === 'rejected').length
+      const successful = results.filter((r: any) => r.status === 'fulfilled').length
+      const failed = results.filter((r: any) => r.status === 'rejected').length
 
       logger.info('九宫格面板生成完成', { userId: req.userId, shotId, successful, failed })
       res.json({
@@ -288,7 +287,7 @@ class NineGridController {
         where: { shotId },
       })
 
-      const existingIds = new Set(existingPanels.map(p => p.id))
+      const existingIds = new Set(existingPanels.map((p: any) => p.id))
       const invalidIds = panelIds.filter(id => !existingIds.has(id))
       if (invalidIds.length > 0) {
         res.status(400).json({ error: 'Invalid panel IDs', invalidIds })

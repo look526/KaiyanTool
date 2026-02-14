@@ -143,12 +143,13 @@ class VideoGenerationController {
         return
       }
 
+      const video = shot.video
       res.json({
-        videoId: shot.video.id,
-        status: shot.video.status,
-        url: shot.video.url,
-        duration: shot.video.duration,
-        format: shot.video.format,
+        videoId: video?.id,
+        status: video?.status,
+        url: video?.url,
+        duration: video?.duration,
+        format: video?.format,
       })
     } catch (error) {
       logger.error('获取视频状态失败', { userId: req.userId, shotId: req.params.id, error })
