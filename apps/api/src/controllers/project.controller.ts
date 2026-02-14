@@ -44,10 +44,10 @@ export const createProject = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const currentUser = req.user?.id;
     const { page = '1', limit = '10', search, type } = req.query;
 
-    if (!userId) {
+    if (!currentUser) {
       return res.status(401).json({ error: '未授权' });
     }
 
@@ -57,8 +57,8 @@ export const getProjects = async (req: Request, res: Response) => {
 
     const where: any = {
       OR: [
-        { ownerId: userId },
-        { members: { some: { userId } } },
+        { ownerId: currentUser },
+        { members: { some: { userId: currentUser } } },
       ],
     };
 
@@ -105,7 +105,7 @@ export const getProjects = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    logger.error('获取项目列表失败', { userId, error });
+    logger.error('获取项目列表失败', { userId: currentUser, error });
     res.status(500).json({ error: '获取项目列表失败' });
   }
 };

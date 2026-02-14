@@ -6,10 +6,10 @@ const prisma = new PrismaClient();
 
 export const createScript = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const currentUser = req.user?.id;
     const { projectId, title, content } = req.body;
 
-    if (!userId) {
+    if (!currentUser) {
       return res.status(401).json({ error: '未授权' });
     }
 
@@ -21,14 +21,14 @@ export const createScript = async (req: Request, res: Response) => {
       where: {
         id: projectId,
         OR: [
-          { ownerId: userId },
-          { members: { some: { userId } } },
+          { ownerId: currentUser },
+          { members: { some: { userId: currentUser } } },
         ],
       },
     });
 
     if (!project) {
-      logger.warn('项目不存在', { userId, projectId });
+      logger.warn('项目不存在', { userId: currentUser, projectId });
       return res.status(404).json({ error: '项目不存在' });
     }
 
@@ -44,9 +44,9 @@ export const createScript = async (req: Request, res: Response) => {
     });
 
     res.status(201).json(script);
-    logger.info('剧本创建成功', { userId, projectId, scriptId: script.id });
+    logger.info('剧本创建成功', { userId: currentUser, projectId, scriptId: script.id });
   } catch (error) {
-    logger.error('创建剧本失败', { userId: req.user!.id, error });
+    logger.error('创建剧本失败', { userId: currentUser, error });
     res.status(500).json({ error: '创建剧本失败' });
   }
 };
