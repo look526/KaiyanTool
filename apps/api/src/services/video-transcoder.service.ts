@@ -112,8 +112,6 @@ class VideoTranscoderService {
   }
 
   async uploadVideo(filePath: string, key: string): Promise<string> {
-    const metadata = await this.getVideoMetadata(filePath);
-
     let url: string;
     if (ossService.isEnabled()) {
       url = await ossService.uploadFile(filePath, key, 'video/mp4');

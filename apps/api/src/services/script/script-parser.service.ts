@@ -326,8 +326,6 @@ ${scriptContent}
   }
 
   private async getCachedParse(scriptContent: string): Promise<ParsedScript | null> {
-    const crypto = await import('crypto')
-    const hash = crypto.createHash('md5').update(scriptContent).digest('hex')
     return null
   }
 

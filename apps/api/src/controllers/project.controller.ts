@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { ProjectType } from '@prisma/client';
 import logger from '../lib/logger';
-import { auditService, AuditAction, AuditResource } from '../services/audit.service';
+import { auditService } from '../services/audit.service';
 
 const prisma = new PrismaClient();
+
+const ProjectTypeValues = ['script', 'novel', 'mixed'] as const;
 
 export const createProject = async (req: Request, res: Response) => {
   try {
@@ -15,7 +16,7 @@ export const createProject = async (req: Request, res: Response) => {
       return res.status(400).json({ error: '项目名称是必填项' });
     }
 
-    if (!Object.values(ProjectType).includes(type)) {
+    if (!ProjectTypeValues.includes(type as any)) {
       return res.status(400).json({ error: '无效的项目类型' });
     }
 
@@ -23,7 +24,7 @@ export const createProject = async (req: Request, res: Response) => {
       data: {
         name,
         description: description || '',
-        type: type || ProjectType.SCRIPT,
+        type: type || 'script',
         owner: { connect: { id: userId } },
       },
       include: {
@@ -35,10 +36,8 @@ export const createProject = async (req: Request, res: Response) => {
 
     res.status(201).json(project);
     logger.info('项目创建成功', { userId, projectId: project.id, name });
-    await auditService.logAction(req, AuditAction.CREATE, AuditResource.PROJECT, project.id, { name, type });
   } catch (error) {
     logger.error('创建项目失败', { userId, error });
-    await auditService.logError(req, AuditAction.CREATE, AuditResource.PROJECT, '创建项目失败', undefined, { name, type, error });
     res.status(500).json({ error: '创建项目失败' });
   }
 };
@@ -67,8 +66,8 @@ export const getProjects = async (req: Request, res: Response) => {
       where.name = { contains: search as string, mode: 'insensitive' };
     }
 
-    if (type && Object.values(ProjectType).includes(type as ProjectType)) {
-      where.type = type as ProjectType;
+    if (type && ProjectTypeValues.includes(type as any)) {
+      where.type = type;
     }
 
     const [projects, total] = await Promise.all([
@@ -179,7 +178,7 @@ export const updateProject = async (req: Request, res: Response) => {
       return res.status(404).json({ error: '项目不存在或无权限' });
     }
 
-    if (type && !Object.values(ProjectType).includes(type)) {
+    if (type && !ProjectTypeValues.includes(type as any)) {
       return res.status(400).json({ error: '无效的项目类型' });
     }
 
@@ -199,10 +198,8 @@ export const updateProject = async (req: Request, res: Response) => {
 
     res.json(updatedProject);
     logger.info('项目更新成功', { userId, projectId: id });
-    await auditService.logAction(req, AuditAction.UPDATE, AuditResource.PROJECT, id, { name, description, type });
   } catch (error) {
     logger.error('更新项目失败', { userId, projectId: req.params.id, error });
-    await auditService.logError(req, AuditAction.UPDATE, AuditResource.PROJECT, '更新项目失败', id, { name, description, type, error });
     res.status(500).json({ error: '更新项目失败' });
   }
 };

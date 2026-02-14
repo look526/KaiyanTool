@@ -75,8 +75,6 @@ export class VersionControlService {
       }))
     };
 
-    const hash = this.generateHash(JSON.stringify(snapshotData));
-
     const latestVersion = await prisma.projectVersion.findFirst({
       where: { projectId: validated.projectId },
       orderBy: { version: 'desc' }

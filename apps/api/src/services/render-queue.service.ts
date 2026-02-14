@@ -162,10 +162,9 @@ class RenderQueueService {
   }
 
   private async processImageTask(task: any): Promise<void> {
-    const { ImageGenerationService } = await import('./image-generation.service');
-    const service = new ImageGenerationService();
-    
-    await service.generateImage({
+    const { generateImage } = await import('./image-generation.service');
+
+    await generateImage({
       prompt: task.params.prompt,
       width: task.params.width,
       height: task.params.height,
@@ -174,10 +173,9 @@ class RenderQueueService {
   }
 
   private async processVideoTask(task: any): Promise<void> {
-    const { VideoGenerationService } = await import('./video-generation.service');
-    const service = new VideoGenerationService();
-    
-    await service.generateVideo({
+    const { generateVideo } = await import('./video-generation.service');
+
+    await generateVideo({
       startFrameId: task.params.startFrameId,
       endFrameId: task.params.endFrameId,
       prompt: task.params.prompt,
@@ -188,10 +186,9 @@ class RenderQueueService {
   }
 
   private async processInterpolationTask(task: any): Promise<void> {
-    const { VideoGenerationService } = await import('./video-generation.service');
-    const service = new VideoGenerationService();
-    
-    await service.interpolateFrames(
+    const { interpolateFrames } = await import('./video-generation.service');
+
+    await interpolateFrames(
       task.params.startFrameId,
       task.params.endFrameId,
       task.projectId

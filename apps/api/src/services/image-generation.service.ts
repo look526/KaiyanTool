@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AIProviderService } from '../services/ai/provider.service';
+import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
 
 const ImageGenerationSchema = z.object({
@@ -16,8 +16,6 @@ const ImageGenerationSchema = z.object({
 export async function generateImage(input: z.infer<typeof ImageGenerationSchema>) {
   const validated = ImageGenerationSchema.parse(input);
 
-  const provider = new AIProviderService();
-
   const enhancedPrompt = await buildEnhancedPrompt(validated);
 
   const task = await prisma.renderTask.create({
@@ -31,6 +29,7 @@ export async function generateImage(input: z.infer<typeof ImageGenerationSchema>
   });
 
   try {
+    const provider = aiProviderService as any;
     const result = await provider.generateImage({
       prompt: enhancedPrompt,
       negativePrompt: validated.negativePrompt,
@@ -43,11 +42,11 @@ export async function generateImage(input: z.infer<typeof ImageGenerationSchema>
         type: 'image',
         url: result.url,
         thumbnailUrl: result.thumbnailUrl || result.url,
-        prompt: enhancedPrompt,
         metadata: {
           width: validated.width,
           height: validated.height,
-          taskId: task.id
+          taskId: task.id,
+          prompt: enhancedPrompt
         },
         projectId: validated.projectId
       }
@@ -57,7 +56,7 @@ export async function generateImage(input: z.infer<typeof ImageGenerationSchema>
       where: { id: task.id },
       data: {
         status: 'completed',
-        result: { assetId: asset.id, url: result.url }
+        params: { assetId: asset.id, url: result.url }
       }
     });
 
@@ -74,7 +73,7 @@ export async function generateImage(input: z.infer<typeof ImageGenerationSchema>
   }
 }
 
-async function buildEnhancedPrompt(input: ImageGenerationSchema): Promise<string> {
+async function buildEnhancedPrompt(input: z.infer<typeof ImageGenerationSchema>): Promise<string> {
   const parts: string[] = [input.prompt];
 
   if (input.characterRefImageId) {

@@ -7,7 +7,7 @@ const RegisterPluginSchema = z.object({
   description: z.string().optional(),
   entryPoint: z.string(),
   permissions: z.array(z.string()),
-  settings: z.record(z.any()).optional()
+  settings: z.record(z.string(), z.any()).optional()
 });
 
 export interface PluginManifest {
@@ -347,7 +347,7 @@ const RegisterSchema = z.object({
   description: z.string().optional(),
   entryPoint: z.string(),
   permissions: z.array(z.string()),
-  settings: z.record(z.any()).optional()
+  settings: z.record(z.string(), z.any()).optional()
 });
 
 export const pluginService = new PluginService();

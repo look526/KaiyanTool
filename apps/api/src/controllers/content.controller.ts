@@ -81,7 +81,7 @@ export const getScripts = async (req: Request, res: Response) => {
 
     res.json(scripts);
   } catch (error) {
-    logger.error('获取剧本列表失败', { userId, projectId, error });
+    logger.error('获取剧本列表失败', { error });
     res.status(500).json({ error: '获取剧本列表失败' });
   }
 };

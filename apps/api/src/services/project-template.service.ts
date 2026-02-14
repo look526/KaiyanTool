@@ -5,7 +5,7 @@ const CreateTemplateSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   category: z.string(),
-  settings: z.record(z.any()),
+  settings: z.record(z.string(), z.any()),
   defaultAssets: z.array(z.object({
     type: z.enum(['character', 'scene', 'shot_template']),
     name: z.string(),

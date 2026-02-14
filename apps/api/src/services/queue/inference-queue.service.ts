@@ -1,6 +1,5 @@
-import { Queue, Job, JobOptions } from 'bull'
-import { createClient } from 'redis'
-import { prisma } from '../../lib/prisma'
+import Queue from 'bull'
+import { Job, JobOptions } from 'bull'
 import logger from '../../lib/logger'
 
 export interface InferenceTask {
@@ -31,7 +30,7 @@ export class InferenceQueueService {
 
   constructor() {
     const queueConfig = {
-      redis: process.env.REDIS_URL || 'redis://localhost:6379',
+      connection: process.env.REDIS_URL || 'redis://localhost:6379',
       defaultJobOptions: {
         removeOnComplete: 10,
         removeOnFail: 50,
