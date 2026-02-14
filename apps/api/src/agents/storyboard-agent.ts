@@ -1,4 +1,4 @@
-import { AIProviderService } from '../services/ai/provider.service';
+import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
 import { scriptAnalysisAgent } from './script-analysis.agent';
 
@@ -47,11 +47,7 @@ interface StoryboardOutput {
 }
 
 export class StoryboardAgent {
-  private provider: AIProviderService;
-
-  constructor() {
-    this.provider = new AIProviderService();
-  }
+  constructor() {}
 
   async generateStoryboard(input: StoryboardInput): Promise<StoryboardOutput> {
     let outline: any;
@@ -135,16 +131,13 @@ ${JSON.stringify(outline, null, 2)}
 }`;
 
     try {
-      const response = await this.provider.complete(
-        {
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.5,
-          maxTokens: 5000
-        },
-        'storyboard-generation'
+      const response = await aiProviderService.chat(
+        'default',
+        [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        undefined
       );
 
       const parsed = this.parseJsonResponse(response.content);
@@ -190,9 +183,10 @@ ${feedback}
   }
 }`;
 
-    const response = await this.provider.complete(
-      { messages: [{ role: 'user', content: prompt }], temperature: 0.5, maxTokens: 1000 },
-      'shot-refinement'
+    const response = await aiProviderService.chat(
+      'default',
+      [{ role: 'user', content: prompt }],
+      undefined
     );
 
     const parsed = this.parseJsonResponse(response.content);
@@ -250,9 +244,10 @@ ${JSON.stringify({
 ]
 `;
 
-    const response = await this.provider.complete(
-      { messages: [{ role: 'user', content: prompt }], temperature: 0.7, maxTokens: 1500 },
-      'shot-variations'
+    const response = await aiProviderService.chat(
+      'default',
+      [{ role: 'user', content: prompt }],
+      undefined
     );
 
     return this.parseJsonResponse(response.content);
@@ -291,9 +286,10 @@ ${JSON.stringify({
   "technicalNotes": "技术说明"
 }`;
 
-    const response = await this.provider.complete(
-      { messages: [{ role: 'user', content: prompt }], temperature: 0.6, maxTokens: 500 },
-      'transition-design'
+    const response = await aiProviderService.chat(
+      'default',
+      [{ role: 'user', content: prompt }],
+      undefined
     );
 
     return this.parseJsonResponse(response.content);

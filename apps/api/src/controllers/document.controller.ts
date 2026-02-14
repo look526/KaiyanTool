@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
-import { logger } from '../lib/logger';
+import logger from '../lib/logger';
 
 class DocumentController {
   // 获取文档列表

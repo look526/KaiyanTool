@@ -27,7 +27,6 @@ export class VersionControlService {
         shots: true,
         characters: true,
         scenes: true,
-        assets: true,
         documents: true
       }
     });
@@ -68,13 +67,6 @@ export class VersionControlService {
         timeOfDay: scene.timeOfDay,
         metadata: scene.metadata as Record<string, any>
       })),
-      assets: project.assets.map(asset => ({
-        id: asset.id,
-        type: asset.type,
-        name: asset.name,
-        url: asset.url,
-        metadata: asset.metadata as Record<string, any>
-      })),
       documents: project.documents.map(doc => ({
         id: doc.id,
         title: doc.title,
@@ -97,9 +89,8 @@ export class VersionControlService {
         name: validated.name || `Version ${((latestVersion?.version || 0) + 1)}`,
         description: validated.description,
         tags: validated.tags || [],
-        data: snapshotData as any,
-        hash,
-        createdBy: project.ownerId
+        snapshot: snapshotData as any,
+        createdBy: validated.projectId
       }
     });
 
@@ -113,12 +104,7 @@ export class VersionControlService {
       where: { projectId },
       orderBy: { version: 'desc' },
       take: limit,
-      skip: offset,
-      include: {
-        createdBy: {
-          select: { id: true, name: true, email: true, avatar: true }
-        }
-      }
+      skip: offset
     });
 
     const total = await prisma.projectVersion.count({
@@ -130,12 +116,7 @@ export class VersionControlService {
 
   async getVersion(versionId: string) {
     const version = await prisma.projectVersion.findUnique({
-      where: { id: versionId },
-      include: {
-        createdBy: {
-          select: { id: true, name: true, email: true, avatar: true }
-        }
-      }
+      where: { id: versionId }
     });
 
     if (!version) {
@@ -151,8 +132,8 @@ export class VersionControlService {
       this.getVersion(input.versionId2)
     ]);
 
-    const data1 = version1.data as any;
-    const data2 = version2.data as any;
+    const data1 = version1.snapshot as any;
+    const data2 = version2.snapshot as any;
 
     const differences = {
       shots: this.diffArrays(data1.shots, data2.shots, 'id'),
@@ -173,80 +154,80 @@ export class VersionControlService {
   async revertToVersion(input: z.infer<typeof RevertSchema>) {
     const targetVersion = await this.getVersion(input.versionId);
 
-    if (!targetVersion.data) {
+    if (!targetVersion.snapshot) {
       throw new Error('Version data not found');
     }
 
-    const data = targetVersion.data as any;
+    const data = targetVersion.snapshot as any;
     const projectId = targetVersion.projectId;
 
-    await prisma.$transaction(async (tx) => {
-      await tx.shot.deleteMany({
+    await prisma.$transaction([
+      prisma.shot.deleteMany({
         where: { projectId }
-      });
+      }),
 
-      await tx.character.deleteMany({
+      prisma.character.deleteMany({
         where: { projectId }
-      });
+      }),
 
-      await tx.scene.deleteMany({
+      prisma.scene.deleteMany({
         where: { projectId }
+      })
+    ]);
+
+    if (data.shots?.length) {
+      await prisma.shot.createMany({
+        data: data.shots.map((shot: any) => ({
+          projectId,
+          sequence: shot.sequence,
+          title: shot.title,
+          description: shot.description,
+          prompt: shot.prompt,
+          duration: shot.duration,
+          status: shot.status,
+          metadata: shot.metadata
+        }))
       });
+    }
 
-      if (data.shots?.length) {
-        await tx.shot.createMany({
-          data: data.shots.map((shot: any) => ({
-            projectId,
-            sequence: shot.sequence,
-            title: shot.title,
-            description: shot.description,
-            prompt: shot.prompt,
-            duration: shot.duration,
-            status: shot.status,
-            metadata: shot.metadata
-          }))
-        });
-      }
+    if (data.characters?.length) {
+      await prisma.character.createMany({
+        data: data.characters.map((char: any) => ({
+          projectId,
+          name: char.name,
+          description: char.description,
+          appearance: char.appearance,
+          metadata: char.metadata
+        }))
+      });
+    }
 
-      if (data.characters?.length) {
-        await tx.character.createMany({
-          data: data.characters.map((char: any) => ({
-            projectId,
-            name: char.name,
-            description: char.description,
-            appearance: char.appearance,
-            metadata: char.metadata
-          }))
-        });
-      }
+    if (data.scenes?.length) {
+      await prisma.scene.createMany({
+        data: data.scenes.map((scene: any) => ({
+          projectId,
+          name: scene.name,
+          description: scene.description,
+          location: scene.location,
+          timeOfDay: scene.timeOfDay,
+          metadata: scene.metadata
+        }))
+      });
+    }
 
-      if (data.scenes?.length) {
-        await tx.scene.createMany({
-          data: data.scenes.map((scene: any) => ({
-            projectId,
-            name: scene.name,
-            description: scene.description,
-            location: scene.location,
-            timeOfDay: scene.timeOfDay,
-            metadata: scene.metadata
-          }))
-        });
-      }
+    if (data.project?.settings) {
+      await prisma.project.update({
+        where: { id: projectId },
+        data: {
+          settings: data.project.settings
+        }
+      });
+    }
 
-      if (data.project?.settings) {
-        await tx.project.update({
-          where: { id: projectId },
-          data: {
-            settings: data.project.settings
-          }
-        });
-      }
-
-      await this.createSnapshot({
-        projectId,
-        name: `Revert to v${targetVersion.version}`,
-        description: `Reverted from current version to v${targetVersion.version}`
-      }, tx);
+    await this.createSnapshot({
+      projectId,
+      name: `Revert to v${targetVersion.version}`,
+      description: `Reverted from current version to v${targetVersion.version}`
     });
 
     return { success: true, revertedToVersion: targetVersion.version };
@@ -362,20 +343,6 @@ export class VersionControlService {
       majorChanges: differences.shots.modifiedCount + differences.characters.modifiedCount,
       minorChanges: differences.assets.modifiedCount
     };
-  }
-
-  private async createSnapshot(input: any, tx: any) {
-    const latestVersion = await tx.projectVersion.findFirst({
-      where: { projectId: input.projectId },
-      orderBy: { version: 'desc' }
-    });
-
-    return tx.projectVersion.create({
-      data: {
-        ...input,
-        version: (latestVersion?.version || 0) + 1
-      }
-    });
   }
 }
 

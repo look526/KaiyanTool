@@ -28,10 +28,11 @@ export async function analyzeScript(input: z.infer<typeof ScriptAnalysisSchema>)
 
   const analysis = await prisma.scriptAnalysis.create({
     data: {
+      projectId: 'default',
       content: validated.scriptContent,
-      result: result as any,
-      targetDuration: validated.targetDuration,
-      status: 'completed'
+      themes: [],
+      characters: result.characters || [] as any,
+      plotPoints: result.scenes || [] as any
     }
   });
 
@@ -44,21 +45,19 @@ export async function analyzeScript(input: z.infer<typeof ScriptAnalysisSchema>)
 export async function generateVisualPrompt(input: z.infer<typeof VisualPromptSchema>) {
   const validated = VisualPromptSchema.parse(input);
 
-  const context = await buildContext(validated);
+  const visualContext = await buildContext(validated);
 
   const prompt = await scriptAnalysisAgent.generateVisualPrompt(
     validated.sceneDescription,
     validated.characters,
-    context
+    visualContext
   );
 
   await prisma.visualPrompt.create({
     data: {
-      sceneDescription: validated.sceneDescription,
-      characters: validated.characters,
+      projectId: '',
       prompt,
-      sceneImageId: validated.sceneImageId,
-      characterImageIds: validated.characterImageIds
+      type: 'general'
     }
   });
 

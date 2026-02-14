@@ -13,7 +13,8 @@ export async function createSceneConcept(
       projectId,
       name: data.name,
       description: data.description,
-      prompt: data.prompt
+      location: '',
+      aiPrompt: data.prompt
     }
   });
 }
@@ -32,7 +33,8 @@ export async function generateSceneConcept(
       projectId,
       name: 'Auto-generated',
       description: sceneDescription,
-      prompt
+      location: '',
+      aiPrompt: prompt
     }
   });
 
@@ -60,7 +62,7 @@ export async function checkSceneContinuity(
 
   const report = {
     conceptId: sceneConceptId,
-    prompt: concept.prompt,
+    prompt: concept.aiPrompt,
     consistency: 0,
     issues: [] as string[],
     recommendations: [] as string[]
@@ -73,10 +75,11 @@ export async function checkSceneContinuity(
 
     if (!asset) continue;
 
-    if (concept.prompt && asset.prompt) {
+    const assetMetadata = asset.metadata as Record<string, any>;
+    if (concept.aiPrompt && assetMetadata?.prompt) {
       const similarity = calculateSimilarity(
-        concept.prompt,
-        asset.prompt
+        concept.aiPrompt,
+        assetMetadata.prompt
       );
 
       if (similarity < 0.6) {

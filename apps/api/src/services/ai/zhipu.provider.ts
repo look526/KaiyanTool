@@ -1,8 +1,8 @@
 import { AIProvider } from './provider.interface'
-import { AIRequest, AIResponse, AIChatMessage, AICreateImageRequest, AICreateImageResponse } from '../../types/ai.types'
+import { AIRequest, AIResponse, AIChatMessage, AICreateImageRequest, AICreateImageResponse, AICreateVideoRequest, AICreateVideoResponse } from '../../types/ai.types'
 
 export class ZhipuProvider extends AIProvider {
-  private baseUrl: string
+  public baseUrl: string
 
   constructor(apiKey: string, baseUrl?: string) {
     super(apiKey, baseUrl || 'https://open.bigmodel.cn/api/paas/v4')
@@ -58,6 +58,10 @@ export class ZhipuProvider extends AIProvider {
       url: response.data[0].url,
       revisedPrompt: response.data[0].revised_prompt,
     }
+  }
+
+  async createVideo(request: AICreateVideoRequest): Promise<AICreateVideoResponse> {
+    throw new Error('Video generation not yet implemented for Zhipu provider')
   }
 
   protected async request(endpoint: string, options: RequestInit = {}): Promise<any> {

@@ -127,7 +127,7 @@ export class AuthService {
   }
 
   private generateToken(userId: string): string {
-    const token = jwt.sign({ userId }, this.JWT_SECRET, { expiresIn: this.JWT_EXPIRES_IN })
+    const token = jwt.sign({ userId }, this.JWT_SECRET, { expiresIn: this.JWT_EXPIRES_IN as string })
 
     prisma.session.create({
       data: {

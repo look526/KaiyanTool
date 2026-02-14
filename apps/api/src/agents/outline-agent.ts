@@ -1,4 +1,4 @@
-import { AIProviderService } from '../services/ai/provider.service';
+import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
 
 interface OutlineInput {
@@ -37,11 +37,7 @@ interface OutlineOutput {
 }
 
 export class OutlineAgent {
-  private provider: AIProviderService;
-
-  constructor() {
-    this.provider = new AIProviderService();
-  }
+  constructor() {}
 
   async generateOutline(input: OutlineInput): Promise<OutlineOutput> {
     const storyline = await prisma.document.findUnique({
@@ -112,16 +108,13 @@ ${input.additionalNotes ? `- 备注：${input.additionalNotes}` : ''}
 }`;
 
     try {
-      const response = await this.provider.complete(
-        {
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.6,
-          maxTokens: 4000
-        },
-        'outline-generation'
+      const response = await aiProviderService.chat(
+        'default',
+        [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        undefined
       );
 
       const parsed = this.parseJsonResponse(response.content);
@@ -154,9 +147,10 @@ ${feedback}
 
 请返回优化后的完整大纲JSON：`;
 
-    const response = await this.provider.complete(
-      { messages: [{ role: 'user', content: prompt }], temperature: 0.6, maxTokens: 4000 },
-      'outline-refinement'
+    const response = await aiProviderService.chat(
+      'default',
+      [{ role: 'user', content: prompt }],
+      undefined
     );
 
     const parsed = this.parseJsonResponse(response.content);
@@ -196,9 +190,10 @@ ${feedback}
   "visualDirections": ["视觉指导1"]
 }`;
 
-    const response = await this.provider.complete(
-      { messages: [{ role: 'user', content: prompt }], temperature: 0.6, maxTokens: 2000 },
-      'scene-expansion'
+    const response = await aiProviderService.chat(
+      'default',
+      [{ role: 'user', content: prompt }],
+      undefined
     );
 
     return this.parseJsonResponse(response.content);
@@ -245,9 +240,10 @@ ${feedback}
   "callToNext": "引向下一集"
 }`;
 
-    const response = await this.provider.complete(
-      { messages: [{ role: 'user', content: prompt }], temperature: 0.7, maxTokens: 800 },
-      'episode-summary'
+    const response = await aiProviderService.chat(
+      'default',
+      [{ role: 'user', content: prompt }],
+      undefined
     );
 
     return this.parseJsonResponse(response.content);

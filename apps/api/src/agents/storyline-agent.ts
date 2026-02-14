@@ -1,4 +1,4 @@
-import { AIProviderService } from '../services/ai/provider.service';
+import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
 
 interface StoryInput {
@@ -32,11 +32,7 @@ interface StorylineOutput {
 }
 
 export class StorylineAgent {
-  private provider: AIProviderService;
-
-  constructor() {
-    this.provider = new AIProviderService();
-  }
+  constructor() {}
 
   async generateStoryline(input: StoryInput): Promise<StorylineOutput> {
     const systemPrompt = `你是一个专业的故事创作AI助手。你的专长是将创意转化为完整的故事线，包括：
@@ -96,16 +92,13 @@ ${input.description}
 }`;
 
     try {
-      const response = await this.provider.complete(
-        {
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.7,
-          maxTokens: 3000
-        },
-        'storyline-generation'
+      const response = await aiProviderService.chat(
+        'default',
+        [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        undefined
       );
 
       const parsed = this.parseJsonResponse(response.content);
@@ -142,16 +135,13 @@ ${feedback}
 
 请返回优化后的完整故事线JSON：`;
 
-    const response = await this.provider.complete(
-      {
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.6,
-        maxTokens: 3000
-      },
-      'storyline-refinement'
+    const response = await aiProviderService.chat(
+      'default',
+      [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      undefined
     );
 
     const parsed = this.parseJsonResponse(response.content);
@@ -186,9 +176,10 @@ ${feedback}
   ]
 }`;
 
-    const response = await this.provider.complete(
-      { messages: [{ role: 'user', content: prompt }], temperature: 0.6, maxTokens: 1500 },
-      'character-backstory'
+    const response = await aiProviderService.chat(
+      'default',
+      [{ role: 'user', content: prompt }],
+      undefined
     );
 
     return this.parseJsonResponse(response.content);
@@ -221,9 +212,10 @@ ${feedback}
   "duration": 建议时长（秒）
 }`;
 
-    const response = await this.provider.complete(
-      { messages: [{ role: 'user', content: prompt }], temperature: 0.6, maxTokens: 1000 },
-      'beat-details'
+    const response = await aiProviderService.chat(
+      'default',
+      [{ role: 'user', content: prompt }],
+      undefined
     );
 
     return this.parseJsonResponse(response.content);

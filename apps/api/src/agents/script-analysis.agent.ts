@@ -1,4 +1,4 @@
-import { AIProviderService } from '../services/ai/provider.service';
+import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
 
 export interface SceneInfo {
@@ -39,11 +39,7 @@ export interface CharacterInfo {
 }
 
 export class ScriptAnalysisAgent {
-  private provider: AIProviderService;
-
-  constructor() {
-    this.provider = new AIProviderService();
-  }
+  constructor() {}
 
   async analyzeScript(
     scriptContent: string,
@@ -102,16 +98,13 @@ ${scriptContent}
 }`;
 
     try {
-      const response = await this.provider.complete(
-        {
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.3,
-          maxTokens: 4000
-        },
-        'script-analysis'
+      const response = await aiProviderService.chat(
+        'default',
+        [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        undefined
       );
 
       const parsed = this.parseJsonResponse(response.content);
@@ -137,7 +130,7 @@ ${scriptContent}
 
   private structureScript(analysis: any, targetDuration: number): ScriptStructure {
     const durationPerShot = targetDuration / (analysis.estimatedShots || 10);
-    
+
     return {
       title: analysis.title || '未命名剧本',
       summary: analysis.summary || '',
@@ -212,20 +205,17 @@ ${context?.characterImages ? `角色参考图像已提供${context.characterImag
 }`;
 
     try {
-      const response = await this.provider.complete(
-        {
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.5,
-          maxTokens: 1000
-        },
-        'prompt-generation'
+      const response = await aiProviderService.chat(
+        'default',
+        [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        undefined
       );
 
       const parsed = this.parseJsonResponse(response.content);
-      
+
       return this.buildPromptString(parsed);
     } catch (error) {
       console.error('Prompt generation failed:', error);
