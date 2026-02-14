@@ -362,8 +362,8 @@ ${JSON.stringify(novelAnalysis, null, 2)}
         data: {
           projectId,
           name: character.name,
-          description: character.description,
           appearance: JSON.stringify({
+            description: character.description,
             personality: character.personality,
             arc: character.arc,
             relationships: character.relationships
@@ -380,11 +380,11 @@ ${JSON.stringify(novelAnalysis, null, 2)}
       await prisma.scene.create({
         data: {
           projectId,
-          name: chapter.title,
           description: chapter.summary,
           location: chapter.locations[0],
-          timeOfDay: chapter.tone,
+          time: chapter.tone,
           metadata: {
+            name: chapter.title,
             chapterNumber: chapter.number,
             wordCount: chapter.wordCount,
             characters: chapter.characters,

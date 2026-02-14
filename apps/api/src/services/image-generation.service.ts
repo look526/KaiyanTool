@@ -22,7 +22,6 @@ export async function generateImage(input: z.infer<typeof ImageGenerationSchema>
     data: {
       type: 'image',
       status: 'pending',
-      prompt: validated.prompt,
       params: validated as any,
       projectId: validated.projectId
     }
@@ -41,12 +40,12 @@ export async function generateImage(input: z.infer<typeof ImageGenerationSchema>
       data: {
         type: 'image',
         url: result.url,
-        thumbnailUrl: result.thumbnailUrl || result.url,
         metadata: {
           width: validated.width,
           height: validated.height,
           taskId: task.id,
-          prompt: enhancedPrompt
+          prompt: enhancedPrompt,
+          thumbnailUrl: result.thumbnailUrl || result.url
         },
         projectId: validated.projectId
       }

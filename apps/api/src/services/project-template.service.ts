@@ -25,7 +25,7 @@ export class ProjectTemplateService {
         name: validated.name,
         description: validated.description,
         category: validated.category,
-        settings: validated.settings as any,
+        config: validated.settings as any,
         defaultAssets: validated.defaultAssets as any,
         isPublic: validated.isPublic,
         tags: validated.tags || [],
@@ -127,8 +127,10 @@ export class ProjectTemplateService {
               data: {
                 projectId: project.id,
                 name: asset.name,
-                description: asset.description || '',
-                prompt: asset.prompt
+                appearance: JSON.stringify({
+                  description: asset.description || '',
+                  prompt: asset.prompt
+                })
               }
             });
             break;
@@ -136,8 +138,10 @@ export class ProjectTemplateService {
             await prisma.scene.create({
               data: {
                 projectId: project.id,
-                name: asset.name,
-                description: asset.description || ''
+                description: asset.description || '',
+                metadata: JSON.stringify({
+                  name: asset.name
+                })
               }
             });
             break;
@@ -175,7 +179,7 @@ export class ProjectTemplateService {
         name: input.name,
         description: input.description,
         category: input.category,
-        settings: input.settings as any,
+        config: input.settings as any,
         defaultAssets: input.defaultAssets as any,
         tags: input.tags
       }
@@ -212,7 +216,7 @@ export class ProjectTemplateService {
         name: newName || `${original.name} (Copy)`,
         description: original.description,
         category: original.category,
-        settings: original.settings as any,
+        config: original.settings as any,
         defaultAssets: original.defaultAssets as any,
         isPublic: false,
         tags: original.tags || [],

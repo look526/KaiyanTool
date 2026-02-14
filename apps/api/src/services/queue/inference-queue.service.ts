@@ -1,5 +1,4 @@
-import Queue from 'bull'
-import { Job, JobOptions, Queue as QueueType } from 'bull'
+import Queue, { Job, JobOptions } from 'bull'
 import logger from '../../lib/logger'
 
 export interface InferenceTask {
@@ -23,10 +22,10 @@ export interface TaskStatus {
 }
 
 export class InferenceQueueService {
-  private shotQueue: QueueType<InferenceTask>
-  private imageQueue: QueueType<InferenceTask>
-  private videoQueue: QueueType<InferenceTask>
-  private optimizationQueue: QueueType<InferenceTask>
+  private shotQueue: Queue<InferenceTask>
+  private imageQueue: Queue<InferenceTask>
+  private videoQueue: Queue<InferenceTask>
+  private optimizationQueue: Queue<InferenceTask>
 
   constructor() {
     const queueConfig = {
@@ -44,15 +43,15 @@ export class InferenceQueueService {
         },
       },
     }
-    this.shotQueue = new QueueType<InferenceTask>('shot-generation', queueConfig)
-    this.imageQueue = new QueueType<InferenceTask>('image-generation', queueConfig)
-    this.videoQueue = new QueueType<InferenceTask>('video-generation', queueConfig)
-    this.optimizationQueue = new QueueType<InferenceTask>('prompt-optimization', queueConfig)
+    this.shotQueue = new Queue<InferenceTask>('shot-generation', queueConfig)
+    this.imageQueue = new Queue<InferenceTask>('image-generation', queueConfig)
+    this.videoQueue = new Queue<InferenceTask>('video-generation', queueConfig)
+    this.optimizationQueue = new Queue<InferenceTask>('prompt-optimization', queueConfig)
 
     this.setupEventHandlers()
   }
   private setupEventHandlers(): void {
-    const setupQueueHandlers = (queue: QueueType<InferenceTask>, name: string) => {
+    const setupQueueHandlers = (queue: Queue<InferenceTask>, name: string) => {
       queue.on('error', (err) => {
         logger.error(`${name}队列错误`, { error: err })
       })
@@ -183,7 +182,7 @@ export class InferenceQueueService {
 
   async getTaskStatus(jobId: string, queueType: InferenceTask['type']): Promise<TaskStatus | null> {
     try {
-      let queue: QueueType<InferenceTask>
+      let queue: Queue<InferenceTask>
 
       switch (queueType) {
         case 'shot_generation':
@@ -229,7 +228,7 @@ export class InferenceQueueService {
     failed: number
   }> {
     try {
-      let queue: QueueType<InferenceTask>
+      let queue: Queue<InferenceTask>
 
       switch (queueType) {
         case 'shot_generation':
@@ -264,7 +263,7 @@ export class InferenceQueueService {
 
   async clearQueue(queueType: InferenceTask['type']): Promise<void> {
     try {
-      let queue: QueueType<InferenceTask>
+      let queue: Queue<InferenceTask>
 
       switch (queueType) {
         case 'shot_generation':
@@ -283,9 +282,7 @@ export class InferenceQueueService {
           throw new Error(`Unknown queue type: ${queueType}`)
       }
 
-      await queue.drain()
-      await queue.clean(0, 'completed')
-      await queue.clean(0, 'failed')
+      await queue.obliterate()
       logger.info('队列已清空', { queueType })
     } catch (error) {
       logger.error('清空队列失败', { queueType, error })
@@ -294,7 +291,7 @@ export class InferenceQueueService {
 
   async pauseQueue(queueType: InferenceTask['type']): Promise<void> {
     try {
-      let queue: QueueType<InferenceTask>
+      let queue: Queue<InferenceTask>
 
       switch (queueType) {
         case 'shot_generation':
@@ -322,7 +319,7 @@ export class InferenceQueueService {
 
   async resumeQueue(queueType: InferenceTask['type']): Promise<void> {
     try {
-      let queue: QueueType<InferenceTask>
+      let queue: Queue<InferenceTask>
 
       switch (queueType) {
         case 'shot_generation':
