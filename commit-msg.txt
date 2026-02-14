@@ -1,13 +1,11 @@
-fix: 修复构建错误和类型问题
+feat: 完善导演Agent实现
 
-- 修复ZhipuProvider的baseUrl和createVideo方法
-- 修复video-generation.service类型错误
-- 修复scene-concept.service字段名
-- 修复script-analysis.service类型问题
-- 修复version-control.service重复函数
-- 修复novel-analysis.service导入
-- 修复image-generation.service类型
-- 修复Queue类型问题(bull库)
-- 修复content.controller属性缩写
-- 修复project.controller类型引用
-- dist目录生成成功
+- 修复director.agent.ts类型错误
+- 修复未使用变量问题
+- 修复GeneratedShot类型映射
+- 导演Agent支持:
+  - 根据大纲生成剧本
+  - 从剧本生成分镜镜头
+  - 优化镜头提示词
+  - 完整的API路由和控制器
+- 前端ScriptViewerPage支持剧本查看和解析

@@ -57,11 +57,7 @@ interface NovelAnalysis {
 }
 
 export class NovelAnalysisService {
-  private provider: AIProviderService;
-
-  constructor() {
-    this.provider = new AIProviderService();
-  }
+  constructor() {}
 
   async analyzeNovel(input: NovelInput): Promise<NovelAnalysis> {
     const content = input.content.substring(0, 50000);
@@ -143,16 +139,13 @@ ${input.content.length > 50000 ? '\n...（内容已截断）' : ''}
 }`;
 
     try {
-      const response = await this.provider.complete(
-        {
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.5,
-          maxTokens: 6000
-        },
-        'novel-analysis'
+      const response = await aiProviderService.chat(
+        'default',
+        [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        undefined
       );
 
       const parsed = this.parseJsonResponse(response.content);

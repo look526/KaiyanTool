@@ -110,15 +110,15 @@ export class DirectorAgent {
   }
 
   private async generateShotsForScene(
-    userId: string,
-    projectId: string,
+    _userId: string,
+    _projectId: string,
     scene: ScriptScene,
     visualStyle?: string
   ): Promise<GeneratedShot[]> {
     const prompt = this.buildShotGenerationPrompt(scene, visualStyle);
 
     const provider = await prisma.aIProvider.findFirst({
-      where: { userId, enabled: true },
+      where: { userId: _userId, enabled: true },
     });
 
     if (!provider) {
@@ -139,11 +139,17 @@ export class DirectorAgent {
     const shots = this.parseShotResponse(response.content);
 
     return shots.map((shot, index) => ({
-      ...shot,
       chapterNumber: 1,
       episodeNumber: scene.id,
       segmentId: Math.floor(index / 3) + 1,
       cellId: (index % 3) + 1,
+      actionSummary: shot.actionSummary,
+      cameraMovement: shot.cameraMovement || '',
+      cameraType: shot.cameraType || '',
+      startPrompt: shot.startPrompt,
+      endPrompt: shot.endPrompt,
+      duration: shot.duration || 5,
+      aspectRatio: '16:9',
       visualStyle: visualStyle || '',
     }));
   }

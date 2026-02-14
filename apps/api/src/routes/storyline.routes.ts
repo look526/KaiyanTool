@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { storylineAgent } from '../agents/storyline-agent.service';
+import { storylineAgent } from '../agents/storyline-agent';
 import { authMiddleware } from '../middleware/auth.middleware';
 
 const router = Router();

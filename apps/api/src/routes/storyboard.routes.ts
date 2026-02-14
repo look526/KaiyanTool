@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { storyboardAgent } from '../agents/storyboard-agent.service';
+import { storyboardAgent } from '../agents/storyboard-agent';
 import { authMiddleware } from '../middleware/auth.middleware';
 
 const router = Router();
