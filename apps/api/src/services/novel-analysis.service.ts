@@ -178,9 +178,10 @@ ${content.substring(0, 30000)}
 }`;
 
     try {
-      const response = await this.provider.complete(
-        { messages: [{ role: 'user', content: prompt }], temperature: 0.3, maxTokens: 2000 },
-        'chapter-extraction'
+      const response = await aiProviderService.chat(
+        'default',
+        [{ role: 'user', content: prompt }],
+        undefined
       );
 
       const parsed = this.parseJsonResponse(response.content);
@@ -211,9 +212,10 @@ ${content.substring(0, 30000)}
 }`;
 
     try {
-      const response = await this.provider.complete(
-        { messages: [{ role: 'user', content: prompt }], temperature: 0.4, maxTokens: 2000 },
-        'character-identification'
+      const response = await aiProviderService.chat(
+        'default',
+        [{ role: 'user', content: prompt }],
+        undefined
       );
 
       const parsed = this.parseJsonResponse(response.content);
@@ -257,9 +259,10 @@ ${chapterContent.substring(0, 10000)}
 }`;
 
     try {
-      const response = await this.provider.complete(
-        { messages: [{ role: 'user', content: prompt }], temperature: 0.5, maxTokens: 2000 },
-        'scene-generation'
+      const response = await aiProviderService.chat(
+        'default',
+        [{ role: 'user', content: prompt }],
+        undefined
       );
 
       const parsed = this.parseJsonResponse(response.content);
@@ -330,9 +333,10 @@ ${JSON.stringify(novelAnalysis, null, 2)}
 }`;
 
     try {
-      const response = await this.provider.complete(
-        { messages: [{ role: 'user', content: prompt }], temperature: 0.5, maxTokens: 3000 },
-        'script-adaptation'
+      const response = await aiProviderService.chat(
+        'default',
+        [{ role: 'user', content: prompt }],
+        undefined
       );
 
       return this.parseJsonResponse(response.content);
