@@ -71,65 +71,15 @@ router.get('/character/:characterId', async (req, res) => {
 });
 
 router.post('/wardrobe', async (req, res) => {
-  try {
-    const { characterId, name, variants, thumbnailUrl } = req.body;
-
-    const wardrobe = await prisma.clothingWardrobe.create({
-      data: {
-        characterId,
-        name,
-        variants,
-        thumbnailUrl
-      }
-    });
-
-    res.json(wardrobe);
-  } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to create wardrobe' });
-  }
+  res.status(501).json({ error: 'Wardrobe feature not implemented' });
 });
 
 router.get('/wardrobe/:characterId', async (req, res) => {
-  try {
-    const wardrobes = await prisma.clothingWardrobe.findMany({
-      where: { characterId: req.params.characterId }
-    });
-
-    res.json(wardrobes);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to get wardrobes' });
-  }
+  res.status(501).json({ error: 'Wardrobe feature not implemented' });
 });
 
 router.post('/apply', async (req, res) => {
-  try {
-    const { shotId, wardrobeId, variantIndex } = req.body;
-
-    const wardrobe = await prisma.clothingWardrobe.findUnique({
-      where: { id: wardrobeId }
-    });
-
-    if (!wardrobe) {
-      return res.status(404).json({ error: 'Wardrobe not found' });
-    }
-
-    const variantUrl = wardrobe.variants[variantIndex];
-
-    await prisma.shot.update({
-      where: { id: shotId },
-      data: {
-        metadata: {
-          clothingVariant: variantUrl,
-          wardrobeId,
-          variantIndex
-        } as any
-      }
-    });
-
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to apply variant' });
-  }
+  res.status(501).json({ error: 'Wardrobe feature not implemented' });
 });
 
 export default router;

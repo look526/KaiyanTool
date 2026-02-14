@@ -14,7 +14,6 @@ interface StoryboardOutput {
   title: string;
   shots: Array<{
     id: string;
-    sequence: number;
     type: 'wide' | 'medium' | 'closeup' | 'extreme-closeup' | 'insert' | 'transition';
     description: string;
     visualPrompt: string;
@@ -192,7 +191,6 @@ ${feedback}
     const parsed = this.parseJsonResponse(response.content);
     return {
       id: shotId,
-      sequence: shot.sequence,
       type: (shot as any).type || 'medium',
       description: parsed.description || '',
       visualPrompt: parsed.visualPrompt || '',
@@ -331,13 +329,13 @@ ${JSON.stringify({
   ): Promise<string> {
     const shots = await prisma.shot.findMany({
       where: { projectId },
-      orderBy: { sequence: 'asc' }
+      orderBy: { createdAt: 'asc' }
     });
 
     switch (format) {
       case 'json':
-        return JSON.stringify(shots.map(s => ({
-          sequence: s.sequence,
+        return JSON.stringify(shots.map((s, index) => ({
+          sequence: index + 1,
           description: s.description,
           prompt: (s as any).prompt,
           duration: s.duration
