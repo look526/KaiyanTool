@@ -1,6 +1,5 @@
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
-import { Resource } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
@@ -12,12 +11,11 @@ import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 
 // 配置OpenTelemetry SDK
 export const setupOpenTelemetry = () => {
-  // 创建资源
-  const resource = new Resource({
+  const resource = {
     [SemanticResourceAttributes.SERVICE_NAME]: 'kaiyan-api',
     [SemanticResourceAttributes.SERVICE_VERSION]: '1.0.0',
     [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || 'development',
-  });
+  };
 
   // 创建导出器
   const traceExporter = process.env.NODE_ENV === 'production' 
