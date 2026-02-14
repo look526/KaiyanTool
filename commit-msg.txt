@@ -1,0 +1,13 @@
+fix: 修复构建错误和类型问题
+
+- 修复ZhipuProvider的baseUrl和createVideo方法
+- 修复video-generation.service类型错误
+- 修复scene-concept.service字段名
+- 修复script-analysis.service类型问题
+- 修复version-control.service重复函数
+- 修复novel-analysis.service导入
+- 修复image-generation.service类型
+- 修复Queue类型问题(bull库)
+- 修复content.controller属性缩写
+- 修复project.controller类型引用
+- dist目录生成成功

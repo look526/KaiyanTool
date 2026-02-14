@@ -1,7 +1,0 @@
-fix: continue TypeScript error fixes
-
-- Fix Bull Queue type import issue (inference-queue.service.ts)
-- Fix z.record parameter issue (plugin.service.ts, project-template.service.ts)
-- Fix unused variable warnings (script-parser.service.ts, version-control.service.ts, video-transcoder.service.ts)
-- Fix render-queue.service.ts import issue
-- Errors reduced from 243 to 204
