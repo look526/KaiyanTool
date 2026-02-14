@@ -170,7 +170,6 @@ class ExportService {
         },
       });
     }
-  }
 
     for (const document of exportData.documents) {
       await prisma.document.create({
