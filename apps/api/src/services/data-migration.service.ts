@@ -55,12 +55,12 @@ export class DataMigrationService {
                 data: {
                   projectId: newProject.id,
                   name: char.name,
-                  description: char.description,
-                  appearance: char.appearance,
-                  metadata: {
+                  appearance: JSON.stringify({
+                    description: char.description,
+                    appearance: char.appearance,
                     source: 'bigbanana',
                     originalId: char.id
-                  } as any
+                  })
                 }
               });
             } catch (e: any) {
@@ -182,14 +182,15 @@ export class DataMigrationService {
               await prisma.scene.create({
                 data: {
                   projectId: newProject.id,
-                  name: scene.name,
                   description: scene.description,
                   location: scene.location,
-                  timeOfDay: scene.timeOfDay,
-                  metadata: {
+                  time: scene.timeOfDay,
+                  atmosphere: '',
+                  metadata: JSON.stringify({
+                    name: scene.name,
                     source: 'toonflow',
                     originalId: scene.id
-                  } as any
+                  })
                 }
               });
             } catch (e: any) {

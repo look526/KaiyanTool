@@ -141,7 +141,7 @@ export class ProjectTemplateService {
         members: {
           create: {
             userId,
-            role: 'owner'
+            role: 'OWNER'
           }
         }
       }

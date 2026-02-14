@@ -1,6 +1,4 @@
 import { prisma } from '../lib/prisma';
-import { createReadStream } from 'fs';
-import path from 'path';
 import JSZip from 'jszip';
 import logger from '../lib/logger';
 
@@ -10,7 +8,6 @@ interface ProjectExportData {
   scenes: any[];
   shots: any[];
   nineGridPanels: any[];
-  panels: any[];
   documents: any[];
   members: any[];
 }
@@ -47,10 +44,6 @@ class ExportService {
       },
     });
 
-    const panels = await prisma.panel.findMany({
-      where: { shot: { projectId } },
-    });
-
     const nineGridPanels = await prisma.nineGridPanel.findMany({
       where: { shot: { projectId } },
     });
@@ -78,7 +71,6 @@ class ExportService {
         name: project.name,
         description: project.description,
         type: project.type,
-        visualStyle: project.visualStyle,
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
       },
@@ -86,7 +78,6 @@ class ExportService {
       scenes,
       shots,
       nineGridPanels,
-      panels,
       documents,
       members,
     };
@@ -179,32 +170,7 @@ class ExportService {
         },
       });
     }
-
-    for (const panel of exportData.panels) {
-      await prisma.panel.create({
-        data: {
-          shotId: panel.shotId,
-          position: panel.position,
-          imageUrl: panel.imageUrl,
-          prompt: panel.prompt,
-          style: panel.style,
-        },
-      });
-    }
-
-    for (const panel of exportData.panels) {
-      await prisma.shot.update({
-        where: { id: panel.shotId },
-        data: {
-          metadata: JSON.stringify({
-            position: panel.position,
-            imageUrl: panel.imageUrl,
-            prompt: panel.prompt,
-            style: panel.style
-          })
-        }
-      });
-    }
+  }
 
     for (const document of exportData.documents) {
       await prisma.document.create({

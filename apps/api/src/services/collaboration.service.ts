@@ -4,12 +4,12 @@ import { z } from 'zod';
 const InviteSchema = z.object({
   projectId: z.string(),
   email: z.string().email(),
-  role: z.enum(['viewer', 'editor', 'admin', 'owner'])
+  role: z.enum(['VIEWER', 'EDITOR', 'ADMIN', 'OWNER'])
 });
 
 const UpdateMemberSchema = z.object({
   memberId: z.string(),
-  role: z.enum(['viewer', 'editor', 'admin', 'owner'])
+  role: z.enum(['VIEWER', 'EDITOR', 'ADMIN', 'OWNER'])
 });
 
 export class CollaborationService {
@@ -221,11 +221,11 @@ export class CollaborationService {
       }),
       prisma.projectMember.update({
         where: { id: newOwner.id },
-        data: { role: 'owner' }
+        data: { role: 'ADMIN' }
       }),
       prisma.projectMember.update({
         where: { id: (await prisma.projectMember.findFirst({ where: { projectId, userId: fromUserId } }))?.id },
-        data: { role: 'admin' }
+        data: { role: 'ADMIN' }
       })
     ]);
 
@@ -256,7 +256,7 @@ export class CollaborationService {
     return {
       owned: owned.map(p => ({
         ...p,
-        role: 'owner',
+        role: 'OWNER',
         memberCount: p._count.members
       })),
       shared: shared.map(m => ({
@@ -272,58 +272,20 @@ export class CollaborationService {
     assetId?: string;
     panelId?: string;
   }) {
-    const comment = await prisma.comment.create({
-      data: {
-        projectId,
-        userId,
-        content,
-        shotId: context?.shotId,
-        assetId: context?.assetId,
-        panelId: context?.panelId
-      },
-      include: {
-        user: { select: { id: true, name: true, avatar: true } }
-      }
-    });
-
-    return comment;
+    throw new Error('Comment feature not implemented');
   }
 
-  async getComments(projectId: string, options?: { shotId?: string; assetId?: string }) {
-    const comments = await prisma.comment.findMany({
-      where: {
-        projectId,
-        shotId: options?.shotId,
-        assetId: options?.assetId
-      },
-      include: {
-        user: { select: { id: true, name: true, avatar: true } }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
-    return comments;
+  async getComments(projectId: string, options?: {
+    shotId?: string;
+    assetId?: string;
+    limit?: number;
+    offset?: number;
+  }) {
+    throw new Error('Comment feature not implemented');
   }
 
-  async resolveComment(commentId: string, userId: string) {
-    const comment = await prisma.comment.findUnique({
-      where: { id: commentId }
-    });
-
-    if (!comment) {
-      throw new Error('Comment not found');
-    }
-
-    await prisma.comment.update({
-      where: { id: commentId },
-      data: {
-        resolved: true,
-        resolvedBy: userId,
-        resolvedAt: new Date()
-      }
-    });
-
-    return { success: true };
+  async updateComment(commentId: string, userId: string, content: string) {
+    throw new Error('Comment feature not implemented');
   }
 
   private generateToken(): string {
