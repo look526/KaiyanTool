@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AIProviderService } from '../services/ai/provider.service';
+import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
 
 const VideoGenerationSchema = z.object({
@@ -14,23 +14,19 @@ const VideoGenerationSchema = z.object({
 export async function generateVideo(input: z.infer<typeof VideoGenerationSchema>) {
   const validated = VideoGenerationSchema.parse(input);
 
-  const provider = new AIProviderService();
-
   const task = await prisma.renderTask.create({
     data: {
       type: 'video',
       status: 'pending',
-      prompt: validated.prompt,
       params: validated as any,
-      projectId: validated.projectId,
-      shotId: validated.shotId
+      projectId: validated.projectId
     }
   });
 
   const context = await buildVideoContext(validated);
 
   try {
-    const result = await provider.generateVideo({
+    const result = await aiProviderService.generateVideo({
       startFrameUrl: context.startFrame,
       endFrameUrl: context.endFrame,
       prompt: validated.prompt,
@@ -41,7 +37,6 @@ export async function generateVideo(input: z.infer<typeof VideoGenerationSchema>
       data: {
         type: 'video',
         url: result.url,
-        thumbnailUrl: result.thumbnailUrl,
         duration: validated.duration,
         metadata: {
           taskId: task.id,
@@ -114,8 +109,6 @@ export async function interpolateFrames(
     throw new Error('Frame assets not found');
   }
 
-  const provider = new AIProviderService();
-
   const task = await prisma.renderTask.create({
     data: {
       type: 'video-interpolation',
@@ -126,7 +119,7 @@ export async function interpolateFrames(
   });
 
   try {
-    const result = await provider.interpolateFrames({
+    const result = await aiProviderService.interpolateFrames({
       startFrameUrl: startAsset.url,
       endFrameUrl: endAsset.url
     });
@@ -135,7 +128,6 @@ export async function interpolateFrames(
       data: {
         type: 'video',
         url: result.url,
-        thumbnailUrl: result.thumbnailUrl,
         metadata: {
           taskId: task.id,
           interpolation: true

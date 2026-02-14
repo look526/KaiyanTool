@@ -247,7 +247,8 @@ ${JSON.stringify({
     "description": "变体描述",
     "visualPrompt": "调整后的提示词"
   }
-]`; }
+]
+`;
 
     const response = await this.provider.complete(
       { messages: [{ role: 'user', content: prompt }], temperature: 0.7, maxTokens: 1500 },

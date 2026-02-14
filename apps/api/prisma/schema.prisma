@@ -426,3 +426,322 @@ model QualityReport {
   @@index([type])
   @@index([targetId])
 }
+
+model WorkflowExecution {
+  id            String    @id @default(uuid()) @db.Uuid
+  workflowId    String    @map("workflow_id")
+  projectId     String    @map("project_id") @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  status        String    @default("pending")
+  currentStepId String?   @map("current_step_id")
+  progress      Float     @default(0)
+  data          Json      @default("{}")
+  metadata      Json?     @map("metadata")
+  error         String?
+  startedAt     DateTime? @map("started_at")
+  completedAt   DateTime? @map("completed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([status])
+}
+
+model WorkflowTemplate {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  category    String
+  steps       Json     @default("[]")
+  estimatedDuration Int @default(0) @map("estimated_duration")
+  tags        String[] @default([])
+  isPublic    Boolean  @default(false) @map("is_public")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([category])
+}
+
+model VideoTutorial {
+  id             String   @id @default(uuid()) @db.Uuid
+  title          String
+  description    String
+  category       String
+  level          String
+  duration       Int
+  videoUrl       String   @map("video_url")
+  thumbnailUrl   String?  @map("thumbnail_url")
+  chapters       Json     @default("[]")
+  tags           String[] @default([])
+  prerequisites  String[] @default([])
+  relatedTutorials String[] @default([]) @map("related_tutorials")
+  views          Int      @default(0)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@index([level])
+}
+
+model TutorialProgress {
+  id             String    @id @default(uuid()) @db.Uuid
+  tutorialId     String    @map("tutorial_id") @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  progress       Float     @default(0)
+  completed      Boolean   @default(false)
+  watchedDuration Int      @default(0) @map("watched_duration")
+  lastWatchedAt  DateTime  @default(now()) @map("last_watched_at")
+  completedAt    DateTime? @map("completed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@unique([tutorialId, userId])
+  @@index([userId])
+}
+
+model TutorialRating {
+  id          String   @id @default(uuid()) @db.Uuid
+  tutorialId  String   @map("tutorial_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  rating      Int
+  comment     String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([tutorialId, userId])
+  @@index([tutorialId])
+}
+
+model AlertRule {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  metric      String
+  condition   String
+  threshold   Float
+  severity    String
+  enabled     Boolean  @default(true)
+  channels    String[] @default([])
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([metric])
+  @@index([enabled])
+}
+
+model AlertRecord {
+  id          String   @id @default(uuid()) @db.Uuid
+  ruleId      String   @map("rule_id") @db.Uuid
+  severity    String
+  message     String
+  channels    String[] @default([])
+  acknowledged Boolean @default(false) @map("acknowledged")
+  acknowledgedAt DateTime? @map("acknowledged_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([ruleId])
+  @@index([severity])
+  @@index([createdAt])
+}
+
+model Metrics {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  value     Float
+  unit      String?
+  timestamp DateTime @default(now()) @map("timestamp")
+
+  @@index([name])
+  @@index([timestamp])
+}
+
+model RenderTask {
+  id          String    @id @default(uuid()) @db.Uuid
+  type        String
+  status      String    @default("pending")
+  params      Json      @default("{}")
+  projectId   String    @map("project_id") @db.Uuid
+  priority    Int       @default(5)
+  progress    Float     @default(0)
+  error       String?
+  logs        Json?     @default("[]")
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([projectId])
+  @@index([status])
+  @@index([type])
+}
+
+model Backup {
+  id          String   @id @default(uuid()) @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  backupId    String   @map("backup_id") @unique
+  description String?
+  size        BigInt?
+  createdBy   String   @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([projectId])
+  @@index([createdAt])
+}
+
+model BackupSchedule {
+  id            String    @id @default(uuid()) @db.Uuid
+  projectId     String    @map("project_id") @db.Uuid
+  frequency     String
+  time          String
+  includeAssets Boolean   @default(true) @map("include_assets")
+  retentionDays Int       @default(30) @map("retention_days")
+  enabled       Boolean   @default(true)
+  lastRun       DateTime? @map("last_run")
+  nextRun       DateTime? @map("next_run")
+  createdBy     String    @map("created_by") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([projectId])
+  @@index([enabled])
+}
+
+model MigrationLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  source      String
+  userId      String   @map("user_id") @db.Uuid
+  result      Json     @map("result")
+  timestamp   DateTime @default(now()) @map("timestamp")
+  status      String   @default("pending")
+
+  @@index([userId])
+  @@index([source])
+  @@index([timestamp])
+}
+
+model Plugin {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  version     String
+  description String?
+  entryPoint  String   @map("entry_point")
+  permissions String[] @default([])
+  settings    Json?    @default("{}")
+  manifest    Json     @map("manifest")
+  isPublic    Boolean  @default(false) @map("is_public")
+  status      String   @default("pending")
+  installations Int   @default(0)
+  createdBy   String   @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([isPublic])
+}
+
+model ProjectPlugin {
+  id          String   @id @default(uuid()) @db.Uuid
+  pluginId    String   @map("plugin_id") @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  installedBy String   @map("installed_by") @db.Uuid
+  settings    Json     @default("{}")
+  status      String   @default("active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([pluginId, projectId])
+  @@index([projectId])
+}
+
+model ProjectTemplate {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  category    String
+  config      Json     @default("{}")
+  isPublic    Boolean  @default(false) @map("is_public")
+  usageCount  Int      @default(0) @map("usage_count")
+  createdBy   String   @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@index([createdBy])
+}
+
+model Asset {
+  id        String   @id @default(uuid()) @db.Uuid
+  type      String
+  url       String
+  projectId String   @map("project_id") @db.Uuid
+  metadata  Json?    @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([projectId])
+  @@index([type])
+}
+
+model ProjectVersion {
+  id          String   @id @default(uuid()) @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  name        String?
+  description String?
+  tags        String[] @default([])
+  snapshot    Json     @map("snapshot")
+  parentId    String?  @map("parent_id") @db.Uuid
+  version     Int      @default(1)
+  createdBy   String   @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([projectId])
+  @@index([parentId])
+  @@index([createdBy])
+}
+
+model SceneConcept {
+  id          String   @id @default(uuid()) @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  name        String
+  description String?
+  location    String
+  timeOfDay   String?  @map("time_of_day")
+  atmosphere  String?
+  referenceImages String[] @default([]) @map("reference_images")
+  aiPrompt    String?  @map("ai_prompt")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([projectId])
+}
+
+model ScriptAnalysis {
+  id          String   @id @default(uuid()) @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  content     String
+  summary     String?
+  themes      String[] @default([])
+  characters  Json     @default("[]")
+  plotPoints  Json     @default("[]")
+  sentiment   String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([projectId])
+}
+
+model VisualPrompt {
+  id          String   @id @default(uuid()) @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  shotId      String?  @map("shot_id") @db.Uuid
+  prompt      String
+  type        String   @default("general")
+  style       String?
+  parameters  Json?    @default("{}")
+  result      String?
+  status      String   @default("pending")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([projectId])
+  @@index([shotId])
+}

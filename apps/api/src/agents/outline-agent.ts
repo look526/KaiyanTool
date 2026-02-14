@@ -178,7 +178,7 @@ ${feedback}
 
     if (!scene) {
       throw new Error('Scene not found');
-    });
+    }
 
     const prompt = `请详细展开以下场景：
 

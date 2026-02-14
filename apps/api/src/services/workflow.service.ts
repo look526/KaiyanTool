@@ -1,5 +1,4 @@
 import { prisma } from '../lib/prisma';
-import { z } from 'zod';
 
 interface WorkflowTemplate {
   id: string;
@@ -381,7 +380,7 @@ export class WorkflowService {
     }
   }
 
-  private async processAIStep(execution: any, step: WorkflowStep) {
+  private async processAIStep(_execution: any, step: WorkflowStep) {
     console.log(`Processing AI step: ${step.name}`);
     await new Promise(resolve => setTimeout(resolve, 1000));
   }

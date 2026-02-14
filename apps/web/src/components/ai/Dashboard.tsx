@@ -58,6 +58,50 @@ interface DashboardProps {
   onExport?: () => void;
 }
 
+function formatNumber(num: number): string {
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+  return num.toString();
+}
+
+function StatCard({
+  title,
+  value,
+  change,
+  icon: Icon,
+  color
+}: {
+  title: string;
+  value: number | string;
+  change?: number;
+  icon: React.ElementType;
+  color: string;
+}) {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+      <div className="flex items-start justify-between mb-4">
+        <div className={`p-3 rounded-lg ${color}`}>
+          <Icon className="w-6 h-6 text-white" />
+        </div>
+        {change !== undefined && (
+          <div className={`flex items-center gap-1 text-sm ${
+            change >= 0 ? 'text-green-500' : 'text-red-500'
+          }`}>
+            {change >= 0 ? (
+              <TrendingUp className="w-4 h-4" />
+            ) : (
+              <TrendingDown className="w-4 h-4" />
+            )}
+            <span>{Math.abs(change)}%</span>
+          </div>
+        )}
+      </div>
+      <h3 className="text-3xl font-bold mb-1">{value}</h3>
+      <p className="text-gray-500 dark:text-gray-400">{title}</p>
+    </div>
+  );
+}
+
 export function Dashboard({ data, onRefresh, onExport }: DashboardProps) {
   const [stats] = useState<DashboardStats>(data || {
     overview: {
@@ -83,47 +127,7 @@ export function Dashboard({ data, onRefresh, onExport }: DashboardProps) {
   });
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
 
-  const StatCard = ({
-    title,
-    value,
-    change,
-    icon: Icon,
-    color
-  }: {
-    title: string;
-    value: number | string;
-    change?: number;
-    icon: React.ElementType;
-    color: string;
-  }) => (
-    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-      <div className="flex items-start justify-between mb-4">
-        <div className={`p-3 rounded-lg ${color}`}>
-          <Icon className="w-6 h-6 text-white" />
-        </div>
-        {change !== undefined && (
-          <div className={`flex items-center gap-1 text-sm ${
-            change >= 0 ? 'text-green-500' : 'text-red-500'
-          }`}>
-            {change >= 0 ? (
-              <TrendingUp className="w-4 h-4" />
-            ) : (
-              <TrendingDown className="w-4 h-4" />
-            )}
-            <span>{Math.abs(change)}%</span>
-          </div>
-        )}
-      </div>
-      <h3 className="text-3xl font-bold mb-1">{value}</h3>
-      <p className="text-gray-500 dark:text-gray-400">{title}</p>
-    </div>
-  );
-
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-    return num.toString();
-  };
+  const totalGenerations = stats.generationBreakdown.images + stats.generationBreakdown.videos + stats.generationBreakdown.keyframes;
 
   return (
     <div className="p-6 space-y-6">
@@ -137,7 +141,7 @@ export function Dashboard({ data, onRefresh, onExport }: DashboardProps) {
         <div className="flex items-center gap-3">
           <select
             value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value as any)}
+            onChange={(e) => setTimeRange(e.target.value as '7d' | '30d' | '90d')}
             className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm"
           >
             <option value="7d">最近7天</option>
@@ -206,7 +210,7 @@ export function Dashboard({ data, onRefresh, onExport }: DashboardProps) {
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                 <div
                   className="bg-blue-500 h-2 rounded-full"
-                  style={{ width: `${(stats.generationBreakdown.images / (stats.generationBreakdown.images + stats.generationBreakdown.videos + stats.generationBreakdown.keyframes)) * 100}%` }}
+                  style={{ width: `${(stats.generationBreakdown.images / totalGenerations) * 100}%` }}
                 />
               </div>
             </div>
@@ -218,7 +222,7 @@ export function Dashboard({ data, onRefresh, onExport }: DashboardProps) {
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                 <div
                   className="bg-green-500 h-2 rounded-full"
-                  style={{ width: `${(stats.generationBreakdown.videos / (stats.generationBreakdown.images + stats.generationBreakdown.videos + stats.generationBreakdown.keyframes)) * 100}%` }}
+                  style={{ width: `${(stats.generationBreakdown.videos / totalGenerations) * 100}%` }}
                 />
               </div>
             </div>
@@ -230,7 +234,7 @@ export function Dashboard({ data, onRefresh, onExport }: DashboardProps) {
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                 <div
                   className="bg-purple-500 h-2 rounded-full"
-                  style={{ width: `${(stats.generationBreakdown.keyframes / (stats.generationBreakdown.images + stats.generationBreakdown.videos + stats.generationBreakdown.keyframes)) * 100}%` }}
+                  style={{ width: `${(stats.generationBreakdown.keyframes / totalGenerations) * 100}%` }}
                 />
               </div>
             </div>
@@ -247,7 +251,7 @@ export function Dashboard({ data, onRefresh, onExport }: DashboardProps) {
               <div
                 key={i}
                 className="flex-1 bg-blue-500 rounded-t"
-                style={{ height: `${(day.generations / Math.max(...stats.usageByDay.map(d => d.generations))) * 100}%` }}
+                style={{ height: `${(day.generations / Math.max(...stats.usageByDay.map(d => d.generations), 1)) * 100}%` }}
                 title={`${day.date}: ${day.generations}次生成`}
               />
             ))}
@@ -304,7 +308,7 @@ export function Dashboard({ data, onRefresh, onExport }: DashboardProps) {
   );
 }
 
-export function ProjectStats(): JSX.Element {
+export function ProjectStats() {
   const [stats] = useState({
     totalShots: 0,
     completedShots: 0,

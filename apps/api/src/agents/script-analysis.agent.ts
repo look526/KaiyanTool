@@ -1,7 +1,7 @@
 import { AIProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
 
-interface SceneInfo {
+export interface SceneInfo {
   id: string;
   time: string;
   atmosphere: string;
@@ -11,7 +11,7 @@ interface SceneInfo {
   shots: ShotInfo[];
 }
 
-interface ShotInfo {
+export interface ShotInfo {
   id: string;
   sequence: number;
   type: string;
@@ -21,7 +21,7 @@ interface ShotInfo {
   prompt?: string;
 }
 
-interface ScriptStructure {
+export interface ScriptStructure {
   title: string;
   summary: string;
   scenes: SceneInfo[];
@@ -30,7 +30,7 @@ interface ScriptStructure {
   estimatedShots: number;
 }
 
-interface CharacterInfo {
+export interface CharacterInfo {
   id: string;
   name: string;
   description: string;

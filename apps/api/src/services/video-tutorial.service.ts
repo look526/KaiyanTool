@@ -37,7 +37,7 @@ export class VideoTutorialService {
       _count: { id: true }
     });
 
-    return categories.map(c => ({
+    return categories.map((c: any) => ({
       id: c.category,
       name: this.getCategoryName(c.category),
       count: c._count.id
@@ -82,7 +82,7 @@ export class VideoTutorialService {
     ]);
 
     return {
-      tutorials: tutorials.map(t => this.mapToTutorial(t)),
+      tutorials: tutorials.map((t: any) => this.mapToTutorial(t)),
       total
     };
   }
@@ -152,7 +152,7 @@ export class VideoTutorialService {
       select: { tutorialId: true }
     });
 
-    const completedIds = completedTutorials.map(t => t.tutorialId);
+    const completedIds = completedTutorials.map((t: any) => t.tutorialId);
 
     const tutorials = await prisma.videoTutorial.findMany({
       where: {
@@ -167,16 +167,16 @@ export class VideoTutorialService {
     if (tutorials.length < 5) {
       const additional = await prisma.videoTutorial.findMany({
         where: {
-          id: { notIn: [...completedIds, ...tutorials.map(t => t.id)] }
+          id: { notIn: [...completedIds, ...tutorials.map((t: any) => t.id)] }
         },
         take: 5 - tutorials.length,
         orderBy: { views: 'desc' }
       });
       
-      return [...tutorials, ...additional].map(t => this.mapToTutorial(t));
+      return [...tutorials, ...additional].map((t: any) => this.mapToTutorial(t));
     }
 
-    return tutorials.map(t => this.mapToTutorial(t));
+    return tutorials.map((t: any) => this.mapToTutorial(t));
   }
 
   async createTutorial(data: Partial<Tutorial>): Promise<Tutorial> {
@@ -228,7 +228,7 @@ export class VideoTutorialService {
     completionRate: number;
     totalRatings: number;
   }> {
-    const [tutorial, ratings, progress] = await Promise.all([
+    const [tutorial, ratings] = await Promise.all([
       prisma.videoTutorial.findUnique({
         where: { id: tutorialId },
         select: { views: true }
@@ -237,11 +237,6 @@ export class VideoTutorialService {
         where: { tutorialId },
         _avg: { rating: true },
         _count: { rating: true }
-      }),
-      prisma.tutorialProgress.aggregate({
-        where: { tutorialId },
-        _avg: { progress: true },
-        _count: { completed: true }
       })
     ]);
 
