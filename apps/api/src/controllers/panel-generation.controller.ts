@@ -120,7 +120,7 @@ class PanelGenerationController {
         return
       }
 
-      const generatePromises = panels.map((panel) => {
+      const generatePromises = panels.map((panel: any) => {
         const prompt = panel.prompt || this.buildImagePrompt(panel, shot)
         return aiProviderService.createImage(providerId, {
           prompt,
@@ -132,7 +132,7 @@ class PanelGenerationController {
 
       const results = await Promise.all(generatePromises)
 
-      const updatePromises = results.map((result, index) =>
+      const updatePromises = results.map((result: any, index: number) =>
         prisma.nineGridPanel.update({
           where: { id: panels[index].id },
           data: { imageUrl: result.url },

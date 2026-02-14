@@ -20,7 +20,7 @@ class VideoGenerationController {
       }
 
       const { id } = req.params
-      const { providerId, model, duration, motion } = req.body
+      const { providerId, duration, motion } = req.body
 
       const shot = await prisma.shot.findFirst({
         where: {
@@ -49,6 +49,7 @@ class VideoGenerationController {
         data: {
           shotId: id,
           projectId: shot.projectId,
+          url: '',
           status: 'processing',
           format: 'mp4',
           duration: duration || 5,
@@ -60,7 +61,7 @@ class VideoGenerationController {
       if (!provider) {
         await prisma.video.update({
           where: { id: video.id },
-          data: { status: 'failed', errorMessage: 'No AI provider configured' },
+          data: { status: 'failed' },
         })
         res.status(400).json({ error: 'No AI provider configured' })
         return
@@ -96,7 +97,6 @@ class VideoGenerationController {
           where: { id: video.id },
           data: {
             status: 'failed',
-            errorMessage: error instanceof Error ? error.message : 'Video generation failed',
           },
         })
         logger.error('视频生成失败', { userId: req.userId, shotId: id, videoId: video.id, error })

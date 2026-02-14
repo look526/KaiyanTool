@@ -196,7 +196,7 @@ class NineGridController {
       }
 
       const { shotId } = req.params
-      const { providerId, model } = req.body
+      const { providerId } = req.body
 
       const shot = await prisma.shot.findFirst({
         where: {
@@ -226,7 +226,7 @@ class NineGridController {
       }
 
       const results = await Promise.allSettled(
-        existingPanels.map(async (panel, index) => {
+        existingPanels.map(async (panel: any, _index: number) => {
           return prisma.nineGridPanel.update({
             where: { id: panel.id },
             data: {
