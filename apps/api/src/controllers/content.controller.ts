@@ -211,7 +211,7 @@ export const updateScript = async (req: Request, res: Response) => {
 
 export const deleteScript = async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const currentUser = req.user!.id;
     const { id } = req.params;
 
     const script = await prisma.script.findFirst({
@@ -219,15 +219,15 @@ export const deleteScript = async (req: Request, res: Response) => {
         id,
         project: {
           OR: [
-            { ownerId: userId },
-            { members: { some: { userId } } },
+            { ownerId: currentUser },
+            { members: { some: { userId: currentUser } } },
           ],
         },
       },
     });
 
     if (!script) {
-      logger.warn('剧本不存在或无权限', { userId, scriptId: id });
+      logger.warn('剧本不存在或无权限', { userId: currentUser, scriptId: id });
       return res.status(404).json({ error: '剧本不存在或无权限' });
     }
 
@@ -236,16 +236,16 @@ export const deleteScript = async (req: Request, res: Response) => {
     });
 
     res.json({ message: '剧本已删除' });
-    logger.info('剧本删除成功', { userId, scriptId: id });
+    logger.info('剧本删除成功', { userId: currentUser, scriptId: id });
   } catch (error) {
-    logger.error('删除剧本失败', { userId, scriptId: req.params.id, error });
+    logger.error('删除剧本失败', { userId: currentUser, scriptId: req.params.id, error });
     res.status(500).json({ error: '删除剧本失败' });
   }
 };
 
 export const getScript = async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const currentUser = req.user!.id;
     const { id } = req.params;
 
     const script = await prisma.script.findFirst({
@@ -253,8 +253,8 @@ export const getScript = async (req: Request, res: Response) => {
         id,
         project: {
           OR: [
-            { ownerId: userId },
-            { members: { some: { userId } } },
+            { ownerId: currentUser },
+            { members: { some: { userId: currentUser } } },
           ],
         },
       },
@@ -264,20 +264,20 @@ export const getScript = async (req: Request, res: Response) => {
     });
 
     if (!script) {
-      logger.warn('剧本不存在或无权限', { userId, scriptId: id });
-      return res.status(404).json({ error: '剧本不存在或无权限' });
+      return res.status(404).json({ error: '剧本不存在' });
     }
 
     res.json(script);
+    logger.info('获取剧本成功', { userId: currentUser, scriptId: id });
   } catch (error) {
-    logger.error('获取剧本详情失败', { userId, scriptId: req.params.id, error });
-    res.status(500).json({ error: '获取剧本详情失败' });
+    logger.error('获取剧本失败', { userId: currentUser, scriptId: id, error });
+    res.status(500).json({ error: '获取剧本失败' });
   }
 };
 
 export const createNovel = async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.id;
+    const currentUser = req.user!.id;
     const { projectId, title, content } = req.body;
 
     if (!projectId || !title || !content) {
@@ -288,14 +288,14 @@ export const createNovel = async (req: Request, res: Response) => {
       where: {
         id: projectId,
         OR: [
-          { ownerId: userId },
-          { members: { some: { userId } } },
+          { ownerId: currentUser },
+          { members: { some: { userId: currentUser } } },
         ],
       },
     });
 
     if (!project) {
-      logger.warn('项目不存在', { userId, projectId });
+      logger.warn('项目不存在', { userId: currentUser, projectId });
       return res.status(404).json({ error: '项目不存在' });
     }
 
@@ -308,19 +308,19 @@ export const createNovel = async (req: Request, res: Response) => {
     });
 
     res.status(201).json(novel);
-    logger.info('小说创建成功', { userId, projectId, novelId: novel.id });
+    logger.info('小说创建成功', { userId: currentUser, projectId, novelId: novel.id });
   } catch (error) {
-    logger.error('创建小说失败', { userId, error });
+    logger.error('创建小说失败', { userId: currentUser, error });
     res.status(500).json({ error: '创建小说失败' });
   }
 };
 
 export const getNovels = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const currentUser = req.user?.id;
     const { projectId } = req.params;
 
-    if (!userId) {
+    if (!currentUser) {
       return res.status(401).json({ error: '未授权' });
     }
 
@@ -328,14 +328,14 @@ export const getNovels = async (req: Request, res: Response) => {
       where: {
         id: projectId,
         OR: [
-          { ownerId: userId },
-          { members: { some: { userId } } },
+          { ownerId: currentUser },
+          { members: { some: { userId: currentUser } } },
         ],
       },
     });
 
     if (!project) {
-      logger.warn('项目不存在', { userId, projectId });
+      logger.warn('项目不存在', { userId: currentUser, projectId });
       return res.status(404).json({ error: '项目不存在' });
     }
 
@@ -346,7 +346,7 @@ export const getNovels = async (req: Request, res: Response) => {
 
     res.json(novels);
   } catch (error) {
-    logger.error('获取小说列表失败', { userId, projectId, error });
+    logger.error('获取小说列表失败', { userId: currentUser, projectId, error });
     res.status(500).json({ error: '获取小说列表失败' });
   }
 };

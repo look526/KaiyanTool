@@ -182,11 +182,11 @@ export class DataMigrationService {
               await prisma.scene.create({
                 data: {
                   projectId: newProject.id,
-                  description: scene.description,
                   location: scene.location,
                   time: scene.timeOfDay,
                   atmosphere: '',
                   metadata: JSON.stringify({
+                    description: scene.description,
                     name: scene.name,
                     source: 'toonflow',
                     originalId: scene.id

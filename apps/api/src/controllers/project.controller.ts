@@ -112,10 +112,10 @@ export const getProjects = async (req: Request, res: Response) => {
 
 export const getProject = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const currentUser = req.user?.id;
     const { id } = req.params;
 
-    if (!userId) {
+    if (!currentUser) {
       return res.status(401).json({ error: '未授权' });
     }
 
@@ -123,8 +123,8 @@ export const getProject = async (req: Request, res: Response) => {
       where: {
         id,
         OR: [
-          { ownerId: userId },
-          { members: { some: { userId } } },
+          { ownerId: currentUser },
+          { members: { some: { userId: currentUser } } },
         ],
       },
       include: {
@@ -152,13 +152,13 @@ export const getProject = async (req: Request, res: Response) => {
     });
 
     if (!project) {
-      logger.warn('项目不存在', { userId, projectId: id });
+      logger.warn('项目不存在', { userId: currentUser, projectId: id });
       return res.status(404).json({ error: '项目不存在' });
     }
 
     res.json(project);
   } catch (error) {
-    logger.error('获取项目详情失败', { userId, projectId: req.params.id, error });
+    logger.error('获取项目详情失败', { userId: currentUser, projectId: req.params.id, error });
     res.status(500).json({ error: '获取项目详情失败' });
   }
 };
@@ -206,19 +206,19 @@ export const updateProject = async (req: Request, res: Response) => {
 
 export const deleteProject = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
+    const currentUser = req.user?.id;
     const { id } = req.params;
 
-    if (!userId) {
+    if (!currentUser) {
       return res.status(401).json({ error: '未授权' });
     }
 
     const project = await prisma.project.findFirst({
-      where: { id, ownerId: userId },
+      where: { id, ownerId: currentUser },
     });
 
     if (!project) {
-      logger.warn('项目不存在或无权限', { userId, projectId: id });
+      logger.warn('项目不存在或无权限', { userId: currentUser, projectId: id });
       return res.status(404).json({ error: '项目不存在或无权限' });
     }
 
@@ -227,10 +227,10 @@ export const deleteProject = async (req: Request, res: Response) => {
     });
 
     res.json({ message: '项目已删除' });
-    logger.info('项目删除成功', { userId, projectId: id });
+    logger.info('项目删除成功', { userId: currentUser, projectId: id });
     await auditService.logAction(req, AuditAction.DELETE, AuditResource.PROJECT, id, { name: project.name });
   } catch (error) {
-    logger.error('删除项目失败', { userId, projectId: req.params.id, error });
+    logger.error('删除项目失败', { userId: currentUser, projectId: req.params.id, error });
     await auditService.logError(req, AuditAction.DELETE, AuditResource.PROJECT, '删除项目失败', req.params.id, { error });
     res.status(500).json({ error: '删除项目失败' });
   }

@@ -4,12 +4,12 @@ import { z } from 'zod';
 const InviteSchema = z.object({
   projectId: z.string(),
   email: z.string().email(),
-  role: z.enum(['VIEWER', 'EDITOR', 'ADMIN', 'OWNER'])
+  role: z.enum(['viewer', 'editor', 'admin', 'owner'])
 });
 
 const UpdateMemberSchema = z.object({
   memberId: z.string(),
-  role: z.enum(['VIEWER', 'EDITOR', 'ADMIN', 'OWNER'])
+  role: z.enum(['viewer', 'editor', 'admin', 'owner'])
 });
 
 export class CollaborationService {
@@ -256,7 +256,7 @@ export class CollaborationService {
     return {
       owned: owned.map(p => ({
         ...p,
-        role: 'OWNER',
+        role: 'owner',
         memberCount: p._count.members
       })),
       shared: shared.map(m => ({

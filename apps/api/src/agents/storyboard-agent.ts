@@ -300,19 +300,18 @@ ${JSON.stringify({
       const createdShot = await prisma.shot.create({
         data: {
           projectId,
-          sequence: shot.sequence,
           title: `${storyboard.title} - Shot ${shot.sequence}`,
           description: shot.description,
           prompt: shot.visualPrompt,
           duration: shot.duration,
           status: 'pending',
           metadata: {
+            sequence: shot.sequence,
             type: shot.type,
             negativePrompt: shot.negativePrompt,
             camera: shot.camera,
-            action: shot.action,
             dialogue: shot.dialogue,
-            notes: shot.notes
+            action: shot.action
           } as any
         }
       });
