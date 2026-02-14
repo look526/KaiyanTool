@@ -380,16 +380,7 @@ ${JSON.stringify(novelAnalysis, null, 2)}
           projectId,
           location: chapter.locations[0],
           time: chapter.tone,
-          atmosphere: '',
-          metadata: JSON.stringify({
-            description: chapter.summary,
-            name: chapter.title,
-            chapterNumber: chapter.number,
-            wordCount: chapter.wordCount,
-            characters: chapter.characters,
-            events: chapter.events,
-            keyDialogues: chapter.keyDialogues
-          })
+          atmosphere: ''
         }
       });
     }

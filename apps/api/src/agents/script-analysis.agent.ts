@@ -1,5 +1,4 @@
 import { aiProviderService } from '../services/ai/provider.service';
-import { prisma } from '../lib/prisma';
 
 export interface SceneInfo {
   id: string;

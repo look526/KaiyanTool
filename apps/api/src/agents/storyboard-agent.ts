@@ -1,6 +1,5 @@
 import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
-import { scriptAnalysisAgent } from './script-analysis.agent';
 
 interface StoryboardInput {
   outlineId: string;
@@ -300,19 +299,10 @@ ${JSON.stringify({
       const createdShot = await prisma.shot.create({
         data: {
           projectId,
-          title: `${storyboard.title} - Shot ${shot.sequence}`,
-          description: shot.description,
-          prompt: shot.visualPrompt,
+          actionSummary: shot.description,
+          startPrompt: shot.visualPrompt,
           duration: shot.duration,
-          status: 'pending',
-          metadata: {
-            sequence: shot.sequence,
-            type: shot.type,
-            negativePrompt: shot.negativePrompt,
-            camera: shot.camera,
-            dialogue: shot.dialogue,
-            action: shot.action
-          } as any
+          cameraMovement: shot.camera?.movement
         }
       });
 
@@ -333,17 +323,17 @@ ${JSON.stringify({
 
     switch (format) {
       case 'json':
-        return JSON.stringify(shots.map((s, index) => ({
+        return JSON.stringify(shots.map((s: any, index: number) => ({
           sequence: index + 1,
-          description: s.description,
-          prompt: (s as any).prompt,
+          description: s.actionSummary,
+          prompt: s.startPrompt,
           duration: s.duration
         })), null, 2);
 
       case 'csv':
         const headers = 'Sequence,Type,Description,Prompt,Duration\n';
-        const rows = shots.map(s =>
-          `${s.sequence},${(s as any).type || 'medium'},"${s.description}","${(s as any).prompt || ''}",${s.duration}`
+        const rows = shots.map((s: any, index: number) =>
+          `${index + 1},${s.cameraMovement || 'medium'},"${s.actionSummary}","${s.startPrompt || ''}",${s.duration}`
         ).join('\n');
         return headers + rows;
 
@@ -366,10 +356,10 @@ ${JSON.stringify({
     <project name="Storyboard" uid="PROJECT_UID">
       <sequence format="r1" duration="${shots.reduce((acc, s) => acc + s.duration, 0)}/24s">
         <spine>
-          ${shots.map((s, i) => `
-          <asset-clip name="Shot ${s.sequence}" duration="${s.duration}/24s" offset="${shots.slice(0, i).reduce((acc, prev) => acc + prev.duration, 0)}/24s">
+          ${shots.map((s: any, i: number) => `
+          <asset-clip name="Shot ${i + 1}" duration="${s.duration}/24s" offset="${shots.slice(0, i).reduce((acc, prev) => acc + prev.duration, 0)}/24s">
             <metadata>
-              <笠 name="Description">${s.description}</笠>
+              <笠 name="Description">${s.actionSummary}</笠>
             </metadata>
           </asset-clip>
           `).join('')}

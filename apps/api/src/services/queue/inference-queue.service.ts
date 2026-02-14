@@ -53,23 +53,23 @@ export class InferenceQueueService {
   }
   private setupEventHandlers(): void {
     const setupQueueHandlers = (queue: any, name: string) => {
-      queue.on('error', (err) => {
+      queue.on('error', (err: any) => {
         logger.error(`${name}队列错误`, { error: err })
       })
 
-      queue.on('waiting', (jobId) => {
+      queue.on('waiting', (jobId: any) => {
         logger.debug(`${name}任务等待中`, { jobId })
       })
 
-      queue.on('active', (job) => {
+      queue.on('active', (job: any) => {
         logger.info(`${name}任务开始处理`, { jobId: job.id })
       })
 
-      queue.on('completed', (job, result) => {
+      queue.on('completed', (job: any, result: any) => {
         logger.info(`${name}任务完成`, { jobId: job.id, result })
       })
 
-      queue.on('failed', (job, err) => {
+      queue.on('failed', (job: any, err: any) => {
         logger.error(`${name}任务失败`, { jobId: job.id, error: err.message })
       })
     }
