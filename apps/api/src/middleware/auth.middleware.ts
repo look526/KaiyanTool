@@ -70,7 +70,7 @@ export const authMiddleware = async (
 
 export const optionalAuthMiddleware = async (
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {

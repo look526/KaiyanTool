@@ -56,13 +56,13 @@ app.use(sentryTracingHandler)
 app.use(requestLogger)
 app.use(metricsMiddleware)
 
-app.get('/health', (req: Request, res: Response) => {
+app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
 // setupSwagger(app)
 
-app.get('/metrics', async (req: Request, res: Response) => {
+app.get('/metrics', async (_req: Request, res: Response) => {
   res.set('Content-Type', metrics.register.contentType)
   res.end(await metrics.register.metrics())
 })
@@ -88,7 +88,7 @@ app.use('/api', documentRoutes)
 app.use('/api/audit', auditRoutes)
 
 app.use(sentryErrorHandler)
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
   logger.error({
     message: err.message,
     stack: err.stack,

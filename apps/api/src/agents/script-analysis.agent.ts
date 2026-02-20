@@ -44,10 +44,9 @@ export class ScriptAnalysisAgent {
     scriptContent: string,
     options: {
       targetDuration?: number;
-      includeShots?: boolean;
     } = {}
   ): Promise<ScriptStructure> {
-    const { targetDuration = 180, includeShots = true } = options;
+    const { targetDuration = 180 } = options;
 
     const systemPrompt = `你是一个专业的剧本分析AI助手。你的任务是：
 1. 分析剧本内容，提取结构化信息
