@@ -34,7 +34,7 @@ router.post('/premiere', async (req, res) => {
       {
         format: validated.format,
         resolution: validated.resolution,
-        frameRate: parseInt(validated.frameRate),
+        frameRate: parseInt(validated.frameRate) as 24 | 25 | 30 | 60,
         includeAudio: validated.includeAudio,
         includeMarkers: validated.includeMarkers
       }

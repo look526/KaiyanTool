@@ -32,7 +32,7 @@ export const decrypt = (encryptedData: string): string => {
   const key = getEncryptionKey();
   const combined = Buffer.from(encryptedData, 'base64');
 
-  const _salt = combined.subarray(0, SALT_LENGTH);
+  combined.subarray(0, SALT_LENGTH);
   const iv = combined.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
   const tag = combined.subarray(SALT_LENGTH + IV_LENGTH, SALT_LENGTH + IV_LENGTH + TAG_LENGTH);
   const encrypted = combined.subarray(SALT_LENGTH + IV_LENGTH + TAG_LENGTH);
