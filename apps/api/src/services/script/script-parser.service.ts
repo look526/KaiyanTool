@@ -325,13 +325,13 @@ ${scriptContent}
     }
   }
 
-  private async getCachedParse(scriptContent: string): Promise<ParsedScript | null> {
+  private async getCachedParse(_scriptContent: string): Promise<ParsedScript | null> {
     return null
   }
 
   private async cacheParseResult(
-    scriptContent: string,
-    result: ParsedScript
+    _scriptContent: string,
+    _result: ParsedScript
   ): Promise<void> {
     return
   }

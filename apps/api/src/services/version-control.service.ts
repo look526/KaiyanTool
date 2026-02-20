@@ -293,7 +293,7 @@ export class VersionControlService {
     return { success: true, tags };
   }
 
-  private generateHash(data: string): string {
+  private _generateHash(data: string): string {
     let hash = 0;
     for (let i = 0; i < data.length; i++) {
       const char = data.charCodeAt(i);

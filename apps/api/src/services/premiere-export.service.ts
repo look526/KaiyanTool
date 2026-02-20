@@ -363,7 +363,7 @@ export class PremiereExportService {
   private buildMediaPool(project: ProjectData) {
     const media = new Map();
     
-    project.shots.forEach((shot, idx) => {
+    project.shots.forEach((shot, _idx) => {
       if (shot.videoUrl) {
         media.set(shot.videoUrl, {
           type: 'video',

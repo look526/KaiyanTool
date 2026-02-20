@@ -359,7 +359,6 @@ export class QualityScoringService {
 
     for (let i = 1; i < sentences.length; i++) {
       const prevLastChar = sentences[i - 1].slice(-1)
-      const currFirstChar = sentences[i][0]
 
       const transitionWords = ['但是', '然而', '然后', '接着', '于是', '因此']
       const hasTransition = transitionWords.some((word) =>
@@ -375,7 +374,7 @@ export class QualityScoringService {
   }
 
   private generateTextDetails(
-    text: string,
+    _text: string,
     relevance: number,
     coherence: number,
     completeness: number

@@ -50,10 +50,10 @@ export class ProjectTemplateService {
             await prisma.scene.create({
               data: {
                 projectId: '',
-                description: asset.description || '',
-                metadata: JSON.stringify({
-                  name: asset.name
-                })
+                location: asset.name || '',
+                time: '未知',
+                atmosphere: asset.description || '',
+                referenceImages: []
               }
             });
             break;
@@ -96,15 +96,7 @@ export class ProjectTemplateService {
         where,
         orderBy: { createdAt: 'desc' },
         take: limit,
-        skip: offset,
-        include: {
-          createdBy: {
-            select: { id: true, name: true, avatar: true }
-          },
-          _count: {
-            select: { usedBy: true }
-          }
-        }
+        skip: offset
       }),
       prisma.projectTemplate.count({ where })
     ]);
@@ -114,12 +106,7 @@ export class ProjectTemplateService {
 
   async getTemplate(templateId: string) {
     const template = await prisma.projectTemplate.findUnique({
-      where: { id: templateId },
-      include: {
-        createdBy: {
-          select: { id: true, name: true, email: true, avatar: true }
-        }
-      }
+      where: { id: templateId }
     });
 
     if (!template) {
@@ -136,46 +123,10 @@ export class ProjectTemplateService {
       data: {
         name: projectName || `New ${template.name} Project`,
         description: `Created from template: ${template.name}`,
-        settings: template.settings as any,
-        ownerId: userId,
-        members: {
-          create: {
-            userId,
-            role: 'owner'
-          }
-        }
+        settings: template.config as any,
+        ownerId: userId
       }
     });
-
-    if (template.defaultAssets?.length) {
-      for (const asset of template.defaultAssets) {
-        switch (asset.type) {
-          case 'character':
-            await prisma.character.create({
-              data: {
-                projectId: project.id,
-                name: asset.name,
-                appearance: JSON.stringify({
-                  description: asset.description || '',
-                  prompt: asset.prompt
-                })
-              }
-            });
-            break;
-          case 'scene':
-            await prisma.scene.create({
-              data: {
-                projectId: project.id,
-                description: asset.description || '',
-                metadata: JSON.stringify({
-                  name: asset.name
-                })
-              }
-            });
-            break;
-        }
-      }
-    }
 
     return project;
   }
@@ -234,10 +185,8 @@ export class ProjectTemplateService {
         name: newName || `${original.name} (Copy)`,
         description: original.description,
         category: original.category,
-        config: original.settings as any,
-        defaultAssets: original.defaultAssets as any,
+        config: original.config,
         isPublic: false,
-        tags: original.tags || [],
         createdBy: userId
       }
     });
@@ -260,12 +209,8 @@ export class ProjectTemplateService {
   async getPopularTemplates(limit = 10) {
     const templates = await prisma.projectTemplate.findMany({
       where: { isPublic: true },
-      include: {
-        _count: { select: { usedBy: true } },
-        createdBy: { select: { id: true, name: true, avatar: true } }
-      },
       orderBy: {
-        usedBy: { _count: 'desc' }
+        usageCount: 'desc'
       },
       take: limit
     });

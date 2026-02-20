@@ -233,10 +233,7 @@ export class PluginService {
 
   async getProjectPlugins(projectId: string) {
     const plugins = await prisma.projectPlugin.findMany({
-      where: { projectId },
-      include: {
-        plugin: true
-      }
+      where: { projectId }
     });
 
     return plugins;
@@ -259,26 +256,18 @@ export class PluginService {
   }
 
   async getPluginHooks(projectId: string, event: string) {
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      include: {
-        plugins: {
-          include: {
-            plugin: true
-          }
-        }
-      }
+    const projectPlugins = await prisma.projectPlugin.findMany({
+      where: { projectId }
     });
-
-    if (!project) {
-      throw new Error('Project not found');
-    }
 
     const hooks: PluginHook[] = [];
 
-    for (const pp of project.plugins) {
-      if (pp.status === 'active' && pp.plugin.manifest) {
-        const manifest = pp.plugin.manifest as any;
+    for (const pp of projectPlugins) {
+      const plugin = await prisma.plugin.findUnique({
+        where: { id: pp.pluginId }
+      });
+      if (plugin && pp.status === 'active' && plugin.manifest) {
+        const manifest = plugin.manifest as any;
         if (manifest.hooks) {
           hooks.push(...manifest.hooks.filter((h: any) => h.event === event));
         }
@@ -303,7 +292,7 @@ export class PluginService {
   }
 
   private async executePluginFunction(
-    handler: string,
+    _handler: string,
     context: any
   ): Promise<any> {
     return context;

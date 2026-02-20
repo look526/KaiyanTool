@@ -10,7 +10,6 @@ interface TaskItem {
 
 class RenderQueueService {
   private isProcessing = false;
-  private processingInterval: NodeJS.Timeout | null = null;
 
   constructor(autoStart: boolean = true) {
     if (autoStart) {
