@@ -97,7 +97,6 @@ class ExportService {
   }
 
   async importProject(buffer: Buffer, userId: string): Promise<any> {
-    const JSZip = require('jszip');
     const zip = await JSZip.loadAsync(buffer);
 
     const projectJson = await zip.file('project.json')?.async('string');

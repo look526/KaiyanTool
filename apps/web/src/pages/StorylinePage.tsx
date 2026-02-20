@@ -9,7 +9,6 @@ import {
   Clock,
   Palette,
   Target,
-  Check,
   BookOpen,
   Lightbulb,
   Zap
@@ -18,7 +17,7 @@ import { Sidebar } from '../components/Sidebar';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
-import { Select, type Option } from '../components/ui/Select';
+import { Select } from '../components/ui/Select';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { apiClient } from '../lib/api-client';
 import { useTheme } from '../contexts/ThemeContext';
@@ -76,14 +75,22 @@ const StorylinePage: React.FC = () => {
   const [storyline, setStoryline] = useState<Storyline | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    title: string;
+    genre: string;
+    description: string;
+    style: string;
+    targetDuration: number;
+    targetAudience: string;
+    tone: string;
+  }>({
     title: '',
     genre: 'drama',
     description: '',
     style: '',
     targetDuration: 15,
     targetAudience: '大众',
-    tone: 'dramatic' as const,
+    tone: 'dramatic',
   });
 
   const textColor = theme === 'dark' ? '#ffffff' : '#0f172a';
@@ -274,7 +281,7 @@ const StorylinePage: React.FC = () => {
                 }} />
               }))}
               value={formData.tone}
-              onChange={(value: string) => setFormData({ ...formData, tone: value as const })}
+              onChange={(value) => setFormData({ ...formData, tone: typeof value === 'string' ? value : value[0] })}
               placeholder="选择基调"
             />
           </div>

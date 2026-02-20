@@ -241,10 +241,11 @@ export class BackupService {
           next.setDate(next.getDate() + 1);
         }
         break;
-      case 'weekly':
+      case 'weekly': {
         const daysUntilMonday = (8 - next.getDay()) % 7 || 7;
         next.setDate(next.getDate() + daysUntilMonday);
         break;
+      }
       case 'monthly':
         next.setMonth(next.getMonth() + 1);
         next.setDate(1);

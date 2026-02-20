@@ -306,8 +306,8 @@ export const checkProjectRole = (allowedRoles: Role[]) => {
 };
 
 declare global {
-  namespace Express {
-    interface Request {
+  interface Express {
+    Request: Request & {
       userRole?: Role;
     }
   }

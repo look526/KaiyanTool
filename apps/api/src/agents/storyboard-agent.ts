@@ -330,12 +330,13 @@ ${JSON.stringify({
           duration: s.duration
         })), null, 2);
 
-      case 'csv':
+      case 'csv': {
         const headers = 'Sequence,Type,Description,Prompt,Duration\n';
         const rows = shots.map((s: any, index: number) =>
           `${index + 1},${s.cameraMovement || 'medium'},"${s.actionSummary}","${s.startPrompt || ''}",${s.duration}`
         ).join('\n');
         return headers + rows;
+      }
 
       case 'fcpxml':
         return this.generateFCPXML(shots);

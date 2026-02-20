@@ -8,6 +8,8 @@ import { promisify } from 'util'
 import stream from 'stream'
 import { join } from 'path'
 import { tmpdir } from 'os'
+import JSZip from 'jszip'
+import { Readable } from 'stream'
 
 const pipeline = promisify(stream.pipeline)
 
@@ -372,7 +374,6 @@ class VideoGenerationController {
         return
       }
 
-      const JSZip = require('jszip')
       const zip = new JSZip()
       const tempDir = tmpdir()
       const zipFileName = `${project.name}_videos_${resolution}.zip`
@@ -394,7 +395,7 @@ class VideoGenerationController {
 
         const zipContent = await zip.generateAsync({ type: 'nodebuffer' })
         const writeStream = createWriteStream(zipPath)
-        await pipeline(require('stream').Readable.from(zipContent), writeStream)
+        await pipeline(Readable.from(zipContent), writeStream)
 
         res.download(zipPath, zipFileName, (err) => {
           if (err) {

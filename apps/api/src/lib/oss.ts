@@ -1,5 +1,6 @@
 import { Readable } from 'stream';
 import { createReadStream, unlinkSync } from 'fs';
+import { createHmac } from 'crypto';
 
 interface OSSConfig {
   accessKeyId: string;
@@ -125,8 +126,7 @@ class OSSService {
 
   private generateSignature(method: string, key: string, contentType: string, expires: number): string {
     const stringToSign = `${method}\n\n${contentType}\n${expires}\n/${this.config.bucket}/${key}`;
-    const crypto = require('crypto');
-    const hmac = crypto.createHmac('sha1', this.config.accessKeySecret);
+    const hmac = createHmac('sha1', this.config.accessKeySecret);
     hmac.update(stringToSign);
     return hmac.digest('base64');
   }

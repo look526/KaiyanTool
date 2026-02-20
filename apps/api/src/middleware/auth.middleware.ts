@@ -6,8 +6,8 @@ const prisma = new PrismaClient()
 const ENABLE_AUTH = false
 
 declare global {
-  namespace Express {
-    interface Request {
+  interface Express {
+    Request: Request & {
       userId?: string
       user?: { id: string; email: string; name: string | null }
       session?: { id: string; userId: string; expiresAt: Date; token: string }
