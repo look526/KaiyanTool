@@ -11,7 +11,7 @@ export default function CreateProjectPage() {
   const [formData, setFormData] = useState<CreateProjectData>({
     name: '',
     description: '',
-    type: 'SCRIPT',
+    type: 'script',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,7 +41,7 @@ export default function CreateProjectPage() {
 
   const projectTypes = [
     { 
-      value: 'SCRIPT' as const, 
+      value: 'script' as const, 
       label: '剧本项目', 
       icon: FileText, 
       description: '基于剧本格式的内容创作',
@@ -49,7 +49,7 @@ export default function CreateProjectPage() {
       gradient: 'from-blue-500 to-cyan-500'
     },
     { 
-      value: 'NOVEL' as const, 
+      value: 'novel' as const, 
       label: '小说项目', 
       icon: BookOpen, 
       description: '基于小说文本的内容创作',
@@ -57,7 +57,7 @@ export default function CreateProjectPage() {
       gradient: 'from-purple-500 to-pink-500'
     },
     { 
-      value: 'MIXED' as const, 
+      value: 'mixed' as const, 
       label: '混合项目', 
       icon: Layers, 
       description: '结合剧本和小说的混合模式',

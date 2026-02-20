@@ -1,12 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 import logger from '../lib/logger';
-
-declare module 'express' {
-  export interface Request {
-    userRole?: Role;
-  }
-}
+import './auth.middleware';
 
 export enum Permission {
   PROJECT_READ = 'project:read',

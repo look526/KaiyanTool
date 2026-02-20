@@ -70,7 +70,7 @@ app.get('/metrics', async (_req: Request, res: Response) => {
 })
 
 app.use('/api/auth', authRoutes)
-app.use('/api', projectRoutes)
+app.use('/api/projects', projectRoutes)
 app.use('/api', contentRoutes)
 app.use('/api', assetRoutes)
 app.use('/api', projectMemberRoutes)

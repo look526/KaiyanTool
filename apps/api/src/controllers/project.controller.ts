@@ -8,15 +8,21 @@ const prisma = new PrismaClient();
 const ProjectTypeValues = ['script', 'novel', 'mixed'] as const;
 
 export const createProject = async (req: Request, res: Response) => {
-  const currentUser = req.user!.id;
-  const { name, description, type } = req.body;
+  const currentUser = (req as any).userId || req.user?.id;
+  let { name, description, type } = req.body;
 
   try {
     if (!name) {
       return res.status(400).json({ error: '项目名称是必填项' });
     }
 
-    if (!ProjectTypeValues.includes(type as any)) {
+    if (!currentUser) {
+      return res.status(401).json({ error: '未授权' });
+    }
+
+    type = type?.toLowerCase();
+    
+    if (type && !ProjectTypeValues.includes(type as any)) {
       return res.status(400).json({ error: '无效的项目类型' });
     }
 
@@ -44,7 +50,7 @@ export const createProject = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: Request, res: Response) => {
   const currentUser = req.user?.id;
-  const { page = '1', limit = '10', search, type } = req.query;
+  let { page = '1', limit = '10', search, type } = req.query;
 
   try {
     if (!currentUser) {
@@ -66,6 +72,8 @@ export const getProjects = async (req: Request, res: Response) => {
       where.name = { contains: search as string, mode: 'insensitive' };
     }
 
+    type = type?.toString().toLowerCase();
+    
     if (type && ProjectTypeValues.includes(type as any)) {
       where.type = type;
     }
@@ -164,11 +172,15 @@ export const getProject = async (req: Request, res: Response) => {
 };
 
 export const updateProject = async (req: Request, res: Response) => {
-  const currentUser = req.user!.id;
+  const currentUser = (req as any).userId || req.user?.id;
   const { id } = req.params;
-  const { name, description, type } = req.body;
+  let { name, description, type } = req.body;
 
   try {
+    if (!currentUser) {
+      return res.status(401).json({ error: '未授权' });
+    }
+
     const project = await prisma.project.findFirst({
       where: { id, ownerId: currentUser },
     });
@@ -178,6 +190,8 @@ export const updateProject = async (req: Request, res: Response) => {
       return res.status(404).json({ error: '项目不存在或无权限' });
     }
 
+    type = type?.toLowerCase();
+    
     if (type && !ProjectTypeValues.includes(type as any)) {
       return res.status(400).json({ error: '无效的项目类型' });
     }

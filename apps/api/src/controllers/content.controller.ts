@@ -53,8 +53,12 @@ export const createScript = async (req: Request, res: Response) => {
 
 export const getScripts = async (req: Request, res: Response) => {
   try {
-    const currentUser = req.user!.id;
+    const currentUser = (req as any).userId || req.user?.id;
     const { projectId } = req.params;
+
+    if (!currentUser) {
+      return res.status(401).json({ error: '未授权' });
+    }
 
     const project = await prisma.project.findFirst({
       where: {
@@ -171,11 +175,15 @@ export const parseScript = async (req: Request, res: Response) => {
 };
 
 export const updateScript = async (req: Request, res: Response) => {
-  const currentUser = req.user!.id;
+  const currentUser = (req as any).userId || req.user?.id;
   const { id } = req.params;
   const { title, content } = req.body;
 
   try {
+    if (!currentUser) {
+      return res.status(401).json({ error: '未授权' });
+    }
+
     const script = await prisma.script.findFirst({
       where: {
         id,
@@ -210,10 +218,14 @@ export const updateScript = async (req: Request, res: Response) => {
 };
 
 export const deleteScript = async (req: Request, res: Response) => {
-  const currentUser = req.user!.id;
+  const currentUser = (req as any).userId || req.user?.id;
   const { id } = req.params;
 
   try {
+    if (!currentUser) {
+      return res.status(401).json({ error: '未授权' });
+    }
+
     const script = await prisma.script.findFirst({
       where: {
         id,
@@ -244,10 +256,14 @@ export const deleteScript = async (req: Request, res: Response) => {
 };
 
 export const getScript = async (req: Request, res: Response) => {
-  const currentUser = req.user!.id;
+  const currentUser = (req as any).userId || req.user?.id;
   const { id } = req.params;
 
   try {
+    if (!currentUser) {
+      return res.status(401).json({ error: '未授权' });
+    }
+
     const script = await prisma.script.findFirst({
       where: {
         id,
@@ -276,10 +292,14 @@ export const getScript = async (req: Request, res: Response) => {
 };
 
 export const createNovel = async (req: Request, res: Response) => {
-  const currentUser = req.user!.id;
+  const currentUser = (req as any).userId || req.user?.id;
   const { projectId, title, content } = req.body;
 
   try {
+    if (!currentUser) {
+      return res.status(401).json({ error: '未授权' });
+    }
+
     if (!projectId || !title || !content) {
       return res.status(400).json({ error: '缺少必填字段' });
     }

@@ -5,14 +5,6 @@ const prisma = new PrismaClient()
 
 const ENABLE_AUTH = false
 
-declare module 'express' {
-  export interface Request {
-    userId?: string
-    user?: { id: string; email: string; name: string | null }
-    session?: { id: string; userId: string; expiresAt: Date; token: string }
-  }
-}
-
 export const authMiddleware = async (
   req: Request,
   res: Response,
@@ -21,6 +13,7 @@ export const authMiddleware = async (
   try {
     if (!ENABLE_AUTH) {
       req.userId = '00000000-0000-0000-0000-000000000001'
+      req.user = { id: '00000000-0000-0000-0000-000000000001', email: 'dev@example.com', name: 'Dev User' }
       next()
       return
     }
