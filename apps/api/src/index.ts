@@ -45,7 +45,7 @@ const UPLOAD_DIR = path.join(process.cwd(), 'uploads')
 
 app.use(sentryRequestHandler)
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000', 'http://localhost:3001'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
@@ -103,7 +103,7 @@ app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
   res.status(500).json({ error: 'Something went wrong!' })
 })
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   logger.info(`Server is running on port ${PORT}`)
   logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`)
 })
