@@ -8,10 +8,10 @@ const prisma = new PrismaClient();
 const ProjectTypeValues = ['script', 'novel', 'mixed'] as const;
 
 export const createProject = async (req: Request, res: Response) => {
-  try {
-    const currentUser = req.user!.id;
-    const { name, description, type } = req.body;
+  const currentUser = req.user!.id;
+  const { name, description, type } = req.body;
 
+  try {
     if (!name) {
       return res.status(400).json({ error: '项目名称是必填项' });
     }
@@ -43,10 +43,10 @@ export const createProject = async (req: Request, res: Response) => {
 };
 
 export const getProjects = async (req: Request, res: Response) => {
-  try {
-    const currentUser = req.user?.id;
-    const { page = '1', limit = '10', search, type } = req.query;
+  const currentUser = req.user?.id;
+  const { page = '1', limit = '10', search, type } = req.query;
 
+  try {
     if (!currentUser) {
       return res.status(401).json({ error: '未授权' });
     }
@@ -111,10 +111,10 @@ export const getProjects = async (req: Request, res: Response) => {
 };
 
 export const getProject = async (req: Request, res: Response) => {
-  try {
-    const currentUser = req.user?.id;
-    const { id } = req.params;
+  const currentUser = req.user?.id;
+  const { id } = req.params;
 
+  try {
     if (!currentUser) {
       return res.status(401).json({ error: '未授权' });
     }
@@ -158,17 +158,17 @@ export const getProject = async (req: Request, res: Response) => {
 
     res.json(project);
   } catch (error) {
-    logger.error('获取项目详情失败', { userId: currentUser, projectId: req.params.id, error });
+    logger.error('获取项目详情失败', { userId: currentUser, projectId: id, error });
     res.status(500).json({ error: '获取项目详情失败' });
   }
 };
 
 export const updateProject = async (req: Request, res: Response) => {
-  try {
-    const currentUser = req.user!.id;
-    const { id } = req.params;
-    const { name, description, type } = req.body;
+  const currentUser = req.user!.id;
+  const { id } = req.params;
+  const { name, description, type } = req.body;
 
+  try {
     const project = await prisma.project.findFirst({
       where: { id, ownerId: currentUser },
     });
@@ -199,16 +199,16 @@ export const updateProject = async (req: Request, res: Response) => {
     res.json(updatedProject);
     logger.info('项目更新成功', { userId: currentUser, projectId: id });
   } catch (error) {
-    logger.error('更新项目失败', { userId: currentUser, projectId: req.params.id, error });
+    logger.error('更新项目失败', { userId: currentUser, projectId: id, error });
     res.status(500).json({ error: '更新项目失败' });
   }
 };
 
 export const deleteProject = async (req: Request, res: Response) => {
-  try {
-    const currentUser = req.user?.id;
-    const { id } = req.params;
+  const currentUser = req.user?.id;
+  const { id } = req.params;
 
+  try {
     if (!currentUser) {
       return res.status(401).json({ error: '未授权' });
     }
@@ -230,8 +230,8 @@ export const deleteProject = async (req: Request, res: Response) => {
     logger.info('项目删除成功', { userId: currentUser, projectId: id });
     await auditService.logAction(req, AuditAction.DELETE, AuditResource.PROJECT, id, { name: project.name });
   } catch (error) {
-    logger.error('删除项目失败', { userId: currentUser, projectId: req.params.id, error });
-    await auditService.logError(req, AuditAction.DELETE, AuditResource.PROJECT, '删除项目失败', req.params.id, { error });
+    logger.error('删除项目失败', { userId: currentUser, projectId: id, error });
+    await auditService.logError(req, AuditAction.DELETE, AuditResource.PROJECT, '删除项目失败', id, { error });
     res.status(500).json({ error: '删除项目失败' });
   }
 };

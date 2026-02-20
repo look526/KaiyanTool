@@ -1,8 +1,5 @@
 import { Readable } from 'stream';
 import { createReadStream, unlinkSync } from 'fs';
-import { promisify } from 'util';
-import { pipeline } from 'stream';
-const streamPipeline = promisify(pipeline);
 
 interface OSSConfig {
   accessKeyId: string;
@@ -88,7 +85,7 @@ class OSSService {
         'Content-Type': contentType || 'application/octet-stream',
         'x-oss-object-acl': 'public-read',
       },
-      body: stream,
+      body: stream as any,
     });
 
     if (!response.ok) {

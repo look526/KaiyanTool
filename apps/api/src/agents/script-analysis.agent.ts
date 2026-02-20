@@ -128,8 +128,6 @@ ${scriptContent}
   }
 
   private structureScript(analysis: any, targetDuration: number): ScriptStructure {
-    const durationPerShot = targetDuration / (analysis.estimatedShots || 10);
-
     return {
       title: analysis.title || '未命名剧本',
       summary: analysis.summary || '',

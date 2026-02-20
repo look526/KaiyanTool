@@ -5,10 +5,10 @@ import logger from '../lib/logger';
 const prisma = new PrismaClient();
 
 export const createScript = async (req: Request, res: Response) => {
-  try {
-    const currentUser = req.user?.id;
-    const { projectId, title, content } = req.body;
+  const currentUser = req.user?.id;
+  const { projectId, title, content } = req.body;
 
+  try {
     if (!currentUser) {
       return res.status(401).json({ error: '未授权' });
     }
@@ -171,11 +171,11 @@ export const parseScript = async (req: Request, res: Response) => {
 };
 
 export const updateScript = async (req: Request, res: Response) => {
-  try {
-    const currentUser = req.user!.id;
-    const { id } = req.params;
-    const { title, content } = req.body;
+  const currentUser = req.user!.id;
+  const { id } = req.params;
+  const { title, content } = req.body;
 
+  try {
     const script = await prisma.script.findFirst({
       where: {
         id,
@@ -204,16 +204,16 @@ export const updateScript = async (req: Request, res: Response) => {
     res.json(updatedScript);
     logger.info('剧本更新成功', { userId: currentUser, scriptId: id });
   } catch (error) {
-    logger.error('更新剧本失败', { userId: currentUser, scriptId: req.params.id, error });
+    logger.error('更新剧本失败', { userId: currentUser, scriptId: id, error });
     res.status(500).json({ error: '更新剧本失败' });
   }
 };
 
 export const deleteScript = async (req: Request, res: Response) => {
-  try {
-    const currentUser = req.user!.id;
-    const { id } = req.params;
+  const currentUser = req.user!.id;
+  const { id } = req.params;
 
+  try {
     const script = await prisma.script.findFirst({
       where: {
         id,
@@ -238,16 +238,16 @@ export const deleteScript = async (req: Request, res: Response) => {
     res.json({ message: '剧本已删除' });
     logger.info('剧本删除成功', { userId: currentUser, scriptId: id });
   } catch (error) {
-    logger.error('删除剧本失败', { userId: currentUser, scriptId: req.params.id, error });
+    logger.error('删除剧本失败', { userId: currentUser, scriptId: id, error });
     res.status(500).json({ error: '删除剧本失败' });
   }
 };
 
 export const getScript = async (req: Request, res: Response) => {
-  try {
-    const currentUser = req.user!.id;
-    const { id } = req.params;
+  const currentUser = req.user!.id;
+  const { id } = req.params;
 
+  try {
     const script = await prisma.script.findFirst({
       where: {
         id,
@@ -276,10 +276,10 @@ export const getScript = async (req: Request, res: Response) => {
 };
 
 export const createNovel = async (req: Request, res: Response) => {
-  try {
-    const currentUser = req.user!.id;
-    const { projectId, title, content } = req.body;
+  const currentUser = req.user!.id;
+  const { projectId, title, content } = req.body;
 
+  try {
     if (!projectId || !title || !content) {
       return res.status(400).json({ error: '缺少必填字段' });
     }
@@ -316,10 +316,10 @@ export const createNovel = async (req: Request, res: Response) => {
 };
 
 export const getNovels = async (req: Request, res: Response) => {
-  try {
-    const currentUser = req.user?.id;
-    const { projectId } = req.params;
+  const currentUser = req.user?.id;
+  const { projectId } = req.params;
 
+  try {
     if (!currentUser) {
       return res.status(401).json({ error: '未授权' });
     }

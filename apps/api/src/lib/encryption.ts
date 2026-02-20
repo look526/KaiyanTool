@@ -24,7 +24,7 @@ export const encrypt = (text: string): string => {
   encrypted += cipher.final('hex');
   const tag = cipher.getAuthTag();
 
-  const combined = Buffer.concat([salt, iv, Buffer.from(tag, 'hex'), Buffer.from(encrypted, 'hex')]);
+  const combined = Buffer.concat([salt, iv, tag, Buffer.from(encrypted, 'hex')]);
   return combined.toString('base64');
 };
 
@@ -32,7 +32,7 @@ export const decrypt = (encryptedData: string): string => {
   const key = getEncryptionKey();
   const combined = Buffer.from(encryptedData, 'base64');
 
-  const salt = combined.subarray(0, SALT_LENGTH);
+  const _salt = combined.subarray(0, SALT_LENGTH);
   const iv = combined.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
   const tag = combined.subarray(SALT_LENGTH + IV_LENGTH, SALT_LENGTH + IV_LENGTH + TAG_LENGTH);
   const encrypted = combined.subarray(SALT_LENGTH + IV_LENGTH + TAG_LENGTH);
