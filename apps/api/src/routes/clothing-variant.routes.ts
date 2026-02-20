@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { clothingVariantService } from '../services/clothing-variant.service';
 import { authMiddleware } from '../middleware/auth.middleware';
@@ -21,7 +20,7 @@ router.post('/generate', async (req, res) => {
     }
 
     const tasks = await Promise.all(
-      variants.map((variant: string, index: number) =>
+      variants.map((variant: string, _index: number) =>
         clothingVariantService.generateVariant(
           baseImageUrl,
           variant,
@@ -70,15 +69,15 @@ router.get('/character/:characterId', async (req, res) => {
   }
 });
 
-router.post('/wardrobe', async (req, res) => {
+router.post('/wardrobe', async (_req, res) => {
   res.status(501).json({ error: 'Wardrobe feature not implemented' });
 });
 
-router.get('/wardrobe/:characterId', async (req, res) => {
+router.get('/wardrobe/:characterId', async (_req, res) => {
   res.status(501).json({ error: 'Wardrobe feature not implemented' });
 });
 
-router.post('/apply', async (req, res) => {
+router.post('/apply', async (_req, res) => {
   res.status(501).json({ error: 'Wardrobe feature not implemented' });
 });
 

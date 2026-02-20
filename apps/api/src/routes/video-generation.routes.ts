@@ -36,7 +36,7 @@ router.post('/interpolate', async (req, res) => {
   }
 });
 
-router.get('/queue', async (req, res) => {
+router.get('/queue', async (_req, res) => {
   try {
     const status = await renderQueueService.getQueueStatus();
     res.json(status);

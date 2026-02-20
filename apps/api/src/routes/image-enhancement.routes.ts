@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { imageEnhancementService } from '../services/image-enhancement.service';
 
@@ -36,21 +35,24 @@ router.post('/super-resolution', async (req, res) => {
       data: {
         type: 'image',
         url: result.url,
-        thumbnailUrl: result.thumbnailUrl || result.url,
         projectId: image.projectId,
         metadata: {
           originalImageId: imageId,
           scale,
           model,
           width: result.width,
-          height: result.height
+          height: result.height,
+          thumbnailUrl: result.thumbnailUrl || result.url
         }
       }
     });
 
     await prisma.renderTask.update({
       where: { id: task.id },
-      data: { status: 'completed', result: { enhancedAssetId: enhancedAsset.id } }
+      data: {
+        status: 'completed',
+        params: { ...task.params, enhancedAssetId: enhancedAsset.id } as any
+      }
     });
 
     res.json({ enhancedAsset });
@@ -114,11 +116,11 @@ router.post('/background-removal', async (req, res) => {
       data: {
         type: 'image',
         url: result.url,
-        thumbnailUrl: result.maskUrl,
         projectId: image.projectId,
         metadata: {
           originalImageId: imageId,
           type: 'background-removed',
+          maskUrl: result.maskUrl,
           hasAlpha: true
         }
       }

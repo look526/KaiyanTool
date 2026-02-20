@@ -25,7 +25,7 @@ router.get('/user', async (req, res) => {
   }
 });
 
-router.get('/platform', async (req, res) => {
+router.get('/platform', async (_req, res) => {
   try {
     const analytics = await analyticsService.getPlatformAnalytics();
     res.json(analytics);

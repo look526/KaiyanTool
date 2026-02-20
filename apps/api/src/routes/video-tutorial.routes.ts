@@ -6,7 +6,7 @@ const router = Router();
 
 router.use(authMiddleware);
 
-router.get('/categories', async (req, res) => {
+router.get('/categories', async (_req, res) => {
   try {
     const categories = await videoTutorialService.getCategories();
     res.json(categories);

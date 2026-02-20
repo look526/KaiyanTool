@@ -1,9 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { prisma } from '../lib/prisma';
 import { novelAnalysisService } from '../services/novel-analysis.service';
 import { authMiddleware } from '../middleware/auth.middleware';
-import { uploadMiddleware } from '../middleware/upload.middleware';
 
 const router = Router();
 
@@ -82,7 +80,7 @@ router.post('/save', async (req, res) => {
   }
 });
 
-router.post('/import', uploadMiddleware.single('file'), async (req, res) => {
+router.post('/import', async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
