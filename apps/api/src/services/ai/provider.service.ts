@@ -1,7 +1,7 @@
-import { AIProvider, OpenAIProvider } from './openai.provider'
+import { AIProvider } from './provider.interface'
+import { OpenAIProvider } from './openai.provider'
 import { GoogleProvider } from './google.provider'
 import { AntSKProvider } from './antsk.provider'
-import { ZhipuProvider } from './zhipu.provider'
 import { AIProviderConfig, AIChatMessage, AICreateImageRequest, AICreateImageResponse, AICreateVideoRequest, AICreateVideoResponse, AIResponse } from '../../types/ai.types'
 
 class AIProviderService {

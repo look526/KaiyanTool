@@ -8,18 +8,19 @@ import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
-import * as resources from '@opentelemetry/resources';
 
 // 配置OpenTelemetry SDK
 export const setupOpenTelemetry = () => {
-  const resource = new resources.Resource({
-    [SemanticResourceAttributes.SERVICE_NAME]: 'kaiyan-api',
-    [SemanticResourceAttributes.SERVICE_VERSION]: '1.0.0',
-    [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || 'development',
-  });
+  const resource = {
+    attributes: {
+      [SemanticResourceAttributes.SERVICE_NAME]: 'kaiyan-api',
+      [SemanticResourceAttributes.SERVICE_VERSION]: '1.0.0',
+      [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || 'development',
+    }
+  };
 
   // 创建导出器
-  const traceExporter = process.env.NODE_ENV === 'production' 
+  const traceExporter = process.env.NODE_ENV === 'production'
     ? new OTLPTraceExporter({
         url: process.env.OTLP_ENDPOINT || 'http://localhost:4318/v1/traces',
       })
@@ -40,7 +41,7 @@ export const setupOpenTelemetry = () => {
 
   // 创建SDK
   const sdk = new NodeSDK({
-    resource,
+    resource: resource as any,
     traceExporter,
     metricReader: metricReader,
     instrumentations: [

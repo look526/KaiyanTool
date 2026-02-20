@@ -26,7 +26,6 @@ interface AuthResponse {
 
 export class AuthService {
   private readonly JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
-  private readonly JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d'
 
   async register(input: RegisterInput): Promise<AuthResponse> {
     const existingUser = await prisma.user.findUnique({

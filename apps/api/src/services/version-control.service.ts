@@ -293,16 +293,6 @@ export class VersionControlService {
     return { success: true, tags };
   }
 
-  private _generateHash(data: string): string {
-    let hash = 0;
-    for (let i = 0; i < data.length; i++) {
-      const char = data.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash).toString(36);
-  }
-
   private diffArrays(arr1: any[], arr2: any[], key: string) {
     const map1 = new Map(arr1.map(item => [item[key], item]));
     const map2 = new Map(arr2.map(item => [item[key], item]));

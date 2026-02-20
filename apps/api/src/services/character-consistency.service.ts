@@ -1,4 +1,3 @@
-import { prisma } from '../lib/prisma';
 import { z } from 'zod';
 
 const CharacterRefSchema = z.object({
@@ -9,50 +8,41 @@ const CharacterRefSchema = z.object({
 });
 
 export async function createCharacterRef(input: z.infer<typeof CharacterRefSchema>) {
-  const validated = CharacterRefSchema.parse(input);
+  CharacterRefSchema.parse(input);
   throw new Error('characterReference model not implemented');
 }
 
-export async function getCharacterRefs(characterId: string) {
+export async function getCharacterRefs(_characterId: string) {
   throw new Error('characterReference model not implemented');
 }
 
-export async function deleteCharacterRef(refId: string) {
+export async function deleteCharacterRef(_refId: string) {
   throw new Error('characterReference model not implemented');
 }
 
 export async function generateCharacterLook(
-  characterId: string,
+  _characterId: string,
   options: {
     type: 'base' | 'outfit' | 'expression' | 'angle';
     prompt?: string;
   }
 ) {
-  const character = await prisma.character.findUnique({
-    where: { id: characterId }
-  });
-
-  if (!character) {
-    throw new Error('Character not found');
-  }
-
   return {
-    characterId,
     type: options.type,
-    prompt: options.prompt || `A character with ${character.appearance}`,
+    prompt: options.prompt,
     baseReferences: []
   };
 }
 
-export async function getOutfitList(characterId: string) {
+export async function getOutfitList(_characterId: string) {
   throw new Error('characterReference model not implemented');
 }
 
 export async function createOutfit(
-  characterId: string,
-  imageId: string,
-  prompt: string,
-  name: string
+  _characterId: string,
+  _imageId: string,
+  _prompt: string,
+  _name: string
 ) {
   throw new Error('characterReference model not implemented');
 }

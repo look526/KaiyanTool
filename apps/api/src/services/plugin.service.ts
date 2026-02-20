@@ -29,8 +29,6 @@ export interface PluginHook {
 }
 
 export class PluginService {
-  private plugins: Map<string, PluginManifest> = new Map();
-
   async registerPlugin(userId: string, input: z.infer<typeof RegisterPluginSchema>) {
     const validated = RegisterSchema.parse(input);
 
@@ -82,10 +80,7 @@ export class PluginService {
 
     const plugins = await prisma.plugin.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        createdBy: { select: { id: true, name: true } }
-      }
+      orderBy: { createdAt: 'desc' }
     });
 
     return plugins;

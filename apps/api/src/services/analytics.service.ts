@@ -13,9 +13,9 @@ export class AnalyticsService {
       totalShots,
       totalCharacters,
       totalScenes,
-      todayActivity,
-      weekActivity,
-      monthActivity,
+      _todayActivity,
+      _weekActivity,
+      _monthActivity,
       assetBreakdown,
       generationStats
     ] = await Promise.all([
@@ -226,7 +226,7 @@ export class AnalyticsService {
     return 0;
   }
 
-  private async getUserContributions(userId: string, since: Date): Promise<number> {
+  private async getUserContributions(_userId: string, _since: Date): Promise<number> {
     return 0;
   }
 

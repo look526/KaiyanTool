@@ -113,7 +113,6 @@ class ExportService {
         name: `${exportData.project.name} (Imported)`,
         description: exportData.project.description,
         type: exportData.project.type,
-        visualStyle: exportData.project.visualStyle,
       },
     });
 
@@ -123,11 +122,8 @@ class ExportService {
         data: {
           projectId: project.id,
           name: character.name,
-          description: character.description,
           appearance: character.appearance,
-          personality: character.personality,
-          background: character.background,
-          referenceImages: character.referenceImages,
+          referenceImages: character.referenceImages || []
         },
       });
       characterMap.set(character.id, created.id);
@@ -141,7 +137,7 @@ class ExportService {
           location: scene.location,
           time: scene.time,
           atmosphere: scene.mood || '',
-          referenceImages: scene.referenceImages,
+          referenceImages: scene.referenceImages || []
         },
       });
       sceneMap.set(scene.id, created.id);

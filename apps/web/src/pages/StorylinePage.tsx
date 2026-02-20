@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -6,12 +6,10 @@ import {
   Save,
   RefreshCw,
   Users,
-  FileText,
   Clock,
   Palette,
   Target,
   Check,
-  ChevronRight,
   BookOpen,
   Lightbulb,
   Zap
@@ -20,8 +18,7 @@ import { Sidebar } from '../components/Sidebar';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
-import { Textarea } from '../components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Select, type Option } from '../components/ui/Select';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { apiClient } from '../lib/api-client';
 import { useTheme } from '../contexts/ThemeContext';
@@ -148,25 +145,7 @@ const StorylinePage: React.FC = () => {
     }
   };
 
-  const handleRefine = async (feedback: string) => {
-    if (!savedId) return;
 
-    try {
-      const result = await apiClient.refineStoryline(savedId, feedback);
-      setStoryline(result);
-      addToast({
-        type: 'success',
-        title: '优化成功',
-        message: '故事线已根据反馈优化',
-      });
-    } catch (error) {
-      addToast({
-        type: 'error',
-        title: '优化失败',
-        message: '请稍后重试',
-      });
-    }
-  };
 
   const renderInputStep = () => (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
@@ -235,13 +214,19 @@ const StorylinePage: React.FC = () => {
             <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: textColor, marginBottom: '8px' }}>
               故事概述 *
             </label>
-            <Textarea
+            <textarea
               placeholder="详细描述您的故事想法、情节、主题等..."
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              style={{ 
-                minHeight: '150px', 
+              style={{
+                width: '100%',
+                minHeight: '150px',
                 backgroundColor: inputBg,
+                border: `1px solid ${borderColor}`,
+                borderRadius: '8px',
+                padding: '12px',
+                fontSize: '14px',
+                color: textColor,
                 resize: 'vertical'
               }}
             />
@@ -274,33 +259,25 @@ const StorylinePage: React.FC = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: textColor, marginBottom: '8px' }}>
-                基调
-              </label>
-              <Select
-                value={formData.tone}
-                onValueChange={(value: any) => setFormData({ ...formData, tone: value })}
-              >
-                <SelectTrigger style={{ backgroundColor: inputBg }}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TONE_OPTIONS.map((tone) => (
-                    <SelectItem key={tone.value} value={tone.value}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ 
-                          width: '12px', 
-                          height: '12px', 
-                          borderRadius: '50%', 
-                          backgroundColor: tone.color 
-                        }} />
-                        {tone.label}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: textColor, marginBottom: '8px' }}>
+              基调
+            </label>
+            <Select
+              options={TONE_OPTIONS.map(tone => ({
+                value: tone.value,
+                label: tone.label,
+                icon: <span style={{
+                  width: '12px',
+                  height: '12px',
+                  borderRadius: '50%',
+                  backgroundColor: tone.color
+                }} />
+              }))}
+              value={formData.tone}
+              onChange={(value: string) => setFormData({ ...formData, tone: value as const })}
+              placeholder="选择基调"
+            />
+          </div>
             <div>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: textColor, marginBottom: '8px' }}>
                 风格参考（可选）

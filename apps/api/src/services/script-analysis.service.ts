@@ -21,8 +21,7 @@ export async function analyzeScript(input: z.infer<typeof ScriptAnalysisSchema>)
   const result = await scriptAnalysisAgent.analyzeScript(
     validated.scriptContent,
     {
-      targetDuration: validated.targetDuration,
-      includeShots: validated.includeShots
+      targetDuration: validated.targetDuration
     }
   );
 

@@ -4,16 +4,17 @@ import { z } from 'zod';
 const InviteSchema = z.object({
   projectId: z.string(),
   email: z.string().email(),
-  role: z.enum(['viewer', 'editor', 'admin', 'owner'])
+  role: z.enum(['viewer', 'editor', 'owner'])
 });
 
 const UpdateMemberSchema = z.object({
-  memberId: z.string(),
-  role: z.enum(['viewer', 'editor', 'admin', 'owner'])
+  projectId: z.string(),
+  userId: z.string(),
+  role: z.enum(['viewer', 'editor', 'owner'])
 });
 
 export class CollaborationService {
-  async inviteMember(inviterId: string, input: z.infer<typeof InviteSchema>) {
+  async inviteMember(_inviterId: string, input: z.infer<typeof InviteSchema>) {
     const validated = InviteSchema.parse(input);
 
     const user = await prisma.user.findUnique({
@@ -43,56 +44,15 @@ export class CollaborationService {
       throw new Error('User is already a member');
     }
 
-    const invitation = await prisma.projectInvitation.create({
+    const member = await prisma.projectMember.create({
       data: {
         projectId: validated.projectId,
-        email: validated.email,
-        role: validated.role,
-        invitedBy: inviterId,
-        token: this.generateToken()
+        userId: user.id,
+        role: validated.role
       }
     });
 
-    return invitation;
-  }
-
-  async acceptInvitation(token: string, userId: string) {
-    const invitation = await prisma.projectInvitation.findUnique({
-      where: { token }
-    });
-
-    if (!invitation) {
-      throw new Error('Invitation not found');
-    }
-
-    if (invitation.expiresAt && invitation.expiresAt < new Date()) {
-      throw new Error('Invitation has expired');
-    }
-
-    if (invitation.status === 'accepted') {
-      throw new Error('Invitation already accepted');
-    }
-
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user || user.email !== invitation.email) {
-      throw new Error('Email does not match');
-    }
-
-    await prisma.$transaction([
-      prisma.projectInvitation.update({
-        where: { id: invitation.id },
-        data: { status: 'accepted' }
-      }),
-      prisma.projectMember.create({
-        data: {
-          projectId: invitation.projectId,
-          userId: userId,
-          role: invitation.role
-        }
-      })
-    ]);
-
-    return { success: true };
+    return member;
   }
 
   async getProjectMembers(projectId: string) {
@@ -108,25 +68,9 @@ export class CollaborationService {
     return members;
   }
 
-  async getPendingInvitations(projectId: string) {
-    const invitations = await prisma.projectInvitation.findMany({
-      where: {
-        projectId,
-        status: 'pending'
-      },
-      include: {
-        invitedByUser: {
-          select: { id: true, name: true, avatar: true }
-        }
-      }
-    });
-
-    return invitations;
-  }
-
-  async updateMemberRole(memberId: string, newRole: z.infer<typeof UpdateMemberSchema>['role']) {
-    const member = await prisma.projectMember.findUnique({
-      where: { id: memberId }
+  async updateMemberRole(projectId: string, userId: string, newRole: z.infer<typeof UpdateMemberSchema>['role']) {
+    const member = await prisma.projectMember.findFirst({
+      where: { projectId, userId }
     });
 
     if (!member) {
@@ -137,17 +81,17 @@ export class CollaborationService {
       throw new Error('Cannot change owner role');
     }
 
-    const updated = await prisma.projectMember.update({
-      where: { id: memberId },
+    const updated = await prisma.projectMember.updateMany({
+      where: { projectId, userId },
       data: { role: newRole }
     });
 
-    return updated;
+    return { success: updated.count > 0 };
   }
 
-  async removeMember(memberId: string) {
-    const member = await prisma.projectMember.findUnique({
-      where: { id: memberId }
+  async removeMember(projectId: string, userId: string) {
+    const member = await prisma.projectMember.findFirst({
+      where: { projectId, userId }
     });
 
     if (!member) {
@@ -158,8 +102,8 @@ export class CollaborationService {
       throw new Error('Cannot remove owner');
     }
 
-    await prisma.projectMember.delete({
-      where: { id: memberId }
+    await prisma.projectMember.deleteMany({
+      where: { projectId, userId }
     });
 
     return { success: true };
@@ -178,16 +122,8 @@ export class CollaborationService {
       throw new Error('Owner cannot leave. Transfer ownership first.');
     }
 
-    await prisma.projectMember.delete({
-      where: { id: member.id }
-    });
-
-    return { success: true };
-  }
-
-  async cancelInvitation(invitationId: string) {
-    await prisma.projectInvitation.delete({
-      where: { id: invitationId }
+    await prisma.projectMember.deleteMany({
+      where: { projectId, userId }
     });
 
     return { success: true };
@@ -219,13 +155,13 @@ export class CollaborationService {
         where: { id: projectId },
         data: { ownerId: toUserId }
       }),
-      prisma.projectMember.update({
-        where: { id: newOwner.id },
-        data: { role: 'ADMIN' }
+      prisma.projectMember.updateMany({
+        where: { projectId, userId: toUserId },
+        data: { role: 'owner' as const }
       }),
-      prisma.projectMember.update({
-        where: { id: (await prisma.projectMember.findFirst({ where: { projectId, userId: fromUserId } }))?.id },
-        data: { role: 'ADMIN' }
+      prisma.projectMember.updateMany({
+        where: { projectId, userId: fromUserId },
+        data: { role: 'editor' as const }
       })
     ]);
 
@@ -254,43 +190,9 @@ export class CollaborationService {
     ]);
 
     return {
-      owned: owned.map(p => ({
-        ...p,
-        role: 'owner',
-        memberCount: p._count.members
-      })),
-      shared: shared.map(m => ({
-        ...m.project,
-        role: m.role,
-        memberCount: m.project._count.members
-      }))
+      owned,
+      shared: shared.map(m => m.project)
     };
-  }
-
-  async addComment(projectId: string, userId: string, content: string, context?: {
-    shotId?: string;
-    assetId?: string;
-    panelId?: string;
-  }) {
-    throw new Error('Comment feature not implemented');
-  }
-
-  async getComments(projectId: string, options?: {
-    shotId?: string;
-    assetId?: string;
-    limit?: number;
-    offset?: number;
-  }) {
-    throw new Error('Comment feature not implemented');
-  }
-
-  async updateComment(commentId: string, userId: string, content: string) {
-    throw new Error('Comment feature not implemented');
-  }
-
-  private generateToken(): string {
-    return Math.random().toString(36).substring(2, 15) +
-           Math.random().toString(36).substring(2, 15);
   }
 }
 

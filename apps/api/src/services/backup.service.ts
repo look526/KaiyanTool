@@ -1,6 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { z } from 'zod';
-import { createBackup, listBackups, restoreBackup, deleteBackup } from './backup.service';
+import { createBackup, restoreBackup, deleteBackup } from './backup-internal.service';
 
 const CreateBackupSchema = z.object({
   projectId: z.string(),
@@ -52,10 +52,7 @@ export class BackupService {
         where: { projectId },
         orderBy: { createdAt: 'desc' },
         take: limit,
-        skip: offset,
-        include: {
-          createdBy: { select: { id: true, name: true, avatar: true } }
-        }
+        skip: offset
       }),
       prisma.backup.count({ where: { projectId } })
     ]);
@@ -121,10 +118,7 @@ export class BackupService {
 
   async getBackupDetails(backupId: string) {
     const backup = await prisma.backup.findUnique({
-      where: { id: backupId },
-      include: {
-        createdBy: { select: { id: true, name: true, email: true, avatar: true } }
-      }
+      where: { id: backupId }
     });
 
     if (!backup) {

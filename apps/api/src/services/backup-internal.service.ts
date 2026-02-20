@@ -24,8 +24,7 @@ export async function createBackup(options: {
         include: {
           user: { select: { id: true, name: true, email: true } }
         }
-      },
-      settings: true
+      }
     }
   });
 
@@ -46,15 +45,19 @@ export async function createBackup(options: {
         createdAt: project.createdAt,
         updatedAt: project.updatedAt
       },
-      shots: project.shots.map(shot => ({
+      shots: project.shots.map((shot, idx) => ({
         id: shot.id,
-        sequence: shot.sequence,
-        title: shot.title,
-        description: shot.description,
-        prompt: (shot as any).prompt,
+        sequence: idx + 1,
+        actionSummary: shot.actionSummary,
+        cameraMovement: shot.cameraMovement,
+        startPrompt: shot.startPrompt,
+        endPrompt: shot.endPrompt,
+        startImageUrl: shot.startImageUrl,
+        endImageUrl: shot.endImageUrl,
+        videoUrl: shot.videoUrl,
         duration: shot.duration,
-        status: shot.status,
-        metadata: shot.metadata,
+        aspectRatio: shot.aspectRatio,
+        visualStyle: shot.visualStyle,
         createdAt: shot.createdAt,
         updatedAt: shot.updatedAt
       })),
@@ -69,11 +72,10 @@ export async function createBackup(options: {
       })),
       scenes: project.scenes.map(scene => ({
         id: scene.id,
-        name: scene.name,
-        description: scene.description,
         location: scene.location,
-        timeOfDay: scene.timeOfDay,
-        metadata: scene.metadata,
+        time: scene.time,
+        atmosphere: scene.atmosphere,
+        referenceImages: scene.referenceImages,
         createdAt: scene.createdAt,
         updatedAt: scene.updatedAt
       })),
@@ -180,51 +182,67 @@ export async function restoreBackup(backupId: string): Promise<{
 
   const projectId = backup.projectId;
 
-  await prisma.$transaction(async (tx) => {
-    await tx.shot.deleteMany({ where: { projectId } });
-    await tx.character.deleteMany({ where: { projectId } });
-    await tx.scene.deleteMany({ where: { projectId } });
-    await tx.document.deleteMany({ where: { projectId: projectId } });
-    await tx.comment.deleteMany({ where: { projectId } });
+  await prisma.$transaction(async () => {
+    await prisma.shot.deleteMany({ where: { projectId } });
+    await prisma.character.deleteMany({ where: { projectId } });
+    await prisma.scene.deleteMany({ where: { projectId } });
+    await prisma.document.deleteMany({ where: { projectId } });
 
     if (backup.data.shots?.length) {
-      await tx.shot.createMany({
+      await prisma.shot.createMany({
         data: backup.data.shots.map((s: any) => ({
           projectId,
-          ...s
+          actionSummary: s.actionSummary,
+          cameraMovement: s.cameraMovement,
+          startPrompt: s.startPrompt,
+          endPrompt: s.endPrompt,
+          startImageUrl: s.startImageUrl,
+          endImageUrl: s.endImageUrl,
+          duration: s.duration,
+          aspectRatio: s.aspectRatio,
+          visualStyle: s.visualStyle
         }))
       });
     }
 
     if (backup.data.characters?.length) {
-      await tx.character.createMany({
+      await prisma.character.createMany({
         data: backup.data.characters.map((c: any) => ({
           projectId,
-          ...c
+          name: c.name,
+          description: c.description,
+          appearance: c.appearance,
+          metadata: c.metadata
         }))
       });
     }
 
     if (backup.data.scenes?.length) {
-      await tx.scene.createMany({
+      await prisma.scene.createMany({
         data: backup.data.scenes.map((s: any) => ({
           projectId,
-          ...s
+          location: s.location,
+          time: s.time,
+          atmosphere: s.atmosphere,
+          referenceImages: s.referenceImages
         }))
       });
     }
 
     if (backup.data.documents?.length) {
-      await tx.document.createMany({
+      await prisma.document.createMany({
         data: backup.data.documents.map((d: any) => ({
           projectId,
-          ...d
+          title: d.title,
+          type: d.type,
+          content: d.content,
+          status: d.status
         }))
       });
     }
 
     if (backup.data.project?.settings) {
-      await tx.project.update({
+      await prisma.project.update({
         where: { id: projectId },
         data: {
           settings: backup.data.project.settings
@@ -268,7 +286,7 @@ export async function downloadBackupFile(backupId: string): Promise<{
 
 export async function importBackupFile(
   fileContent: string,
-  userId: string,
+  _userId: string,
   targetProjectId?: string
 ): Promise<{ success: boolean; projectId: string }> {
   const backupData: BackupData = JSON.parse(fileContent);
@@ -291,7 +309,7 @@ export async function importBackupFile(
   };
 }
 
-async function uploadToStorage(key: string, data: string): Promise<void> {
+async function uploadToStorage(key: string, _data: string): Promise<void> {
   console.log(`Uploading backup to: ${key}`);
 }
 

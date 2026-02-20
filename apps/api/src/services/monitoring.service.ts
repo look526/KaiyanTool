@@ -224,23 +224,23 @@ export class MonitoringService {
       const metrics = await this.getMetrics(rule.metric, { limit: 10 });
       const latestValue = metrics[0]?.value || 0;
 
-      let triggered = false;
+      let isTriggered = false;
       switch (rule.condition) {
         case 'gt':
-          triggered = latestValue > rule.threshold;
+          isTriggered = latestValue > rule.threshold;
           break;
         case 'lt':
-          triggered = latestValue < rule.threshold;
+          isTriggered = latestValue < rule.threshold;
           break;
         case 'eq':
-          triggered = latestValue === rule.threshold;
+          isTriggered = latestValue === rule.threshold;
           break;
       }
 
-      if (triggered) {
+      if (isTriggered) {
         triggered.push({
           rule: rule as any,
-          triggered,
+          triggered: isTriggered,
           currentValue: latestValue,
           timestamp: new Date()
         });

@@ -17,7 +17,7 @@ export class ImageEnhancementService {
   async inpainting(
     imageUrl: string,
     maskPrompt: string,
-    negativePrompt?: string
+    _negativePrompt?: string
   ): Promise<{ url: string }> {
     console.log(`Inpainting: ${imageUrl} with prompt: ${maskPrompt}`);
     
@@ -66,7 +66,7 @@ export class ImageEnhancementService {
   async styleTransfer(
     imageUrl: string,
     styleReferenceUrl?: string,
-    strength: number = 0.5
+    _strength: number = 0.5
   ): Promise<{ url: string }> {
     console.log(`Style transfer: ${imageUrl} with reference ${styleReferenceUrl}`);
     
@@ -78,7 +78,7 @@ export class ImageEnhancementService {
   async upscale(
     imageUrl: string,
     scale: number = 2,
-    model: string = 'realesrgan'
+    _model: string = 'realesrgan'
   ): Promise<{ url: string; width: number; height: number }> {
     console.log(`Upscale: ${imageUrl} at ${scale}x`);
     
@@ -129,7 +129,7 @@ export class ImageEnhancementService {
 
   async estimateCost(
     operation: string,
-    options?: Record<string, any>
+    _options?: Record<string, any>
   ): Promise<{ credits: number; currency: string }> {
     const costs: Record<string, number> = {
       'super-resolution': 2,

@@ -98,7 +98,7 @@ class RenderQueueService {
   }
 
   private startProcessing(): void {
-    this.processingInterval = setInterval(() => {
+    setInterval(() => {
       this.processNextTask();
     }, 5000);
   }

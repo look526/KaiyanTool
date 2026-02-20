@@ -3,7 +3,7 @@ export class ClothingVariantService {
     baseImageUrl: string,
     variant: string,
     characterAppearance: Record<string, any>,
-    style?: string
+    _style?: string
   ): Promise<{ url: string; thumbnailUrl: string }> {
     console.log(`Generating clothing variant: ${variant} for ${baseImageUrl}`);
 
@@ -79,7 +79,7 @@ export class ClothingVariantService {
   async transferClothing(
     sourceImageUrl: string,
     targetImageUrl: string,
-    maskArea?: { x: number; y: number; width: number; height: number }
+    _maskArea?: { x: number; y: number; width: number; height: number }
   ): Promise<{ url: string }> {
     console.log(`Transferring clothing from ${sourceImageUrl} to ${targetImageUrl}`);
 

@@ -184,13 +184,7 @@ export class DataMigrationService {
                   projectId: newProject.id,
                   location: scene.location,
                   time: scene.timeOfDay,
-                  atmosphere: '',
-                  metadata: JSON.stringify({
-                    description: scene.description,
-                    name: scene.name,
-                    source: 'toonflow',
-                    originalId: scene.id
-                  })
+                  atmosphere: ''
                 }
               });
             } catch (e: any) {
@@ -234,7 +228,7 @@ export class DataMigrationService {
 
     for (const project of data.projects) {
       try {
-        const newProject = await prisma.project.create({
+        await prisma.project.create({
           data: {
             name: project.name || 'Cinegen Import',
             description: project.description || '',
@@ -306,7 +300,7 @@ export class DataMigrationService {
   }
 
   async estimateMigrationTime(
-    source: MigrationSource['type'],
+    _source: MigrationSource['type'],
     data: any
   ): Promise<{ estimatedMinutes: number; affectedItems: number }> {
     const projectCount = data.projects?.length || 0;

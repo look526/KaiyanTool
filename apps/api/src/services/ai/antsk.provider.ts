@@ -65,7 +65,7 @@ export class AntSKProvider extends AIProvider {
     }
   }
 
-  async createVideo(request: AICreateVideoRequest): Promise<AICreateVideoResponse> {
+  async createVideo(_request: AICreateVideoRequest): Promise<AICreateVideoResponse> {
     throw new Error('Video generation not implemented for AntSK provider');
   }
 }
