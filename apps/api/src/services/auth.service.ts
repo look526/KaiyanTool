@@ -103,7 +103,7 @@ export class AuthService {
 
   async validateToken(token: string): Promise<AuthResponse['user'] | null> {
     try {
-      const decoded = jwt.verify(token, this.JWT_SECRET) as { userId: string }
+      jwt.verify(token, this.JWT_SECRET)
 
       const session = await prisma.session.findUnique({
         where: { token },
@@ -127,7 +127,7 @@ export class AuthService {
   }
 
   private generateToken(userId: string): string {
-    const token = jwt.sign({ userId }, this.JWT_SECRET, { expiresIn: this.JWT_EXPIRES_IN as string })
+    const token = jwt.sign({ userId }, this.JWT_SECRET, { expiresIn: '7d' })
 
     prisma.session.create({
       data: {

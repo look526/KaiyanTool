@@ -60,7 +60,7 @@ export class ZhipuProvider extends AIProvider {
     }
   }
 
-  async createVideo(request: AICreateVideoRequest): Promise<AICreateVideoResponse> {
+  async createVideo(_request: AICreateVideoRequest): Promise<AICreateVideoResponse> {
     throw new Error('Video generation not yet implemented for Zhipu provider')
   }
 

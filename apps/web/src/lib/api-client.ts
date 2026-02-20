@@ -466,6 +466,46 @@ class ApiClient {
     });
   }
 
+  async generateStoryline(input: {
+    title: string;
+    genre: string;
+    description: string;
+    style?: string;
+    targetDuration?: number;
+    targetAudience?: string;
+    tone?: string;
+  }): Promise<any> {
+    return this.request('/api/storyline', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  async saveStoryline(projectId: string, storyline: any): Promise<{ id: string }> {
+    return this.request<{ id: string }>('/api/storyline/save', {
+      method: 'POST',
+      body: JSON.stringify({ projectId, storyline }),
+    });
+  }
+
+  async getStoryline(storylineId: string): Promise<any> {
+    return this.request<any>(`/api/storyline/${storylineId}`);
+  }
+
+  async refineStoryline(storylineId: string, feedback: string): Promise<any> {
+    return this.request<any>(`/api/storyline/${storylineId}/refine`, {
+      method: 'POST',
+      body: JSON.stringify({ feedback }),
+    });
+  }
+
+  async generateCharacterBackstory(characterName: string, role: string, storyContext: string): Promise<any> {
+    return this.request('/api/character-backstory', {
+      method: 'POST',
+      body: JSON.stringify({ characterName, role, storyContext }),
+    });
+  }
+
   async getNovels(projectId: string): Promise<{ novels: any[] }> {
     return this.request<{ novels: any[] }>(`/api/projects/${projectId}/novels`);
   }

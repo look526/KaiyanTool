@@ -13,6 +13,8 @@ import aiProviderRoutes from './routes/ai-provider.routes'
 import scriptRoutes from './routes/script.routes'
 import novelRoutes from './routes/novel.routes'
 import directorRoutes from './routes/director.routes'
+import storylineRoutes from './routes/storyline.routes'
+import outlineRoutes from './routes/outline.routes'
 import shotRoutes from './routes/shot.routes'
 import shotGenerationRoutes from './routes/shot-generation.routes'
 import panelRoutes from './routes/panel.routes'
@@ -77,6 +79,8 @@ app.use('/api/ai-providers', aiProviderRoutes)
 app.use('/api', scriptRoutes)
 app.use('/api', novelRoutes)
 app.use('/api', directorRoutes)
+app.use('/api', storylineRoutes)
+app.use('/api', outlineRoutes)
 app.use('/api', shotRoutes)
 app.use('/api', shotGenerationRoutes)
 app.use('/api', panelRoutes)

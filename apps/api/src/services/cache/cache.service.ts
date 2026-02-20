@@ -1,5 +1,5 @@
 import { createClient } from 'redis'
-import logger from '../lib/logger'
+import logger from '../../lib/logger'
 
 export interface CacheEntry<T> {
   data: T
@@ -20,9 +20,6 @@ export class CacheService {
   constructor() {
     this.client = createClient({
       url: process.env.REDIS_URL || 'redis://localhost:6379',
-      socket: {
-        reconnectStrategy: 'reconnect',
-      },
     })
 
     this.client.on('error', (err) => {

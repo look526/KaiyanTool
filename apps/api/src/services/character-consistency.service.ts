@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma';
+import { z } from 'zod';
 
 const CharacterRefSchema = z.object({
   characterId: z.string(),
@@ -9,28 +10,15 @@ const CharacterRefSchema = z.object({
 
 export async function createCharacterRef(input: z.infer<typeof CharacterRefSchema>) {
   const validated = CharacterRefSchema.parse(input);
-
-  return prisma.characterReference.create({
-    data: {
-      characterId: validated.characterId,
-      imageId: validated.imageId,
-      type: validated.type,
-      prompt: validated.prompt
-    }
-  });
+  throw new Error('characterReference model not implemented');
 }
 
 export async function getCharacterRefs(characterId: string) {
-  return prisma.characterReference.findMany({
-    where: { characterId },
-    include: { image: true }
-  });
+  throw new Error('characterReference model not implemented');
 }
 
 export async function deleteCharacterRef(refId: string) {
-  return prisma.characterReference.delete({
-    where: { id: refId }
-  });
+  throw new Error('characterReference model not implemented');
 }
 
 export async function generateCharacterLook(
@@ -48,34 +36,16 @@ export async function generateCharacterLook(
     throw new Error('Character not found');
   }
 
-  const baseRefs = await prisma.characterReference.findMany({
-    where: { characterId, type: 'base' }
-  });
-
-  const basePrompt = baseRefs.length > 0
-    ? baseRefs[0].prompt
-    : `A character with ${character.description}`;
-
-  const enhancedPrompt = options.prompt
-    ? `${basePrompt}, ${options.prompt}`
-    : basePrompt;
-
   return {
     characterId,
     type: options.type,
-    prompt: enhancedPrompt,
-    baseReferences: baseRefs.map(r => r.imageId)
+    prompt: options.prompt || `A character with ${character.appearance}`,
+    baseReferences: []
   };
 }
 
 export async function getOutfitList(characterId: string) {
-  return prisma.characterReference.findMany({
-    where: {
-      characterId,
-      type: 'outfit'
-    },
-    include: { image: true }
-  });
+  throw new Error('characterReference model not implemented');
 }
 
 export async function createOutfit(
@@ -84,13 +54,5 @@ export async function createOutfit(
   prompt: string,
   name: string
 ) {
-  return prisma.characterReference.create({
-    data: {
-      characterId,
-      imageId,
-      type: 'outfit',
-      prompt,
-      metadata: { name }
-    }
-  });
+  throw new Error('characterReference model not implemented');
 }

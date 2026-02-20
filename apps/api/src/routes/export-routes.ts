@@ -8,7 +8,7 @@ const ExportSchema = z.object({
   projectId: z.string(),
   format: z.enum(['prproj', 'aep', 'edl', 'xml']),
   resolution: z.enum(['720p', '1080p', '4k']),
-  frameRate: z.enum([24, 25, 30, 60]),
+  frameRate: z.enum(['24', '25', '30', '60']),
   includeAudio: z.boolean().optional().default(true),
   includeMarkers: z.boolean().optional().default(true)
 });
@@ -34,7 +34,7 @@ router.post('/premiere', async (req, res) => {
       {
         format: validated.format,
         resolution: validated.resolution,
-        frameRate: validated.frameRate,
+        frameRate: parseInt(validated.frameRate),
         includeAudio: validated.includeAudio,
         includeMarkers: validated.includeMarkers
       }
@@ -59,7 +59,7 @@ router.get('/project/:projectId/preview', async (req, res) => {
     
     const shots = await prisma.shot.findMany({
       where: { projectId },
-      orderBy: { sequence: 'asc' }
+      orderBy: { createdAt: 'asc' }
     });
 
     const assets = await prisma.asset.findMany({

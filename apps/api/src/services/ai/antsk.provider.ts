@@ -1,5 +1,5 @@
 import { AIProvider } from './provider.interface'
-import { AIRequest, AIResponse, AIChatMessage, AICreateImageRequest, AICreateImageResponse } from '../../types/ai.types'
+import { AIRequest, AIResponse, AIChatMessage, AICreateImageRequest, AICreateImageResponse, AICreateVideoRequest, AICreateVideoResponse } from '../../types/ai.types'
 
 export class AntSKProvider extends AIProvider {
   constructor(apiKey: string, baseUrl?: string) {
@@ -63,5 +63,9 @@ export class AntSKProvider extends AIProvider {
       url: data.data[0].url,
       revisedPrompt: data.data[0].revised_prompt,
     }
+  }
+
+  async createVideo(request: AICreateVideoRequest): Promise<AICreateVideoResponse> {
+    throw new Error('Video generation not implemented for AntSK provider');
   }
 }

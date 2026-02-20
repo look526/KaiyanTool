@@ -8,11 +8,11 @@ import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
-import { Resource } from '@opentelemetry/resources';
+import * as resources from '@opentelemetry/resources';
 
 // 配置OpenTelemetry SDK
 export const setupOpenTelemetry = () => {
-  const resource = new Resource({
+  const resource = new resources.Resource({
     [SemanticResourceAttributes.SERVICE_NAME]: 'kaiyan-api',
     [SemanticResourceAttributes.SERVICE_VERSION]: '1.0.0',
     [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || 'development',

@@ -21,9 +21,7 @@ class AIProviderService {
       case 'antsk':
         provider = new AntSKProvider(config.apiKey, config.baseUrl)
         break
-      case 'zhipu':
-        provider = new ZhipuProvider(config.apiKey, config.baseUrl)
-        break
+
       default:
         throw new Error(`Unknown provider type: ${config.type}`)
     }

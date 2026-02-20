@@ -17,6 +17,7 @@ const ScriptEditorPage = lazy(() => import('./pages/ScriptEditorPage'))
 const ScriptViewerPage = lazy(() => import('./pages/ScriptViewerPage'))
 const NovelEditorPage = lazy(() => import('./pages/NovelEditorPage'))
 const NovelsPage = lazy(() => import('./pages/NovelsPage'))
+const StorylinePage = lazy(() => import('./pages/StorylinePage'))
 const CharactersPage = lazy(() => import('./pages/CharactersPage'))
 const ScenesPage = lazy(() => import('./pages/ScenesPage'))
 const ProjectMembersPage = lazy(() => import('./pages/ProjectMembersPage'))
@@ -92,6 +93,7 @@ function AppContent() {
           <Route path="/projects/:projectId/scripts/:scriptId/edit" element={<ProtectedRoute><ScriptEditorPage /></ProtectedRoute>} />
           <Route path="/projects/:id/novel" element={<ProtectedRoute><NovelEditorPage /></ProtectedRoute>} />
           <Route path="/projects/:id/novels" element={<ProtectedRoute><NovelsPage /></ProtectedRoute>} />
+          <Route path="/projects/:projectId/storyline" element={<ProtectedRoute><StorylinePage /></ProtectedRoute>} />
           <Route path="/projects/:id/characters" element={<ProtectedRoute><CharactersPage /></ProtectedRoute>} />
           <Route path="/projects/:id/scenes" element={<ProtectedRoute><ScenesPage /></ProtectedRoute>} />
           <Route path="/projects/:id/members" element={<ProtectedRoute><ProjectMembersPage /></ProtectedRoute>} />
