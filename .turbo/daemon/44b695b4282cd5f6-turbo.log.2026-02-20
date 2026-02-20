@@ -289,3 +289,28 @@
 2026-02-20T15:23:06.523877Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("ai-content-platform-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
 2026-02-20T15:23:25.218385Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo\\daemon\\44b695b4282cd5f6-turbo.log.2026-02-20")}
 2026-02-20T15:23:25.218412Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-02-20T15:23:33.933275Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo\\daemon\\44b695b4282cd5f6-turbo.log.2026-02-20")}
+2026-02-20T15:23:33.933302Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-02-20T15:23:47.629038Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\src\\config\\opentelemetry.ts")}
+2026-02-20T15:23:47.629074Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("ai-content-platform-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-20T15:23:58.228415Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\src\\config\\opentelemetry.ts")}
+2026-02-20T15:23:58.228445Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("ai-content-platform-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-20T15:24:07.624871Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\src\\config\\opentelemetry.ts")}
+2026-02-20T15:24:07.624897Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("ai-content-platform-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-20T15:24:37.827345Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo\\daemon\\44b695b4282cd5f6-turbo.log.2026-02-20")}
+2026-02-20T15:24:37.827372Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-02-20T15:24:38.433426Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo\\daemon\\44b695b4282cd5f6-turbo.log.2026-02-20")}
+2026-02-20T15:24:38.433474Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-02-20T15:25:11.830169Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\src\\config\\opentelemetry.ts")}
+2026-02-20T15:25:11.830200Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("ai-content-platform-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-20T15:25:43.631471Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\src\\config\\opentelemetry.ts")}
+2026-02-20T15:25:43.631501Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("ai-content-platform-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-20T15:26:05.626735Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\src\\config\\opentelemetry.ts")}
+2026-02-20T15:26:05.626761Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("ai-content-platform-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-20T15:26:20.824629Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\src\\config\\opentelemetry.ts")}
+2026-02-20T15:26:20.824661Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("ai-content-platform-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-20T15:26:59.619244Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\src\\config\\opentelemetry.ts")}
+2026-02-20T15:26:59.619273Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("ai-content-platform-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-20T15:27:06.721233Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\logs")}
+2026-02-20T15:27:06.721273Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("ai-content-platform-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-20T15:27:06.840323Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun

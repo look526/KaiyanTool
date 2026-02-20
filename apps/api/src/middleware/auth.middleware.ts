@@ -5,13 +5,11 @@ const prisma = new PrismaClient()
 
 const ENABLE_AUTH = false
 
-declare global {
-  interface Express {
-    Request: Request & {
-      userId?: string
-      user?: { id: string; email: string; name: string | null }
-      session?: { id: string; userId: string; expiresAt: Date; token: string }
-    }
+declare module 'express' {
+  export interface Request {
+    userId?: string
+    user?: { id: string; email: string; name: string | null }
+    session?: { id: string; userId: string; expiresAt: Date; token: string }
   }
 }
 

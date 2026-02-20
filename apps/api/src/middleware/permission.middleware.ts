@@ -2,6 +2,12 @@ import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 import logger from '../lib/logger';
 
+declare module 'express' {
+  export interface Request {
+    userRole?: Role;
+  }
+}
+
 export enum Permission {
   PROJECT_READ = 'project:read',
   PROJECT_WRITE = 'project:write',
@@ -305,10 +311,4 @@ export const checkProjectRole = (allowedRoles: Role[]) => {
   };
 };
 
-declare global {
-  interface Express {
-    Request: Request & {
-      userRole?: Role;
-    }
-  }
-}
+

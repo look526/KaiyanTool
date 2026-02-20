@@ -9,7 +9,7 @@ router.use(authMiddleware)
 
 router.get('/', aiProviderController.getProviders.bind(aiProviderController))
 router.post('/', (req, res, next) => {
-  logger.info('POST /api/ai-providers received', { body: req.body, userId: req.userId })
+  logger.info('POST /api/ai-providers received', { body: req.body, userId: (req as any).userId })
   aiProviderController.createProvider.bind(aiProviderController)(req, res, next)
 })
 router.put('/:id', aiProviderController.updateProvider.bind(aiProviderController))
