@@ -20,8 +20,7 @@ import {
   Shot,
   NineGridPanel
 } from '@ai-content-platform/shared';
-
-const API_BASE_URL = '';
+const API_BASE_URL = 'http://localhost:3002';
 
 class ApiClient {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
