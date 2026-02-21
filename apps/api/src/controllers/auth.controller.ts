@@ -1,10 +1,8 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
 import { randomBytes } from 'crypto';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 const loginSchema = z.object({
   email: z.string().email('邮箱格式不正确'),

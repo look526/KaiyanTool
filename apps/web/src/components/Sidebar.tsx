@@ -123,7 +123,7 @@ export function Sidebar() {
               color: 'var(--text-primary)',
               letterSpacing: '0.5px',
             }}>
-              KaiyanTool
+              开演AI
             </span>
           )}
         </Link>

@@ -1,7 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '../lib/prisma'
 
 const ENABLE_AUTH = false
 
@@ -32,7 +30,7 @@ export const authMiddleware = async (
           select: {
             id: true,
             email: true,
-            username: true,
+            name: true,
           },
         },
       },
@@ -75,7 +73,7 @@ export const optionalAuthMiddleware = async (
             select: {
               id: true,
               email: true,
-              username: true,
+              name: true,
             },
           },
         },

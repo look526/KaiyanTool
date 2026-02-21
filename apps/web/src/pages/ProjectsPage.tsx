@@ -812,7 +812,7 @@ export default function ProjectsPage() {
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <span style={{ marginLeft: '12px', fontSize: '18px', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-              KaiyanTool
+              开演AI
             </span>
           </div>
           <nav style={{ padding: '16px' }}>

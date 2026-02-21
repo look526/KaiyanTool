@@ -1,4 +1,4 @@
-# AI内容创作平台
+# 开演AI
 
 > 基于AI的内容创作平台，支持剧本、小说、分镜、图像生成和视频制作。
 
@@ -81,7 +81,7 @@ cd apps/web && npm run dev
 ## 项目结构
 
 ```
-kaiyan-tool/
+开演AI/
 ├── apps/
 │   ├── api/              # 后端API
 │   │   ├── src/

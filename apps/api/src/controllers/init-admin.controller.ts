@@ -6,7 +6,7 @@ import logger from '../lib/logger'
 export class InitAdminController {
   async initAdmin(_req: Request, res: Response): Promise<void> {
     try {
-      const adminEmail = 'likaiyan'
+      const adminEmail = 'likaiyan@test.com'
       const adminPassword = 'likaiyan'
 
       const existingAdmin = await prisma.user.findUnique({

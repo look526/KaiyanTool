@@ -33,7 +33,7 @@ export default function Navbar({ transparentOnHome = true }: NavbarProps) {
                 : 'text-gray-900'
               }
             `}>
-              KaiyanTool
+              开演AI
             </span>
           </Link>
 

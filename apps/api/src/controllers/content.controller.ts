@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import logger from '../lib/logger';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 export const createScript = async (req: Request, res: Response) => {
   const currentUser = req.user?.id;

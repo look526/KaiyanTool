@@ -119,7 +119,7 @@ export default function HomePage() {
               fontWeight: '700',
               color: theme === 'dark' ? '#ffffff' : '#000000',
               letterSpacing: '-0.5px',
-            }}>KaiyanTool</span>
+            }}>开演AI</span>
           </div>
 
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -211,7 +211,7 @@ export default function HomePage() {
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
           }}>
-            KaiyanTool
+            开演AI
           </h1>
 
           <p style={{
@@ -325,7 +325,7 @@ export default function HomePage() {
           color: theme === 'dark' ? '#666666' : '#999999',
           margin: 0,
         }}>
-          © 2025 KaiyanTool. All rights reserved.
+          © 2025 开演AI. All rights reserved.
         </p>
       </footer>
     </div>

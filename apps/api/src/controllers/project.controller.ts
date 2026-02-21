@@ -1,9 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import logger from '../lib/logger';
 import { auditService, AuditAction, AuditResource } from '../services/audit.service';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 const ProjectTypeValues = ['script', 'novel', 'mixed'] as const;
 

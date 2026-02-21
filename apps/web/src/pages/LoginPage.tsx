@@ -141,7 +141,7 @@ export default function LoginPage() {
               backgroundClip: 'text',
               letterSpacing: '-0.5px',
             }}>
-              KaiyanTool
+              开演AI
             </span>
           </Link>
           <h1 style={{
