@@ -3,6 +3,9 @@ import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import dotenv from 'dotenv'
 import path from 'path'
+
+dotenv.config()
+
 import authRoutes from './routes/auth.routes'
 import projectRoutes from './routes/project.routes'
 import contentRoutes from './routes/content.routes'
@@ -36,8 +39,6 @@ setupOpenTelemetry()
 
 initSentry()
 const metrics = getMetrics()
-
-dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 3001
