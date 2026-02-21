@@ -62,9 +62,7 @@ app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
-// setupSwagger(app)
-
-app.get('/metrics', async (_req: Request, res: Response) => {
+app.get('/api/metrics', async (_req: Request, res: Response) => {
   res.set('Content-Type', metrics.register.contentType)
   res.end(await metrics.register.metrics())
 })
