@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import { prisma } from '../lib/prisma'
 
-const ENABLE_AUTH = false
+const ENABLE_AUTH = true
 
 export const authMiddleware = async (
   req: Request,

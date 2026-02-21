@@ -41,7 +41,7 @@ initSentry()
 const metrics = getMetrics()
 
 const app = express()
-const PORT = process.env.PORT || 3001
+const PORT = parseInt(process.env.PORT || '3001', 10)
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads')
 
 app.use(sentryRequestHandler)
