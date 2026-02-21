@@ -6,7 +6,7 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('开始初始化数据库...')
 
-  const adminEmail = 'likaiyan'
+  const adminEmail = 'likaiyan@test.com'
 
   const existingAdmin = await prisma.user.findUnique({
     where: { email: adminEmail },

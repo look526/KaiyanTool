@@ -15,6 +15,12 @@ import {
   Plus,
   RotateCw,
   BrainCircuit,
+  Wand2,
+  LayoutGrid,
+  FileCode,
+  Maximize2,
+  Minimize2,
+  Zap,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Button } from '../components/ui/button';
@@ -50,7 +56,6 @@ const SCRIPT_TEMPLATES = [
   {
     name: '电影剧本',
     template: `[场景1] 室内，白天
-
 主角A
 你好，这是一段对话。
 
@@ -61,7 +66,6 @@ const SCRIPT_TEMPLATES = [
 角色A做了一个手势。
 
 [场景2] 室外，夜晚
-
 主角A
 这里是第二个场景。
 
@@ -87,14 +91,10 @@ export default function ScriptEditorPage() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isContinuing, setIsContinuing] = useState(false);
   const [isRewriting, setIsRewriting] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [editorMode, setEditorMode] = useState<'edit' | 'preview'>('edit');
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const { addToast } = useToast();
-
-  const textColor = theme === 'dark' ? '#ffffff' : '#0f172a';
-  const mutedTextColor = theme === 'dark' ? '#a1a1aa' : '#64748b';
-  const cardBg = theme === 'dark' ? '#18181b' : '#ffffff';
-  const borderColor = theme === 'dark' ? '#27272a' : '#e2e8f0';
-  const inputBg = theme === 'dark' ? '#09090b' : '#f8fafc';
-  const editorTheme = theme === 'dark' ? 'vs-dark' : 'vs-light';
 
   const loadFromLocalStorage = useCallback(() => {
     const saved = localStorage.getItem(`script-${projectIdStr}`);
@@ -143,7 +143,7 @@ export default function ScriptEditorPage() {
       const result = await apiClient.parseScript(content);
       setParsedScenes(result.scenes);
       setCharacters(result.characters);
-      setShowPreview(true);
+      setEditorMode('preview');
     } catch (error) {
       console.error('解析剧本失败:', error);
       addToast({
@@ -260,8 +260,33 @@ export default function ScriptEditorPage() {
     }
   };
 
+  const handleOptimizeScript = async () => {
+    if (!content.trim() || isOptimizing) return;
+
+    try {
+      setIsOptimizing(true);
+      const result = await apiClient.rewriteScript(content);
+      setContent(result.content);
+      saveToLocalStorage();
+      addToast({
+        type: 'success',
+        title: '优化完成',
+        message: '剧本已优化',
+      });
+    } catch (error) {
+      console.error('AI优化失败:', error);
+      addToast({
+        type: 'error',
+        title: 'AI优化失败',
+        message: '请稍后重试。',
+      });
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
   const editorOptions = {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: "'Fira Code', 'Consolas', monospace",
     lineNumbers: 'on' as const,
     minimap: { enabled: true },
@@ -271,177 +296,156 @@ export default function ScriptEditorPage() {
     formatOnPaste: true,
     tabSize: 2,
     insertSpaces: true,
+    padding: { top: 20, bottom: 20 },
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: inputBg, display: 'flex' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
       <Sidebar />
-
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <header style={{
-          height: '64px',
-          borderBottom: `1px solid ${borderColor}`,
-          backgroundColor: cardBg,
-          padding: '0 24px',
+          height: '72px',
+          borderBottom: '1px solid var(--border-primary)',
+          backgroundColor: 'var(--bg-elevated)',
+          padding: '0 32px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexShrink: 0,
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <Link to={`/projects/${projectId}`} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              textDecoration: 'none',
-              color: mutedTextColor,
-              transition: 'all 0.2s ease',
-            }}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <Link
+              to={`/projects/${projectId}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '10px 16px',
+                borderRadius: '12px',
+                textDecoration: 'none',
+                color: 'var(--text-secondary)',
+                transition: 'all 0.2s ease',
+                border: '1px solid transparent',
+              }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = inputBg;
-                e.currentTarget.style.color = textColor;
+                e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                e.currentTarget.style.borderColor = 'var(--border-secondary)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = mutedTextColor;
+                e.currentTarget.style.borderColor = 'transparent';
               }}
             >
-              <ArrowLeft style={{ width: '16px', height: '16px' }} />
+              <ArrowLeft style={{ width: '18px', height: '18px' }} />
+              <span style={{ fontSize: '14px', fontWeight: '500' }}>返回</span>
             </Link>
-            <Input
-              placeholder="剧本标题"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              style={{ width: '320px' }}
-            />
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '8px 16px',
+              borderRadius: '12px',
+              backgroundColor: 'var(--bg-surface)',
+              border: '1px solid var(--border-primary)',
+            }}>
+              <FileCode style={{ width: '18px', height: '18px', color: 'var(--accent)' }} />
+              <Input
+                placeholder="剧本标题"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                style={{
+                  width: '280px',
+                  border: 'none',
+                  background: 'transparent',
+                  fontSize: '15px',
+                  padding: '0',
+                  outline: 'none',
+                }}
+              />
+            </div>
+
             {lastSaved && (
-              <span style={{ fontSize: '12px', color: mutedTextColor }}>
-                {autoSaveEnabled ? '自动保存' : '上次保存'}: {lastSaved.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
-              </span>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                borderRadius: '20px',
+                backgroundColor: 'var(--bg-surface)',
+                border: '1px solid var(--border-primary)',
+                fontSize: '12px',
+                color: 'var(--text-tertiary)',
+              }}>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: autoSaveEnabled ? 'var(--success)' : 'var(--text-muted)',
+                }} />
+                <span>{autoSaveEnabled ? '自动保存' : '上次保存'}: {lastSaved.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
             )}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              onClick={handleContinueScript}
-              disabled={isContinuing || isRewriting || !content.trim()}
-              style={{
-                height: '38px',
-                padding: '0 20px',
-                fontSize: '14px',
-                fontWeight: '500',
-                background: isContinuing || isRewriting || !content.trim() ? 'transparent' : 'var(--accent)',
-                color: isContinuing || isRewriting || !content.trim() ? 'var(--text-tertiary)' : 'var(--accent-on)',
-                border: '1px solid var(--border-primary)',
-                borderRadius: '9px',
-                cursor: isContinuing || isRewriting || !content.trim() ? 'not-allowed' : 'pointer',
-                boxShadow: 'none',
-                transition: 'all 0.15s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-              }}
-              onMouseEnter={(e) => {
-                if (!isContinuing && !isRewriting && content.trim()) {
-                  e.currentTarget.style.background = 'var(--accent-hover)';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isContinuing && !isRewriting && content.trim()) {
-                  e.currentTarget.style.background = 'var(--accent)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }
-              }}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAutoSaveEnabled(!autoSaveEnabled)}
+              title={autoSaveEnabled ? '禁用自动保存' : '启用自动保存'}
+              style={{ height: '40px', padding: '0 16px' }}
             >
-              {isContinuing ? (
-                <>
-                  <BrainCircuit style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                  续写中...
-                </>
-              ) : (
-                <>
-                  <Plus style={{ width: '16px', height: '16px' }} />
-                  AI续写
-                </>
-              )}
-            </button>
+              <Settings style={{ width: '16px', height: '16px' }} />
+              <span style={{ marginLeft: '8px' }}>{autoSaveEnabled ? '自动' : '手动'}</span>
+            </Button>
 
-            <button
-              onClick={handleRewriteScript}
-              disabled={isContinuing || isRewriting || !content.trim()}
-              style={{
-                height: '38px',
-                padding: '0 20px',
-                fontSize: '14px',
-                fontWeight: '500',
-                background: isContinuing || isRewriting || !content.trim() ? 'transparent' : 'var(--accent)',
-                color: isContinuing || isRewriting || !content.trim() ? 'var(--text-tertiary)' : 'var(--accent-on)',
-                border: '1px solid var(--border-primary)',
-                borderRadius: '9px',
-                cursor: isContinuing || isRewriting || !content.trim() ? 'not-allowed' : 'pointer',
-                boxShadow: 'none',
-                transition: 'all 0.15s ease',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-              }}
-              onMouseEnter={(e) => {
-                if (!isContinuing && !isRewriting && content.trim()) {
-                  e.currentTarget.style.background = 'var(--accent-hover)';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isContinuing && !isRewriting && content.trim()) {
-                  e.currentTarget.style.background = 'var(--accent)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }
-              }}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleImport}
+              style={{ height: '40px', padding: '0 16px' }}
             >
-              {isRewriting ? (
-                <>
-                  <BrainCircuit style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                  改写中...
-                </>
-              ) : (
-                <>
-                  <RotateCw style={{ width: '16px', height: '16px' }} />
-                  AI改写
-                </>
-              )}
-            </button>
+              <Upload style={{ width: '16px', height: '16px' }} />
+              <span style={{ marginLeft: '8px' }}>导入</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              style={{ height: '40px', padding: '0 16px' }}
+            >
+              <FileDown style={{ width: '16px', height: '16px' }} />
+              <span style={{ marginLeft: '8px' }}>导出</span>
+            </Button>
 
             <div style={{ position: 'relative' }}>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowTemplateMenu(!showTemplateMenu)}
+                style={{ height: '40px', padding: '0 16px' }}
               >
-                <Type style={{ width: '14px', height: '14px', marginRight: '8px' }} />
-                模板
-                <ChevronDown style={{ width: '14px', height: '14px', marginLeft: '4px' }} />
+                <Type style={{ width: '16px', height: '16px' }} />
+                <span style={{ marginLeft: '8px' }}>模板</span>
+                <ChevronDown style={{ width: '14px', height: '14px', marginLeft: '6px' }} />
               </Button>
               {showTemplateMenu && (
                 <div style={{
                   position: 'absolute',
                   top: '100%',
                   right: 0,
-                  marginTop: '8px',
-                  backgroundColor: cardBg,
-                  border: `1px solid ${borderColor}`,
-                  borderRadius: '8px',
-                  boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
-                  minWidth: '180px',
-                  zIndex: 10,
+                  marginTop: '12px',
+                  backgroundColor: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-primary)',
+                  borderRadius: '12px',
+                  boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+                  minWidth: '200px',
+                  zIndex: 100,
+                  overflow: 'hidden',
                 }}
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -450,14 +454,15 @@ export default function ScriptEditorPage() {
                       key={idx}
                       onClick={() => applyTemplate(tmpl.template)}
                       style={{
-                        padding: '12px 16px',
+                        padding: '14px 20px',
                         cursor: 'pointer',
-                        borderBottom: idx < SCRIPT_TEMPLATES.length - 1 ? `1px solid ${borderColor}` : 'none',
-                        color: textColor,
+                        borderBottom: idx < SCRIPT_TEMPLATES.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+                        color: 'var(--text-primary)',
                         fontSize: '14px',
+                        transition: 'all 0.15s ease',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = inputBg;
+                        e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = 'transparent';
@@ -471,69 +476,20 @@ export default function ScriptEditorPage() {
             </div>
 
             <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setAutoSaveEnabled(!autoSaveEnabled)}
-              title={autoSaveEnabled ? '禁用自动保存' : '启用自动保存'}
-            >
-              <Settings style={{ width: '14px', height: '14px', marginRight: '8px' }} />
-              {autoSaveEnabled ? '自动' : '手动'}
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleImport}
-            >
-              <Upload style={{ width: '14px', height: '14px', marginRight: '8px' }} />
-              导入
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-            >
-              <FileDown style={{ width: '14px', height: '14px', marginRight: '8px' }} />
-              导出
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={parseScript}
-              disabled={loading || !content}
-            >
-              {loading ? (
-                <Loader2 style={{ width: '16px', height: '16px' }} className="animate-spin" />
-              ) : (
-                <>
-                  <Sparkles style={{ width: '14px', height: '14px', marginRight: '8px' }} />
-                  解析
-                </>
-              )}
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowPreview(!showPreview)}
-            >
-              <Eye style={{ width: '14px', height: '14px', marginRight: '8px' }} />
-              {showPreview ? '编辑' : '预览'}
-            </Button>
-
-            <Button
               size="sm"
               onClick={handleSave}
               disabled={saving || !title || !content}
+              style={{ height: '40px', padding: '0 24px', minWidth: '100px' }}
             >
               {saving ? (
-                <Loader2 style={{ width: '16px', height: '16px' }} className="animate-spin" />
+                <>
+                  <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                  <span style={{ marginLeft: '8px' }}>保存中...</span>
+                </>
               ) : (
                 <>
-                  <Save style={{ width: '14px', height: '14px', marginRight: '8px' }} />
-                  保存
+                  <Save style={{ width: '16px', height: '16px' }} />
+                  <span style={{ marginLeft: '8px' }}>保存</span>
                 </>
               )}
             </Button>
@@ -544,22 +500,24 @@ export default function ScriptEditorPage() {
           <div style={{
             flex: 1,
             overflowY: 'auto',
-            display: showPreview ? 'none' : 'block',
+            display: editorMode === 'edit' ? 'block' : 'none',
           }}>
             <div style={{
               height: '100%',
-              padding: '16px',
+              padding: '24px',
             }}>
               <div style={{
-                height: 'calc(100vh - 140px)',
-                borderRadius: '8px',
+                height: 'calc(100vh - 160px)',
+                borderRadius: '16px',
                 overflow: 'hidden',
-                border: `1px solid ${borderColor}`,
+                border: '1px solid var(--border-primary)',
+                backgroundColor: 'var(--bg-surface)',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
               }}>
                 <MonacoEditor
                   height="100%"
                   language="plaintext"
-                  theme={editorTheme}
+                  theme={theme === 'dark' ? 'vs-dark' : 'vs-light'}
                   value={content}
                   onChange={(value) => setContent(value || '')}
                   options={editorOptions}
@@ -568,75 +526,143 @@ export default function ScriptEditorPage() {
               </div>
 
               <div style={{
-                height: '32px',
-                borderTop: `1px solid ${borderColor}`,
-                backgroundColor: inputBg,
-                padding: '0 16px',
+                height: '48px',
+                borderTop: '1px solid var(--border-primary)',
+                backgroundColor: 'var(--bg-elevated)',
+                padding: '0 24px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                fontSize: '11px',
-                color: mutedTextColor,
+                fontSize: '12px',
+                color: 'var(--text-tertiary)',
                 fontFamily: 'monospace',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span>{content.length} 字符</span>
-                  <span>{content.split('\n').length} 行</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <FileText style={{ width: '14px', height: '14px' }} />
+                    {content.length} 字符
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <LayoutGrid style={{ width: '14px', height: '14px' }} />
+                    {content.split('\n').length} 行
+                  </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: autoSaveEnabled ? '#10b981' : '#64748b' }} />
-                  {lastSaved ? '已自动保存' : '准备就绪'}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: autoSaveEnabled ? 'var(--success)' : 'var(--text-muted)' }} />
+                  <span>{lastSaved ? '已自动保存' : '准备就绪'}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {showPreview && (
+          {editorMode === 'preview' && (
             <div style={{
               flex: 1,
-              padding: '24px',
+              padding: '32px',
               overflowY: 'auto',
             }}>
-              <Card style={{ padding: '24px' }}>
-                <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: `1px solid ${borderColor}` }}>
-                  <h2 style={{ fontSize: '16px', fontWeight: '600', color: textColor, marginBottom: '12px', margin: '0 0 12px 0' }}>
-                    剧本统计
-                  </h2>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-                    <div style={{ padding: '16px', backgroundColor: inputBg, borderRadius: '8px' }}>
-                      <div style={{ fontSize: '12px', color: mutedTextColor, marginBottom: '4px' }}>场景数量</div>
-                      <div style={{ fontSize: '24px', fontWeight: '700', color: textColor }}>
-                        {parsedScenes.length}
-                      </div>
+              <Card style={{ padding: '32px', maxWidth: '900px', margin: '0 auto' }}>
+                <div style={{
+                  marginBottom: '32px',
+                  paddingBottom: '32px',
+                  borderBottom: '1px solid var(--border-primary)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                }}>
+                  <div>
+                    <h2 style={{
+                      fontSize: '18px',
+                      fontWeight: '700',
+                      color: 'var(--text-primary)',
+                      marginBottom: '8px',
+                      margin: '0 0 16px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                    }}>
+                      <FileText style={{ width: '20px', height: '20px', color: 'var(--accent)' }} />
+                      剧本统计
+                    </h2>
+                    <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', margin: 0 }}>
+                      剧本解析结果概览
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditorMode('edit')}
+                  >
+                    <FileCode style={{ width: '14px', height: '14px', marginRight: '8px' }} />
+                    编辑
+                  </Button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginBottom: '32px' }}>
+                  <div style={{
+                    padding: '24px',
+                    backgroundColor: 'var(--bg-surface)',
+                    borderRadius: '16px',
+                    border: '1px solid var(--border-primary)',
+                    textAlign: 'center',
+                  }}>
+                    <div style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginBottom: '12px' }}>场景数量</div>
+                    <div style={{ fontSize: '36px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                      {parsedScenes.length}
                     </div>
-                    <div style={{ padding: '16px', backgroundColor: inputBg, borderRadius: '8px' }}>
-                      <div style={{ fontSize: '12px', color: mutedTextColor, marginBottom: '4px' }}>角色数量</div>
-                      <div style={{ fontSize: '24px', fontWeight: '700', color: textColor }}>
-                        {characters.length}
-                      </div>
+                  </div>
+                  <div style={{
+                    padding: '24px',
+                    backgroundColor: 'var(--bg-surface)',
+                    borderRadius: '16px',
+                    border: '1px solid var(--border-primary)',
+                    textAlign: 'center',
+                  }}>
+                    <div style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginBottom: '12px' }}>角色数量</div>
+                    <div style={{ fontSize: '36px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                      {characters.length}
                     </div>
                   </div>
                 </div>
 
                 {characters.length > 0 && (
-                  <div style={{ marginBottom: '24px', paddingBottom: '24px', borderBottom: `1px solid ${borderColor}` }}>
-                    <h2 style={{ fontSize: '16px', fontWeight: '600', color: textColor, marginBottom: '12px', margin: '0 0 12px 0' }}>
+                  <div style={{ marginBottom: '32px', paddingBottom: '32px', borderBottom: '1px solid var(--border-primary)' }}>
+                    <h2 style={{
+                      fontSize: '18px',
+                      fontWeight: '700',
+                      color: 'var(--text-primary)',
+                      marginBottom: '20px',
+                      margin: '0 0 20px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                    }}>
+                      <Sparkles style={{ width: '20px', height: '20px', color: 'var(--accent)' }} />
                       角色列表
                     </h2>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                       {characters.map((char) => (
                         <span
                           key={char}
                           style={{
-                            padding: '8px 16px',
-                            backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                            border: '1px solid rgba(99, 102, 241, 0.3)',
-                            borderRadius: '20px',
+                            padding: '10px 20px',
+                            backgroundColor: 'var(--accent-bg)',
+                            border: '1px solid var(--accent-border)',
+                            borderRadius: '24px',
                             fontSize: '14px',
-                            fontWeight: '500',
-                            color: '#6366f1',
+                            fontWeight: '600',
+                            color: 'var(--accent-text)',
+                            transition: 'all 0.2s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = 'var(--accent-bg-hover)';
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'var(--accent-bg)';
+                            e.currentTarget.style.transform = 'translateY(0)';
                           }}
                         >
                           {char}
@@ -646,53 +672,90 @@ export default function ScriptEditorPage() {
                   </div>
                 )}
 
-                <h2 style={{ fontSize: '16px', fontWeight: '600', color: textColor, marginBottom: '16px', margin: '0 0 16px 0' }}>
+                <h2 style={{
+                  fontSize: '18px',
+                  fontWeight: '700',
+                  color: 'var(--text-primary)',
+                  marginBottom: '24px',
+                  margin: '0 0 24px 0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                }}>
+                  <Eye style={{ width: '20px', height: '20px', color: 'var(--accent)' }} />
                   场景预览
                 </h2>
 
                 {parsedScenes.map((scene) => (
-                  <div key={scene.id} style={{ marginBottom: '24px', padding: '20px', backgroundColor: inputBg, borderRadius: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                  <div key={scene.id} style={{
+                    marginBottom: '28px',
+                    padding: '24px',
+                    backgroundColor: 'var(--bg-surface)',
+                    borderRadius: '16px',
+                    border: '1px solid var(--border-primary)',
+                    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.04)',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.08)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 2px 12px rgba(0, 0, 0, 0.04)';
+                  }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                       <span style={{
-                        padding: '4px 12px',
-                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                        borderRadius: '4px',
+                        padding: '6px 16px',
+                        backgroundColor: 'var(--accent-bg)',
+                        borderRadius: '8px',
                         fontSize: '12px',
-                        fontWeight: '600',
-                        color: '#6366f1',
+                        fontWeight: '700',
+                        color: 'var(--accent-text)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
                       }}>
                         场景 {scene.id}
                       </span>
-                      <h3 style={{ fontSize: '16px', fontWeight: '600', color: textColor, margin: 0 }}>
+                      <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', margin: 0, flex: 1 }}>
                         {scene.description}
                       </h3>
                     </div>
 
                     {scene.action && (
-                      <p style={{ fontSize: '14px', color: mutedTextColor, fontStyle: 'italic', marginBottom: '12px', margin: '0 0 12px 0' }}>
+                      <p style={{
+                        fontSize: '14px',
+                        color: 'var(--text-tertiary)',
+                        fontStyle: 'italic',
+                        marginBottom: '16px',
+                        margin: '0 0 16px 0',
+                        lineHeight: '1.7',
+                      }}>
                         （{scene.action}）
                       </p>
                     )}
 
                     {scene.dialogue && scene.dialogue.map((d, i) => (
-                      <div key={i} style={{ marginBottom: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <div key={i} style={{ marginBottom: '20px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                           <span style={{
-                            padding: '4px 12px',
-                            backgroundColor: cardBg,
-                            borderRadius: '4px',
+                            padding: '8px 16px',
+                            backgroundColor: 'var(--bg-elevated)',
+                            borderRadius: '8px',
                             fontSize: '13px',
-                            fontWeight: '600',
-                            color: '#64748b',
+                            fontWeight: '700',
+                            color: 'var(--text-secondary)',
+                            border: '1px solid var(--border-primary)',
                           }}>
                             {d.character}
                           </span>
                         </div>
                         <p style={{
-                          fontSize: '14px',
-                          color: textColor,
-                          margin: '0 0 12px 12px',
-                          lineHeight: '1.6',
+                          fontSize: '15px',
+                          color: 'var(--text-primary)',
+                          margin: '0 0 16px 16px',
+                          lineHeight: '1.8',
                         }}>
                           {d.lines.map((line: string, j: number) => (
                             <span key={j}>{line}<br /></span>
@@ -701,9 +764,10 @@ export default function ScriptEditorPage() {
                         {d.action && (
                           <p style={{
                             fontSize: '13px',
-                            color: mutedTextColor,
+                            color: 'var(--text-tertiary)',
                             fontStyle: 'italic',
-                            margin: '0 0 12px 12px',
+                            margin: '0 0 16px 16px',
+                            lineHeight: '1.7',
                           }}>
                             （{d.action}）
                           </p>
@@ -716,16 +780,168 @@ export default function ScriptEditorPage() {
                 {parsedScenes.length === 0 && content && (
                   <div style={{
                     textAlign: 'center',
-                    padding: '48px',
-                    color: mutedTextColor
+                    padding: '64px 32px',
+                    color: 'var(--text-tertiary)',
+                    backgroundColor: 'var(--bg-surface)',
+                    borderRadius: '16px',
+                    border: '2px dashed var(--border-secondary)',
                   }}>
-                    <FileText style={{ width: '64px', height: '64px', marginBottom: '16px', display: 'inline-block' }} />
-                    <p>点击"解析"按钮查看剧本预览</p>
+                    <FileText style={{ width: '64px', height: '64px', marginBottom: '20px', display: 'inline-block', opacity: 0.5 }} />
+                    <p style={{ fontSize: '16px', marginBottom: '16px' }}>点击"解析"按钮查看剧本预览</p>
+                    <Button size="sm" onClick={parseScript} disabled={loading}>
+                      {loading ? (
+                        <>
+                          <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                          解析中...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles style={{ width: '16px', height: '16px', marginRight: '8px' }} />
+                          解析剧本
+                        </>
+                      )}
+                    </Button>
                   </div>
                 )}
               </Card>
             </div>
           )}
+        </div>
+
+        <div style={{
+          position: 'fixed',
+          bottom: '32px',
+          right: '32px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          zIndex: 50,
+        }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            padding: '12px',
+            backgroundColor: 'var(--bg-elevated)',
+            borderRadius: '16px',
+            border: '1px solid var(--border-primary)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
+          }}>
+            <Button
+              size="sm"
+              onClick={handleContinueScript}
+              disabled={isContinuing || isRewriting || isOptimizing || !content.trim()}
+              style={{ width: '100%', justifyContent: 'flex-start' }}
+            >
+              {isContinuing ? (
+                <>
+                  <BrainCircuit style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                  <span style={{ marginLeft: '8px' }}>AI续写中...</span>
+                </>
+              ) : (
+                <>
+                  <Plus style={{ width: '16px', height: '16px' }} />
+                  <span style={{ marginLeft: '8px' }}>AI续写</span>
+                </>
+              )}
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={handleRewriteScript}
+              disabled={isContinuing || isRewriting || isOptimizing || !content.trim()}
+              style={{ width: '100%', justifyContent: 'flex-start' }}
+            >
+              {isRewriting ? (
+                <>
+                  <BrainCircuit style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                  <span style={{ marginLeft: '8px' }}>AI改写中...</span>
+                </>
+              ) : (
+                <>
+                  <RotateCw style={{ width: '16px', height: '16px' }} />
+                  <span style={{ marginLeft: '8px' }}>AI改写</span>
+                </>
+              )}
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={handleOptimizeScript}
+              disabled={isContinuing || isRewriting || isOptimizing || !content.trim()}
+              style={{ width: '100%', justifyContent: 'flex-start' }}
+            >
+              {isOptimizing ? (
+                <>
+                  <BrainCircuit style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                  <span style={{ marginLeft: '8px' }}>优化中...</span>
+                </>
+              ) : (
+                <>
+                  <Wand2 style={{ width: '16px', height: '16px' }} />
+                  <span style={{ marginLeft: '8px' }}>AI优化</span>
+                </>
+              )}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={parseScript}
+              disabled={loading || !content}
+              style={{ width: '100%', justifyContent: 'flex-start' }}
+            >
+              {loading ? (
+                <>
+                  <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                  <span style={{ marginLeft: '8px' }}>解析中...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles style={{ width: '16px', height: '16px' }} />
+                  <span style={{ marginLeft: '8px' }}>解析预览</span>
+                </>
+              )}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditorMode(editorMode === 'edit' ? 'preview' : 'edit')}
+              style={{ width: '100%', justifyContent: 'flex-start' }}
+            >
+              {editorMode === 'edit' ? (
+                <>
+                  <Eye style={{ width: '16px', height: '16px' }} />
+                  <span style={{ marginLeft: '8px' }}>预览</span>
+                </>
+              ) : (
+                <>
+                  <FileCode style={{ width: '16px', height: '16px' }} />
+                  <span style={{ marginLeft: '8px' }}>编辑</span>
+                </>
+              )}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              style={{ width: '100%', justifyContent: 'flex-start' }}
+            >
+              {isFullscreen ? (
+                <>
+                  <Minimize2 style={{ width: '16px', height: '16px' }} />
+                  <span style={{ marginLeft: '8px' }}>退出全屏</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 style={{ width: '16px', height: '16px' }} />
+                  <span style={{ marginLeft: '8px' }}>全屏编辑</span>
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </main>
     </div>

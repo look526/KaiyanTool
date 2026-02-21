@@ -1,7 +1,9 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiClient, User } from '../lib/api';
+import { setAuthErrorHandler } from '../lib/api-client';
 
-const ENABLE_AUTH = false;
+const ENABLE_AUTH = true;
 
 interface AuthContextType {
   user: User | null;
@@ -11,6 +13,8 @@ interface AuthContextType {
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   rememberMe: boolean;
+  sessionExpired: boolean;
+  clearSessionExpired: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,6 +23,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [rememberMe, setRememberMe] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const navigate = useNavigate();
+
+  const clearSessionExpired = useCallback(() => {
+    setSessionExpired(false);
+  }, []);
+
+  const handleAuthError = useCallback(() => {
+    setUser(null);
+    setRememberMe(false);
+    setSessionExpired(true);
+    localStorage.removeItem('rememberedEmail');
+    localStorage.removeItem('rememberMe');
+  }, []);
+
+  useEffect(() => {
+    setAuthErrorHandler(handleAuthError);
+  }, [handleAuthError]);
 
   useEffect(() => {
     if (ENABLE_AUTH) {
@@ -41,6 +63,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (sessionExpired) {
+      navigate('/login', { replace: true });
+    }
+  }, [sessionExpired, navigate]);
 
   const checkAuth = async () => {
     try {
@@ -102,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser, rememberMe }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser, rememberMe, sessionExpired, clearSessionExpired }}>
       {children}
     </AuthContext.Provider>
   );

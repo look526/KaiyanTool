@@ -16,7 +16,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme } = useTheme();
-  const { login } = useAuth();
+  const { login, sessionExpired, clearSessionExpired } = useAuth();
 
   useEffect(() => {
     const savedEmail = localStorage.getItem('rememberedEmail');
@@ -34,6 +34,13 @@ export default function LoginPage() {
       return () => clearTimeout(timer);
     }
   }, [error]);
+
+  useEffect(() => {
+    if (sessionExpired) {
+      setError('登录已过期，请重新登录');
+      clearSessionExpired();
+    }
+  }, [sessionExpired, clearSessionExpired]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

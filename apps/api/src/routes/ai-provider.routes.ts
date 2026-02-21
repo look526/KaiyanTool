@@ -1,19 +1,16 @@
 import { Router } from 'express'
 import { aiProviderController } from '../controllers/ai-provider.controller'
-import { authMiddleware } from '../middleware/auth.middleware'
-import logger from '../lib/logger'
 
 const router = Router()
 
-router.use(authMiddleware)
+router.get('/', aiProviderController.getProviders)
+router.post('/', aiProviderController.createProvider)
+router.put('/:id', aiProviderController.updateProvider)
+router.delete('/:id', aiProviderController.deleteProvider)
+router.post('/:id/test', aiProviderController.testProvider)
 
-router.get('/', aiProviderController.getProviders.bind(aiProviderController))
-router.post('/', (req, res, next) => {
-  logger.info('POST /api/ai-providers received', { body: req.body, userId: (req as any).userId })
-  aiProviderController.createProvider.bind(aiProviderController)(req, res, next)
-})
-router.put('/:id', aiProviderController.updateProvider.bind(aiProviderController))
-router.delete('/:id', aiProviderController.deleteProvider.bind(aiProviderController))
-router.post('/:id/test', aiProviderController.testProvider.bind(aiProviderController))
+router.post('/:providerId/models', aiProviderController.createModel)
+router.put('/:providerId/models/:modelId', aiProviderController.updateModel)
+router.delete('/:providerId/models/:modelId', aiProviderController.deleteModel)
 
 export default router

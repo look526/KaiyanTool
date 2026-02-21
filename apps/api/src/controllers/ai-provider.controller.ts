@@ -1,11 +1,23 @@
 import { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
-import { aiProviderService } from '../services/ai/provider.service'
-import { AIProviderConfig } from '../types/ai.types'
-import { encrypt, decrypt } from '../lib/encryption'
+import { z } from 'zod'
 import logger from '../lib/logger'
 
-class AIProviderController {
+const providerModelSchema = z.object({
+  name: z.string().min(1, '模型名称至少1位').max(100, '模型名称最多100位'),
+  type: z.enum(['text', 'image', 'video', 'audio', 'script', 'novel', 'storyline', 'outline']),
+  description: z.string().optional(),
+  capabilities: z.array(z.string()).optional().default([])
+})
+
+const updateProviderSchema = z.object({
+  type: z.string().optional(),
+  apiKey: z.string().optional(),
+  baseUrl: z.string().optional(),
+  enabled: z.boolean().optional(),
+})
+
+export class AIProviderController {
   async getProviders(req: Request, res: Response): Promise<void> {
     try {
       if (!req.userId) {
@@ -18,10 +30,24 @@ class AIProviderController {
         select: {
           id: true,
           type: true,
+          apiKey: true,
+          baseUrl: true,
           enabled: true,
           createdAt: true,
           updatedAt: true,
+          models: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              description: true,
+              capabilities: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
         },
+        orderBy: { createdAt: 'desc' },
       })
 
       res.json(providers)
@@ -38,7 +64,7 @@ class AIProviderController {
         return
       }
 
-      const { type, apiKey, baseUrl } = req.body
+      const { type, apiKey, baseUrl, enabled } = req.body
 
       if (!type || !apiKey) {
         logger.warn('Create provider with missing fields', { userId: req.userId, type })
@@ -46,25 +72,15 @@ class AIProviderController {
         return
       }
 
-      const encryptedKey = this.encryptApiKey(apiKey)
-
       const provider = await prisma.aIProvider.create({
         data: {
           userId: req.userId,
           type,
-          apiKey: encryptedKey,
+          apiKey,
           baseUrl,
-          enabled: true,
+          enabled: enabled ?? true,
         },
       })
-
-      const config: AIProviderConfig = {
-        type,
-        apiKey,
-        baseUrl,
-      }
-
-      aiProviderService.addProvider(provider.id, config)
 
       res.status(201).json({
         id: provider.id,
@@ -88,7 +104,7 @@ class AIProviderController {
       }
 
       const { id } = req.params
-      const { apiKey, baseUrl, enabled } = req.body
+      const { type, apiKey, baseUrl, enabled } = req.body
 
       const existing = await prisma.aIProvider.findFirst({
         where: {
@@ -104,26 +120,14 @@ class AIProviderController {
       }
 
       const updateData: any = {}
+      if (type) updateData.type = type
       if (baseUrl) updateData.baseUrl = baseUrl
       if (enabled !== undefined) updateData.enabled = enabled
-      if (apiKey) {
-        updateData.apiKey = this.encryptApiKey(apiKey)
-      }
 
       const updated = await prisma.aIProvider.update({
         where: { id },
         data: updateData,
       })
-
-      const config: AIProviderConfig = {
-        type: existing.type as any,
-        apiKey: apiKey || this.decryptApiKey(existing.apiKey),
-        baseUrl: baseUrl || existing.baseUrl || undefined,
-      }
-
-      if (apiKey || !aiProviderService.hasProvider(id)) {
-        aiProviderService.addProvider(id, config)
-      }
 
       res.json({
         id: updated.id,
@@ -165,8 +169,6 @@ class AIProviderController {
         where: { id },
       })
 
-      aiProviderService.removeProvider(id)
-
       res.json({ message: 'Provider deleted successfully' })
       logger.info('AI provider deleted', { userId: req.userId, providerId: id })
     } catch (error) {
@@ -175,54 +177,173 @@ class AIProviderController {
     }
   }
 
-  async testProvider(req: Request, res: Response): Promise<void> {
+  async createModel(req: Request, res: Response): Promise<void> {
     try {
       if (!req.userId) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { id } = req.params
+      const { providerId } = req.params
+      const data = providerModelSchema.parse(req.body)
 
       const provider = await prisma.aIProvider.findFirst({
         where: {
-          id,
+          id: providerId,
           userId: req.userId,
         },
       })
 
       if (!provider) {
+        logger.warn('Provider not found for model creation', { userId: req.userId, providerId })
         res.status(404).json({ error: 'Provider not found' })
         return
       }
 
-      const apiKey = this.decryptApiKey(provider.apiKey)
-      const config: AIProviderConfig = {
-        type: provider.type as any,
-        apiKey,
-        baseUrl: provider.baseUrl || undefined,
-      }
+      const model = await prisma.aIProviderModel.create({
+        data: {
+          providerId,
+          ...data,
+        },
+      })
 
-      aiProviderService.addProvider(id, config)
-
-      const result = await aiProviderService.chat(id, [
-        { role: 'user', content: 'Hello' }
-      ], 'gpt-3.5-turbo')
-
-      res.json({ success: true, usage: result.usage })
-      logger.info('AI provider test successful', { userId: req.userId, providerId: id, type: provider.type })
+      res.status(201).json(model)
+      logger.info('AI provider model created', { userId: req.userId, modelId: model.id })
     } catch (error) {
-      logger.error('Failed to test AI provider', { userId: req.userId, providerId: req.params.id, error })
-      res.status(500).json({ success: false, error: 'Connection failed' })
+      logger.error('Failed to create AI provider model', { userId: req.userId, error })
+      res.status(500).json({ error: 'Failed to create AI provider model' })
     }
   }
 
-  private encryptApiKey(apiKey: string): string {
-    return encrypt(apiKey)
+  async updateModel(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.userId) {
+        res.status(401).json({ error: 'Unauthorized' })
+        return
+      }
+
+      const { providerId, modelId } = req.params
+      const data = providerModelSchema.partial().parse(req.body)
+
+      const model = await prisma.aIProviderModel.findFirst({
+        where: {
+          id: modelId,
+          provider: {
+            userId: req.userId,
+          },
+        },
+      })
+
+      if (!model) {
+        logger.warn('Model not found for update', { userId: req.userId, modelId })
+        res.status(404).json({ error: 'Model not found' })
+        return
+      }
+
+      const updated = await prisma.aIProviderModel.update({
+        where: { id: modelId },
+        data,
+      })
+
+      res.json(updated)
+      logger.info('AI provider model updated', { userId: req.userId, modelId })
+    } catch (error) {
+      logger.error('Failed to update AI provider model', { userId: req.userId, modelId, error })
+      res.status(500).json({ error: 'Failed to update AI provider model' })
+    }
   }
 
-  private decryptApiKey(encryptedValue: string): string {
-    return decrypt(encryptedValue)
+  async deleteModel(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.userId) {
+        res.status(401).json({ error: 'Unauthorized' })
+        return
+      }
+
+      const { providerId, modelId } = req.params
+
+      const model = await prisma.aIProviderModel.findFirst({
+        where: {
+          id: modelId,
+          provider: {
+            userId: req.userId,
+          },
+        },
+      })
+
+      if (!model) {
+        logger.warn('Model not found for deletion', { userId: req.userId, modelId })
+        res.status(404).json({ error: 'Model not found' })
+        return
+      }
+
+      await prisma.aIProviderModel.delete({
+        where: { id: modelId },
+      })
+
+      res.json({ message: 'Model deleted successfully' })
+      logger.info('AI provider model deleted', { userId: req.userId, modelId })
+    } catch (error) {
+      logger.error('Failed to delete AI provider model', { userId: req.userId, modelId, error })
+      res.status(500).json({ error: 'Failed to delete AI provider model' })
+    }
+  }
+
+  async testProvider(req: Request, res: Response): Promise<void> {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized' })
+      return
+    }
+
+    const { id } = req.params
+
+    const provider = await prisma.aIProvider.findFirst({
+      where: {
+        id,
+        userId: req.userId,
+      },
+    })
+
+    if (!provider) {
+      logger.warn('Provider not found for test', { userId: req.userId, providerId: id })
+      res.status(404).json({ error: 'Provider not found' })
+      return
+    }
+
+    const apiKey = provider.apiKey
+
+    try {
+      const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'glm-4',
+          messages: [{ role: 'user', content: 'Hello' }],
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      res.json({
+        success: true,
+        message: '连接成功',
+        usage: result.usage || {},
+      })
+      logger.info('AI provider test successful', { userId: req.userId, providerId: id })
+    } catch (error) {
+      logger.error('Failed to test AI provider', { userId: req.userId, providerId: id, error })
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Connection failed',
+      })
+    }
   }
 }
 

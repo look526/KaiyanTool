@@ -4,7 +4,7 @@ export interface PerformanceMetric {
   labels?: Record<string, string>;
 }
 
-const API_BASE_URL = 'http://localhost:3002';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 class MetricsTracker {
   private metrics: Map<string, number> = new Map();

@@ -82,9 +82,19 @@ export interface AIProvider {
   type: string
   apiKey: string
   baseUrl: string | null
-  models: string[]
+  models: AIProviderModel[]
   isActive: boolean
   userId: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AIProviderModel {
+  id: string
+  name: string
+  type: string
+  description?: string
+  capabilities: string[]
   createdAt: string
   updatedAt: string
 }

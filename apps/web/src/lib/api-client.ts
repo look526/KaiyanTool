@@ -20,7 +20,13 @@ import {
   Shot,
   NineGridPanel
 } from '@ai-content-platform/shared';
-const API_BASE_URL = 'http://localhost:3002';
+const API_BASE_URL = '';
+
+let authErrorHandler: (() => void) | null = null;
+
+export const setAuthErrorHandler = (handler: () => void) => {
+  authErrorHandler = handler;
+};
 
 class ApiClient {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -41,9 +47,21 @@ class ApiClient {
       response = await fetch(url, config);
       const duration = Date.now() - start;
       
-      // 导入 metrics 模块并跟踪 API 请求
       const { trackApiRequest } = await import('./metrics');
       trackApiRequest(options.method || 'GET', endpoint, duration, response.status);
+
+      if (response.status === 401) {
+        if (authErrorHandler) {
+          authErrorHandler();
+        }
+        const errorText = await response.text();
+        try {
+          const error = JSON.parse(errorText);
+          throw new Error(error.error || '登录已过期，请重新登录');
+        } catch {
+          throw new Error('登录已过期，请重新登录');
+        }
+      }
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -72,12 +90,10 @@ class ApiClient {
     } catch (error) {
       const duration = Date.now() - start;
       
-      // 导入 metrics 模块并跟踪错误
       const { trackApiRequest, trackError } = await import('./metrics');
       trackApiRequest(options.method || 'GET', endpoint, duration, 0);
       trackError(error as Error, { endpoint, method: options.method || 'GET' });
       
-      // 导入 sentry 模块并捕获错误
       const { captureException } = await import('./sentry');
       captureException(error as Error, { endpoint, method: options.method || 'GET' });
       
@@ -202,6 +218,26 @@ class ApiClient {
   async testAIProvider(id: string): Promise<{ success: boolean; message: string }> {
     return this.request<{ success: boolean; message: string }>(`/api/ai-providers/${id}/test`, {
       method: 'POST',
+    });
+  }
+
+  async createAIProviderModel(providerId: string, data: Partial<AIProviderModel>): Promise<AIProviderModel> {
+    return this.request<AIProviderModel>(`/api/ai-providers/${providerId}/models`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateAIProviderModel(providerId: string, modelId: string, data: Partial<AIProviderModel>): Promise<AIProviderModel> {
+    return this.request<AIProviderModel>(`/api/ai-providers/${providerId}/models/${modelId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAIProviderModel(providerId: string, modelId: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/api/ai-providers/${providerId}/models/${modelId}`, {
+      method: 'DELETE',
     });
   }
 
@@ -389,6 +425,18 @@ class ApiClient {
     });
   }
 
+  async generateScript(projectId: string, data: {
+    storyOutline: string;
+    genre: string;
+    characters: Array<{ name: string; description: string; personality: string }>;
+    settings: Array<{ name: string; description: string; atmosphere: string }>;
+  }): Promise<{ id: string; title: string; content: string; createdAt: string; updatedAt: string }> {
+    return this.request<{ id: string; title: string; content: string; createdAt: string; updatedAt: string }>('/api/director/script', {
+      method: 'POST',
+      body: JSON.stringify({ projectId, ...data }),
+    });
+  }
+
   async getScript(scriptId: string): Promise<{ id: string; title: string; content: string; createdAt: string; updatedAt: string }> {
     return this.request<{ id: string; title: string; content: string; createdAt: string; updatedAt: string }>(`/api/scripts/${scriptId}`);
   }
@@ -459,9 +507,9 @@ class ApiClient {
   }
 
   async optimizeShotPrompt(shotId: string, referenceImages: string[]): Promise<{ success: boolean; startPrompt: string; endPrompt: string; shot: any }> {
-    return this.request<{ success: boolean; startPrompt: string; endPrompt: string; shot: any }>(`/api/shots/${shotId}/director/optimize-prompt`, {
+    return this.request<{ success: boolean; startPrompt: string; endPrompt: string; shot: any }>('/api/director/optimize-shot', {
       method: 'POST',
-      body: JSON.stringify({ referenceImages }),
+      body: JSON.stringify({ shotId, referenceImages }),
     });
   }
 

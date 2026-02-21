@@ -295,12 +295,27 @@ model AIProvider {
   apiKey    String      @map("api_key")
   baseUrl   String?     @map("base_url")
   enabled   Boolean     @default(true)
-  createdAt DateTime    @default(now()) @map("created_at")
-  updatedAt DateTime    @updatedAt @map("updated_at")
-
+  models    AIProviderModel[]
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model AIProviderModel {
+  id          String   @id @default(uuid()) @db.Uuid
+  providerId  String   @map("ai_provider_id") @db.Uuid
+  name        String
+  type        String
+  description String?
+  capabilities String[]
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  provider   AIProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId])
+  @@index([type])
 }
 
 model AuditLog {

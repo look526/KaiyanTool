@@ -2,12 +2,13 @@ import { Request, Response } from 'express'
 import bcrypt from 'bcryptjs'
 import { prisma } from '../lib/prisma'
 import logger from '../lib/logger'
+import { config } from '../config'
 
 export class InitAdminController {
   async initAdmin(_req: Request, res: Response): Promise<void> {
     try {
-      const adminEmail = 'likaiyan@test.com'
-      const adminPassword = 'likaiyan'
+      const adminEmail = config.admin.email
+      const adminPassword = config.admin.password
 
       const existingAdmin = await prisma.user.findUnique({
         where: { email: adminEmail },

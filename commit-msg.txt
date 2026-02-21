@@ -1,20 +1,17 @@
-feat: 实现故事线Agent生成和编辑功能
+refactor: 消除硬编码，统一配置管理
 
-后端:
-- 注册storyline.routes.ts路由
-- 添加outline.routes.ts路由
-- 故事线Agent支持:
-  - 生成完整故事线(标题、Logline、Synopsis)
-  - 三幕结构设计(情节点Beats)
-  - 角色弧线设计
-  - 故事优化(基于反馈)
-  - 角色背景生成
-  - 情节点详情展开
+后端改进:
+- 创建统一的配置文件 src/config/index.ts
+- 端口、CORS、JWT等配置从环境变量读取
+- 管理员账号从环境变量配置
+- Swagger服务器URL动态生成
+- 修复dotenv加载顺序问题
 
-前端:
-- 新增StorylinePage.tsx故事线生成页面
-- 支持类型、基调、目标观众选择
-- AI生成完整故事线(结构、角色、主题)
-- 保存和优化功能
-- 添加/api/storyline API客户端方法
-- 添加路由 /projects/:projectId/storyline
+前端改进:
+- metrics.ts中的API_BASE_URL改为从环境变量读取
+- 创建.env.example模板文件
+
+环境变量更新:
+- 添加ADMIN_EMAIL、ADMIN_PASSWORD配置
+- 添加CORS_ORIGIN配置
+- 更新.env.example模板

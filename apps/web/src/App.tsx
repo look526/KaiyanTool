@@ -30,6 +30,7 @@ const DocumentsPage = lazy(() => import('./pages/DocumentsPage'))
 const DocumentDetailPage = lazy(() => import('./pages/DocumentDetailPage'))
 const DocumentCreatePage = lazy(() => import('./pages/DocumentCreatePage'))
 const TeamPage = lazy(() => import('./pages/TeamPage'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -74,50 +75,46 @@ function LoadingComponent() {
   );
 }
 
-function AppContent() {
-  return (
-    <BrowserRouter>
-      <Suspense fallback={<LoadingComponent />}>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/test" element={<TestPage />} />
-          <Route path="/simple" element={<SimpleTest />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
-          <Route path="/projects/new" element={<ProtectedRoute><CreateProjectPage /></ProtectedRoute>} />
-          <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetailPage /></ProtectedRoute>} />
-          <Route path="/projects/:projectId/script" element={<ProtectedRoute><ScriptEditorPage /></ProtectedRoute>} />
-          <Route path="/projects/:projectId/scripts/:scriptId" element={<ProtectedRoute><ScriptViewerPage /></ProtectedRoute>} />
-          <Route path="/projects/:projectId/scripts/:scriptId/edit" element={<ProtectedRoute><ScriptEditorPage /></ProtectedRoute>} />
-          <Route path="/projects/:id/novel" element={<ProtectedRoute><NovelEditorPage /></ProtectedRoute>} />
-          <Route path="/projects/:id/novels" element={<ProtectedRoute><NovelsPage /></ProtectedRoute>} />
-          <Route path="/projects/:projectId/storyline" element={<ProtectedRoute><StorylinePage /></ProtectedRoute>} />
-          <Route path="/projects/:id/characters" element={<ProtectedRoute><CharactersPage /></ProtectedRoute>} />
-          <Route path="/projects/:id/scenes" element={<ProtectedRoute><ScenesPage /></ProtectedRoute>} />
-          <Route path="/projects/:id/members" element={<ProtectedRoute><ProjectMembersPage /></ProtectedRoute>} />
-          <Route path="/projects/:id/shots" element={<ProtectedRoute><ShotsPage /></ProtectedRoute>} />
-          <Route path="/projects/:id/video-merge" element={<ProtectedRoute><VideoMergePage /></ProtectedRoute>} />
-          <Route path="/shots/:id/panels" element={<ProtectedRoute><PanelsPage /></ProtectedRoute>} />
-          <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
-          <Route path="/settings/ai" element={<ProtectedRoute><AIProvidersPage /></ProtectedRoute>} />
-          <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
-          <Route path="/documents/create" element={<ProtectedRoute><DocumentCreatePage /></ProtectedRoute>} />
-          <Route path="/documents/:id" element={<ProtectedRoute><DocumentDetailPage /></ProtectedRoute>} />
-        </Routes>
-      </Suspense>
-    </BrowserRouter>
-  );
-}
 
 function App() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <Suspense fallback={<LoadingComponent />}>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/test" element={<TestPage />} />
+                <Route path="/simple" element={<SimpleTest />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
+                <Route path="/projects/new" element={<ProtectedRoute><CreateProjectPage /></ProtectedRoute>} />
+                <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetailPage /></ProtectedRoute>} />
+                <Route path="/projects/:projectId/script" element={<ProtectedRoute><ScriptEditorPage /></ProtectedRoute>} />
+                <Route path="/projects/:projectId/scripts/:scriptId" element={<ProtectedRoute><ScriptViewerPage /></ProtectedRoute>} />
+                <Route path="/projects/:projectId/scripts/:scriptId/edit" element={<ProtectedRoute><ScriptEditorPage /></ProtectedRoute>} />
+                <Route path="/projects/:id/novel" element={<ProtectedRoute><NovelEditorPage /></ProtectedRoute>} />
+                <Route path="/projects/:id/novels" element={<ProtectedRoute><NovelsPage /></ProtectedRoute>} />
+                <Route path="/projects/:projectId/storyline" element={<ProtectedRoute><StorylinePage /></ProtectedRoute>} />
+                <Route path="/projects/:id/characters" element={<ProtectedRoute><CharactersPage /></ProtectedRoute>} />
+                <Route path="/projects/:id/scenes" element={<ProtectedRoute><ScenesPage /></ProtectedRoute>} />
+                <Route path="/projects/:id/members" element={<ProtectedRoute><ProjectMembersPage /></ProtectedRoute>} />
+                <Route path="/projects/:id/shots" element={<ProtectedRoute><ShotsPage /></ProtectedRoute>} />
+                <Route path="/projects/:id/video-merge" element={<ProtectedRoute><VideoMergePage /></ProtectedRoute>} />
+                <Route path="/shots/:id/panels" element={<ProtectedRoute><PanelsPage /></ProtectedRoute>} />
+                <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+                <Route path="/settings/ai" element={<ProtectedRoute><AIProvidersPage /></ProtectedRoute>} />
+                <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
+                <Route path="/documents/create" element={<ProtectedRoute><DocumentCreatePage /></ProtectedRoute>} />
+                <Route path="/documents/:id" element={<ProtectedRoute><DocumentDetailPage /></ProtectedRoute>} />
+              </Routes>
+            </Suspense>
+          </AuthProvider>
+        </BrowserRouter>
       </ToastProvider>
     </ThemeProvider>
   )

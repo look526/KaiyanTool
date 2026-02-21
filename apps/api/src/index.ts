@@ -32,6 +32,7 @@ import { initSentry, sentryRequestHandler, sentryErrorHandler, sentryTracingHand
 import { getMetrics } from './lib/metrics'
 import { metricsMiddleware } from './middleware/metrics.middleware'
 import { setupOpenTelemetry } from './config/opentelemetry'
+import { config } from './config'
 // import { setupSwagger } from './lib/swagger'
 
 // 初始化OpenTelemetry
@@ -41,13 +42,13 @@ initSentry()
 const metrics = getMetrics()
 
 const app = express()
-const PORT = parseInt(process.env.PORT || '3001', 10)
-const UPLOAD_DIR = path.join(process.cwd(), 'uploads')
+const PORT = config.port
+const UPLOAD_DIR = path.join(process.cwd(), config.upload.dir)
 
 app.use(sentryRequestHandler)
 app.use(cors({
-  origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000', 'http://localhost:3001'],
-  credentials: true,
+  origin: config.cors.origins,
+  credentials: config.cors.credentials,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
 }))
