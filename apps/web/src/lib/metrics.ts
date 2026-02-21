@@ -4,6 +4,8 @@ export interface PerformanceMetric {
   labels?: Record<string, string>;
 }
 
+const API_BASE_URL = 'http://localhost:3002';
+
 class MetricsTracker {
   private metrics: Map<string, number> = new Map();
   private counters: Map<string, number> = new Map();
@@ -40,9 +42,9 @@ class MetricsTracker {
     // 可以使用 navigator.sendBeacon 或者 fetch
     try {
       if (navigator.sendBeacon) {
-        navigator.sendBeacon('/api/metrics', JSON.stringify(metric));
+        navigator.sendBeacon(`${API_BASE_URL}/api/metrics`, JSON.stringify(metric));
       } else {
-        fetch('/api/metrics', {
+        fetch(`${API_BASE_URL}/api/metrics`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
