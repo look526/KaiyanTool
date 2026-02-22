@@ -69,3 +69,27 @@
 2026-02-22T07:28:51.061292Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo\\daemon\\44b695b4282cd5f6-turbo.log.2026-02-22"), AnchoredSystemPathBuf("apps\\web\\src\\pages\\AIProvidersPage.tsx")}
 2026-02-22T07:28:51.061319Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }, WorkspacePackage { name: Other("kaiyan-web"), path: AnchoredSystemPathBuf("apps\\web") }}))
 2026-02-22T07:28:51.184425Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-02-22T07:28:52.254685Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo\\daemon\\44b695b4282cd5f6-turbo.log.2026-02-22")}
+2026-02-22T07:28:52.254703Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-02-22T07:35:35.862486Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\web\\src\\pages\\AIProvidersPage.tsx")}
+2026-02-22T07:35:35.862522Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("kaiyan-web"), path: AnchoredSystemPathBuf("apps\\web") }}))
+2026-02-22T07:35:42.148036Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\web\\src\\pages\\AIProvidersPage.tsx")}
+2026-02-22T07:35:42.148058Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("kaiyan-web"), path: AnchoredSystemPathBuf("apps\\web") }}))
+2026-02-22T07:36:06.457209Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\web\\src\\pages\\AIProvidersPage.tsx")}
+2026-02-22T07:36:06.457242Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("kaiyan-web"), path: AnchoredSystemPathBuf("apps\\web") }}))
+2026-02-22T07:36:12.951043Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\web\\src\\pages\\AIProvidersPage.tsx")}
+2026-02-22T07:36:12.951072Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("kaiyan-web"), path: AnchoredSystemPathBuf("apps\\web") }}))
+2026-02-22T07:36:20.561724Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\web\\src\\pages\\AIProvidersPage.tsx")}
+2026-02-22T07:36:20.561752Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("kaiyan-web"), path: AnchoredSystemPathBuf("apps\\web") }}))
+2026-02-22T07:36:26.952396Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\web\\src\\pages\\AIProvidersPage.tsx")}
+2026-02-22T07:36:26.952428Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("kaiyan-web"), path: AnchoredSystemPathBuf("apps\\web") }}))
+2026-02-22T07:36:52.553390Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("kubernetes")}
+2026-02-22T07:36:52.553416Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-02-22T07:36:52.648433Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("kubernetes"), AnchoredSystemPathBuf("kubernetes\\api-deployment.yaml"), AnchoredSystemPathBuf(""), AnchoredSystemPathBuf("kubernetes\\postgres-statefulset.yaml"), AnchoredSystemPathBuf("kubernetes\\web-deployment.yaml")}
+2026-02-22T07:36:52.648451Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-02-22T07:36:52.762199Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".env.production"), AnchoredSystemPathBuf("kubernetes"), AnchoredSystemPathBuf(""), AnchoredSystemPathBuf("docker-compose.prod.yml"), AnchoredSystemPathBuf("kubernetes\\postgres-statefulset.yaml")}
+2026-02-22T07:36:52.762254Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-02-22T07:36:55.260158Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("nginx"), AnchoredSystemPathBuf("kubernetes\\ingress.yaml"), AnchoredSystemPathBuf("nginx\\kaiyan-prod.conf"), AnchoredSystemPathBuf("kubernetes")}
+2026-02-22T07:36:55.260188Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-02-22T07:36:56.147711Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo\\daemon\\44b695b4282cd5f6-turbo.log.2026-02-22")}
+2026-02-22T07:36:56.147738Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))

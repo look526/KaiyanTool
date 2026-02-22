@@ -387,9 +387,147 @@ docker run --rm -v kaiyan-postgres-data:/data -v $(pwd):/backup ubuntu tar czf b
 
 ---
 
-## 附录
+## 4. Kubernetes部署
 
-### A. 环境变量完整列表
+### 4.1 集群准备
+
+```bash
+# 创建命名空间
+kubectl create namespace kaiyan
+
+# 创建Secret
+kubectl create secret generic kaiyan-secrets \
+  --from-literal=database-url="postgresql://kaiyan_user:PASSWORD@postgres:5432/kaiyan_platform?sslmode=require" \
+  --from-literal=redis-url="redis://:PASSWORD@redis:6379" \
+  --from-literal=encryption-key="32-char-key" \
+  --from-literal=jwt-secret="64-char-secret" \
+  --from-literal=session-secret="128-char-secret" \
+  --from-literal=sentry-dsn="https://your-dsn@sentry.io/project-id" \
+  -n kaiyan
+```
+
+### 4.2 部署服务
+
+```bash
+# 部署数据库
+kubectl apply -f kubernetes/postgres-statefulset.yaml -n kaiyan
+
+# 部署API
+kubectl apply -f kubernetes/api-deployment.yaml -n kaiyan
+
+# 部署Web
+kubectl apply -f kubernetes/web-deployment.yaml -n kaiyan
+
+# 部署Ingress
+kubectl apply -f kubernetes/ingress.yaml -n kaiyan
+```
+
+### 4.3 查看部署状态
+
+```bash
+# 查看所有资源
+kubectl get all -n kaiyan
+
+# 查看Pod状态
+kubectl get pods -n kaiyan
+
+# 查看日志
+kubectl logs -f deployment/kaiyan-api -n kaiyan
+kubectl logs -f deployment/kaiyan-web -n kaiyan
+
+# 进入Pod
+kubectl exec -it deployment/kaiyan-api -n kaiyan -- sh
+```
+
+### 4.4 扩缩容
+
+```bash
+# 手动扩容
+kubectl scale deployment kaiyan-api --replicas=5 -n kaiyan
+
+# 查看HPA状态
+kubectl get hpa -n kaiyan
+```
+
+### 4.5 滚动更新
+
+```bash
+# 更新镜像
+kubectl set image deployment/kaiyan-api kaiyan-api=kaiyan/api:v2.0 -n kaiyan
+
+# 查看更新状态
+kubectl rollout status deployment/kaiyan-api -n kaiyan
+
+# 回滚
+kubectl rollout undo deployment/kaiyan-api -n kaiyan
+```
+
+### 4.6 配置SSL证书
+
+```bash
+# 安装cert-manager
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+
+# 创建ClusterIssuer
+cat <<EOF | kubectl apply -f -
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: admin@yourdomain.com
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+EOF
+```
+
+---
+
+## 5. 生产环境配置
+
+### 5.1 Nginx配置
+
+使用 [nginx/kaiyan-prod.conf](nginx/kaiyan-prod.conf) 配置文件，包含：
+- SSL/TLS配置
+- 反向代理和负载均衡
+- 安全头
+- 限流和速率限制
+- 静态资源缓存
+- Gzip压缩
+
+### 5.2 SSL证书配置
+
+```bash
+# 使用 Certbot 获取免费 Let's Encrypt 证书
+sudo certbot certonly --nginx -d api.yourdomain.com
+sudo certbot certonly --nginx -d www.yourdomain.com
+
+# 自动续期
+sudo certbot renew --dry-run
+```
+
+### 5.3 防火墙配置
+
+```bash
+# Ubuntu UFW 防火墙
+sudo ufw allow 22/tcp    # SSH
+sudo ufw allow 80/tcp    # HTTP
+sudo ufw allow 443/tcp   # HTTPS
+sudo ufw enable
+
+# 云服务商安全组
+# 开放端口：22, 80, 443
+```
+
+---
+
+## 6. 监控维护
 
 | 变量 | 用途 | 必填 |
 |--------|--------|--------|
