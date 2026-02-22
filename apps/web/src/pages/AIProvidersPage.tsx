@@ -581,279 +581,279 @@ export default function AIProvidersPage() {
                             </span>
                           </div>
                         </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => toggleExpand(provider.id)}
-                            style={{ height: '40px', padding: '0 16px' }}
-                          >
-                            {isExpanded ? (
-                              <>
-                                <ChevronDown style={{ width: '16px', height: '16px' }} />
-                                <span style={{ marginLeft: '8px' }}>收起</span>
-                              </>
-                            ) : (
-                              <>
-                                <ChevronRight style={{ width: '16px', height: '16px' }} />
-                                <span style={{ marginLeft: '8px' }}>展开</span>
-                              </>
-                            )}
-                          </Button>
-
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleTestProvider(provider.id)}
-                            disabled={testingProvider === provider.id}
-                            style={{ height: '40px', padding: '0 16px' }}
-                          >
-                            {testingProvider === provider.id ? (
-                              <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                            ) : (
-                              <TestTube style={{ width: '16px', height: '16px' }} />
-                            )}
-                          </Button>
-
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openEditModal(provider)}
-                            style={{ height: '40px', padding: '0 16px' }}
-                          >
-                            <Edit2 style={{ width: '16px', height: '16px' }} />
-                          </Button>
-
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteProvider(provider.id)}
-                            style={{ height: '40px', padding: '0 16px' }}
-                          >
-                            <Trash2 style={{ width: '16px', height: '16px' }} />
-                          </Button>
-                        </div>
                       </div>
 
-                      {isExpanded && (
-                        <div style={{
-                          paddingTop: '20px',
-                          borderTop: '1px solid var(--border-primary)',
-                        }}>
-                          <div style={{
-                            marginBottom: '20px',
-                            padding: '16px',
-                            backgroundColor: 'var(--bg-surface)',
-                            borderRadius: '12px',
-                            border: '1px solid var(--border-primary)',
-                          }}>
-                            <div style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              marginBottom: '12px',
-                            }}>
-                              <span style={{
-                                fontSize: '14px',
-                                fontWeight: '600',
-                                color: 'var(--text-secondary)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                              }}>
-                                <Lock style={{ width: '16px', height: '16px' }} />
-                                API 密钥
-                              </span>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => toggleApiKeyVisibility(provider.id)}
-                                style={{ height: '32px', padding: '0 12px' }}
-                              >
-                                {isApiKeyVisible ? (
-                                  <EyeOff style={{ width: '14px', height: '14px' }} />
-                                ) : (
-                                  <Eye style={{ width: '14px', height: '14px' }} />
-                                )}
-                              </Button>
-                            </div>
-                            <div style={{
-                              fontFamily: 'monospace',
-                              fontSize: '13px',
-                              color: 'var(--text-primary)',
-                              wordBreak: 'break-all',
-                              letterSpacing: '0.5px',
-                            }}>
-                              {isApiKeyVisible ? provider.apiKey : '•'.repeat(40)}
-                            </div>
-                          </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleExpand(provider.id)}
+                          style={{ height: '40px', padding: '0 16px' }}
+                        >
+                          {isExpanded ? (
+                            <>
+                              <ChevronDown style={{ width: '16px', height: '16px' }} />
+                              <span style={{ marginLeft: '8px' }}>收起</span>
+                            </>
+                          ) : (
+                            <>
+                              <ChevronRight style={{ width: '16px', height: '16px' }} />
+                              <span style={{ marginLeft: '8px' }}>展开</span>
+                            </>
+                          )}
+                        </Button>
 
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleTestProvider(provider.id)}
+                          disabled={testingProvider === provider.id}
+                          style={{ height: '40px', padding: '0 16px' }}
+                        >
+                          {testingProvider === provider.id ? (
+                            <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                          ) : (
+                            <TestTube style={{ width: '16px', height: '16px' }} />
+                          )}
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEditModal(provider)}
+                          style={{ height: '40px', padding: '0 16px' }}
+                        >
+                          <Edit2 style={{ width: '16px', height: '16px' }} />
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteProvider(provider.id)}
+                          style={{ height: '40px', padding: '0 16px' }}
+                        >
+                          <Trash2 style={{ width: '16px', height: '16px' }} />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div style={{
+                        paddingTop: '20px',
+                        borderTop: '1px solid var(--border-primary)',
+                      }}>
+                        <div style={{
+                          marginBottom: '20px',
+                          padding: '16px',
+                          backgroundColor: 'var(--bg-surface)',
+                          borderRadius: '12px',
+                          border: '1px solid var(--border-primary)',
+                        }}>
                           <div style={{
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
-                            marginBottom: '20px',
+                            marginBottom: '12px',
                           }}>
-                            <h4 style={{
-                              fontSize: '16px',
-                              fontWeight: '700',
-                              color: 'var(--text-primary)',
-                              margin: 0,
+                            <span style={{
+                              fontSize: '14px',
+                              fontWeight: '600',
+                              color: 'var(--text-secondary)',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '8px',
                             }}>
-                              <Settings style={{ width: '20px', height: '20px' }} />
-                              模型列表
-                            </h4>
-
+                              <Lock style={{ width: '16px', height: '16px' }} />
+                              API 密钥
+                            </span>
                             <Button
+                              variant="outline"
                               size="sm"
-                              onClick={() => openAddModelModal(provider)}
+                              onClick={() => toggleApiKeyVisibility(provider.id)}
+                              style={{ height: '32px', padding: '0 12px' }}
                             >
-                              <Plus style={{ width: '16px', height: '16px' }} />
-                              <span style={{ marginLeft: '8px' }}>添加模型</span>
+                              {isApiKeyVisible ? (
+                                <EyeOff style={{ width: '14px', height: '14px' }} />
+                              ) : (
+                                <Eye style={{ width: '14px', height: '14px' }} />
+                              )}
                             </Button>
                           </div>
+                          <div style={{
+                            fontFamily: 'monospace',
+                            fontSize: '13px',
+                            color: 'var(--text-primary)',
+                            wordBreak: 'break-all',
+                            letterSpacing: '0.5px',
+                          }}>
+                            {isApiKeyVisible ? provider.apiKey : '•'.repeat(40)}
+                          </div>
+                        </div>
 
-                          {provider.models.length === 0 ? (
-                            <div style={{
-                              padding: '48px',
-                              textAlign: 'center',
-                              backgroundColor: 'var(--bg-surface)',
-                              borderRadius: '12px',
-                              border: '2px dashed var(--border-secondary)',
-                            }}>
-                              <Settings style={{ width: '48px', height: '48px', marginBottom: '16px', display: 'inline-block', color: 'var(--text-muted)' }} />
-                              <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', margin: 0 }}>
-                                暂无模型，点击上方按钮添加
-                              </p>
-                            </div>
-                          ) : (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
-                              {provider.models.map((model) => {
-                                const contentTypeInfo = getContentTypeInfo(model.type);
-                                return (
-                                  <div key={model.id} style={{
-                                    padding: '20px',
-                                    backgroundColor: 'var(--bg-surface)',
-                                    borderRadius: '12px',
-                                    border: '1px solid var(--border-primary)',
-                                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-                                    transition: 'all 0.2s ease',
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(-4px)';
-                                    e.currentTarget.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.08)';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04)';
-                                  }}
-                                  >
-                                    <div style={{
-                                      display: 'flex',
-                                      justifyContent: 'space-between',
-                                      alignItems: 'flex-start',
-                                      marginBottom: '12px',
-                                    }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: '20px',
+                        }}>
+                          <h4 style={{
+                            fontSize: '16px',
+                            fontWeight: '700',
+                            color: 'var(--text-primary)',
+                            margin: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                          }}>
+                            <Settings style={{ width: '20px', height: '20px' }} />
+                            模型列表
+                          </h4>
+
+                          <Button
+                            size="sm"
+                            onClick={() => openAddModelModal(provider)}
+                          >
+                            <Plus style={{ width: '16px', height: '16px' }} />
+                            <span style={{ marginLeft: '8px' }}>添加模型</span>
+                          </Button>
+                        </div>
+
+                        {provider.models.length === 0 ? (
+                          <div style={{
+                            padding: '48px',
+                            textAlign: 'center',
+                            backgroundColor: 'var(--bg-surface)',
+                            borderRadius: '12px',
+                            border: '2px dashed var(--border-secondary)',
+                          }}>
+                            <Settings style={{ width: '48px', height: '48px', marginBottom: '16px', display: 'inline-block', color: 'var(--text-muted)' }} />
+                            <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', margin: 0 }}>
+                              暂无模型，点击上方按钮添加
+                            </p>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+                            {provider.models.map((model) => {
+                              const contentTypeInfo = getContentTypeInfo(model.type);
+                              return (
+                                <div key={model.id} style={{
+                                  padding: '20px',
+                                  backgroundColor: 'var(--bg-surface)',
+                                  borderRadius: '12px',
+                                  border: '1px solid var(--border-primary)',
+                                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                                  transition: 'all 0.2s ease',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(-4px)';
+                                  e.currentTarget.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.08)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(0)';
+                                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04)';
+                                }}
+                                >
+                                  <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'flex-start',
+                                    marginBottom: '12px',
+                                  }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                                      <div style={{
+                                        width: '40px',
+                                        height: '40px',
+                                        borderRadius: '10px',
+                                        backgroundColor: `${contentTypeInfo.color}20`,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                      }}>
+                                        <contentTypeInfo.icon style={{ width: '20px', height: '20px', color: contentTypeInfo.color }} />
+                                      </div>
+                                      <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{
-                                          width: '40px',
-                                          height: '40px',
-                                          borderRadius: '10px',
-                                          backgroundColor: `${contentTypeInfo.color}20`,
+                                          fontSize: '15px',
+                                          fontWeight: '700',
+                                          color: 'var(--text-primary)',
+                                          marginBottom: '4px',
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap',
+                                        }}>
+                                          {model.name}
+                                        </div>
+                                        <div style={{
+                                          fontSize: '12px',
+                                          color: 'var(--text-tertiary)',
                                           display: 'flex',
                                           alignItems: 'center',
-                                          justifyContent: 'center',
+                                          gap: '6px',
                                         }}>
-                                          <contentTypeInfo.icon style={{ width: '20px', height: '20px', color: contentTypeInfo.color }} />
+                                          <contentTypeInfo.icon style={{ width: '12px', height: '12px' }} />
+                                          {contentTypeInfo.label}
                                         </div>
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                          <div style={{
-                                            fontSize: '15px',
-                                            fontWeight: '700',
-                                            color: 'var(--text-primary)',
-                                            marginBottom: '4px',
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            whiteSpace: 'nowrap',
-                                          }}>
-                                            {model.name}
-                                          </div>
-                                          <div style={{
-                                            fontSize: '12px',
-                                            color: 'var(--text-tertiary)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '6px',
-                                          }}>
-                                            <contentTypeInfo.icon style={{ width: '12px', height: '12px' }} />
-                                            {contentTypeInfo.label}
-                                          </div>
-                                        </div>
-                                      </div>
-
-                                      <div style={{ display: 'flex', gap: '6px' }}>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => openEditModelModal(provider, model)}
-                                          style={{ height: '32px', padding: '0 10px' }}
-                                        >
-                                          <Edit2 style={{ width: '14px', height: '14px' }} />
-                                        </Button>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => handleDeleteModel(provider.id, model.id)}
-                                          style={{ height: '32px', padding: '0 10px' }}
-                                        >
-                                          <Trash2 style={{ width: '14px', height: '14px' }} />
-                                        </Button>
                                       </div>
                                     </div>
 
-                                    {model.description && (
-                                      <p style={{
-                                        fontSize: '13px',
-                                        color: 'var(--text-tertiary)',
-                                        marginBottom: '12px',
-                                        margin: '0 0 12px 0',
-                                        lineHeight: '1.6',
-                                      }}>
-                                        {model.description}
-                                      </p>
-                                    )}
-
-                                    {model.capabilities.length > 0 && (
-                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                        {model.capabilities.map((cap, idx) => (
-                                          <span key={idx} style={{
-                                            padding: '4px 10px',
-                                            backgroundColor: `${contentTypeInfo.color}15`,
-                                            color: contentTypeInfo.color,
-                                            borderRadius: '12px',
-                                            fontSize: '11px',
-                                            fontWeight: '600',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px',
-                                          }}>
-                                            {cap}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    )}
+                                    <div style={{ display: 'flex', gap: '6px' }}>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => openEditModelModal(provider, model)}
+                                        style={{ height: '32px', padding: '0 10px' }}
+                                      >
+                                        <Edit2 style={{ width: '14px', height: '14px' }} />
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleDeleteModel(provider.id, model.id)}
+                                        style={{ height: '32px', padding: '0 10px' }}
+                                      >
+                                        <Trash2 style={{ width: '14px', height: '14px' }} />
+                                      </Button>
+                                    </div>
                                   </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </Card>
+
+                                  {model.description && (
+                                    <p style={{
+                                      fontSize: '13px',
+                                      color: 'var(--text-tertiary)',
+                                      marginBottom: '12px',
+                                      margin: '0 0 12px 0',
+                                      lineHeight: '1.6',
+                                    }}>
+                                      {model.description}
+                                    </p>
+                                  )}
+
+                                  {model.capabilities.length > 0 && (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                      {model.capabilities.map((cap, idx) => (
+                                        <span key={idx} style={{
+                                          padding: '4px 10px',
+                                          backgroundColor: `${contentTypeInfo.color}15`,
+                                          color: contentTypeInfo.color,
+                                          borderRadius: '12px',
+                                          fontSize: '11px',
+                                          fontWeight: '600',
+                                          textTransform: 'uppercase',
+                                          letterSpacing: '0.5px',
+                                        }}>
+                                          {cap}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>

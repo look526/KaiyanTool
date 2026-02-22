@@ -1,0 +1,66 @@
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alerts@kaiyan.com'
+  smtp_auth_username: 'alerts@kaiyan.com'
+  smtp_auth_password: 'your-smtp-password'
+
+route:
+  receiver: 'default-receiver'
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  group_by: ['alertname', 'cluster', 'service']
+
+  routes:
+    # 严重告警立即发送
+    - match:
+        severity: critical
+      receiver: 'critical-receiver'
+      group_wait: 0s
+      repeat_interval: 5m
+
+    # 警告告警
+    - match:
+        severity: warning
+      receiver: 'warning-receiver'
+      group_wait: 30s
+      repeat_interval: 1h
+
+receivers:
+  - name: 'default-receiver'
+    email_configs:
+      - to: 'team@kaiyan.com'
+        headers:
+          Subject: '[Kaiyan] {{ .GroupLabels.alertname }}'
+
+  - name: 'critical-receiver'
+    email_configs:
+      - to: 'oncall@kaiyan.com'
+        headers:
+          Subject: '[CRITICAL] Kaiyan告警: {{ .GroupLabels.alertname }}'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#alerts-critical'
+        title: '🚨 严重告警'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        color: 'danger'
+
+  - name: 'warning-receiver'
+    email_configs:
+      - to: 'team@kaiyan.com'
+        headers:
+          Subject: '[WARNING] Kaiyan告警: {{ .GroupLabels.alertname }}'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#alerts-warning'
+        title: '⚠️ 警告'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        color: 'warning'
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster', 'service']

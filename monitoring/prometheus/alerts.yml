@@ -1,0 +1,158 @@
+groups:
+  - name: kaiyan_api_alerts
+    interval: 30s
+    rules:
+      # HTTP错误率告警
+      - alert: HighHTTPErrorRate
+        expr: |
+          (
+            sum(rate(kaiyantool_api_http_requests_total{status_code=~"5.."}[5m])) 
+            / 
+            sum(rate(kaiyantool_api_http_requests_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: kaiyan-api
+        annotations:
+          summary: "API HTTP错误率过高"
+          description: "过去5分钟内，HTTP 5xx错误率超过5% (当前值: {{ $value | humanizePercentage }})"
+
+      # 响应时间告警
+      - alert: HighHTTPResponseTime
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(kaiyantool_api_http_request_duration_seconds_bucket[5m])) by (le, route)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: kaiyan-api
+        annotations:
+          summary: "API响应时间过长"
+          description: "过去5分钟内，P95响应时间超过2秒"
+
+      # 数据库查询性能告警
+      - alert: SlowDatabaseQueries
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(kaiyantool_api_db_query_duration_seconds_bucket[5m])) by (le, model)
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: kaiyan-api
+        annotations:
+          summary: "数据库查询过慢"
+          description: "过去5分钟内，P95数据库查询时间超过1秒"
+
+      # AI请求失败率告警
+      - alert: HighAIRequestFailureRate
+        expr: |
+          (
+            sum(rate(kaiyantool_api_ai_requests_total{status="error"}[5m]))
+            /
+            sum(rate(kaiyantool_api_ai_requests_total[5m]))
+          ) > 0.2
+        for: 5m
+        labels:
+          severity: critical
+          service: kaiyan-api
+        annotations:
+          summary: "AI请求失败率过高"
+          description: "过去5分钟内，AI请求失败率超过20% (当前值: {{ $value | humanizePercentage }})"
+
+      # AI请求超时告警
+      - alert: AIRequestTimeout
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(kaiyantool_api_ai_request_duration_seconds_bucket[5m])) by (le, provider)
+          ) > 30
+        for: 5m
+        labels:
+          severity: warning
+          service: kaiyan-api
+        annotations:
+          summary: "AI请求响应时间过长"
+          description: "过去5分钟内，P95 AI请求响应时间超过30秒"
+
+      # 活动连接数告警
+      - alert: HighActiveConnections
+        expr: kaiyantool_api_active_connections > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: kaiyan-api
+        annotations:
+          summary: "活动连接数过高"
+          description: "活动连接数超过1000 (当前值: {{ $value }})"
+
+      # 队列任务积压告警
+      - alert: QueueJobsBacklog
+        expr: |
+          (
+            sum(rate(kaiyantool_api_queue_jobs_total{status="pending"}[5m]))
+            /
+            sum(rate(kaiyantool_api_queue_jobs_total[5m]))
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          service: kaiyan-api
+        annotations:
+          summary: "队列任务积压"
+          description: "过去5分钟内，队列任务待处理比例超过50%"
+
+  - name: kaiyan_api_health
+    interval: 30s
+    rules:
+      # 服务健康检查
+      - alert: ServiceDown
+        expr: up{job="kaiyan-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: kaiyan-api
+        annotations:
+          summary: "API服务不可用"
+          description: "kaiyan-api服务已宕机超过1分钟"
+
+      # CPU使用率告警
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: kaiyan-api
+        annotations:
+          summary: "CPU使用率过高"
+          description: "CPU使用率超过80% (当前值: {{ $value }}%)"
+
+      # 内存使用率告警
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes
+          ) / node_memory_MemTotal_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: kaiyan-api
+        annotations:
+          summary: "内存使用率过高"
+          description: "内存使用率超过85% (当前值: {{ $value }}%)"
+
+      # 磁盘空间告警
+      - alert: LowDiskSpace
+        expr: |
+          (
+            node_filesystem_avail_bytes{mountpoint="/"}
+            / node_filesystem_size_bytes{mountpoint="/"}
+          ) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+          service: kaiyan-api
+        annotations:
+          summary: "磁盘空间不足"
+          description: "根分区可用空间低于10% (当前值: {{ $value }}%)"

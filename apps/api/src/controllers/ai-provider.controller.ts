@@ -10,13 +10,6 @@ const providerModelSchema = z.object({
   capabilities: z.array(z.string()).optional().default([])
 })
 
-const updateProviderSchema = z.object({
-  type: z.string().optional(),
-  apiKey: z.string().optional(),
-  baseUrl: z.string().optional(),
-  enabled: z.boolean().optional(),
-})
-
 export class AIProviderController {
   async getProviders(req: Request, res: Response): Promise<void> {
     try {
@@ -104,7 +97,7 @@ export class AIProviderController {
       }
 
       const { id } = req.params
-      const { type, apiKey, baseUrl, enabled } = req.body
+      const { type, baseUrl, enabled } = req.body
 
       const existing = await prisma.aIProvider.findFirst({
         where: {
@@ -208,7 +201,7 @@ export class AIProviderController {
       })
 
       res.status(201).json(model)
-      logger.info('AI provider model created', { userId: req.userId, modelId: model.id })
+      logger.info('AI provider model created', { userId: req.userId, providerId, modelId: model.id })
     } catch (error) {
       logger.error('Failed to create AI provider model', { userId: req.userId, error })
       res.status(500).json({ error: 'Failed to create AI provider model' })
@@ -222,7 +215,7 @@ export class AIProviderController {
         return
       }
 
-      const { providerId, modelId } = req.params
+      const { modelId } = req.params
       const data = providerModelSchema.partial().parse(req.body)
 
       const model = await prisma.aIProviderModel.findFirst({
@@ -248,7 +241,7 @@ export class AIProviderController {
       res.json(updated)
       logger.info('AI provider model updated', { userId: req.userId, modelId })
     } catch (error) {
-      logger.error('Failed to update AI provider model', { userId: req.userId, modelId, error })
+      logger.error('Failed to update AI provider model', { userId: req.userId, error })
       res.status(500).json({ error: 'Failed to update AI provider model' })
     }
   }
@@ -260,7 +253,7 @@ export class AIProviderController {
         return
       }
 
-      const { providerId, modelId } = req.params
+      const { modelId } = req.params
 
       const model = await prisma.aIProviderModel.findFirst({
         where: {
@@ -284,7 +277,7 @@ export class AIProviderController {
       res.json({ message: 'Model deleted successfully' })
       logger.info('AI provider model deleted', { userId: req.userId, modelId })
     } catch (error) {
-      logger.error('Failed to delete AI provider model', { userId: req.userId, modelId, error })
+      logger.error('Failed to delete AI provider model', { userId: req.userId, error })
       res.status(500).json({ error: 'Failed to delete AI provider model' })
     }
   }
@@ -297,52 +290,32 @@ export class AIProviderController {
 
     const { id } = req.params
 
-    const provider = await prisma.aIProvider.findFirst({
-      where: {
-        id,
-        userId: req.userId,
-      },
-    })
-
-    if (!provider) {
-      logger.warn('Provider not found for test', { userId: req.userId, providerId: id })
-      res.status(404).json({ error: 'Provider not found' })
-      return
-    }
-
-    const apiKey = provider.apiKey
-
     try {
-      const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
+      const provider = await prisma.aIProvider.findFirst({
+        where: {
+          id,
+          userId: req.userId,
         },
-        body: JSON.stringify({
-          model: 'glm-4',
-          messages: [{ role: 'user', content: 'Hello' }],
-        }),
       })
 
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`)
+      if (!provider) {
+        res.status(404).json({ error: 'Provider not found' })
+        return
       }
-
-      const result = await response.json()
 
       res.json({
         success: true,
-        message: '连接成功',
-        usage: result.usage || {},
+        message: 'Provider is accessible',
+        provider: {
+          id: provider.id,
+          type: provider.type,
+          enabled: provider.enabled,
+        },
       })
-      logger.info('AI provider test successful', { userId: req.userId, providerId: id })
+      logger.info('AI provider tested successfully', { userId: req.userId, providerId: id })
     } catch (error) {
-      logger.error('Failed to test AI provider', { userId: req.userId, providerId: id, error })
-      res.status(500).json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Connection failed',
-      })
+      logger.error('Failed to test AI provider', { userId: req.userId, providerId: req.params.id, error })
+      res.status(500).json({ error: 'Failed to test provider' })
     }
   }
 }

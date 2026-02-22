@@ -23,6 +23,26 @@ export function initSentry() {
         }
         return event;
       },
+      beforeSendTransaction(transaction: any) {
+        if (transaction.duration < 100) {
+          return null;
+        }
+        return transaction;
+      },
+      ignoreErrors: [
+        'AxiosError',
+        'Network Error',
+        'timeout of 5000ms exceeded',
+      ],
+      beforeBreadcrumb(breadcrumb) {
+        if (breadcrumb.category === 'http') {
+          const data = breadcrumb.data as any;
+          if (data.url) {
+            data.url = data.url.replace(/\/\/[^@]+@/, '//***@');
+          }
+        }
+        return breadcrumb;
+      },
     });
   }
 }
