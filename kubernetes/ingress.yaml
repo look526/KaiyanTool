@@ -1,0 +1,57 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kaiyan-ingress
+  namespace: kaiyan
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - kaiyantool.com
+        - api.kaiyantool.com
+      secretName: kaiyan-tls
+  rules:
+    - host: kaiyantool.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kaiyan-web
+                port:
+                  number: 3000
+    - host: api.kaiyantool.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kaiyan-api
+                port:
+                  number: 3001
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kaiyan-secrets
+  namespace: kaiyan
+type: Opaque
+stringData:
+  database-url: "postgresql://kaiyan_user:STRONG_PASSWORD_HERE@kaiyan-postgres:5432/kaiyan_platform?sslmode=require"
+  redis-url: "redis://:STRONG_PASSWORD_HERE@kaiyan-redis:6379"
+  encryption-key: "32-char-encryption-key-for-production"
+  jwt-secret: "64-char-jwt-secret-key-for-production-use-random-string"
+  session-secret: "128-char-session-secret-key-for-production"
+  sentry-dsn: "https://your-dsn@sentry.io/project-id"

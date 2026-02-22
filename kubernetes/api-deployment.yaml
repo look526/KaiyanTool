@@ -1,0 +1,155 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kaiyan-api
+  namespace: kaiyan
+  labels:
+    app: kaiyan-api
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: kaiyan-api
+  template:
+    metadata:
+      labels:
+        app: kaiyan-api
+        version: v1
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - kaiyan-api
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: kaiyan-api
+          image: kaiyan/api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3001
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: kaiyan-secrets
+                  key: database-url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: kaiyan-secrets
+                  key: redis-url
+            - name: ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: kaiyan-secrets
+                  key: encryption-key
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: kaiyan-secrets
+                  key: jwt-secret
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: kaiyan-secrets
+                  key: session-secret
+            - name: SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: kaiyan-secrets
+                  key: sentry-dsn
+            - name: OTLP_ENDPOINT
+              value: "http://jaeger-collector.observability.svc:4318/v1/traces"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "2000m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+            - name: logs
+              mountPath: /app/logs
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: kaiyan-uploads-pvc
+        - name: logs
+          persistentVolumeClaim:
+            claimName: kaiyan-logs-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kaiyan-api
+  namespace: kaiyan
+  labels:
+    app: kaiyan-api
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 3001
+      targetPort: 3001
+      protocol: TCP
+  selector:
+    app: kaiyan-api
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: kaiyan-api-hpa
+  namespace: kaiyan
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: kaiyan-api
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

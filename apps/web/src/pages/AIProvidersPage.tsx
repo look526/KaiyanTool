@@ -31,9 +31,8 @@ import {
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
-import { ModalModern } from '../components/ui/ModalModern';
+import { Modal } from '../components/ui/ModalModern';
 import { apiClient } from '../lib/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../components/ui/Toast';
@@ -861,7 +860,7 @@ export default function AIProvidersPage() {
         </div>
       </main>
 
-      <ModalModern
+      <Modal
         isOpen={showAddModal}
         onClose={() => {
           setShowAddModal(false);
@@ -1037,9 +1036,9 @@ export default function AIProvidersPage() {
             </Button>
           </div>
         </div>
-      </ModalModern>
+      </Modal>
 
-      <ModalModern
+      <Modal
         isOpen={showEditModal}
         onClose={() => {
           setShowEditModal(false);
@@ -1192,9 +1191,9 @@ export default function AIProvidersPage() {
             </Button>
           </div>
         </div>
-      </ModalModern>
+      </Modal>
 
-      <ModalModern
+      <Modal
         isOpen={showModelModal}
         onClose={() => {
           setShowModelModal(false);

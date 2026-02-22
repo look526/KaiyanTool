@@ -1,0 +1,121 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kaiyan-postgres-pvc
+  namespace: kaiyan
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: fast-ssd
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kaiyan-postgres-secret
+  namespace: kaiyan
+type: Opaque
+stringData:
+  postgres-user: kaiyan_user
+  postgres-password: STRONG_PASSWORD_HERE
+  postgres-db: kaiyan_platform
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kaiyan-postgres
+  namespace: kaiyan
+  labels:
+    app: kaiyan-postgres
+spec:
+  serviceName: kaiyan-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kaiyan-postgres
+  template:
+    metadata:
+      labels:
+        app: kaiyan-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: kaiyan-postgres-secret
+                  key: postgres-db
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: kaiyan-postgres-secret
+                  key: postgres-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kaiyan-postgres-secret
+                  key: postgres-password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - kaiyan_user
+                - -d
+                - kaiyan_platform
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - kaiyan_user
+                - -d
+                - kaiyan_platform
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: kaiyan-postgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kaiyan-postgres
+  namespace: kaiyan
+  labels:
+    app: kaiyan-postgres
+spec:
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
+  clusterIP: None
+  selector:
+    app: kaiyan-postgres
