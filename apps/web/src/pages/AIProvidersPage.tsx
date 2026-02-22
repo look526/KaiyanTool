@@ -412,11 +412,11 @@ export default function AIProvidersPage() {
   };
 
   const getProviderInfo = (type: string) => {
-    return PROVIDER_TYPES.find(p => p.value === type) || PROVIDER_TYPES[0];
+    return PROVIDER_TYPES.find((p) => p.value === type) || PROVIDER_TYPES[0];
   };
 
   const getContentTypeInfo = (type: string) => {
-    return CONTENT_TYPES.find(c => c.value === type) || CONTENT_TYPES[0];
+    return CONTENT_TYPES.find((c) => c.value === type) || CONTENT_TYPES[0];
   };
 
   return (

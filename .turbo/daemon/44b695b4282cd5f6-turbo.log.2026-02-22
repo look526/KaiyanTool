@@ -1,3 +1,52 @@
 2026-02-22T05:46:43.340383Z  WARN daemon_server: turborepo_lib::commands::daemon: daemon already running
 2026-02-22T05:46:43.359335Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo\\cookies\\1.cookie"), AnchoredSystemPathBuf(".turbo\\cookies\\.turbo-cookie"), AnchoredSystemPathBuf(".turbo\\cookies"), AnchoredSystemPathBuf(".turbo"), AnchoredSystemPathBuf(".turbo\\daemon")}
 2026-02-22T05:46:43.359505Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-02-22T05:46:44.149005Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo"), AnchoredSystemPathBuf(".turbo\\daemon\\44b695b4282cd5f6-turbo.log.2026-02-22")}
+2026-02-22T05:46:44.149026Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-02-22T05:46:44.259090Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo\\cookies")}
+2026-02-22T05:46:44.259099Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-02-22T06:30:53.759788Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\src\\controllers\\content.controller.ts"), AnchoredSystemPathBuf("apps\\api\\src\\controllers\\auth.controller.ts")}
+2026-02-22T06:30:53.759919Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("kaiyan-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-22T06:30:54.117905Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\src\\controllers\\project.controller.ts"), AnchoredSystemPathBuf("apps\\api\\src\\middleware\\auth.middleware.ts"), AnchoredSystemPathBuf("apps\\api\\src\\index.ts")}
+2026-02-22T06:30:54.117928Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("kaiyan-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-22T06:30:54.117970Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-02-22T06:30:54.554389Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\web\\src\\lib\\api-client.ts")}
+2026-02-22T06:30:54.554420Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("kaiyan-web"), path: AnchoredSystemPathBuf("apps\\web") }}))
+2026-02-22T07:02:52.859496Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("monitoring"), AnchoredSystemPathBuf("monitoring\\prometheus\\prometheus.yml"), AnchoredSystemPathBuf("monitoring\\prometheus"), AnchoredSystemPathBuf("monitoring\\prometheus\\alerts.yml")}
+2026-02-22T07:02:52.859519Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-02-22T07:02:52.953648Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("monitoring\\alertmanager\\alertmanager.yml"), AnchoredSystemPathBuf("monitoring\\alertmanager"), AnchoredSystemPathBuf(""), AnchoredSystemPathBuf("monitoring")}
+2026-02-22T07:02:52.953666Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-02-22T07:02:53.559005Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("monitoring")}
+2026-02-22T07:02:53.559042Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-02-22T07:03:02.757444Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\src\\lib\\sentry.ts")}
+2026-02-22T07:03:02.757466Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("kaiyan-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-22T07:03:37.556272Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("monitoring\\grafana"), AnchoredSystemPathBuf("monitoring\\grafana\\dashboard-kaiyan-api.json")}
+2026-02-22T07:03:37.556294Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-02-22T07:03:37.649552Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("monitoring\\grafana\\dashboard-kaiyan-api.json"), AnchoredSystemPathBuf("monitoring\\docker-compose.yml"), AnchoredSystemPathBuf("monitoring\\grafana"), AnchoredSystemPathBuf("monitoring")}
+2026-02-22T07:03:37.649595Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-02-22T07:03:37.758558Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("monitoring\\README.md"), AnchoredSystemPathBuf("monitoring")}
+2026-02-22T07:03:37.758579Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-02-22T07:03:46.859685Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\.env.example")}
+2026-02-22T07:03:46.859741Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("kaiyan-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-22T07:04:06.552639Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\src\\lib\\sentry.ts"), AnchoredSystemPathBuf("apps\\web\\src\\pages\\AIProvidersPage.tsx")}
+2026-02-22T07:04:06.552682Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("kaiyan-web"), path: AnchoredSystemPathBuf("apps\\web") }, WorkspacePackage { name: Other("kaiyan-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-22T07:04:27.355792Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\src\\controllers\\ai-provider.controller.ts")}
+2026-02-22T07:04:27.355842Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("kaiyan-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-22T07:04:27.806434Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\src\\controllers\\ai-provider.controller.ts")}
+2026-02-22T07:04:27.806460Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("kaiyan-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-22T07:04:27.806513Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-02-22T07:04:36.867006Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\src\\controllers\\ai-provider.controller.ts")}
+2026-02-22T07:04:36.867088Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("kaiyan-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-22T07:05:13.053439Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\src\\controllers\\ai-provider.controller.ts")}
+2026-02-22T07:05:13.053472Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("kaiyan-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-22T07:05:13.295925Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\src\\controllers\\ai-provider.controller.ts")}
+2026-02-22T07:05:13.295943Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("kaiyan-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-22T07:05:13.296002Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-02-22T07:05:44.755163Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\src\\controllers\\ai-provider.controller.ts")}
+2026-02-22T07:05:44.755193Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("kaiyan-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-22T07:06:05.150658Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\api\\src\\controllers\\ai-provider.controller.ts")}
+2026-02-22T07:06:05.150688Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("kaiyan-api"), path: AnchoredSystemPathBuf("apps\\api") }}))
+2026-02-22T07:06:31.653727Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo\\daemon\\44b695b4282cd5f6-turbo.log.2026-02-22")}
+2026-02-22T07:06:31.653778Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-02-22T07:06:32.459970Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo\\daemon\\44b695b4282cd5f6-turbo.log.2026-02-22")}
+2026-02-22T07:06:32.459998Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
