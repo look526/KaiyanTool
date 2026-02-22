@@ -853,7 +853,7 @@ export default function AIProvidersPage() {
                         )}
                       </div>
                     )}
-                  </div>
+                  </Card>
                 );
               })}
             </div>
