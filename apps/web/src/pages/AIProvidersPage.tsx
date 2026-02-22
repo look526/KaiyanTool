@@ -1367,9 +1367,10 @@ export default function AIProvidersPage() {
                 </>
               )}
             </Button>
+          </Button>
           </div>
-        </div>
-      </ModalModern>
+        </Modal>
+      </div>
     </div>
   );
 }
