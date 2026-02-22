@@ -16,7 +16,10 @@ Kaiyan平台APM（应用性能监控）系统，基于Prometheus、Grafana、Ale
 - **作用**: 可视化监控面板
 - **端口**: 3000
 - **默认账号**: admin/admin
-- **仪表盘**: `monitoring/grafana/dashboard-kaiyan-api.json`
+- **仪表盘**:
+  - `dashboard-overview.json` - 系统概览
+  - `dashboard-database.json` - 数据库监控
+  - `dashboard-kaiyan-api.json` - API性能
 
 ### 3. AlertManager
 - **作用**: 告警聚合和通知
@@ -30,6 +33,8 @@ Kaiyan平台APM（应用性能监控）系统，基于Prometheus、Grafana、Ale
 
 ## 快速启动
 
+### Docker Compose
+
 ```bash
 cd monitoring
 docker-compose up -d
@@ -37,8 +42,65 @@ docker-compose up -d
 
 访问地址:
 - Prometheus: http://localhost:9090
-- Grafana: http://localhost:3000
+- Grafana: http://localhost:3000 (admin/admin)
 - AlertManager: http://localhost:9093
+
+### Kubernetes
+
+```bash
+# 部署Prometheus和AlertManager
+kubectl apply -f kubernetes/ -n monitoring
+
+# 访问Grafana（需要配置Ingress）
+kubectl port-forward svc/kaiyan-grafana 3000:3000 -n kaiyan
+```
+
+## Grafana Dashboard
+
+### 1. 系统概览 Dashboard
+
+**UID**: `kaiyan-overview-dashboard`
+
+包含面板:
+- CPU使用率
+- 内存使用率
+- 磁盘使用率
+- 活动连接数
+- HTTP请求速率（总请求/2xx/4xx/5xx）
+- HTTP错误率
+- HTTP响应时间分布（P50/P95/P99）
+- 数据库查询性能（P95）
+- AI请求响应时间（P95）
+- AI请求成功率
+- 队列任务完成率
+- 服务状态
+
+### 2. 数据库监控 Dashboard
+
+**UID**: `kaiyan-database-dashboard`
+
+包含面板:
+- 数据库内存使用率
+- 数据库磁盘使用率
+- 数据库连接池使用率
+- 数据库查询速率（总查询/慢查询）
+- 数据库查询性能分布（P50/P95/P99）
+- 按模型统计查询数量
+- 网络I/O
+- 慢查询率
+- 活跃连接数
+
+### 3. API性能 Dashboard
+
+**UID**: `kaiyan-api-dashboard`
+
+包含面板:
+- HTTP请求速率
+- HTTP错误率
+- HTTP响应时间分布
+- 数据库查询P95
+- 活动连接数
+- AI请求性能
 
 ## 告警规则
 
@@ -80,6 +142,7 @@ docker-compose up -d
 ## 配置说明
 
 ### Prometheus
+
 编辑 `monitoring/prometheus/prometheus.yml` 修改采集目标:
 
 ```yaml
@@ -91,6 +154,7 @@ scrape_configs:
 ```
 
 ### AlertManager
+
 编辑 `monitoring/alertmanager/alertmanager.yml` 配置告警通知:
 
 ```yaml
@@ -103,26 +167,12 @@ receivers:
 ```
 
 ### Sentry
+
 设置环境变量:
 
 ```bash
 export SENTRY_DSN="https://your-dsn@sentry.io/project-id"
 export SENTRY_ENVIRONMENT="production"
-```
-
-## OpenTelemetry集成
-
-应用已集成OpenTelemetry用于分布式追踪:
-
-- **Trace导出器**: OTLP (生产环境) / Console (开发环境)
-- **自动插桩**: Express、HTTP、PostgreSQL、Redis
-- **端点**: `http://localhost:4318/v1/traces`
-
-配置环境变量:
-
-```bash
-export OTLP_ENDPOINT="http://jaeger:4318"
-export NODE_ENV="production"
 ```
 
 ## 故障排查
