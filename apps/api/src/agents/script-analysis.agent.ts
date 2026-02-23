@@ -1,4 +1,5 @@
 import { aiProviderService } from '../services/ai/provider.service';
+import { logger } from '../lib/logger';
 
 export interface SceneInfo {
   id: string;

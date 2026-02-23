@@ -21,12 +21,15 @@ import {
   Maximize2,
   Minimize2,
   Zap,
+  FileSearch,
+  FileEdit,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
 import MonacoEditor from '../components/MonacoEditor';
+import { ModelSelector } from '../components/ui/ModelSelector';
 import { apiClient } from '../lib/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../components/ui/Toast';
@@ -94,6 +97,7 @@ export default function ScriptEditorPage() {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [editorMode, setEditorMode] = useState<'edit' | 'preview'>('edit');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<string>('');
   const { addToast } = useToast();
 
   const loadFromLocalStorage = useCallback(() => {
@@ -222,6 +226,15 @@ export default function ScriptEditorPage() {
 
   const handleContinueScript = async () => {
     if (!content.trim() || isContinuing) return;
+    
+    if (!selectedModel) {
+      addToast({
+        type: 'warning',
+        title: '请选择模型',
+        message: '请先选择一个 AI 模型来生成内容。',
+      });
+      return;
+    }
 
     try {
       setIsContinuing(true);
@@ -242,6 +255,15 @@ export default function ScriptEditorPage() {
 
   const handleRewriteScript = async () => {
     if (!content.trim() || isRewriting) return;
+    
+    if (!selectedModel) {
+      addToast({
+        type: 'warning',
+        title: '请选择模型',
+        message: '请先选择一个 AI 模型来生成内容。',
+      });
+      return;
+    }
 
     try {
       setIsRewriting(true);
@@ -262,6 +284,15 @@ export default function ScriptEditorPage() {
 
   const handleOptimizeScript = async () => {
     if (!content.trim() || isOptimizing) return;
+    
+    if (!selectedModel) {
+      addToast({
+        type: 'warning',
+        title: '请选择模型',
+        message: '请先选择一个 AI 模型来生成内容。',
+      });
+      return;
+    }
 
     try {
       setIsOptimizing(true);
@@ -306,7 +337,7 @@ export default function ScriptEditorPage() {
         <header style={{
           height: '72px',
           borderBottom: '1px solid var(--border-primary)',
-          backgroundColor: 'var(--bg-elevated)',
+          background: 'linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-base) 100%)',
           padding: '0 32px',
           display: 'flex',
           alignItems: 'center',
@@ -315,152 +346,138 @@ export default function ScriptEditorPage() {
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
             <Link
               to={`/projects/${projectId}`}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
-                padding: '10px 16px',
-                borderRadius: '12px',
+                gap: '12px',
+                padding: '12px 20px',
+                borderRadius: '14px',
                 textDecoration: 'none',
-                color: 'var(--text-secondary)',
-                transition: 'all 0.2s ease',
-                border: '1px solid transparent',
+                color: 'var(--text-muted)',
+                transition: 'all 0.25s ease',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                e.currentTarget.style.borderColor = 'var(--border-secondary)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.borderColor = 'transparent';
-              }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.color = 'var(--text-primary)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.color = 'var(--text-muted)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)';
+            }}
             >
-              <ArrowLeft style={{ width: '18px', height: '18px' }} />
-              <span style={{ fontSize: '14px', fontWeight: '500' }}>返回</span>
+              <ArrowLeft style={{ width: '20px', height: '20px' }} />
             </Link>
-
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '8px 16px',
-              borderRadius: '12px',
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-primary)',
-            }}>
-              <FileCode style={{ width: '18px', height: '18px', color: 'var(--accent)' }} />
-              <Input
-                placeholder="剧本标题"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                style={{
-                  width: '280px',
-                  border: 'none',
-                  background: 'transparent',
-                  fontSize: '15px',
-                  padding: '0',
-                  outline: 'none',
-                }}
-              />
-            </div>
-
-            {lastSaved && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                borderRadius: '20px',
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-primary)',
-                fontSize: '12px',
-                color: 'var(--text-tertiary)',
-              }}>
-                <div style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  backgroundColor: autoSaveEnabled ? 'var(--success)' : 'var(--text-muted)',
-                }} />
-                <span>{autoSaveEnabled ? '自动保存' : '上次保存'}: {lastSaved.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <h1 style={{
+                fontSize: '28px',
+                fontWeight: '800',
+                color: 'var(--text-primary)',
+                margin: 0,
+                letterSpacing: '-0.5px',
+                lineHeight: 1.2,
+              }}>剧本编辑器</h1>
+              <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                {title || '新剧本'}
               </div>
-            )}
+            </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setAutoSaveEnabled(!autoSaveEnabled)}
-              title={autoSaveEnabled ? '禁用自动保存' : '启用自动保存'}
-              style={{ height: '40px', padding: '0 16px' }}
-            >
-              <Settings style={{ width: '16px', height: '16px' }} />
-              <span style={{ marginLeft: '8px' }}>{autoSaveEnabled ? '自动' : '手动'}</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleImport}
-              style={{ height: '40px', padding: '0 16px' }}
-            >
-              <Upload style={{ width: '16px', height: '16px' }} />
-              <span style={{ marginLeft: '8px' }}>导入</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              style={{ height: '40px', padding: '0 16px' }}
-            >
-              <FileDown style={{ width: '16px', height: '16px' }} />
-              <span style={{ marginLeft: '8px' }}>导出</span>
-            </Button>
-
-            <div style={{ position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowTemplateMenu(!showTemplateMenu)}
-                style={{ height: '40px', padding: '0 16px' }}
-              >
-                <Type style={{ width: '16px', height: '16px' }} />
-                <span style={{ marginLeft: '8px' }}>模板</span>
-                <ChevronDown style={{ width: '14px', height: '14px', marginLeft: '6px' }} />
-              </Button>
-              {showTemplateMenu && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  marginTop: '12px',
-                  backgroundColor: 'var(--bg-elevated)',
+                onClick={() => setAutoSaveEnabled(!autoSaveEnabled)}
+                title={autoSaveEnabled ? '禁用自动保存' : '启用自动保存'}
+                style={{
+                  height: '40px',
+                  padding: '0 16px',
+                  borderRadius: '10px',
                   border: '1px solid var(--border-primary)',
-                  borderRadius: '12px',
-                  boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-                  minWidth: '200px',
-                  zIndex: 100,
-                  overflow: 'hidden',
+                  backgroundColor: 'var(--bg-surface)',
+                  color: 'var(--text-tertiary)',
+                  transition: 'all 0.2s ease',
                 }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                e.currentTarget.style.borderColor = 'var(--accent)';
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                e.currentTarget.style.borderColor = 'var(--border-primary)';
+                e.currentTarget.style.color = 'var(--text-tertiary)';
+              }}
+              >
+                <Settings style={{ width: '16px', height: '16px' }} />
+                <span style={{ marginLeft: '8px', fontSize: '13px' }}>{autoSaveEnabled ? '自动' : '手动'}</span>
+              </Button>
+
+              <div style={{ position: 'relative' }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowTemplateMenu(!showTemplateMenu)}
+                  style={{
+                    height: '40px',
+                    padding: '0 16px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-primary)',
+                    backgroundColor: showTemplateMenu ? 'var(--bg-hover)' : 'var(--bg-surface)',
+                    color: showTemplateMenu ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                    transition: 'all 0.2s ease',
+                  }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                  e.currentTarget.style.borderColor = 'var(--accent)';
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                  e.currentTarget.style.borderColor = 'var(--border-primary)';
+                  e.currentTarget.style.color = 'var(--text-tertiary)';
+                }}
+                >
+                  <Type style={{ width: '16px', height: '16px' }} />
+                  <span style={{ marginLeft: '8px', fontSize: '13px' }}>模板</span>
+                  <ChevronDown style={{ width: '14px', height: '14px', marginLeft: '6px', transition: 'transform 0.2s ease', transform: showTemplateMenu ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                </Button>
+                {showTemplateMenu && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    marginTop: '8px',
+                    backgroundColor: 'var(--bg-elevated)',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '12px',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
+                    minWidth: '200px',
+                    zIndex: 100,
+                    overflow: 'hidden',
+                  }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {SCRIPT_TEMPLATES.map((tmpl, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => applyTemplate(tmpl.template)}
-                      style={{
-                        padding: '14px 20px',
-                        cursor: 'pointer',
-                        borderBottom: idx < SCRIPT_TEMPLATES.length - 1 ? '1px solid var(--border-subtle)' : 'none',
-                        color: 'var(--text-primary)',
-                        fontSize: '14px',
-                        transition: 'all 0.15s ease',
-                      }}
+                    {SCRIPT_TEMPLATES.map((tmpl, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => applyTemplate(tmpl.template)}
+                        style={{
+                          padding: '14px 20px',
+                          cursor: 'pointer',
+                          borderBottom: idx < SCRIPT_TEMPLATES.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+                          color: 'var(--text-primary)',
+                          fontSize: '14px',
+                          transition: 'all 0.15s ease',
+                        }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
                       }}
@@ -468,18 +485,96 @@ export default function ScriptEditorPage() {
                         e.currentTarget.style.backgroundColor = 'transparent';
                       }}
                     >
-                      {tmpl.name}
-                    </div>
-                  ))}
-                </div>
-              )}
+                        {tmpl.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleImport}
+                title="导入剧本"
+                style={{
+                  height: '40px',
+                  padding: '0 16px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-primary)',
+                  backgroundColor: 'var(--bg-surface)',
+                  color: 'var(--text-tertiary)',
+                  transition: 'all 0.2s ease',
+                }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                e.currentTarget.style.borderColor = 'var(--accent)';
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                e.currentTarget.style.borderColor = 'var(--border-primary)';
+                e.currentTarget.style.color = 'var(--text-tertiary)';
+              }}
+              >
+                <Upload style={{ width: '16px', height: '16px' }} />
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExport}
+                title="导出剧本"
+                style={{
+                  height: '40px',
+                  padding: '0 16px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-primary)',
+                  backgroundColor: 'var(--bg-surface)',
+                  color: 'var(--text-tertiary)',
+                  transition: 'all 0.2s ease',
+                }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                e.currentTarget.style.borderColor = 'var(--accent)';
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                e.currentTarget.style.borderColor = 'var(--border-primary)';
+                e.currentTarget.style.color = 'var(--text-tertiary)';
+              }}
+              >
+                <FileDown style={{ width: '16px', height: '16px' }} />
+              </Button>
             </div>
 
             <Button
               size="sm"
               onClick={handleSave}
               disabled={saving || !title || !content}
-              style={{ height: '40px', padding: '0 24px', minWidth: '100px' }}
+              title="保存剧本"
+              style={{
+                height: '40px',
+                padding: '0 20px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
+                border: 'none',
+                color: 'white',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 2px 8px rgba(181, 147, 107, 0.2)',
+              }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 16px rgba(181, 147, 107, 0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(181, 147, 107, 0.2)';
+            }}
             >
               {saving ? (
                 <>
@@ -820,27 +915,39 @@ export default function ScriptEditorPage() {
           <div style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '8px',
-            padding: '12px',
-            backgroundColor: 'var(--bg-elevated)',
-            borderRadius: '16px',
-            border: '1px solid var(--border-primary)',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
+            gap: '6px',
+            padding: '10px',
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderRadius: '20px',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)',
           }}>
             <Button
               size="sm"
               onClick={handleContinueScript}
               disabled={isContinuing || isRewriting || isOptimizing || !content.trim()}
-              style={{ width: '100%', justifyContent: 'flex-start' }}
+              style={{ 
+                width: '100%', 
+                justifyContent: 'flex-start',
+                backgroundColor: 'transparent',
+                border: 'none',
+                color: 'var(--text-primary)',
+                fontWeight: 500,
+                padding: '8px 12px',
+                borderRadius: '10px',
+                transition: 'all 0.2s ease',
+              }}
             >
               {isContinuing ? (
                 <>
-                  <BrainCircuit style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                  <span style={{ marginLeft: '8px' }}>AI续写中...</span>
+                  <BrainCircuit style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite', color: 'var(--accent)' }} />
+                  <span style={{ marginLeft: '8px', color: 'var(--accent)' }}>AI续写中...</span>
                 </>
               ) : (
                 <>
-                  <Plus style={{ width: '16px', height: '16px' }} />
+                  <Sparkles style={{ width: '16px', height: '16px', color: '#8B5CF6' }} />
                   <span style={{ marginLeft: '8px' }}>AI续写</span>
                 </>
               )}
@@ -850,16 +957,26 @@ export default function ScriptEditorPage() {
               size="sm"
               onClick={handleRewriteScript}
               disabled={isContinuing || isRewriting || isOptimizing || !content.trim()}
-              style={{ width: '100%', justifyContent: 'flex-start' }}
+              style={{ 
+                width: '100%', 
+                justifyContent: 'flex-start',
+                backgroundColor: 'transparent',
+                border: 'none',
+                color: 'var(--text-primary)',
+                fontWeight: 500,
+                padding: '8px 12px',
+                borderRadius: '10px',
+                transition: 'all 0.2s ease',
+              }}
             >
               {isRewriting ? (
                 <>
-                  <BrainCircuit style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                  <span style={{ marginLeft: '8px' }}>AI改写中...</span>
+                  <BrainCircuit style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite', color: 'var(--accent)' }} />
+                  <span style={{ marginLeft: '8px', color: 'var(--accent)' }}>AI改写中...</span>
                 </>
               ) : (
                 <>
-                  <RotateCw style={{ width: '16px', height: '16px' }} />
+                  <Wand2 style={{ width: '16px', height: '16px', color: '#EC4899' }} />
                   <span style={{ marginLeft: '8px' }}>AI改写</span>
                 </>
               )}
@@ -869,74 +986,124 @@ export default function ScriptEditorPage() {
               size="sm"
               onClick={handleOptimizeScript}
               disabled={isContinuing || isRewriting || isOptimizing || !content.trim()}
-              style={{ width: '100%', justifyContent: 'flex-start' }}
+              style={{ 
+                width: '100%', 
+                justifyContent: 'flex-start',
+                backgroundColor: 'transparent',
+                border: 'none',
+                color: 'var(--text-primary)',
+                fontWeight: 500,
+                padding: '8px 12px',
+                borderRadius: '10px',
+                transition: 'all 0.2s ease',
+              }}
             >
               {isOptimizing ? (
                 <>
-                  <BrainCircuit style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                  <span style={{ marginLeft: '8px' }}>优化中...</span>
+                  <BrainCircuit style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite', color: 'var(--accent)' }} />
+                  <span style={{ marginLeft: '8px', color: 'var(--accent)' }}>优化中...</span>
                 </>
               ) : (
                 <>
-                  <Wand2 style={{ width: '16px', height: '16px' }} />
+                  <Zap style={{ width: '16px', height: '16px', color: '#F59E0B' }} />
                   <span style={{ marginLeft: '8px' }}>AI优化</span>
                 </>
               )}
             </Button>
 
+            <div style={{ height: '1px', backgroundColor: 'var(--border-primary)', margin: '4px 8px' }} />
+
+            <div style={{ padding: '4px 8px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '6px', marginLeft: '4px' }}>
+                选择AI模型
+              </div>
+              <ModelSelector
+                contentType="script"
+                value={selectedModel}
+                onChange={setSelectedModel}
+                placeholder="选择剧本生成模型"
+                showLastUsed={true}
+                showDefault={true}
+              />
+            </div>
+
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={parseScript}
               disabled={loading || !content}
-              style={{ width: '100%', justifyContent: 'flex-start' }}
+              style={{ 
+                width: '100%', 
+                justifyContent: 'flex-start',
+                color: 'var(--text-secondary)',
+                fontWeight: 500,
+                padding: '8px 12px',
+                borderRadius: '10px',
+                transition: 'all 0.2s ease',
+              }}
             >
               {loading ? (
                 <>
-                  <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                  <span style={{ marginLeft: '8px' }}>解析中...</span>
+                  <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite', color: 'var(--accent)' }} />
+                  <span style={{ marginLeft: '8px', color: 'var(--accent)' }}>解析中...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles style={{ width: '16px', height: '16px' }} />
+                  <FileSearch style={{ width: '16px', height: '16px', color: '#10B981' }} />
                   <span style={{ marginLeft: '8px' }}>解析预览</span>
                 </>
               )}
             </Button>
 
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => setEditorMode(editorMode === 'edit' ? 'preview' : 'edit')}
-              style={{ width: '100%', justifyContent: 'flex-start' }}
+              style={{ 
+                width: '100%', 
+                justifyContent: 'flex-start',
+                color: 'var(--text-secondary)',
+                fontWeight: 500,
+                padding: '8px 12px',
+                borderRadius: '10px',
+                transition: 'all 0.2s ease',
+              }}
             >
               {editorMode === 'edit' ? (
                 <>
-                  <Eye style={{ width: '16px', height: '16px' }} />
+                  <Eye style={{ width: '16px', height: '16px', color: '#3B82F6' }} />
                   <span style={{ marginLeft: '8px' }}>预览</span>
                 </>
               ) : (
                 <>
-                  <FileCode style={{ width: '16px', height: '16px' }} />
+                  <FileEdit style={{ width: '16px', height: '16px', color: '#3B82F6' }} />
                   <span style={{ marginLeft: '8px' }}>编辑</span>
                 </>
               )}
             </Button>
 
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => setIsFullscreen(!isFullscreen)}
-              style={{ width: '100%', justifyContent: 'flex-start' }}
+              style={{ 
+                width: '100%', 
+                justifyContent: 'flex-start',
+                color: 'var(--text-secondary)',
+                fontWeight: 500,
+                padding: '8px 12px',
+                borderRadius: '10px',
+                transition: 'all 0.2s ease',
+              }}
             >
               {isFullscreen ? (
                 <>
-                  <Minimize2 style={{ width: '16px', height: '16px' }} />
+                  <Minimize2 style={{ width: '16px', height: '16px', color: '#6366F1' }} />
                   <span style={{ marginLeft: '8px' }}>退出全屏</span>
                 </>
               ) : (
                 <>
-                  <Maximize2 style={{ width: '16px', height: '16px' }} />
+                  <Maximize2 style={{ width: '16px', height: '16px', color: '#6366F1' }} />
                   <span style={{ marginLeft: '8px' }}>全屏编辑</span>
                 </>
               )}

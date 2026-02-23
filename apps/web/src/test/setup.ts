@@ -1,6 +1,16 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
+vi.mock('../../lib/api-client', () => ({
+  apiClient: {
+    getAIProviders: vi.fn(),
+    getModelPreferences: vi.fn(),
+    setDefaultModels: vi.fn(),
+    recordModelUsage: vi.fn(),
+    testModel: vi.fn(),
+  },
+}));
+
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: vi.fn().mockImplementation((query) => ({

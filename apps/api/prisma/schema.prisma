@@ -26,6 +26,8 @@ model User {
   members       ProjectMember[]
   sessions      Session[]
   aiProviders   AIProvider[]
+  preferences   UserPreferences?
+  modelParameters ModelParameters[]
   
   @@index([email])
 }
@@ -273,6 +275,45 @@ model Video {
   @@index([shotId])
 }
 
+model UserPreferences {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @unique @map("user_id") @db.Uuid
+  defaultModels   Json     @default("{}") @map("default_models")
+  lastUsedModels  Json     @default("{}") @map("last_used_models")
+  modelParameters Json     @default("{}") @map("model_parameters")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model ModelParameters {
+  id          String      @id @default(uuid()) @db.Uuid
+  userId      String      @map("user_id") @db.Uuid
+  contentType ContentType @map("content_type")
+  parameters  Json        @default("{}")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contentType])
+  @@index([userId, contentType])
+}
+
+model ConfigurationHistory {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  changeType      String   @map("change_type")
+  changeDetails   Json     @map("change_details")
+  previousValue   Json?    @map("previous_value")
+  newValue        Json     @map("new_value")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([userId, createdAt])
+}
+
 model VideoMergeTask {
   id          String   @id @default(uuid()) @db.Uuid
   projectId   String   @map("project_id") @db.Uuid
@@ -307,7 +348,7 @@ model AIProviderModel {
   id          String   @id @default(uuid()) @db.Uuid
   providerId  String   @map("ai_provider_id") @db.Uuid
   name        String
-  type        String
+  types       String[]
   description String?
   capabilities String[]
   createdAt   DateTime @default(now()) @map("created_at")
@@ -315,7 +356,6 @@ model AIProviderModel {
   provider   AIProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
 
   @@index([providerId])
-  @@index([type])
 }
 
 model AuditLog {
@@ -403,8 +443,14 @@ enum ProjectType {
 }
 
 enum ContentType {
+  text
+  image
+  video
+  audio
   script
   novel
+  storyline
+  outline
 }
 
 enum MemberRole {

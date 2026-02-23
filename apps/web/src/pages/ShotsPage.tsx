@@ -21,6 +21,7 @@ import { Sidebar } from '../components/Sidebar';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { VideoPlayer } from '../components/VideoPlayer';
+import { ModelSelector } from '../components/ui/ModelSelector';
 import { apiClient } from '../lib/api';
 import { Shot, getShotDisplayNumber, getShotStatus, getShotStatusLabel, getShotStatusColor, getShotStatusBackgroundColor, getShotStatusBorderColor } from '../lib/shotUtils';
 import { useToast } from '../components/ui/Toast';
@@ -64,6 +65,8 @@ export default function ShotsPage() {
   const [showOptimizeModal, setShowOptimizeModal] = useState(false);
   const [optimizingShot, setOptimizingShot] = useState<Shot | null>(null);
   const [optimizingPrompt, setOptimizingPrompt] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<string>('');
+  const [selectedVideoModel, setSelectedVideoModel] = useState<string>('');
   const { addToast } = useToast();
 
   const [form, setForm] = useState<ShotFormData>({
@@ -491,6 +494,20 @@ export default function ShotsPage() {
                 共 {shots.length} 个镜头
               </div>
             </div>
+            <ModelSelector
+              contentType="image"
+              value={selectedModel}
+              onChange={setSelectedModel}
+              placeholder="选择图像模型"
+              style={{ width: '200px' }}
+            />
+            <ModelSelector
+              contentType="video"
+              value={selectedVideoModel}
+              onChange={setSelectedVideoModel}
+              placeholder="选择视频模型"
+              style={{ width: '200px' }}
+            />
           </div>
 
           <div style={{ display: 'flex', gap: '8px' }}>

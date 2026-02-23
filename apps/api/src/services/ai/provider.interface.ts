@@ -1,4 +1,5 @@
 import { AIRequest, AIResponse, AIChatMessage, AICreateImageRequest, AICreateImageResponse, AICreateVideoRequest, AICreateVideoResponse } from '../../types/ai.types'
+import { logger } from '../../lib/logger'
 
 export abstract class AIProvider {
   protected apiKey: string
@@ -15,19 +16,48 @@ export abstract class AIProvider {
 
   protected async request(endpoint: string, options: RequestInit = {}): Promise<any> {
     const url = this.baseUrl ? `${this.baseUrl}${endpoint}` : endpoint
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    })
+    
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      })
 
-    if (!response.ok) {
-      const error = await response.text()
-      throw new Error(`AI request failed: ${error}`)
+      if (!response.ok) {
+        const errorText = await response.text()
+        let errorMessage = `AI request failed with status ${response.status}`
+        
+        try {
+          const errorJson = JSON.parse(errorText)
+          errorMessage = errorJson.error?.message || errorJson.message || errorMessage
+        } catch {
+          errorMessage = errorText || errorMessage
+        }
+        
+        logger.error('AI API request failed', {
+          endpoint,
+          status: response.status,
+          error: errorMessage,
+        })
+        
+        throw new Error(errorMessage)
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error
+      }
+      
+      logger.error('AI API request error', {
+        endpoint,
+        error: String(error),
+      })
+      throw new Error(`AI request failed: ${String(error)}`)
     }
-
-    return response.json()
   }
 }

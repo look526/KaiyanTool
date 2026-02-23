@@ -1,5 +1,6 @@
 import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
+import { logger } from '../lib/logger';
 
 interface StoryInput {
   title: string;
@@ -104,7 +105,7 @@ ${input.description}
       const parsed = this.parseJsonResponse(response.content);
       return this.validateOutput(parsed);
     } catch (error) {
-      console.error('Storyline generation failed:', error);
+      logger.error('Storyline generation failed', { error });
       throw new Error('故事线生成失败');
     }
   }
@@ -255,7 +256,7 @@ ${feedback}
       }
       throw new Error('无法解析AI响应');
     } catch (error) {
-      console.error('JSON parsing error:', error);
+      logger.error('JSON parsing error', { error });
       throw new Error('故事线解析格式错误');
     }
   }

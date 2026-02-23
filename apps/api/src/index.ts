@@ -6,6 +6,15 @@ import path from 'path'
 
 dotenv.config()
 
+import { config, validateConfig } from './config'
+
+try {
+  validateConfig()
+} catch (error) {
+  console.error('Configuration validation failed:', error instanceof Error ? error.message : error)
+  process.exit(1)
+}
+
 import authRoutes from './routes/auth.routes'
 import projectRoutes from './routes/project.routes'
 import contentRoutes from './routes/content.routes'
@@ -13,6 +22,7 @@ import assetRoutes from './routes/asset.routes'
 import projectMemberRoutes from './routes/project-member.routes'
 import uploadRoutes from './routes/upload.routes'
 import aiProviderRoutes from './routes/ai-provider.routes'
+import modelPreferenceRoutes from './routes/model-preference.routes'
 import scriptRoutes from './routes/script.routes'
 import novelRoutes from './routes/novel.routes'
 import directorRoutes from './routes/director.routes'
@@ -32,7 +42,6 @@ import { initSentry, sentryRequestHandler, sentryErrorHandler, sentryTracingHand
 import { getMetrics } from './lib/metrics'
 import { metricsMiddleware } from './middleware/metrics.middleware'
 import { setupOpenTelemetry } from './config/opentelemetry'
-import { config } from './config'
 // import { setupSwagger } from './lib/swagger'
 
 // 初始化OpenTelemetry
@@ -64,9 +73,33 @@ app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
-app.get('/api/metrics', async (_req: Request, res: Response) => {
+app.get('/api/metrics', cors({
+  origin: config.cors.origins,
+  credentials: config.cors.credentials,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
+}), async (_req: Request, res: Response) => {
   res.set('Content-Type', metrics.register.contentType)
   res.end(await metrics.register.metrics())
+})
+
+app.post('/api/metrics', cors({
+  origin: config.cors.origins,
+  credentials: config.cors.credentials,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
+}), (req: Request, res: Response) => {
+  try {
+    const { name, value, labels } = req.body
+    if (!name || value === undefined) {
+      return res.status(400).json({ error: 'Invalid metric data: name and value are required' })
+    }
+    logger.debug('Received client metric', { name, value, labels })
+    res.status(200).json({ success: true })
+  } catch (error) {
+    logger.error('Error processing metric', { error, body: req.body })
+    res.status(500).json({ error: 'Failed to process metric' })
+  }
 })
 
 app.use('/api/auth', authRoutes)
@@ -76,6 +109,8 @@ app.use('/api', assetRoutes)
 app.use('/api', projectMemberRoutes)
 app.use('/api/upload', uploadRoutes)
 app.use('/api/ai-providers', aiProviderRoutes)
+app.use('/api/model-preferences', modelPreferenceRoutes)
+app.use('/api', documentRoutes)
 app.use('/api', scriptRoutes)
 app.use('/api', novelRoutes)
 app.use('/api', directorRoutes)
@@ -88,7 +123,6 @@ app.use('/api', panelGenerationRoutes)
 app.use('/api', videoGenerationRoutes)
 app.use('/api', nineGridRoutes)
 app.use('/api', exportRoutes)
-app.use('/api', documentRoutes)
 app.use('/api/audit', auditRoutes)
 
 app.use(sentryErrorHandler)

@@ -1,0 +1,966 @@
+import React, { useState, useEffect, useCallback } from 'react'
+import { Link } from 'react-router-dom'
+import { ArrowLeft, Save, RefreshCw, Download, Upload, AlertCircle, CheckCircle2, Loader2, Settings2, Play, X, History, ChevronDown, ChevronUp, CheckSquare, Square } from 'lucide-react'
+import { Sidebar } from '../components/Sidebar'
+import { ModelSelector, ContentType, BatchOperations, BatchModelItem } from '../components/ui/ModelSelector'
+import { AIProviderModel } from '../components/ui/ModelSelector'
+import { Button } from '../components/ui/button'
+import { Card } from '../components/ui/card'
+import { apiClient } from '../lib/api-client'
+
+interface ModelConfiguration {
+  contentType: ContentType
+  label: string
+  icon: string
+  defaultModelId?: string
+  lastUsedModelId?: string
+}
+
+const CONTENT_TYPES: ModelConfiguration[] = [
+  { contentType: 'text', label: '文本生成', icon: '📝' },
+  { contentType: 'image', label: '图像生成', icon: '🖼️' },
+  { contentType: 'video', label: '视频生成', icon: '🎬' },
+  { contentType: 'audio', label: '音频生成', icon: '🎵' },
+  { contentType: 'script', label: '剧本生成', icon: '📋' },
+  { contentType: 'novel', label: '小说生成', icon: '📚' },
+  { contentType: 'storyline', label: '故事线生成', icon: '📖' },
+  { contentType: 'outline', label: '大纲生成', icon: '📑' },
+]
+
+interface UsageStats {
+  defaultModels: Record<string, string>
+  lastUsedModels: Record<string, string>
+  modelCount: number
+  modelsByType: Record<string, number>
+}
+
+export default function ModelConfigurationPage() {
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [configurations, setConfigurations] = useState<Record<string, string>>({})
+  const [usageStats, setUsageStats] = useState<UsageStats | null>(null)
+  const [showBatchTest, setShowBatchTest] = useState(false)
+  const [batchTesting, setBatchTesting] = useState<Set<string>>(new Set())
+  const [testResults, setTestResults] = useState<Record<string, { success: boolean; message: string }>>({})
+  const [showHistory, setShowHistory] = useState(false)
+  const [history, setHistory] = useState<any[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [showBatchMode, setShowBatchMode] = useState(false)
+  const [allModels, setAllModels] = useState<AIProviderModel[]>([])
+  const [selectedModels, setSelectedModels] = useState<Set<string>>(new Set())
+  const [batchContentType, setBatchContentType] = useState<ContentType | 'all'>('all')
+
+  const loadConfiguration = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const prefs = await apiClient.getModelPreferences()
+      setConfigurations(prefs.defaultModels || {})
+      
+      const stats = await apiClient.getUsageStats()
+      setUsageStats(stats)
+
+      const providers = await apiClient.getAIProviders()
+      const models = providers.providers.flatMap(p => p.models || []) as AIProviderModel[]
+      setAllModels(models)
+    } catch (err: any) {
+      setError(err.message || '加载配置失败')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadConfiguration()
+  }, [loadConfiguration])
+
+  const handleModelChange = (contentType: string, modelId: string) => {
+    setConfigurations(prev => ({ ...prev, [contentType]: modelId }))
+  }
+
+  const handleSave = async () => {
+    try {
+      setSaving(true)
+      setError(null)
+      await apiClient.setDefaultModels(configurations)
+      setSuccess('配置保存成功')
+      setTimeout(() => setSuccess(null), 3000)
+      await loadConfiguration()
+    } catch (err: any) {
+      setError(err.message || '保存配置失败')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleExport = () => {
+    const data = {
+      defaultModels: configurations,
+      exportedAt: new Date().toISOString(),
+      version: '1.0'
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `model-config-${Date.now()}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleImport = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json'
+    input.onchange = async (e: any) => {
+      const file = e.target.files[0]
+      if (file) {
+        try {
+          const text = await file.text()
+          const data = JSON.parse(text)
+          if (data.defaultModels) {
+            setConfigurations(data.defaultModels)
+            setSuccess('配置导入成功')
+            setTimeout(() => setSuccess(null), 3000)
+          } else {
+            setError('无效的配置文件格式')
+          }
+        } catch (err) {
+          setError('解析配置文件失败')
+        }
+      }
+    }
+    input.click()
+  }
+
+  const handleReset = () => {
+    if (confirm('确定要重置所有默认模型配置吗？')) {
+      setConfigurations({})
+      setSuccess('配置已重置')
+      setTimeout(() => setSuccess(null), 3000)
+    }
+  }
+
+  const handleBatchTestByType = async (contentType: ContentType) => {
+    try {
+      const providers = await apiClient.getAIProviders()
+      const models = providers.providers.flatMap(p => p.models?.filter(m => m.types?.includes(contentType)) || [])
+      
+      if (models.length === 0) {
+        addToast?.({ type: 'warning', title: '无可用模型', message: `${CONTENT_TYPES.find(ct => ct.contentType === contentType)?.label}没有可用的模型` })
+        return
+      }
+
+      setShowBatchTest(true)
+      setTestResults({})
+      
+      for (const model of models) {
+        setBatchTesting(prev => new Set(prev).add(model.id))
+        try {
+          await apiClient.testModel({ modelId: model.id })
+          setTestResults(prev => ({ ...prev, [model.id]: { success: true, message: '测试成功' } }))
+        } catch (err) {
+          setTestResults(prev => ({ ...prev, [model.id]: { success: false, message: '测试失败' } }))
+        }
+        setBatchTesting(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(model.id)
+          return newSet
+        })
+        
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
+      
+      const successCount = Object.values(testResults).filter(r => r.success).length
+      setSuccess(`批量测试完成：${successCount}/${models.length} 个模型测试成功`)
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (err) {
+      setError('批量测试失败')
+    }
+  }
+
+  const addToast = (toast: any) => {
+    console.log('Toast:', toast)
+  }
+
+  const loadHistory = async () => {
+    try {
+      setHistoryLoading(true)
+      const result = await apiClient.getConfigurationHistory({ limit: 20 })
+      setHistory(result.history)
+    } catch (err: any) {
+      setError(err.message || '加载历史记录失败')
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  const toggleHistory = () => {
+    if (!showHistory) {
+      loadHistory()
+    }
+    setShowHistory(!showHistory)
+  }
+
+  const handleBatchTest = async (modelIds: string[]) => {
+    for (const modelId of modelIds) {
+      await apiClient.testModel({ modelId })
+    }
+  }
+
+  const handleBatchEnable = async (modelIds: string[]) => {
+    console.log('批量启用模型:', modelIds)
+    await new Promise(resolve => setTimeout(resolve, 500))
+  }
+
+  const handleBatchDisable = async (modelIds: string[]) => {
+    console.log('批量禁用模型:', modelIds)
+    await new Promise(resolve => setTimeout(resolve, 500))
+  }
+
+  const handleBatchDelete = async (modelIds: string[]) => {
+    console.log('批量删除模型:', modelIds)
+    await new Promise(resolve => setTimeout(resolve, 500))
+  }
+
+  const getFilteredModelsForBatch = () => {
+    if (batchContentType === 'all') {
+      return allModels
+    }
+    return allModels.filter(m => m.types?.includes(batchContentType))
+  }
+
+  const getChangeTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      'default_models': '默认模型',
+      'model_parameters': '模型参数',
+    }
+    return labels[type] || type
+  }
+
+  const formatHistoryValue = (value: any) => {
+    if (typeof value === 'object' && value !== null) {
+      return JSON.stringify(value, null, 2)
+    }
+    return String(value)
+  }
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
+        <Sidebar />
+        <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
+            <Loader2 style={{ width: 48, height: 48, margin: '0 auto 16px', animation: 'spin 1s linear infinite', color: 'var(--accent)' }} />
+            <div style={{ color: 'var(--text-secondary)' }}>加载中...</div>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
+      <Sidebar />
+
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <header style={{
+          height: '64px',
+          borderBottom: '1px solid var(--border-primary)',
+          backgroundColor: 'var(--bg-elevated)',
+          padding: '0 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexShrink: 0,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <Link to="/" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              color: 'var(--text-muted)',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--bg-hover)'
+              e.currentTarget.style.color = 'var(--text-primary)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent'
+              e.currentTarget.style.color = 'var(--text-muted)'
+            }}
+            >
+              <ArrowLeft style={{ width: '16px', height: '16px' }} />
+            </Link>
+            <div>
+              <h1 style={{
+                fontSize: '20px',
+                fontWeight: '700',
+                color: 'var(--text-primary)',
+                margin: '0 0 4px 0',
+              }}>AI 模型配置</h1>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                为不同内容类型配置默认 AI 模型
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <Button
+              variant={showBatchMode ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setShowBatchMode(!showBatchMode)
+                setSelectedModels(new Set())
+              }}
+              icon={<CheckSquare style={{ width: '16px', height: '16px' }} />}
+            >
+              {showBatchMode ? '退出批量' : '批量操作'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleHistory}
+              icon={<History style={{ width: '16px', height: '16px' }} />}
+            >
+              历史记录
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              icon={<Download style={{ width: '16px', height: '16px' }} />}
+            >
+              导出
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleImport}
+              icon={<Upload style={{ width: '16px', height: '16px' }} />}
+            >
+              导入
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadConfiguration}
+              icon={<RefreshCw style={{ width: '16px', height: '16px' }} />}
+            >
+              刷新
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={saving}
+              icon={saving ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Save style={{ width: '16px', height: '16px' }} />}
+            >
+              {saving ? '保存中...' : '保存配置'}
+            </Button>
+          </div>
+        </header>
+
+        <div style={{ flex: 1, padding: '24px', overflow: 'auto' }}>
+          {error && (
+            <div style={{
+              marginBottom: '24px',
+              padding: '12px 16px',
+              backgroundColor: 'var(--error-bg)',
+              border: '1px solid var(--error)',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              color: 'var(--error)',
+            }}>
+              <AlertCircle style={{ width: '20px', height: '20px', flexShrink: 0 }} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {success && (
+            <div style={{
+              marginBottom: '24px',
+              padding: '12px 16px',
+              backgroundColor: 'var(--success-bg)',
+              border: '1px solid var(--success)',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              color: 'var(--success)',
+            }}>
+              <CheckCircle2 style={{ width: '20px', height: '20px', flexShrink: 0 }} />
+              <span>{success}</span>
+            </div>
+          )}
+
+          {usageStats && (
+            <div style={{
+              marginBottom: '24px',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '16px',
+            }}>
+              <Card style={{ padding: '16px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>总模型数</div>
+                <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                  {usageStats.modelCount}
+                </div>
+              </Card>
+              <Card style={{ padding: '16px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>已配置默认模型</div>
+                <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--accent)' }}>
+                  {Object.keys(usageStats.defaultModels).length}/8
+                </div>
+              </Card>
+              {Object.entries(usageStats.modelsByType).slice(0, 2).map(([type, count]) => (
+                <Card key={type} style={{ padding: '16px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                    {CONTENT_TYPES.find(ct => ct.contentType === type)?.label || type}
+                  </div>
+                  <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                    {count}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {showBatchTest && Object.keys(testResults).length > 0 && (
+                <div style={{
+                  padding: '16px 20px',
+                  borderTop: '1px solid var(--border-primary)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                      批量测试结果
+                    </div>
+                    <button
+                      onClick={() => setShowBatchTest(false)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        color: 'var(--text-tertiary)',
+                      }}
+                    >
+                      <X style={{ width: '16px', height: '16px' }} />
+                    </button>
+                  </div>
+                  <div style={{
+                    maxHeight: '200px',
+                    overflow: 'auto',
+                    display: 'grid',
+                    gap: '8px',
+                  }}>
+                    {Object.entries(testResults).map(([modelId, result]) => (
+                      <div
+                        key={modelId}
+                        style={{
+                          padding: '10px 12px',
+                          backgroundColor: result.success ? 'var(--success-bg)' : 'var(--error-bg)',
+                          border: `1px solid ${result.success ? 'var(--success)' : 'var(--error)'}`,
+                          borderRadius: '6px',
+                          fontSize: '13px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                        }}
+                      >
+                        <CheckCircle2
+                          style={{
+                            width: '16px',
+                            height: '16px',
+                            color: result.success ? 'var(--success)' : 'var(--error)',
+                            flexShrink: 0,
+                          }}
+                        />
+                        <span style={{ color: result.success ? 'var(--success)' : 'var(--error)' }}>
+                          {result.message}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+          {showBatchMode && (
+            <Card style={{ marginBottom: '24px' }}>
+              <div style={{
+                padding: '16px 20px',
+                borderBottom: '1px solid var(--border-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <CheckSquare style={{ width: '20px', height: '20px', color: 'var(--accent)' }} />
+                  <div>
+                    <h2 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
+                      批量操作模式
+                    </h2>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      对多个模型执行批量操作
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <select
+                    value={batchContentType}
+                    onChange={(e) => {
+                      setBatchContentType(e.target.value as ContentType | 'all')
+                      setSelectedModels(new Set())
+                    }}
+                    style={{
+                      padding: '6px 12px',
+                      border: '1px solid var(--border-primary)',
+                      borderRadius: '6px',
+                      backgroundColor: 'var(--bg-base)',
+                      color: 'var(--text-primary)',
+                      fontSize: '13px',
+                    }}
+                  >
+                    <option value="all">全部类型</option>
+                    {CONTENT_TYPES.map(ct => (
+                      <option key={ct.contentType} value={ct.contentType}>
+                        {ct.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <BatchOperations
+                models={getFilteredModelsForBatch()}
+                selectedModels={selectedModels}
+                onSelectionChange={setSelectedModels}
+                onBatchTest={handleBatchTest}
+                onBatchEnable={handleBatchEnable}
+                onBatchDisable={handleBatchDisable}
+                onBatchDelete={handleBatchDelete}
+              />
+
+              <div style={{
+                maxHeight: '400px',
+                overflow: 'auto',
+                borderBottomLeftRadius: '8px',
+                borderBottomRightRadius: '8px',
+              }}>
+                {getFilteredModelsForBatch().length === 0 ? (
+                  <div style={{
+                    padding: '40px',
+                    textAlign: 'center',
+                    color: 'var(--text-tertiary)',
+                    fontSize: '14px',
+                  }}>
+                    暂无模型
+                  </div>
+                ) : (
+                  getFilteredModelsForBatch().map((model) => (
+                    <BatchModelItem
+                      key={model.id}
+                      model={model}
+                      isSelected={selectedModels.has(model.id)}
+                      onSelect={() => {
+                        const newSelected = new Set(selectedModels)
+                        if (newSelected.has(model.id)) {
+                          newSelected.delete(model.id)
+                        } else {
+                          newSelected.add(model.id)
+                        }
+                        setSelectedModels(newSelected)
+                      }}
+                    />
+                  ))
+                )}
+              </div>
+            </Card>
+          )}
+
+          <Card>
+            <div style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid var(--border-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Settings2 style={{ width: '20px', height: '20px', color: 'var(--accent)' }} />
+                <div>
+                  <h2 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
+                    默认模型配置
+                  </h2>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    为每种内容类型设置默认的 AI 模型
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReset}
+              >
+                重置全部
+              </Button>
+            </div>
+
+            <div>
+              {CONTENT_TYPES.map((config, index) => (
+                <div
+                  key={config.contentType}
+                  style={{
+                    padding: '20px',
+                    borderBottom: index < CONTENT_TYPES.length - 1 ? '1px solid var(--border-primary)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '20px',
+                  }}
+                >
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '12px',
+                    backgroundColor: 'var(--bg-hover)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px',
+                    flexShrink: 0,
+                  }}>
+                    {config.icon}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                      {config.label}
+                    </div>
+                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      {config.contentType}
+                    </div>
+                  </div>
+                  <div style={{ width: '320px' }}>
+                    <ModelSelector
+                      contentType={config.contentType}
+                      value={configurations[config.contentType]}
+                      onChange={(modelId) => handleModelChange(config.contentType, modelId)}
+                      placeholder="选择默认模型"
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBatchTestByType(config.contentType)}
+                    disabled={batchTesting.size > 0}
+                    icon={<Play style={{ width: '14px', height: '14px' }} />}
+                  >
+                    批量测试
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <div style={{
+            marginTop: '24px',
+            padding: '16px',
+            backgroundColor: 'var(--bg-hover)',
+            borderRadius: '8px',
+            fontSize: '13px',
+            color: 'var(--text-secondary)',
+            lineHeight: 1.6,
+          }}>
+            <strong style={{ color: 'var(--text-primary)' }}>使用说明：</strong>
+            <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
+              <li>为每种内容类型选择默认的 AI 模型</li>
+              <li>模型配置会在所有相关功能中自动应用</li>
+              <li>可以随时更改配置，更改后点击"保存配置"按钮生效</li>
+              <li>支持导入和导出配置，方便在不同设备间同步</li>
+              <li>点击模型选择器中的星号图标可以快速设置默认模型</li>
+            </ul>
+          </div>
+
+          {showHistory && (
+            <Card style={{ marginTop: '24px' }}>
+              <div style={{
+                padding: '16px 20px',
+                borderBottom: '1px solid var(--border-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <History style={{ width: '20px', height: '20px', color: 'var(--accent)' }} />
+                  <div>
+                    <h2 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
+                      配置历史记录
+                    </h2>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      查看最近的配置变更历史
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={loadHistory}
+                  disabled={historyLoading}
+                  icon={<RefreshCw style={{ width: '14px', height: '14px' }} />}
+                >
+                  刷新
+                </Button>
+              </div>
+
+              <div style={{ maxHeight: '400px', overflow: 'auto' }}>
+                {historyLoading ? (
+                  <div style={{
+                    padding: '40px',
+                    textAlign: 'center',
+                    color: 'var(--text-tertiary)',
+                  }}>
+                    <Loader2 style={{ width: '32px', height: '32px', margin: '0 auto 12px', animation: 'spin 1s linear infinite' }} />
+                    <div>加载历史记录中...</div>
+                  </div>
+                ) : history.length === 0 ? (
+                  <div style={{
+                    padding: '40px',
+                    textAlign: 'center',
+                    color: 'var(--text-tertiary)',
+                    fontSize: '14px',
+                  }}>
+                    暂无历史记录
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {history.map((item, index) => (
+                      <div
+                        key={item.id}
+                        style={{
+                          padding: '16px 20px',
+                          borderBottom: index < history.length - 1 ? '1px solid var(--border-primary)' : 'none',
+                          transition: 'background 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'var(--bg-hover)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+                          <div style={{
+                            minWidth: '140px',
+                            fontSize: '12px',
+                            color: 'var(--text-tertiary)',
+                          }}>
+                            {new Date(item.createdAt).toLocaleString('zh-CN')}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                              <span style={{
+                                padding: '4px 10px',
+                                borderRadius: '12px',
+                                backgroundColor: 'var(--accent-bg)',
+                                color: 'var(--accent)',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                              }}>
+                                {getChangeTypeLabel(item.changeType)}
+                              </span>
+                            </div>
+                            {item.previousValue && (
+                              <div style={{ marginTop: '8px' }}>
+                                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '4px' }}>修改前：</div>
+                                <pre style={{
+                                  margin: '0',
+                                  padding: '10px',
+                                  backgroundColor: 'var(--bg-base)',
+                                  border: '1px solid var(--border-primary)',
+                                  borderRadius: '6px',
+                                  fontSize: '11px',
+                                  color: 'var(--text-secondary)',
+                                  overflow: 'auto',
+                                  maxHeight: '100px',
+                                }}>
+                                  {formatHistoryValue(item.previousValue)}
+                                </pre>
+                              </div>
+                            )}
+                            <div style={{ marginTop: '8px' }}>
+                              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '4px' }}>修改后：</div>
+                              <pre style={{
+                                margin: '0',
+                                padding: '10px',
+                                backgroundColor: 'var(--bg-base)',
+                                border: '1px solid var(--accent)',
+                                borderRadius: '6px',
+                                fontSize: '11px',
+                                color: 'var(--text-primary)',
+                                overflow: 'auto',
+                                maxHeight: '100px',
+                              }}>
+                                {formatHistoryValue(item.newValue)}
+                              </pre>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {usageStats && (
+            <Card style={{ marginTop: '24px' }}>
+              <div style={{
+                padding: '16px 20px',
+                borderBottom: '1px solid var(--border-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+              }}>
+                <Settings2 style={{ width: '20px', height: '20px', color: 'var(--accent)' }} />
+                <div>
+                  <h2 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
+                    模型使用分析
+                  </h2>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    查看详细的模型使用情况统计
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ padding: '20px' }}>
+                <div style={{
+                  marginBottom: '20px',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                  gap: '16px',
+                }}>
+                  <div style={{
+                    padding: '16px',
+                    backgroundColor: 'var(--bg-hover)',
+                    borderRadius: '8px',
+                  }}>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                      总模型数
+                    </div>
+                    <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                      {usageStats.modelCount}
+                    </div>
+                  </div>
+                  <div style={{
+                    padding: '16px',
+                    backgroundColor: 'var(--bg-hover)',
+                    borderRadius: '8px',
+                  }}>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                      已配置默认
+                    </div>
+                    <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--accent)' }}>
+                      {Object.keys(configurations).length}/8
+                    </div>
+                  </div>
+                  <div style={{
+                    padding: '16px',
+                    backgroundColor: 'var(--bg-hover)',
+                    borderRadius: '8px',
+                  }}>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                      最近使用
+                    </div>
+                    <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                      {Object.keys(usageStats.lastUsedModels || {}).length}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '12px' }}>
+                    模型类型分布
+                  </h3>
+                  <div style={{
+                    display: 'flex',
+                    gap: '12px',
+                    flexWrap: 'wrap',
+                  }}>
+                    {Object.entries(usageStats.modelsByType || {}).map(([type, count]) => (
+                      <div
+                        key={type}
+                        style={{
+                          padding: '8px 16px',
+                          backgroundColor: 'var(--bg-hover)',
+                          borderRadius: '20px',
+                          fontSize: '13px',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{count}</span> {type}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '12px' }}>
+                    默认模型配置状态
+                  </h3>
+                  <div style={{
+                    display: 'grid',
+                    gap: '8px',
+                  }}>
+                    {CONTENT_TYPES.map(ct => {
+                      const isConfigured = !!configurations[ct.contentType]
+                      return (
+                        <div
+                          key={ct.contentType}
+                          style={{
+                            padding: '10px 14px',
+                            backgroundColor: isConfigured ? 'var(--success-bg)' : 'var(--bg-hover)',
+                            borderRadius: '6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                          }}
+                        >
+                          <span style={{ fontSize: '18px' }}>{ct.icon}</span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-primary)' }}>
+                              {ct.label}
+                            </div>
+                            <div style={{ fontSize: '11px', color: isConfigured ? 'var(--success)' : 'var(--text-tertiary)' }}>
+                              {isConfigured ? '已配置' : '未配置'}
+                            </div>
+                          </div>
+                          {isConfigured && (
+                            <CheckCircle2 style={{ width: '18px', height: '18px', color: 'var(--success)' }} />
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+        </div>
+      </main>
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  )
+}

@@ -2,6 +2,7 @@ import {
   User,
   Project,
   AIProvider,
+  AIProviderModel,
   PaginationMeta,
   ProjectsResponse,
   RegisterData,
@@ -121,8 +122,37 @@ class ApiClient {
     });
   }
 
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>('/api/users/password', {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  }
+
+  async logoutAll(): Promise<{ message: string }> {
+    return this.request<{ message: string }>('/api/auth/logout-all', {
+      method: 'POST',
+    });
+  }
+
   async getCurrentUser(): Promise<{ user: User; rememberMe?: boolean }> {
     return this.request<{ user: User; rememberMe?: boolean }>('/api/auth/me');
+  }
+
+  async updateProfile(data: { name?: string; bio?: string; avatarUrl?: string }): Promise<User> {
+    return this.request<User>('/api/users/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async uploadAvatar(file: File): Promise<{ url: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request<{ url: string }>('/api/users/avatar', {
+      method: 'POST',
+      body: formData,
+    });
   }
 
   async updateSession(): Promise<{ message: string; rememberMe?: boolean }> {
@@ -215,6 +245,12 @@ class ApiClient {
     });
   }
 
+  async testAIProviderModel(modelId: string): Promise<{ success: boolean; message: string; model: any }> {
+    return this.request<{ success: boolean; message: string; model: any }>(`/api/ai-providers/models/${modelId}/test`, {
+      method: 'POST',
+    });
+  }
+
   async testAIProvider(id: string): Promise<{ success: boolean; message: string }> {
     return this.request<{ success: boolean; message: string }>(`/api/ai-providers/${id}/test`, {
       method: 'POST',
@@ -275,6 +311,34 @@ class ApiClient {
 
   async getProjectDocuments(projectId: string): Promise<Document[]> {
     return this.request<Document[]>(`/api/projects/${projectId}/documents`);
+  }
+
+  async getDocuments(): Promise<{ documents: Document[] }> {
+    return this.request<{ documents: Document[] }>('/api/documents');
+  }
+
+  async getDocumentById(id: string): Promise<Document> {
+    return this.request<Document>(`/api/documents/${id}`);
+  }
+
+  async updateDocumentById(id: string, data: { title?: string; content?: string; type?: string; status?: string }): Promise<Document> {
+    return this.request<Document>(`/api/documents/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteDocumentById(id: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/api/documents/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async createDocumentV2(data: { projectId: string; title: string; content: string; type?: string; status?: string }): Promise<Document> {
+    return this.request<Document>('/api/documents', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
   async getScenes(projectId: string): Promise<Scene[]> {
@@ -727,7 +791,7 @@ class ApiClient {
     return this.request<Member[]>(`/api/projects/${projectId}/members`);
   }
 
-  async addProjectMember(projectId: string, userId: string, role: 'editor' | 'viewer'): Promise<Member> {
+  async addProjectMember(projectId: string, userId: string, role: 'admin' | 'editor' | 'viewer'): Promise<Member> {
     return this.request<Member>(`/api/projects/${projectId}/members`, {
       method: 'POST',
       body: JSON.stringify({ userId, role }),
@@ -740,7 +804,7 @@ class ApiClient {
     });
   }
 
-  async updateProjectMemberRole(projectId: string, userId: string, role: 'editor' | 'viewer'): Promise<Member> {
+  async updateProjectMemberRole(projectId: string, userId: string, role: 'admin' | 'editor' | 'viewer'): Promise<Member> {
     return this.request<Member>(`/api/projects/${projectId}/members/${userId}/role`, {
       method: 'PATCH',
       body: JSON.stringify({ role }),
@@ -787,6 +851,164 @@ class ApiClient {
       method: 'PUT',
       body: JSON.stringify({ panelIds }),
     });
+  }
+
+  async generateOutline(input: {
+    storylineId: string;
+    title: string;
+    genre: string;
+    targetDuration: number;
+    style?: string;
+    additionalNotes?: string;
+  }): Promise<any> {
+    return this.request('/api/outline', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  async saveOutline(projectId: string, outline: any): Promise<{ id: string }> {
+    return this.request<{ id: string }>('/api/outline/save', {
+      method: 'POST',
+      body: JSON.stringify({ projectId, outline }),
+    });
+  }
+
+  async getOutline(outlineId: string): Promise<any> {
+    return this.request(`/api/outline/${outlineId}`);
+  }
+
+  async refineOutline(outlineId: string, feedback: string): Promise<any> {
+    return this.request(`/api/outline/${outlineId}/refine`, {
+      method: 'POST',
+      body: JSON.stringify({ feedback }),
+    });
+  }
+
+  async expandScene(sceneId: string, detail: 'dialogue' | 'action' | 'visual' | 'full'): Promise<any> {
+    return this.request(`/api/scene/${sceneId}/expand`, {
+      method: 'POST',
+      body: JSON.stringify({ detail }),
+    });
+  }
+
+  async generateEpisodeSummary(episodeNumber: number, outlineId: string): Promise<any> {
+    return this.request(`/api/episode/${episodeNumber}/summary?outlineId=${outlineId}`);
+  }
+
+  async getModelPreferences(): Promise<{
+    defaultModels: Record<string, string>;
+    lastUsedModels: Record<string, string>;
+    modelParameters: Record<string, any>;
+  }> {
+    return this.request<{
+      defaultModels: Record<string, string>;
+      lastUsedModels: Record<string, string>;
+      modelParameters: Record<string, any>;
+    }>('/api/model-preferences');
+  }
+
+  async setDefaultModels(defaultModels: Record<string, string>): Promise<{ defaultModels: Record<string, string> }> {
+    return this.request<{ defaultModels: Record<string, string> }>('/api/model-preferences/default', {
+      method: 'POST',
+      body: JSON.stringify({ defaultModels }),
+    });
+  }
+
+  async recordModelUsage(data: {
+    modelId: string;
+    contentType: string;
+    success?: boolean;
+    duration?: number;
+    tokensUsed?: number;
+  }): Promise<{ lastUsedModels: Record<string, string> }> {
+    return this.request<{ lastUsedModels: Record<string, string> }>('/api/model-preferences/usage', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getModelParameters(contentType: string): Promise<{ parameters: Record<string, any> }> {
+    return this.request<{ parameters: Record<string, any> }>(`/api/model-preferences/parameters/${contentType}`);
+  }
+
+  async setModelParameters(data: {
+    contentType: string;
+    parameters: Record<string, any>;
+  }): Promise<{ parameters: Record<string, any> }> {
+    return this.request<{ parameters: Record<string, any> }>('/api/model-preferences/parameters', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async testModel(data: {
+    modelId: string;
+    testPrompt?: string;
+  }): Promise<{ success: boolean; message: string; model: any }> {
+    return this.request<{ success: boolean; message: string; model: any }>('/api/model-preferences/test', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getUsageStats(): Promise<{
+    defaultModels: Record<string, string>;
+    lastUsedModels: Record<string, string>;
+    modelCount: number;
+    modelsByType: Record<string, number>;
+  }> {
+    return this.request<{
+      defaultModels: Record<string, string>;
+      lastUsedModels: Record<string, string>;
+      modelCount: number;
+      modelsByType: Record<string, number>;
+    }>('/api/model-preferences/stats');
+  }
+
+  async getConfigurationHistory(params?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<{ history: any[]; total: number }> {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.offset) queryParams.append('offset', params.offset.toString());
+    const queryString = queryParams.toString();
+    return this.request<{ history: any[]; total: number }>(
+      `/api/model-preferences/history${queryString ? `?${queryString}` : ''}`
+    );
+  }
+
+  async getDetailedAnalytics(): Promise<{
+    summary: {
+      totalModels: number;
+      configuredDefaults: number;
+      activeUsage: number;
+      totalChanges: number;
+    };
+    byType: {
+      distribution: Record<string, number>;
+      usage: Record<string, number>;
+    };
+    models: {
+      topUsed: Array<{ id: string; name: string; type: string; count: number }>;
+      details: Array<{
+        id: string;
+        name: string;
+        type: string;
+        provider: string;
+        capabilities: string[];
+        isDefault: boolean;
+        isLastUsed: boolean;
+        usageCount: number;
+      }>;
+    };
+    history: {
+      summary: Record<string, number>;
+      recent: Array<{ id: string; type: string; timestamp: string; details: any }>;
+    };
+  }> {
+    return this.request('/api/model-preferences/analytics');
   }
 }
 

@@ -19,6 +19,7 @@ import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Select } from '../components/ui/Select';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import { ModelSelector } from '../components/ui/ModelSelector';
 import { apiClient } from '../lib/api-client';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../components/ui/Toast';
@@ -74,6 +75,7 @@ const StorylinePage: React.FC = () => {
   const [step, setStep] = useState<'input' | 'generating' | 'result'>('input');
   const [storyline, setStoryline] = useState<Storyline | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string>('');
 
   const [formData, setFormData] = useState<{
     title: string;
@@ -586,26 +588,39 @@ const StorylinePage: React.FC = () => {
           padding: '0 24px',
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
           flexShrink: 0,
         }}>
-          <button
-            onClick={() => navigate(`/projects/${projectId}`)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              textDecoration: 'none',
-              color: mutedTextColor,
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-            }}
-          >
-            <ArrowLeft style={{ width: '16px', height: '16px' }} />
-            <span style={{ fontSize: '14px' }}>返回项目</span>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button
+              onClick={() => navigate(`/projects/${projectId}`)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                color: mutedTextColor,
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+              }}
+            >
+              <ArrowLeft style={{ width: '16px', height: '16px' }} />
+              <span style={{ fontSize: '14px' }}>返回项目</span>
+            </button>
+            <h1 style={{ fontSize: '18px', fontWeight: '600', color: textColor }}>
+              故事线生成
+            </h1>
+          </div>
+          <ModelSelector
+            contentType="storyline"
+            value={selectedModel}
+            onChange={setSelectedModel}
+            placeholder="选择故事线模型"
+            style={{ width: '240px' }}
+          />
         </header>
 
         <div style={{ flex: 1, padding: '24px', overflowY: 'auto' }}>

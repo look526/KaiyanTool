@@ -4,11 +4,12 @@ import { UserPlus, Search, Trash2, Crown, Shield, Eye, Mail, Loader2, User } fro
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
+import { apiClient } from '../lib/api-client';
 
 interface Member {
   userId: string;
   projectId: string;
-  role: 'owner' | 'editor' | 'viewer';
+  role: 'owner' | 'admin' | 'editor' | 'viewer';
   joinedAt: string;
   user: {
     id: string;
@@ -27,13 +28,15 @@ interface SearchUser {
 
 const ROLE_LABELS = {
   owner: '所有者',
+  admin: '管理员',
   editor: '编辑者',
   viewer: '查看者',
 };
 
 const ROLE_ICONS = {
   owner: Crown,
-  editor: Shield,
+  admin: Shield,
+  editor: User,
   viewer: Eye,
 };
 
@@ -48,7 +51,7 @@ export default function ProjectMembersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddMember, setShowAddMember] = useState(false);
   const [selectedUser, setSelectedUser] = useState<SearchUser | null>(null);
-  const [newMemberRole, setNewMemberRole] = useState<'editor' | 'viewer'>('viewer');
+  const [newMemberRole, setNewMemberRole] = useState<'admin' | 'editor' | 'viewer'>('viewer');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -63,16 +66,10 @@ export default function ProjectMembersPage() {
   }, [projectId]);
 
   useEffect(() => {
-    const searchUsers = async () => {
+    const searchUsersFn = async () => {
       if (searchQuery.length >= 2) {
         try {
-          const token = localStorage.getItem('token');
-          const response = await fetch(`/api/users/search?q=${encodeURIComponent(searchQuery)}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          });
-          const data = await response.json();
+          const data = await apiClient.searchUsers(searchQuery);
           setSearchResults(data);
         } catch (err) {
           console.error('搜索用户失败:', err);
@@ -82,7 +79,7 @@ export default function ProjectMembersPage() {
       }
     };
 
-    const debounceTimer = setTimeout(searchUsers, 300);
+    const debounceTimer = setTimeout(searchUsersFn, 300);
     return () => clearTimeout(debounceTimer);
   }, [searchQuery]);
 
@@ -91,18 +88,7 @@ export default function ProjectMembersPage() {
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/projects/${projectId}/members`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('获取成员列表失败');
-      }
-
-      const data = await response.json();
+      const data = await apiClient.getProjectMembers(projectId);
       setMembers(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : '加载失败');
@@ -117,25 +103,7 @@ export default function ProjectMembersPage() {
     try {
       setLoading(true);
       setError('');
-      const token = localStorage.getItem('token');
-
-      const response = await fetch(`/api/projects/${projectId}/members`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: selectedUser.id,
-          role: newMemberRole,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '添加成员失败');
-      }
-
+      await apiClient.addProjectMember(projectId, selectedUser.id, newMemberRole);
       setShowAddMember(false);
       setSelectedUser(null);
       setSearchQuery('');
@@ -157,19 +125,7 @@ export default function ProjectMembersPage() {
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-
-      const response = await fetch(`/api/projects/${projectId}/members/${userId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('移除成员失败');
-      }
-
+      await apiClient.removeProjectMember(projectId, userId);
       await loadMembers();
     } catch (err) {
       setError(err instanceof Error ? err.message : '移除成员失败');
@@ -178,28 +134,13 @@ export default function ProjectMembersPage() {
     }
   };
 
-  const handleChangeRole = async (userId: string, newRole: 'editor' | 'viewer') => {
+  const handleChangeRole = async (userId: string, newRole: 'admin' | 'editor' | 'viewer') => {
     if (!projectId) return;
 
     try {
       setLoading(true);
       setError('');
-      const token = localStorage.getItem('token');
-
-      const response = await fetch(`/api/projects/${projectId}/members/${userId}/role`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ role: newRole }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '更新角色失败');
-      }
-
+      await apiClient.updateProjectMemberRole(projectId, userId, newRole);
       await loadMembers();
     } catch (err) {
       setError(err instanceof Error ? err.message : '更新角色失败');
@@ -453,7 +394,7 @@ export default function ProjectMembersPage() {
                   </label>
                   <select
                     value={newMemberRole}
-                    onChange={(e) => setNewMemberRole(e.target.value as 'editor' | 'viewer')}
+                    onChange={(e) => setNewMemberRole(e.target.value as 'admin' | 'editor' | 'viewer')}
                     style={{
                       width: '100%',
                       padding: '12px',
@@ -468,6 +409,7 @@ export default function ProjectMembersPage() {
                   >
                     <option value="viewer">查看者</option>
                     <option value="editor">编辑者</option>
+                    <option value="admin">管理员</option>
                   </select>
                 </div>
 
@@ -628,7 +570,7 @@ export default function ProjectMembersPage() {
                       <div style={{ position: 'relative' }}>
                         <select
                           value={member.role}
-                          onChange={(e) => handleChangeRole(member.userId, e.target.value as 'editor' | 'viewer')}
+                          onChange={(e) => handleChangeRole(member.userId, e.target.value as 'admin' | 'editor' | 'viewer')}
                           style={{
                             padding: '8px 32px 8px 12px',
                             fontSize: '14px',
@@ -647,6 +589,7 @@ export default function ProjectMembersPage() {
                         >
                           <option value="viewer">查看者</option>
                           <option value="editor">编辑者</option>
+                          <option value="admin">管理员</option>
                         </select>
                       </div>
                     )}

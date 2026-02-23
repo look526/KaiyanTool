@@ -31,6 +31,12 @@ export default function SettingsPage() {
       link: '/settings/ai'
     },
     {
+      icon: <Settings style={{ width: 24, height: 24 }} />,
+      title: '模型配置',
+      description: '设置默认 AI 模型偏好',
+      link: '/settings/models'
+    },
+    {
       icon: <Bell style={{ width: 24, height: 24 }} />,
       title: '通知设置',
       description: '管理通知偏好',

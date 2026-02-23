@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { prisma } from '../lib/prisma'
+import { config } from '../config'
 
 interface RegisterInput {
   email: string
@@ -25,7 +26,12 @@ interface AuthResponse {
 }
 
 export class AuthService {
-  private readonly JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
+  private get jwtSecret(): string {
+    if (!config.jwt.secret) {
+      throw new Error('JWT_SECRET is not configured')
+    }
+    return config.jwt.secret
+  }
 
   async register(input: RegisterInput): Promise<AuthResponse> {
     const existingUser = await prisma.user.findUnique({
@@ -46,7 +52,7 @@ export class AuthService {
       },
     })
 
-    const token = this.generateToken(user.id)
+    const token = await this.generateToken(user.id)
 
     return {
       user: {
@@ -80,7 +86,7 @@ export class AuthService {
       data: { lastLoginAt: new Date() },
     })
 
-    const token = this.generateToken(user.id)
+    const token = await this.generateToken(user.id)
 
     return {
       user: {
@@ -102,7 +108,7 @@ export class AuthService {
 
   async validateToken(token: string): Promise<AuthResponse['user'] | null> {
     try {
-      jwt.verify(token, this.JWT_SECRET)
+      jwt.verify(token, this.jwtSecret)
 
       const session = await prisma.session.findUnique({
         where: { token },
@@ -125,14 +131,14 @@ export class AuthService {
     }
   }
 
-  private generateToken(userId: string): string {
-    const token = jwt.sign({ userId }, this.JWT_SECRET, { expiresIn: '7d' })
+  private async generateToken(userId: string): Promise<string> {
+    const token = jwt.sign({ userId }, this.jwtSecret, { expiresIn: config.jwt.expiresIn })
 
-    prisma.session.create({
+    await prisma.session.create({
       data: {
         userId,
         token,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
     })
 

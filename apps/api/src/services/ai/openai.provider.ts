@@ -1,9 +1,10 @@
 import { AIProvider } from './provider.interface'
 import { AIRequest, AIResponse, AIChatMessage, AICreateImageRequest, AICreateImageResponse, AICreateVideoRequest, AICreateVideoResponse } from '../../types/ai.types'
+import { config } from '../../config'
 
 export class OpenAIProvider extends AIProvider {
   constructor(apiKey: string, baseUrl?: string) {
-    super(apiKey, baseUrl || 'https://api.openai.com/v1')
+    super(apiKey, baseUrl || config.ai.openai.baseUrl)
   }
 
   async chat(messages: AIChatMessage[], options: Partial<AIRequest> = {}): Promise<AIResponse> {
@@ -25,13 +26,17 @@ export class OpenAIProvider extends AIProvider {
       body: JSON.stringify(requestBody),
     })
 
+    if (!response.choices || response.choices.length === 0) {
+      throw new Error('No response choices returned from OpenAI API')
+    }
+
     return {
       content: response.choices[0].message.content,
       model: response.model,
       usage: {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
-        totalTokens: response.usage.total_tokens,
+        promptTokens: response.usage?.prompt_tokens ?? 0,
+        completionTokens: response.usage?.completion_tokens ?? 0,
+        totalTokens: response.usage?.total_tokens ?? 0,
       },
     }
   }
@@ -53,6 +58,10 @@ export class OpenAIProvider extends AIProvider {
       },
       body: JSON.stringify(requestBody),
     })
+
+    if (!response.data || response.data.length === 0) {
+      throw new Error('No image data returned from OpenAI API')
+    }
 
     return {
       url: response.data[0].url,
@@ -77,6 +86,10 @@ export class OpenAIProvider extends AIProvider {
       },
       body: JSON.stringify(requestBody),
     })
+
+    if (!response.url) {
+      throw new Error('No video URL returned from OpenAI API')
+    }
 
     return {
       url: response.url,

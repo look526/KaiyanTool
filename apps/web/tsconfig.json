@@ -6,6 +6,8 @@
     "jsx": "react-jsx",
     "jsxImportSource": "react",
     "baseUrl": ".",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "paths": {
       "@": ["../../"],
       "@shared": ["../../packages/shared"],

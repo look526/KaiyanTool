@@ -15,6 +15,7 @@ import {
   MapPin
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
+import Breadcrumb from '../components/Breadcrumb';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { apiClient, Project } from '../lib/api';
@@ -176,6 +177,11 @@ export default function ProjectDetailPage() {
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
           <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            <Breadcrumb items={[
+              { label: '首页', path: '/' },
+              { label: '我的项目', path: '/projects' },
+              { label: project.name },
+            ]} />
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px', marginBottom: '32px' }}>
               <Card style={{ padding: '24px' }}>
                 <h2 style={{ 

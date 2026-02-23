@@ -83,7 +83,7 @@ export interface AIProvider {
   apiKey: string
   baseUrl: string | null
   models: AIProviderModel[]
-  isActive: boolean
+  enabled: boolean
   userId: string
   createdAt: string
   updatedAt: string
@@ -92,7 +92,7 @@ export interface AIProvider {
 export interface AIProviderModel {
   id: string
   name: string
-  type: string
+  types: string[]
   description?: string
   capabilities: string[]
   createdAt: string
@@ -143,15 +143,14 @@ export interface CreateAIProviderData {
   type: string
   apiKey: string
   baseUrl?: string
-  models?: string[]
+  enabled?: boolean
 }
 
 export interface UpdateAIProviderData {
   type?: string
   apiKey?: string
   baseUrl?: string
-  models?: string[]
-  isActive?: boolean
+  enabled?: boolean
 }
 
 export interface Chapter {
@@ -197,7 +196,7 @@ export interface Member {
   id: string
   userId: string
   projectId: string
-  role: 'owner' | 'editor' | 'viewer'
+  role: 'owner' | 'admin' | 'editor' | 'viewer'
   joinedAt: string
   user: {
     id: string

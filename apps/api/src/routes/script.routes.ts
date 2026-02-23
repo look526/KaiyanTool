@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware';
-import { parseScript, saveScript, getScript } from '../controllers/script.controller';
+import { parseScript, saveScript, getScript, continueScript, rewriteScript } from '../controllers/script.controller';
 
 const router = Router();
 
-router.post('/parse', authMiddleware, parseScript);
-router.post('/save', authMiddleware, saveScript);
-router.get('/:projectId', authMiddleware, getScript);
+router.post('/script/parse', authMiddleware, parseScript);
+router.post('/script/save', authMiddleware, saveScript);
+router.post('/script/continue', authMiddleware, continueScript);
+router.post('/script/rewrite', authMiddleware, rewriteScript);
+router.get('/script/:projectId', authMiddleware, getScript);
 
 export default router;

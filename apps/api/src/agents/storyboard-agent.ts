@@ -1,5 +1,6 @@
 import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
+import { logger } from '../lib/logger';
 
 interface StoryboardInput {
   outlineId: string;
@@ -141,7 +142,7 @@ ${JSON.stringify(outline, null, 2)}
       const parsed = this.parseJsonResponse(response.content);
       return this.validateOutput(parsed);
     } catch (error) {
-      console.error('Storyboard generation failed:', error);
+      logger.error('Storyboard generation failed', { error });
       throw new Error('分镜生成失败');
     }
   }
@@ -379,7 +380,7 @@ ${JSON.stringify({
       }
       throw new Error('无法解析AI响应');
     } catch (error) {
-      console.error('JSON parsing error:', error);
+      logger.error('JSON parsing error', { error });
       throw new Error('分镜解析格式错误');
     }
   }

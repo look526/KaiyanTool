@@ -1,0 +1,311 @@
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  ArrowLeft,
+  Palette,
+  Sun,
+  Moon,
+  Monitor,
+  CheckCircle,
+  Type,
+  Layout,
+} from 'lucide-react';
+import { Sidebar } from '../components/Sidebar';
+import { Card } from '../components/ui/card';
+import { useTheme } from '../contexts/ThemeContext';
+
+type ThemeMode = 'light' | 'dark' | 'system';
+
+const themeOptions: { value: ThemeMode; label: string; description: string; icon: React.ElementType }[] = [
+  { value: 'light', label: '浅色模式', description: '始终使用浅色主题', icon: Sun },
+  { value: 'dark', label: '深色模式', description: '始终使用深色主题', icon: Moon },
+  { value: 'system', label: '跟随系统', description: '自动跟随系统主题设置', icon: Monitor },
+];
+
+const accentColors = [
+  { name: '紫罗兰', value: '#8b5cf6' },
+  { name: '蓝色', value: '#3b82f6' },
+  { name: '青色', value: '#06b6d4' },
+  { name: '绿色', value: '#10b981' },
+  { name: '橙色', value: '#f97316' },
+  { name: '粉色', value: '#ec4899' },
+];
+
+const fontSizes = [
+  { name: '小', value: '14px' },
+  { name: '中', value: '16px' },
+  { name: '大', value: '18px' },
+];
+
+export default function AppearanceSettingsPage() {
+  const { theme, setTheme } = useTheme();
+  const [selectedAccent, setSelectedAccent] = useState('#8b5cf6');
+  const [selectedFontSize, setSelectedFontSize] = useState('16px');
+
+  const handleThemeChange = (newTheme: ThemeMode) => {
+    setTheme(newTheme as 'light' | 'dark');
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
+      <Sidebar />
+
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <header style={{
+          height: '64px',
+          borderBottom: '1px solid var(--border-primary)',
+          backgroundColor: 'var(--bg-elevated)',
+          padding: '0 24px',
+          display: 'flex',
+          alignItems: 'center',
+          flexShrink: 0,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <Link to="/settings" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              color: 'var(--text-muted)',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+              e.currentTarget.style.color = 'var(--text-primary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = 'var(--text-muted)';
+            }}
+            >
+              <ArrowLeft style={{ width: '16px', height: '16px' }} />
+            </Link>
+            <div>
+              <h1 style={{
+                fontSize: '20px',
+                fontWeight: '700',
+                color: 'var(--text-primary)',
+                margin: '0 0 4px 0',
+              }}>外观设置</h1>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                自定义应用的外观和显示
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: '32px' }}>
+          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <Card style={{ padding: '32px', marginBottom: '24px' }}>
+              <h2 style={{
+                fontSize: '16px',
+                fontWeight: '600',
+                color: 'var(--text-primary)',
+                margin: '0 0 24px 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+              }}>
+                <Palette style={{ width: '18px', height: '18px', color: 'var(--accent)' }} />
+                主题模式
+              </h2>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                {themeOptions.map((option) => {
+                  const IconComponent = option.icon;
+                  const isSelected = theme === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      onClick={() => handleThemeChange(option.value)}
+                      style={{
+                        padding: '20px',
+                        backgroundColor: isSelected ? 'var(--accent-bg)' : 'var(--bg-surface)',
+                        border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border-primary)'}`,
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <div style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '10px',
+                          backgroundColor: isSelected ? 'var(--accent)' : 'var(--bg-hover)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                          <IconComponent style={{ width: '20px', height: '20px', color: isSelected ? 'white' : 'var(--text-secondary)' }} />
+                        </div>
+                        {isSelected && (
+                          <CheckCircle style={{ width: '20px', height: '20px', color: 'var(--accent)' }} />
+                        )}
+                      </div>
+                      <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                        {option.label}
+                      </div>
+                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                        {option.description}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+
+            <Card style={{ padding: '32px', marginBottom: '24px' }}>
+              <h2 style={{
+                fontSize: '16px',
+                fontWeight: '600',
+                color: 'var(--text-primary)',
+                margin: '0 0 24px 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+              }}>
+                <Palette style={{ width: '18px', height: '18px', color: 'var(--accent)' }} />
+                强调色
+              </h2>
+
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                {accentColors.map((color) => {
+                  const isSelected = selectedAccent === color.value;
+                  return (
+                    <button
+                      key={color.value}
+                      onClick={() => setSelectedAccent(color.value)}
+                      style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '12px',
+                        backgroundColor: color.value,
+                        border: isSelected ? '3px solid white' : '3px solid transparent',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: isSelected ? `0 0 0 2px ${color.value}` : 'none',
+                        transition: 'all 0.2s ease',
+                      }}
+                      title={color.name}
+                    >
+                      {isSelected && (
+                        <CheckCircle style={{ width: '24px', height: '24px', color: 'white' }} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{
+                marginTop: '20px',
+                padding: '16px',
+                backgroundColor: 'var(--bg-hover)',
+                borderRadius: '10px',
+                fontSize: '13px',
+                color: 'var(--text-secondary)',
+              }}>
+                当前强调色：<span style={{ color: selectedAccent, fontWeight: '600' }}>{selectedAccent}</span>
+              </div>
+            </Card>
+
+            <Card style={{ padding: '32px', marginBottom: '24px' }}>
+              <h2 style={{
+                fontSize: '16px',
+                fontWeight: '600',
+                color: 'var(--text-primary)',
+                margin: '0 0 24px 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+              }}>
+                <Type style={{ width: '18px', height: '18px', color: 'var(--accent)' }} />
+                字体大小
+              </h2>
+
+              <div style={{ display: 'flex', gap: '12px' }}>
+                {fontSizes.map((size) => {
+                  const isSelected = selectedFontSize === size.value;
+                  return (
+                    <button
+                      key={size.value}
+                      onClick={() => setSelectedFontSize(size.value)}
+                      style={{
+                        flex: 1,
+                        padding: '16px',
+                        backgroundColor: isSelected ? 'var(--accent-bg)' : 'var(--bg-surface)',
+                        border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border-primary)'}`,
+                        borderRadius: '10px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <div style={{ fontSize: size.value, fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                        Aa
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        {size.name}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+
+            <Card style={{ padding: '24px' }}>
+              <h2 style={{
+                fontSize: '16px',
+                fontWeight: '600',
+                color: 'var(--text-primary)',
+                margin: '0 0 16px 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+              }}>
+                <Layout style={{ width: '18px', height: '18px', color: 'var(--accent)' }} />
+                界面布局
+              </h2>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '16px',
+                backgroundColor: 'var(--bg-hover)',
+                borderRadius: '10px',
+              }}>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)' }}>
+                    紧凑模式
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                    减少界面元素的间距，显示更多内容
+                  </div>
+                </div>
+                <label style={{ position: 'relative', display: 'inline-block', width: '48px', height: '26px' }}>
+                  <input type="checkbox" style={{ opacity: 0, width: 0, height: 0 }} />
+                  <span style={{
+                    position: 'absolute',
+                    cursor: 'pointer',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'var(--border-primary)',
+                    borderRadius: '13px',
+                    transition: '0.2s',
+                  }}></span>
+                </label>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}

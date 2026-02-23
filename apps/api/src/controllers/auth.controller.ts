@@ -157,7 +157,7 @@ export class AuthController {
 
   async logout(req: Request, res: Response) {
     try {
-      const sessionToken = req.cookies.sessionId;
+      const sessionToken = req.cookies?.sessionId;
 
       if (sessionToken) {
         await prisma.session.deleteMany({
@@ -181,7 +181,7 @@ export class AuthController {
 
   async getCurrentUser(req: Request, res: Response) {
     try {
-      const sessionToken = req.cookies.sessionId;
+      const sessionToken = req.cookies?.sessionId;
 
       if (!sessionToken) {
         return res.status(401).json({ error: '未登录' });
@@ -224,7 +224,7 @@ export class AuthController {
 
   async updateSession(req: Request, res: Response) {
     try {
-      const sessionToken = req.cookies.sessionId;
+      const sessionToken = req.cookies?.sessionId;
 
       if (!sessionToken) {
         return res.status(401).json({ error: '未登录' });

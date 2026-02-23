@@ -23,7 +23,7 @@ class DocumentController {
 
       res.status(200).json({
         success: true,
-        data: documents,
+        documents: documents,
       });
     } catch (error) {
       logger.error('Error getting documents:', error);
@@ -59,10 +59,7 @@ class DocumentController {
         return;
       }
 
-      res.status(200).json({
-        success: true,
-        data: document,
-      });
+      res.status(200).json(document);
     } catch (error) {
       logger.error('Error getting document:', error);
       res.status(500).json({
@@ -95,10 +92,7 @@ class DocumentController {
         },
       });
 
-      res.status(201).json({
-        success: true,
-        data: document,
-      });
+      res.status(201).json(document);
     } catch (error) {
       logger.error('Error creating document:', error);
       res.status(500).json({

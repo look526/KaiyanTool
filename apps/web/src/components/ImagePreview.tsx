@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Modal } from './Modal'
+import { Modal } from './ui/Modal'
 
 interface ImagePreviewProps {
   src: string
@@ -23,7 +23,7 @@ export function ImagePreview({ src, alt = 'Preview', className = '' }: ImagePrev
         onClick={() => setIsOpen(true)}
       />
 
-      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} size="xl">
+      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} size="large">
         <img
           src={src}
           alt={alt}

@@ -19,11 +19,23 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,
-        configure: (proxy, options) => {
-          proxy.on('proxyReq', (proxyReq, req, res) => {
-            proxyReq.setHeader('Origin', 'http://localhost:3000');
-          });
-        }
+      }
+    }
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: './src/test/setup.ts',
+    css: true,
+    include: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
+    exclude: ['node_modules', 'dist', '.idea', '.git', '.cache'],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, '../..'),
+        '@shared': path.resolve(__dirname, '../../packages/shared'),
+        '@ui': path.resolve(__dirname, '../../packages/ui'),
+        '@/lib': path.resolve(__dirname, './src/lib'),
+        '@/components': path.resolve(__dirname, './src/components')
       }
     }
   }

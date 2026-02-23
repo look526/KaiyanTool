@@ -4,7 +4,7 @@ export interface PerformanceMetric {
   labels?: Record<string, string>;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 class MetricsTracker {
   private metrics: Map<string, number> = new Map();
@@ -38,24 +38,17 @@ class MetricsTracker {
   }
 
   private sendMetricToBackend(metric: PerformanceMetric) {
-    // 这里实现发送指标到后端的逻辑
-    // 可以使用 navigator.sendBeacon 或者 fetch
-    try {
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon(`${API_BASE_URL}/api/metrics`, JSON.stringify(metric));
-      } else {
-        fetch(`${API_BASE_URL}/api/metrics`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(metric),
-          keepalive: true,
-        });
-      }
-    } catch (error) {
+    fetch(`${API_BASE_URL}/api/metrics`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(metric),
+      keepalive: true,
+      credentials: 'include',
+    }).catch((error) => {
       console.error('Failed to send metric to backend:', error);
-    }
+    });
   }
 
   getMetrics() {

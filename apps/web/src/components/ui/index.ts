@@ -10,6 +10,7 @@ export { Skeleton, SkeletonCard, SkeletonList, type SkeletonProps } from './Skel
 export { ToastProvider, useToast, type Toast, type ToastType } from './Toast';
 export { Tabs, TabPanel, type TabsProps, type TabItem } from './Tabs';
 export { Select, type SelectProps, type Option, type SelectGroup } from './Select';
+export { ModelSelector, type ModelSelectorProps, type ContentType, type AIProviderModel } from './ModelSelector';
 export { Dropdown, type DropdownProps, type DropdownItem } from './Dropdown';
 export { Avatar, AvatarGroup, type AvatarProps } from './Avatar';
 export { Badge, BadgeCount, BadgeDot, type BadgeProps } from './Badge';

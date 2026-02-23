@@ -5,6 +5,7 @@ import { Sidebar } from '../components/Sidebar';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
+import { ModelSelector } from '../components/ui/ModelSelector';
 import { apiClient } from '../lib/api';
 
 interface Chapter {
@@ -41,6 +42,7 @@ export default function NovelEditorPage() {
   const [parseNovelText, setParseNovelText] = useState('');
   const [parseLoading, setParseLoading] = useState(false);
   const [parseResult, setParseResult] = useState<{ chapters: any[]; characters: string[] } | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string>('');
 
   useEffect(() => {
     loadNovel();
@@ -232,6 +234,13 @@ export default function NovelEditorPage() {
                 {novel.title}
               </span>
             )}
+            <ModelSelector
+              contentType="novel"
+              value={selectedModel}
+              onChange={setSelectedModel}
+              placeholder="选择AI模型"
+              style={{ width: '240px' }}
+            />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

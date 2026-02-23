@@ -28,8 +28,12 @@ export interface ApiClientInterface {
   register(data: RegisterData): Promise<AuthResponse>;
   login(data: LoginData): Promise<AuthResponse>;
   logout(): Promise<{ message: string }>;
+  changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }>;
+  logoutAll(): Promise<{ message: string }>;
   getCurrentUser(): Promise<{ user: User; rememberMe?: boolean }>;
   updateSession(): Promise<{ message: string; rememberMe?: boolean }>;
+  updateProfile(data: { name?: string; bio?: string; avatarUrl?: string }): Promise<User>;
+  uploadAvatar(file: File): Promise<{ url: string }>;
   getProjects(params?: {
     page?: number;
     limit?: number;
@@ -52,6 +56,10 @@ export interface ApiClientInterface {
   updateAIProvider(id: string, data: UpdateAIProviderData): Promise<AIProvider>;
   deleteAIProvider(id: string): Promise<{ message: string }>;
   testAIProvider(id: string): Promise<{ success: boolean; message: string }>;
+  testAIProviderModel(modelId: string): Promise<{ success: boolean; message: string; model: any; testResult?: any }>;
+  createAIProviderModel(providerId: string, data: any): Promise<any>;
+  updateAIProviderModel(providerId: string, modelId: string, data: any): Promise<any>;
+  deleteAIProviderModel(providerId: string, modelId: string): Promise<{ message: string }>;
   exportProject(projectId: string): Promise<ExportData>;
   exportProjectVideos(projectId: string): Promise<Blob>;
   exportProjectBundle(projectId: string): Promise<Blob>;
@@ -73,8 +81,9 @@ export interface ApiClientInterface {
   parseNovel(content: string): Promise<{ chapters: any[]; characters: string[] }>;
   saveNovel(projectId: string, title: string, content: string): Promise<{ success: boolean }>;
   createDocument(projectId: string, data: { title: string; type: string; content?: string }): Promise<Document>;
-  updateDocument(projectId: string, documentId: string, data: Partial<{ title: string; content: string }>): Promise<Document>;
-  deleteDocument(projectId: string, documentId: string): Promise<{ message: string }>;
+  getDocumentById(id: string): Promise<Document>;
+  updateDocumentById(id: string, data: { title?: string; content?: string; type?: string; status?: string }): Promise<Document>;
+  deleteDocumentById(id: string): Promise<{ message: string }>;
   generateVideo(projectId: string, documentId: string, data: { aiProviderId: string; model: string }): Promise<{ video: Video }>;
   generateShotVideo(shotId: string, providerId: string): Promise<{ success: boolean; videoUrl?: string }>;
   parseScript(content: string): Promise<{ scenes: any[]; characters: string[] }>;
