@@ -22,9 +22,20 @@ export function DashboardLayout() {
   }, []);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: 'var(--bg-base)' }}>
+    <div style={{
+      display: 'flex',
+      height: '100vh',
+      backgroundColor: 'rgb(249 250 251)',
+      overflow: 'hidden',
+    }}>
       <Sidebar />
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <main style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        position: 'relative',
+      }}>
         <Outlet />
       </main>
       
@@ -38,23 +49,23 @@ export function DashboardLayout() {
             width: '56px',
             height: '56px',
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+            background: 'linear-gradient(135deg, rgb(59 130 246) 0%, rgb(99 102 241) 100%)',
             border: 'none',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 4px 16px rgba(99, 102, 241, 0.4)',
-            zIndex: 999,
-            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+            boxShadow: '0 4px 20px rgba(59, 130, 246, 0.4)',
+            transition: 'all 0.2s ease',
+            zIndex: 50,
           }}
           onMouseEnter={(e) => {
+            e.currentTarget.style.boxShadow = '0 6px 24px rgba(59, 130, 246, 0.5)';
             e.currentTarget.style.transform = 'scale(1.1)';
-            e.currentTarget.style.boxShadow = '0 6px 20px rgba(99, 102, 241, 0.5)';
           }}
           onMouseLeave={(e) => {
+            e.currentTarget.style.boxShadow = '0 4px 20px rgba(59, 130, 246, 0.4)';
             e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.boxShadow = '0 4px 16px rgba(99, 102, 241, 0.4)';
           }}
           title="AI助手"
         >
