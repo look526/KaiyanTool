@@ -73,33 +73,9 @@ export async function generateImage(input: z.infer<typeof ImageGenerationSchema>
 }
 
 async function buildEnhancedPrompt(input: z.infer<typeof ImageGenerationSchema>): Promise<string> {
-  const parts: string[] = [input.prompt];
-
-  if (input.characterRefImageId) {
-    const asset = await prisma.asset.findUnique({
-      where: { id: input.characterRefImageId }
-    });
-    if (asset?.metadata?.prompt) {
-      parts.push(`character reference: ${asset.metadata.prompt}`);
-    }
-  }
-
-  if (input.sceneRefImageId) {
-    const asset = await prisma.asset.findUnique({
-      where: { id: input.sceneRefImageId }
-    });
-    if (asset?.metadata?.prompt) {
-      parts.push(`scene reference: ${asset.metadata.prompt}`);
-    }
-  }
-
-  if (input.style) {
-    parts.push(`style: ${input.style}`);
-  }
-
-  parts.push('cinematic, high quality, detailed');
-
-  return parts.join(', ');
+  const style = input.style || 'cinematic';
+  
+  return buildCharacterImagePrompt(input.prompt, undefined, undefined, undefined, style);
 }
 
 export async function batchGenerateImages(

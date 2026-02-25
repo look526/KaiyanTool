@@ -362,7 +362,7 @@ export const getNovels = async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json(novels);
+    res.json({ novels });
   } catch (error) {
     logger.error('获取小说列表失败', { userId: currentUser, projectId, error });
     res.status(500).json({ error: '获取小说列表失败' });

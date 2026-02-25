@@ -1,0 +1,46 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e6]:
+  - generic [ref=e7]:
+    - link "开演AI" [ref=e8]:
+      - /url: /
+      - img [ref=e11]
+      - generic [ref=e14]: 开演AI
+    - heading "欢迎回来" [level=1] [ref=e15]
+    - paragraph [ref=e16]: 登录您的账户继续创作
+  - generic [ref=e18]:
+    - generic [ref=e19]:
+      - img [ref=e20]
+      - text: 登录已过期，请重新登录
+    - generic [ref=e23]:
+      - generic [ref=e24]: 账号
+      - generic [ref=e25]:
+        - generic:
+          - img
+        - textbox "请输入您的账号" [ref=e26]
+    - generic [ref=e27]:
+      - generic [ref=e28]: 密码
+      - generic [ref=e29]:
+        - generic:
+          - img
+        - textbox "请输入您的密码" [ref=e30]
+        - button [ref=e31] [cursor=pointer]:
+          - img [ref=e32]
+    - generic [ref=e35]:
+      - generic [ref=e36] [cursor=pointer]:
+        - checkbox "记住我" [ref=e37]
+        - text: 记住我
+      - link "忘记密码？" [ref=e38]:
+        - /url: /forgot-password
+    - button "登录" [ref=e39] [cursor=pointer]:
+      - generic [ref=e40]: 登录
+      - img [ref=e41]
+    - generic [ref=e43]:
+      - text: 还没有账户？
+      - link "创建账户" [ref=e44]:
+        - /url: /register
+  - generic [ref=e46]:
+    - img [ref=e47]
+    - text: 您的账户安全是我们的首要任务
+```

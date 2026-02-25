@@ -187,29 +187,12 @@ class PanelGenerationController {
   }
 
   private buildImagePrompt(panel: any, shot?: any): string {
-    const parts = []
+    const character = shot?.character?.name || ''
+    const scene = shot?.scene?.location || ''
+    const action = panel.prompt || shot?.actionSummary || ''
+    const camera = shot?.cameraMovement || ''
 
-    if (shot?.visualStyle) {
-      parts.push(shot.visualStyle)
-    }
-
-    if (shot?.scene) {
-      parts.push(`Scene: ${shot.scene.location}, ${shot.scene.time}`)
-    }
-
-    if (shot?.character) {
-      parts.push(`Character: ${shot.character.name}`)
-    }
-
-    if (panel.prompt) {
-      parts.push(`Panel: ${panel.prompt}`)
-    }
-
-    if (shot?.cameraMovement) {
-      parts.push(`Camera: ${shot.cameraMovement}`)
-    }
-
-    return parts.join(', ') + ', high quality, detailed, consistent style'
+    return buildCharacterImagePrompt(character, scene, action, camera, 'cinematic')
   }
 }
 

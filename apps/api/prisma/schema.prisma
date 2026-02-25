@@ -28,6 +28,8 @@ model User {
   aiProviders   AIProvider[]
   preferences   UserPreferences?
   modelParameters ModelParameters[]
+  promptTemplates PromptTemplate[]
+  chatSessions  ChatSession[]
   
   @@index([email])
 }
@@ -70,6 +72,8 @@ model Project {
   scripts     Script[]
   novels      Novel[]
   documents   Document[]
+  promptTemplates PromptTemplate[]
+  chatSessions ChatSession[]
 }
 
 model ProjectMember {
@@ -275,6 +279,49 @@ model Video {
   @@index([shotId])
 }
 
+model PromptTemplate {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String?  @map("user_id") @db.Uuid
+  projectId    String?  @map("project_id") @db.Uuid
+  code         String   @unique
+  name         String
+  type         String   @default("general")
+  category     String?
+  defaultValue String   @map("default_value")
+  customValue  String?  @map("custom_value")
+  parentCode   String?  @map("parent_code")
+  description  String?
+  variables    Json     @default("[]")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user    User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([type])
+  @@index([category])
+}
+
+model ChatSession {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  projectId String?  @map("project_id") @db.Uuid
+  title     String?
+  messages  Json     @default("[]")
+  metadata  Json?    @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user    User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([projectId])
+}
+
 model UserPreferences {
   id              String   @id @default(uuid()) @db.Uuid
   userId          String   @unique @map("user_id") @db.Uuid
@@ -351,6 +398,7 @@ model AIProviderModel {
   types       String[]
   description String?
   capabilities String[]
+  isAssistantDefault Boolean @default(false) @map("is_assistant_default")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   provider   AIProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)

@@ -17,7 +17,10 @@ router.get('/project/:projectId', async (req, res) => {
 
 router.get('/user', async (req, res) => {
   try {
-    const userId = (req as any).user.id;
+    const userId = (req as any).userId;
+    if (!userId) {
+      return res.status(401).json({ error: '未授权' });
+    }
     const analytics = await analyticsService.getUserAnalytics(userId);
     res.json(analytics);
   } catch (error) {
@@ -56,7 +59,10 @@ router.get('/project/:projectId/costs', async (req, res) => {
 
 router.post('/track', async (req, res) => {
   try {
-    const userId = (req as any).user.id;
+    const userId = (req as any).userId;
+    if (!userId) {
+      return res.status(401).json({ error: '未授权' });
+    }
     await analyticsService.trackEvent(userId, req.body.eventType, req.body.metadata);
     res.json({ success: true });
   } catch (error) {

@@ -180,6 +180,75 @@ class UploadController {
       res.status(500).json({ error: '删除失败' })
     }
   }
+
+  async uploadAsset(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.userId) {
+        res.status(401).json({ error: 'Unauthorized' })
+        return
+      }
+
+      const file = req.file
+      if (!file) {
+        res.status(400).json({ error: '没有上传文件' })
+        return
+      }
+
+      const { projectId } = req.params
+      const { prisma } = await import('../lib/prisma')
+
+      const project = await prisma.project.findFirst({
+        where: {
+          id: projectId,
+          OR: [
+            { ownerId: req.userId },
+            { members: { some: { userId: req.userId } } },
+          ],
+        },
+      })
+
+      if (!project) {
+        res.status(404).json({ error: 'Project not found' })
+        return
+      }
+
+      const timestamp = Date.now()
+      const ext = path.extname(file.originalname) || '.bin'
+      const filename = `asset-${timestamp}-${Math.random().toString(36).substr(2, 9)}${ext}`
+      const filepath = path.join(UPLOAD_DIR, filename)
+
+      let url: string
+      if (ossService.isEnabled()) {
+        url = await ossService.uploadBuffer(file.buffer, `assets/${filename}`, file.mimetype)
+      } else {
+        await fs.writeFile(filepath, file.buffer)
+        url = `/uploads/${filename}`
+      }
+
+      const assetType = file.mimetype.startsWith('image/') ? 'image' :
+                        file.mimetype.startsWith('video/') ? 'video' :
+                        file.mimetype.startsWith('audio/') ? 'audio' : 'document'
+
+      const asset = await prisma.asset.create({
+        data: {
+          type: assetType,
+          url,
+          projectId,
+          metadata: {
+            originalName: file.originalname,
+            size: file.size,
+            mimetype: file.mimetype,
+          },
+        },
+      })
+
+      res.json({ asset, url })
+      logger.info('资产上传成功', { userId: req.userId, projectId, assetId: asset.id })
+    } catch (error) {
+      logger.error('资产上传失败', { userId: req.userId, error })
+      res.status(500).json({ error: '上传失败' })
+    }
+  }
 }
 
 export const uploadController = new UploadController()

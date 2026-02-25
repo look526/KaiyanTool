@@ -34,7 +34,6 @@ import {
   Square,
   CheckSquare,
 } from 'lucide-react';
-import { Sidebar } from '../components/Sidebar';
 import Breadcrumb from '../components/Breadcrumb';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
@@ -68,6 +67,7 @@ interface AIProviderModel {
   types: string[];
   description?: string;
   capabilities: string[];
+  isAssistantDefault?: boolean;
 }
 
 interface AIProvider {
@@ -363,6 +363,44 @@ export default function AIProvidersPage() {
     }
   };
 
+  const handleSetAssistantDefault = async (modelId: string) => {
+    try {
+      await apiClient.setAssistantDefaultModel(modelId);
+      addToast({
+        type: 'success',
+        title: '设置成功',
+        message: '已设置为AI助手默认模型',
+      });
+      loadProviders();
+    } catch (error: any) {
+      console.error('设置失败:', error);
+      addToast({
+        type: 'error',
+        title: '设置失败',
+        message: error.message || '无法设置为AI助手默认模型',
+      });
+    }
+  };
+
+  const handleUnsetAssistantDefault = async (modelId: string) => {
+    try {
+      await apiClient.unsetAssistantDefaultModel(modelId);
+      addToast({
+        type: 'success',
+        title: '取消成功',
+        message: '已取消AI助手默认模型',
+      });
+      loadProviders();
+    } catch (error: any) {
+      console.error('取消失败:', error);
+      addToast({
+        type: 'error',
+        title: '取消失败',
+        message: error.message || '无法取消AI助手默认模型',
+      });
+    }
+  };
+
   const handleTestModel = async (modelId: string) => {
     try {
       setTestingModel(modelId);
@@ -474,16 +512,9 @@ export default function AIProvidersPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
-      <Sidebar />
-
-      <main style={{ 
-        flex: 1, 
-        padding: isMobile ? '16px' : isTablet ? '24px' : '40px', 
-        overflowY: 'auto',
-        background: 'linear-gradient(135deg, var(--bg-base) 0%, var(--bg-secondary) 100%)'
-      }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+    <>
+    <div style={{ flex: 1, padding: isMobile ? '16px' : isTablet ? '24px' : '40px', overflowY: 'auto', background: 'linear-gradient(135deg, var(--bg-base) 0%, var(--bg-secondary) 100%)' }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
           <Breadcrumb items={[
             { label: '首页', path: '/' },
             { label: '设置', path: '/settings' },
@@ -507,7 +538,7 @@ export default function AIProvidersPage() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 8px 24px rgba(181, 147, 107, 0.3)',
+                  boxShadow: 'var(--shadow-glow)',
                 }}>
                   <Zap style={{ width: isMobile ? '24px' : '32px', height: isMobile ? '24px' : '32px', color: '#ffffff' }} />
                 </div>
@@ -649,7 +680,7 @@ export default function AIProvidersPage() {
                   fontSize: '16px',
                   fontWeight: '700',
                   borderRadius: '16px',
-                  boxShadow: '0 8px 24px rgba(181, 147, 107, 0.35)',
+                  boxShadow: 'var(--shadow-glow-strong)',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -659,11 +690,11 @@ export default function AIProvidersPage() {
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-3px)';
-                  e.currentTarget.style.boxShadow = '0 12px 32px rgba(181, 147, 107, 0.45)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-glow-extra)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(181, 147, 107, 0.35)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-glow-strong)';
                 }}
               >
                 <div style={{
@@ -690,7 +721,7 @@ export default function AIProvidersPage() {
                   <Card key={provider.id} style={{
                     padding: isMobile ? '20px' : '32px',
                     border: `1px solid ${isExpanded ? providerInfo.color : 'var(--border-primary)'}`,
-                    boxShadow: isExpanded ? `0 8px 32px ${providerInfo.color}15` : '0 2px 16px rgba(0, 0, 0, 0.04)',
+                    boxShadow: isExpanded ? `0 8px 32px ${providerInfo.color}15` : 'var(--shadow-sm)',
                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     position: 'relative',
                     overflow: 'hidden',
@@ -704,7 +735,7 @@ export default function AIProvidersPage() {
                   onMouseLeave={(e) => {
                     if (!isExpanded) {
                       e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 2px 16px rgba(0, 0, 0, 0.04)';
+                      e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
                     }
                   }}>
                     {isExpanded && (
@@ -1120,16 +1151,16 @@ export default function AIProvidersPage() {
                             </p>
                           </div>
                         ) : (
-                          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(400px, 1fr))', gap: '24px' }}>
                             {provider.models.map((model) => {
                               const contentTypeInfo = getFirstContentTypeInfo(model.types);
                               return (
                                 <div key={model.id} style={{
-                                  padding: '24px',
+                                  padding: '28px',
                                   backgroundColor: 'var(--bg-surface)',
-                                  borderRadius: '16px',
+                                  borderRadius: '20px',
                                   border: `1px solid ${contentTypeInfo.color}30`,
-                                  boxShadow: '0 2px 12px rgba(0, 0, 0, 0.04)',
+                                  boxShadow: 'var(--shadow-sm)',
                                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                   position: 'relative',
                                   overflow: 'hidden',
@@ -1141,7 +1172,7 @@ export default function AIProvidersPage() {
                                 }}
                                 onMouseLeave={(e) => {
                                   e.currentTarget.style.transform = 'translateY(0)';
-                                  e.currentTarget.style.boxShadow = '0 2px 12px rgba(0, 0, 0, 0.04)';
+                                  e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
                                   e.currentTarget.style.borderColor = `${contentTypeInfo.color}30`;
                                 }}>
                                   <div style={{
@@ -1149,7 +1180,7 @@ export default function AIProvidersPage() {
                                     top: 0,
                                     left: 0,
                                     right: 0,
-                                    height: '3px',
+                                    height: '4px',
                                     background: `linear-gradient(90deg, ${contentTypeInfo.color} 0%, ${contentTypeInfo.color}80 100%)`,
                                   }} />
                                   
@@ -1157,27 +1188,27 @@ export default function AIProvidersPage() {
                                     display: 'flex',
                                     justifyContent: 'space-between',
                                     alignItems: 'flex-start',
-                                    marginBottom: '16px',
+                                    marginBottom: '20px',
                                   }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '18px', flex: 1 }}>
                                       <div style={{
-                                        width: '48px',
-                                        height: '48px',
-                                        borderRadius: '14px',
+                                        width: '56px',
+                                        height: '56px',
+                                        borderRadius: '16px',
                                         background: `linear-gradient(135deg, ${contentTypeInfo.color} 0%, ${contentTypeInfo.color}cc 100%)`,
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         boxShadow: `0 4px 12px ${contentTypeInfo.color}30`,
                                       }}>
-                                        <contentTypeInfo.icon style={{ width: '24px', height: '24px', color: '#ffffff' }} />
+                                        <contentTypeInfo.icon style={{ width: '28px', height: '28px', color: '#ffffff' }} />
                                       </div>
                                       <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{
-                                          fontSize: '17px',
+                                          fontSize: '18px',
                                           fontWeight: '800',
                                           color: 'var(--text-primary)',
-                                          marginBottom: '8px',
+                                          marginBottom: '10px',
                                           overflow: 'hidden',
                                           textOverflow: 'ellipsis',
                                           whiteSpace: 'nowrap',
@@ -1186,24 +1217,24 @@ export default function AIProvidersPage() {
                                           {model.name}
                                         </div>
                                         {model.types && model.types.length > 0 && (
-                                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
                                             {model.types.map((type, idx) => {
                                               const typeInfo = getContentTypeInfo(type);
                                               return (
                                                 <div key={idx} style={{
                                                   display: 'flex',
                                                   alignItems: 'center',
-                                                  gap: '4px',
-                                                  padding: '4px 10px',
-                                                  borderRadius: '12px',
+                                                  gap: '5px',
+                                                  padding: '5px 12px',
+                                                  borderRadius: '14px',
                                                   backgroundColor: `${typeInfo.color}15`,
                                                   color: typeInfo.color,
-                                                  fontSize: '11px',
+                                                  fontSize: '12px',
                                                   fontWeight: '600',
                                                   textTransform: 'uppercase',
                                                   letterSpacing: '0.3px',
                                                 }}>
-                                                  <typeInfo.icon style={{ width: '12px', height: '12px' }} />
+                                                  <typeInfo.icon style={{ width: '13px', height: '13px' }} />
                                                   {typeInfo.label}
                                                 </div>
                                               );
@@ -1213,14 +1244,14 @@ export default function AIProvidersPage() {
                                       </div>
                                     </div>
 
-                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                    <div style={{ display: 'flex', gap: '10px' }}>
                                       <Button
                                         variant="outline"
                                         size="sm"
                                         onClick={() => openEditModelModal(provider, model)}
                                         style={{ 
-                                          height: '36px', 
-                                          padding: '0 12px',
+                                          height: '40px', 
+                                          padding: '0 14px',
                                           borderColor: contentTypeInfo.color,
                                           color: contentTypeInfo.color,
                                         }}
@@ -1232,7 +1263,7 @@ export default function AIProvidersPage() {
                                         }}
                                         aria-label={`编辑模型 ${model.name}`}
                                       >
-                                        <Edit2 style={{ width: '16px', height: '16px' }} />
+                                        <Edit2 style={{ width: '18px', height: '18px' }} />
                                       </Button>
                                       <Button
                                         variant="outline"
@@ -1240,8 +1271,8 @@ export default function AIProvidersPage() {
                                         onClick={() => handleTestModel(model.id)}
                                         disabled={testingModel === model.id}
                                         style={{ 
-                                          height: '36px', 
-                                          padding: '0 12px',
+                                          height: '40px', 
+                                          padding: '0 14px',
                                           borderColor: 'var(--success)',
                                           color: 'var(--success)',
                                         }}
@@ -1254,9 +1285,38 @@ export default function AIProvidersPage() {
                                         aria-label={`测试模型 ${model.name}`}
                                       >
                                         {testingModel === model.id ? (
-                                          <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                                          <Loader2 style={{ width: '18px', height: '18px', animation: 'spin 1s linear infinite' }} />
                                         ) : (
-                                          <TestTube style={{ width: '16px', height: '16px' }} />
+                                          <TestTube style={{ width: '18px', height: '18px' }} />
+                                        )}
+                                      </Button>
+                                      <Button
+                                        variant={model.isAssistantDefault ? 'primary' : 'outline'}
+                                        size="sm"
+                                        onClick={() => model.isAssistantDefault ? handleUnsetAssistantDefault(model.id) : handleSetAssistantDefault(model.id)}
+                                        style={{ 
+                                          height: '40px', 
+                                          padding: '0 14px',
+                                          borderColor: model.isAssistantDefault ? 'var(--accent)' : 'var(--accent)',
+                                          color: model.isAssistantDefault ? 'white' : 'var(--accent)',
+                                          backgroundColor: model.isAssistantDefault ? 'var(--accent)' : 'transparent',
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          if (!model.isAssistantDefault) {
+                                            e.currentTarget.style.backgroundColor = 'var(--accent-bg)';
+                                          }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          if (!model.isAssistantDefault) {
+                                            e.currentTarget.style.backgroundColor = 'transparent';
+                                          }
+                                        }}
+                                        aria-label={model.isAssistantDefault ? '取消AI助手' : '设为AI助手'}
+                                      >
+                                        {model.isAssistantDefault ? (
+                                          <CheckCircle style={{ width: '18px', height: '18px' }} />
+                                        ) : (
+                                          <Sparkles style={{ width: '18px', height: '18px' }} />
                                         )}
                                       </Button>
                                       <Button
@@ -1264,8 +1324,8 @@ export default function AIProvidersPage() {
                                         size="sm"
                                         onClick={() => handleDeleteModel(provider.id, model.id)}
                                         style={{ 
-                                          height: '36px', 
-                                          padding: '0 12px',
+                                          height: '40px', 
+                                          padding: '0 14px',
                                           borderColor: 'var(--error)',
                                           color: 'var(--error)',
                                         }}
@@ -1277,32 +1337,32 @@ export default function AIProvidersPage() {
                                         }}
                                         aria-label={`删除模型 ${model.name}`}
                                       >
-                                        <Trash2 style={{ width: '16px', height: '16px' }} />
+                                        <Trash2 style={{ width: '18px', height: '18px' }} />
                                       </Button>
                                     </div>
                                   </div>
 
                                   {model.description && (
                                     <p style={{
-                                      fontSize: '14px',
+                                      fontSize: '15px',
                                       color: 'var(--text-secondary)',
-                                      marginBottom: '16px',
-                                      margin: '0 0 16px 0',
-                                      lineHeight: '1.6',
+                                      marginBottom: '20px',
+                                      margin: '0 0 20px 0',
+                                      lineHeight: '1.7',
                                     }}>
                                       {model.description}
                                     </p>
                                   )}
 
                                   {model.capabilities.length > 0 && (
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                                       {model.capabilities.map((cap, idx) => (
                                         <span key={idx} style={{
-                                          padding: '6px 14px',
+                                          padding: '8px 16px',
                                           backgroundColor: `${contentTypeInfo.color}12`,
                                           color: contentTypeInfo.color,
-                                          borderRadius: '16px',
-                                          fontSize: '12px',
+                                          borderRadius: '18px',
+                                          fontSize: '13px',
                                           fontWeight: '600',
                                           textTransform: 'uppercase',
                                           letterSpacing: '0.5px',
@@ -1334,7 +1394,7 @@ export default function AIProvidersPage() {
             </div>
           )}
         </div>
-      </main>
+      </div>
 
       <Modal
         open={showAddModal}
@@ -1459,7 +1519,7 @@ export default function AIProvidersPage() {
               placeholder="请输入您的 API 密钥"
               value={formData.apiKey}
               onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
-              style={{ 
+              style={{
                 width: '100%',
                 fontSize: '14px',
                 padding: '14px 16px',
@@ -1482,7 +1542,7 @@ export default function AIProvidersPage() {
               placeholder="https://api.example.com"
               value={formData.baseUrl}
               onChange={(e) => setFormData({ ...formData, baseUrl: e.target.value })}
-              style={{ 
+              style={{
                 width: '100%',
                 fontSize: '14px',
                 padding: '14px 16px',
@@ -1578,7 +1638,7 @@ export default function AIProvidersPage() {
                 fontSize: '15px',
                 fontWeight: '600',
                 background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
-                boxShadow: '0 4px 16px rgba(181, 147, 107, 0.3)',
+                boxShadow: 'var(--shadow-glow)',
                 border: 'none',
               }}
             >
@@ -1807,7 +1867,7 @@ export default function AIProvidersPage() {
                 fontSize: '15px',
                 fontWeight: '600',
                 background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
-                boxShadow: '0 4px 16px rgba(181, 147, 107, 0.3)',
+                boxShadow: 'var(--shadow-glow)',
                 border: 'none',
                 width: isMobile ? '100%' : 'auto',
               }}
@@ -1982,7 +2042,7 @@ export default function AIProvidersPage() {
               }}
               onFocus={(e) => {
                 e.currentTarget.style.borderColor = 'var(--accent)';
-                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(181, 147, 107, 0.1)';
+                e.currentTarget.style.boxShadow = '0 0 0 3px var(--accent-soft)';
               }}
               onBlur={(e) => {
                 e.currentTarget.style.borderColor = 'var(--border-primary)';
@@ -2057,7 +2117,7 @@ export default function AIProvidersPage() {
                 fontSize: '15px',
                 fontWeight: '600',
                 background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
-                boxShadow: '0 4px 16px rgba(181, 147, 107, 0.3)',
+                boxShadow: 'var(--shadow-glow)',
                 border: 'none',
               }}
             >
@@ -2076,6 +2136,6 @@ export default function AIProvidersPage() {
           </div>
         </div>
       </Modal>
-    </div>
+    </>
   );
 }

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
-import { Sidebar } from '../components/Sidebar';
 import { apiClient } from '../lib/api-client';
 import {
   ArrowLeft,
@@ -308,10 +307,8 @@ const DocumentCreatePage: React.FC = () => {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
-      <Sidebar />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: 'var(--bg-base)' }}>
+      <div style={{
           background: 'linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-base) 100%)',
           padding: '24px 32px',
           borderBottom: '1px solid var(--border-primary)',
@@ -1025,7 +1022,6 @@ const DocumentCreatePage: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
       </div>
 
       {error && (

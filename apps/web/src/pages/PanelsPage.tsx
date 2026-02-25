@@ -13,8 +13,7 @@ import {
   ImagePlus,
   Zap
 } from 'lucide-react';
-import { Sidebar } from '../components/Sidebar';
-import { Button } from '../components/ui/button';
+import { Button } from '../components/ui/button-new';
 import { Card } from '../components/ui/card';
 import { apiClient } from '../lib/api';
 import { Panel, PanelEditForm, getPanelStatus, getPanelStatusLabel, getPanelStatusColor, getPanelStatusBackgroundColor, getPanelStatusBorderColor, createDefaultPanelFormData, createBatchPanelFormData } from '../lib/panelUtils';
@@ -304,20 +303,14 @@ export default function PanelsPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
-        <Sidebar />
-        <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Loader2 style={{ width: '48px', height: '48px', animation: 'spin 1s linear infinite' }} />
-        </main>
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader2 style={{ width: '48px', height: '48px', animation: 'spin 1s linear infinite' }} />
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
-      <Sidebar />
-
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-base)' }}>
         <header style={{
           height: '64px',
           borderBottom: '1px solid var(--border-primary)',
@@ -487,7 +480,7 @@ export default function PanelsPage() {
                         onMouseEnter={(e) => {
                           if (!generatingImages.has(panel.id)) {
                             e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                            e.currentTarget.style.color = '#6366f1';
+                            e.currentTarget.style.color = 'var(--accent)';
                           }
                         }}
                         onMouseLeave={(e) => {
@@ -536,7 +529,7 @@ export default function PanelsPage() {
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                          e.currentTarget.style.color = '#ef4444';
+                          e.currentTarget.style.color = 'var(--error)';
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.backgroundColor = 'transparent';
@@ -588,13 +581,12 @@ export default function PanelsPage() {
             </div>
           )}
         </div>
-      </main>
 
       {showModal && (
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backgroundColor: 'var(--overlay-bg)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -717,7 +709,7 @@ export default function PanelsPage() {
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backgroundColor: 'var(--overlay-bg)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -835,7 +827,7 @@ export default function PanelsPage() {
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backgroundColor: 'var(--overlay-bg)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -877,8 +869,8 @@ export default function PanelsPage() {
               <Button
                 style={{
                   flex: 1,
-                  backgroundColor: '#ef4444',
-                  borderColor: '#ef4444',
+                  backgroundColor: 'var(--error)',
+                  borderColor: 'var(--error)',
                 }}
                 onClick={handleDelete}
               >

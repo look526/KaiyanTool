@@ -2,11 +2,12 @@ import { AIProvider } from './provider.interface'
 import { OpenAIProvider } from './openai.provider'
 import { GoogleProvider } from './google.provider'
 import { ZhipuProvider } from './zhipu.provider'
+import { AntSKProvider } from './antsk.provider'
 
 export interface ModelProvider {
   id: string
   name: string
-  type: 'openai' | 'google' | 'zhipu' | 'custom'
+  type: string
   apiKey: string
   baseUrl?: string
 }
@@ -27,8 +28,11 @@ export class ProviderManager {
       case 'zhipu':
         provider = new ZhipuProvider(config.apiKey)
         break
+      case 'antsk':
+        provider = new AntSKProvider(config.apiKey, config.baseUrl)
+        break
       default:
-        throw new Error(`Unknown provider type: ${config.type}`)
+        provider = new OpenAIProvider(config.apiKey, config.baseUrl)
     }
 
     this.providers.set(config.id, provider)

@@ -37,14 +37,19 @@ import nineGridRoutes from './routes/ninegrid.routes'
 import exportRoutes from './routes/export.routes'
 import auditRoutes from './routes/audit.routes'
 import documentRoutes from './routes/document.routes'
+import analyticsRoutes from './routes/analytics.routes'
+import agentStreamRoutes from './routes/agent-stream.routes'
+import promptTemplateRoutes from './routes/prompt-template.routes'
+import projectSettingsRoutes from './routes/project-settings.routes'
+import chatHistoryRoutes from './routes/chat-history.routes'
+import itemRoutes from './routes/item.routes'
+import assistantRoutes from './routes/assistant.routes'
 import logger, { requestLogger } from './lib/logger'
 import { initSentry, sentryRequestHandler, sentryErrorHandler, sentryTracingHandler } from './lib/sentry'
 import { getMetrics } from './lib/metrics'
 import { metricsMiddleware } from './middleware/metrics.middleware'
 import { setupOpenTelemetry } from './config/opentelemetry'
-// import { setupSwagger } from './lib/swagger'
 
-// 初始化OpenTelemetry
 setupOpenTelemetry()
 
 initSentry()
@@ -122,8 +127,15 @@ app.use('/api', panelRoutes)
 app.use('/api', panelGenerationRoutes)
 app.use('/api', videoGenerationRoutes)
 app.use('/api', nineGridRoutes)
-app.use('/api', exportRoutes)
+app.use('/api/export', exportRoutes)
 app.use('/api/audit', auditRoutes)
+app.use('/api/analytics', analyticsRoutes)
+app.use('/api/agent-stream', agentStreamRoutes)
+app.use('/api/prompt-templates', promptTemplateRoutes)
+app.use('/api/project-settings', projectSettingsRoutes)
+app.use('/api/chat-history', chatHistoryRoutes)
+app.use('/api', itemRoutes)
+app.use('/api/assistant', assistantRoutes)
 
 app.use(sentryErrorHandler)
 app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {

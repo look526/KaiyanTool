@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Save, Trash2, GripVertical, FileText } from 'lucide-react';
-import { Sidebar } from '../components/Sidebar';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
@@ -192,20 +191,14 @@ export default function NovelEditorPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
-        <Sidebar />
-        <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div>加载中...</div>
-        </main>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div>加载中...</div>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
-      <Sidebar />
-      
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <header style={{
           height: '64px',
           borderBottom: '1px solid var(--border-primary)',
@@ -468,7 +461,6 @@ export default function NovelEditorPage() {
             </Card>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
   );
 }

@@ -48,6 +48,14 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
     tabSize: 2,
     formatOnPaste: true,
     formatOnType: true,
+    renderLineHighlight: 'none' as const,
+    occurrencesHighlight: 'off' as const,
+    selectionHighlight: false,
+    matchBrackets: 'never' as const,
+    bracketPairColorization: { enabled: false },
+    renderWhitespace: 'none' as const,
+    renderControlCharacters: false,
+    renderLineDecorations: false,
     ...options,
   };
 

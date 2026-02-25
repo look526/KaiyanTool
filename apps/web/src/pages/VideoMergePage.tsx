@@ -11,11 +11,11 @@ import {
   Film,
   RefreshCw
 } from 'lucide-react';
-import { Sidebar } from '../components/Sidebar';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { apiClient } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
+import { uiConfig } from '../config';
 
 interface Video {
   id: string;
@@ -82,7 +82,7 @@ export default function VideoMergePage() {
       setMergeTask(status);
 
       if (status.status === 'pending' || status.status === 'processing') {
-        setTimeout(checkMergeStatus, 3000);
+        setTimeout(checkMergeStatus, uiConfig.videoMergePollingInterval);
       }
     } catch (error) {
       console.error('Failed to check merge status:', error);
@@ -199,10 +199,10 @@ export default function VideoMergePage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return '#10b981';
-      case 'processing': return '#6366f1';
-      case 'failed': return '#ef4444';
-      default: return '#64748b';
+      case 'completed': return 'var(--success)';
+      case 'processing': return 'var(--accent)';
+      case 'failed': return 'var(--error)';
+      default: return 'var(--text-tertiary)';
     }
   };
 
@@ -218,21 +218,15 @@ export default function VideoMergePage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
-        <Sidebar />
-        <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Loader2 style={{ width: '48px', height: '48px', animation: 'spin 1s linear infinite' }} />
-        </main>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader2 style={{ width: '48px', height: '48px', animation: 'spin 1s linear infinite' }} />
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
-      <Sidebar />
-
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <header style={{
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <header style={{
           height: '64px',
           borderBottom: '1px solid var(--border-primary)',
           backgroundColor: 'var(--bg-elevated)',
@@ -372,7 +366,7 @@ export default function VideoMergePage() {
                           right: '8px',
                           padding: '2px 8px',
                           borderRadius: '4px',
-                          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                          backgroundColor: 'var(--overlay-dark)',
                           color: 'white',
                           fontSize: '12px',
                         }}>
@@ -528,7 +522,7 @@ export default function VideoMergePage() {
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.backgroundColor = 'var(--bg-elevated)';
-                            e.currentTarget.style.color = '#ef4444';
+                            e.currentTarget.style.color = 'var(--error)';
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.backgroundColor = 'transparent';
@@ -600,8 +594,8 @@ export default function VideoMergePage() {
                     <div style={{
                       padding: '10px',
                       borderRadius: '6px',
-                      backgroundColor: '#ef444420',
-                      color: '#ef4444',
+                      backgroundColor: 'var(--error-light)',
+                      color: 'var(--error)',
                       fontSize: '12px',
                       marginBottom: '12px',
                     }}>
@@ -639,7 +633,7 @@ export default function VideoMergePage() {
           <div style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backgroundColor: 'var(--overlay-bg)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -681,8 +675,8 @@ export default function VideoMergePage() {
                 <Button
                   style={{
                     flex: 1,
-                    backgroundColor: '#ef4444',
-                    borderColor: '#ef4444',
+                    backgroundColor: 'var(--error)',
+                    borderColor: 'var(--error)',
                   }}
                   onClick={handleDeleteVideo}
                 >
@@ -693,7 +687,6 @@ export default function VideoMergePage() {
             </Card>
           </div>
         )}
-      </main>
     </div>
   );
 }

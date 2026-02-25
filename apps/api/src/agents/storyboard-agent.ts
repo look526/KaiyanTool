@@ -69,12 +69,27 @@ export class StoryboardAgent {
       throw new Error('Outline ID is required');
     }
 
+    const styleInfo = STYLE_TEMPLATES[input.shotStyle || 'cinematic'] || STYLE_TEMPLATES.cinematic;
+
     const systemPrompt = `你是一个专业的分镜师AI助手。你的专长是将剧本/大纲转化为专业分镜，包含：
 1. 详细的镜头描述
-2. 专业的视觉提示词（Midjourney/SD格式）
+2. 专业的视觉提示词（Midjourney/SD/Flux Kontext格式）
 3. 运镜设计
 4. 时长规划
 5. 视觉风格指南
+
+**当前使用的风格模板：**
+- 风格关键词：${styleInfo.keywords.join(', ')}
+- 质量修饰词：${styleInfo.qualityModifiers.join(', ')}
+- 光线设置：${styleInfo.lighting.join(', ')}
+- 负面提示词：${styleInfo.negative.join(', ')}
+
+**提示词构建规则：**
+提示词格式应该是：[基础描述] + [风格关键词] + [质量修饰词] + [光线] + [负面提示词]
+
+例如：
+正面提示词：A cinematic shot of a character walking through a forest, ${styleInfo.keywords.join(', ')}, ${styleInfo.qualityModifiers.join(', ')}, ${styleInfo.lighting.join(', ')}
+负面提示词：${styleInfo.negative.join(', ')}
 
 你的产出将被用于AI视频生成，所以提示词需要精确、可执行。`;
 

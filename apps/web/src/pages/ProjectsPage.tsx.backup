@@ -1,0 +1,1422 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Plus, Search, Sparkles, Users, Filter, X, LayoutGrid, LayoutList, TrendingUp, Calendar, CheckCircle2, Pause, FileText, BookOpen, Layers, Menu } from 'lucide-react';
+import { Sidebar } from '../components/Sidebar';
+
+const ProjectGridIcon = ({ size = 20, color = '#6366f1' }: { size?: number; color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <defs>
+      <linearGradient id="gridGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#6366f1" />
+        <stop offset="100%" stopColor="#8b5cf6" />
+      </linearGradient>
+    </defs>
+    <g stroke="url(#gridGradient)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="4" width="7" height="7" rx="1.5" />
+      <rect x="13" y="4" width="7" height="7" rx="1.5" />
+      <rect x="4" y="13" width="7" height="7" rx="1.5" />
+      <rect x="13" y="13" width="7" height="7" rx="1.5" />
+    </g>
+  </svg>
+);
+
+const MoreMenuIcon = ({ size = 20, color = '#94a3b8' }: { size?: number; color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <g fill={color}>
+      <circle cx="12" cy="5" r="1.25" />
+      <circle cx="12" cy="12" r="1.25" />
+      <circle cx="12" cy="19" r="1.25" />
+    </g>
+  </svg>
+);
+
+const JsonIcon = ({ size = 18 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path d="M7 8a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    <path d="M17 8a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    <circle cx="12" cy="8" r="1" fill="#6366f1"/>
+    <circle cx="12" cy="16" r="1" fill="#6366f1"/>
+  </svg>
+);
+
+const VideoIcon = ({ size = 18 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <rect x="2" y="4" width="20" height="16" rx="2" stroke="#8b5cf6" strokeWidth="2" fill="none"/>
+    <polygon points="10,8 10,16 17,12" fill="#8b5cf6"/>
+  </svg>
+);
+
+const BundleIcon = ({ size = 18 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <rect x="4" y="2" width="16" height="20" rx="2" stroke="#a855f7" strokeWidth="2" fill="none"/>
+    <path d="M9 7h6M9 11h6M9 15h4" stroke="#a855f7" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { SkeletonCard, SkeletonList } from '../components/ui/Skeleton';
+import { apiClient, Project } from '../lib/api';
+import { useToast } from '../components/ui/Toast';
+
+export default function ProjectsPage() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [exportMenu, setExportMenu] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [screenWidth, setScreenWidth] = useState(window.innerWidth);
+  const navigate = useNavigate();
+  const { addToast } = useToast();
+
+  useEffect(() => {
+    const handleResize = () => setScreenWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobile = screenWidth < 768;
+  const isTablet = screenWidth >= 768 && screenWidth < 1024;
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, filterType, filterStatus, viewMode]);
+
+  const loadProjects = useCallback(async () => {
+    try {
+      setLoading(true);
+      const limit = isMobile ? 6 : isTablet ? 9 : 12;
+      const response = await apiClient.getProjects({
+        page,
+        limit: viewMode === 'grid' ? limit : 10,
+        search: searchQuery || undefined,
+        type: filterType !== 'all' ? filterType : undefined,
+        status: filterStatus !== 'all' ? filterStatus : undefined,
+      });
+      setProjects(response.projects);
+      setTotalPages(response.pagination.totalPages);
+    } catch (error) {
+      console.error('Failed to load projects:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, filterType, filterStatus, searchQuery, viewMode, isMobile, isTablet]);
+
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
+
+  const getProjectTypeLabel = useCallback((type: string) => {
+    switch (type) {
+      case 'SCRIPT': return '剧本';
+      case 'NOVEL': return '小说';
+      case 'MIXED': return '混合';
+      default: return type;
+    }
+  }, []);
+
+  const getProjectTypeIcon = useCallback((type: string) => {
+    switch (type) {
+      case 'SCRIPT': return FileText;
+      case 'NOVEL': return BookOpen;
+      case 'MIXED': return Layers;
+      default: return Sparkles;
+    }
+  }, []);
+
+  const getStatusInfo = useCallback((status: string) => {
+    switch (status) {
+      case 'ACTIVE':
+        return { label: '进行中', color: 'var(--success)', bg: 'var(--success-bg)', textColor: 'var(--success-text)', icon: TrendingUp };
+      case 'COMPLETED':
+        return { label: '已完成', color: 'var(--info)', bg: 'var(--info-bg)', textColor: 'var(--info-text)', icon: CheckCircle2 };
+      case 'PAUSED':
+        return { label: '已暂停', color: 'var(--warning)', bg: 'var(--warning-bg)', textColor: 'var(--warning-text)', icon: Pause };
+      default:
+        return { label: '草稿', color: 'var(--text-muted)', bg: 'var(--bg-hover)', textColor: 'var(--text-tertiary)', icon: FileText };
+    }
+  }, []);
+
+  const formatDate = useCallback((date: Date | string) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    const now = new Date();
+    const diffMs = now.getTime() - dateObj.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return '今天';
+    if (diffDays === 1) return '昨天';
+    if (diffDays < 7) return `${diffDays}天前`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)}周前`;
+    return `${Math.floor(diffDays / 30)}月前`;
+  }, []);
+
+  const handleExport = async (type: string, projectId: string, projectName: string) => {
+    try {
+      switch (type) {
+        case 'json':
+          const data = await apiClient.exportProject(projectId);
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${projectName}-${Date.now()}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          break;
+        case 'videos':
+          const videosBlob = await apiClient.exportProjectVideos(projectId);
+          const videosUrl = URL.createObjectURL(videosBlob);
+          const videosA = document.createElement('a');
+          videosA.href = videosUrl;
+          videosA.download = `${projectName}-videos.zip`;
+          document.body.appendChild(videosA);
+          videosA.click();
+          document.body.removeChild(videosA);
+          URL.revokeObjectURL(videosUrl);
+          break;
+        case 'bundle':
+          const bundleBlob = await apiClient.exportProjectBundle(projectId);
+          const bundleUrl = URL.createObjectURL(bundleBlob);
+          const bundleA = document.createElement('a');
+          bundleA.href = bundleUrl;
+          bundleA.download = `${projectName}-bundle.zip`;
+          document.body.appendChild(bundleA);
+          bundleA.click();
+          document.body.removeChild(bundleA);
+          URL.revokeObjectURL(bundleUrl);
+          break;
+      }
+      setExportMenu(null);
+    } catch (error) {
+      console.error('Export failed:', error);
+      addToast({
+        type: 'error',
+        title: '导出失败',
+        message: '请稍后重试。',
+      });
+    }
+  };
+
+  const toggleExportMenu = (e: React.MouseEvent, projectId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setExportMenu(exportMenu === projectId ? null : projectId);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = () => setExportMenu(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [exportMenu]);
+
+  const EmptyState = () => (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column' as const,
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '400px',
+      padding: isMobile ? '40px 20px' : '60px 20px',
+    }}>
+      <div style={{
+        width: '64px',
+        height: '64px',
+        borderRadius: '16px',
+        backgroundColor: 'var(--accent-bg)',
+        display: 'flex',
+        alignItems: 'center' as const,
+        justifyContent: 'center',
+        marginBottom: '20px',
+      }}>
+        <Plus style={{ width: '32px', height: '32px', color: 'var(--accent)' }} />
+      </div>
+
+      <h2 style={{
+        fontSize: '20px',
+        fontWeight: '600',
+        color: 'var(--text-primary)',
+        marginBottom: '8px',
+        letterSpacing: '-0.01em',
+        textAlign: 'center' as const,
+      }}>
+        创建第一个项目
+      </h2>
+
+      <p style={{
+        fontSize: '14px',
+        color: 'var(--text-tertiary)',
+        marginBottom: '24px',
+        textAlign: 'center' as const,
+        maxWidth: '320px',
+        lineHeight: '1.5',
+      }}>
+        开始你的AI内容创作之旅
+      </p>
+
+      <button
+        onClick={() => navigate('/projects/new')}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          padding: '14px 28px',
+          fontSize: '15px',
+          fontWeight: '600',
+          letterSpacing: '0.3px',
+          background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
+          border: 'none',
+          borderRadius: '12px',
+          color: 'white',
+          cursor: 'pointer',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          boxShadow: '0 4px 20px rgba(99, 102, 241, 0.4)',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 8px 30px rgba(99, 102, 241, 0.5)';
+          e.currentTarget.style.background = 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 50%, #a855f7 100%)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 4px 20px rgba(99, 102, 241, 0.4)';
+          e.currentTarget.style.background = 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)';
+        }}
+      >
+        创建项目
+      </button>
+    </div>
+  );
+
+  const ProjectCard = React.memo(({ project }: { project: Project }) => {
+    const status = getStatusInfo(project.status);
+    const StatusIcon = status.icon;
+    const TypeIcon = getProjectTypeIcon(project.type);
+
+    return (
+      <Link to={`/projects/${project.id}`} style={{ textDecoration: 'none' }}>
+        <div style={{
+          position: 'relative',
+          backgroundColor: 'var(--bg-surface)',
+          borderRadius: '20px',
+          border: '1px solid rgba(99, 102, 241, 0.1)',
+          overflow: 'hidden',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          cursor: 'pointer',
+          boxShadow: '0 4px 20px -4px rgba(0, 0, 0, 0.05), 0 2px 8px -4px rgba(0, 0, 0, 0.02)',
+        }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-8px) scale(1.02)';
+            e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.3)';
+            e.currentTarget.style.boxShadow = '0 32px 64px -12px rgba(99, 102, 241, 0.25), 0 16px 32px -8px rgba(99, 102, 241, 0.15)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0) scale(1)';
+            e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.1)';
+            e.currentTarget.style.boxShadow = '0 4px 20px -4px rgba(0, 0, 0, 0.05), 0 2px 8px -4px rgba(0, 0, 0, 0.02)';
+          }}
+        >
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '120px',
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.05) 50%, rgba(168, 85, 247, 0.03) 100%)',
+            borderBottom: '1px solid rgba(99, 102, 241, 0.08)',
+          }} />
+
+          <div style={{ padding: isMobile ? '20px' : '28px', position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: isMobile ? '16px' : '24px' }}>
+              <div style={{ position: 'relative' }}>
+                <div style={{
+                  width: isMobile ? '56px' : '72px',
+                  height: isMobile ? '56px' : '72px',
+                  borderRadius: isMobile ? '14px' : '18px',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 8px 24px -4px rgba(99, 102, 241, 0.4)',
+                  position: 'relative',
+                  zIndex: 2,
+                }}>
+                  <TypeIcon style={{ width: isMobile ? '28px' : '36px', height: isMobile ? '28px' : '36px', color: 'white' }} />
+                </div>
+                <div style={{
+                  position: 'absolute',
+                  bottom: isMobile ? '-6px' : '-8px',
+                  right: isMobile ? '-6px' : '-8px',
+                  width: isMobile ? '24px' : '28px',
+                  height: isMobile ? '24px' : '28px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '3px solid var(--bg-surface)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                  zIndex: 3,
+                }}>
+                  <div style={{
+                    width: isMobile ? '18px' : '22px',
+                    height: isMobile ? '18px' : '22px',
+                    borderRadius: '50%',
+                    backgroundColor: status.bg,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <StatusIcon style={{ width: isMobile ? '11px' : '13px', height: isMobile ? '11px' : '13px', color: status.color }} />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  onClick={(e) => toggleExportMenu(e, project.id)}
+                  aria-label="导出菜单"
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(99, 102, 241, 0.15)',
+                    backgroundColor: 'transparent',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.1)';
+                    e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.3)';
+                    e.currentTarget.style.color = 'var(--accent)';
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.15)';
+                    e.currentTarget.style.color = 'var(--text-secondary)';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                >
+                  <MoreMenuIcon size={18} />
+                </button>
+              </div>
+            </div>
+
+            <h3 style={{
+              fontSize: isMobile ? '17px' : '21px',
+              fontWeight: '700',
+              color: 'var(--text-primary)',
+              marginBottom: isMobile ? '10px' : '12px',
+              letterSpacing: '-0.02em',
+              lineHeight: '1.3',
+              display: '-webkit-box',
+              WebkitLineClamp: 1,
+              WebkitBoxOrient: 'vertical' as const,
+              overflow: 'hidden',
+            }}>
+              {project.name}
+            </h3>
+
+            <p style={{
+              fontSize: isMobile ? '13px' : '15px',
+              color: 'var(--text-secondary)',
+              marginBottom: isMobile ? '18px' : '28px',
+              lineHeight: '1.7',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical' as const,
+              overflow: 'hidden',
+              minHeight: '44px',
+            }}>
+              {project.description || '暂无描述'}
+            </p>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: isMobile ? '16px' : '24px', flexWrap: 'wrap' as const }}>
+              <span style={{
+                padding: isMobile ? '5px 12px' : '7px 16px',
+                borderRadius: '12px',
+                backgroundColor: status.bg,
+                color: status.color,
+                fontSize: isMobile ? '11px' : '13px',
+                fontWeight: '600',
+                letterSpacing: '0.02em',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                border: `1px solid ${status.color}20`,
+              }}>
+                <StatusIcon style={{ width: isMobile ? '13px' : '15px', height: isMobile ? '13px' : '15px' }} />
+                {status.label}
+              </span>
+              <span style={{
+                padding: isMobile ? '5px 12px' : '7px 16px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(99, 102, 241, 0.08)',
+                color: 'var(--accent)',
+                fontSize: isMobile ? '11px' : '13px',
+                fontWeight: '600',
+                letterSpacing: '0.02em',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                border: '1px solid rgba(99, 102, 241, 0.15)',
+              }}>
+                <TypeIcon style={{ width: isMobile ? '13px' : '15px', height: isMobile ? '13px' : '15px' }} />
+                {getProjectTypeLabel(project.type)}
+              </span>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingTop: isMobile ? '16px' : '24px',
+              borderTop: '1px solid rgba(99, 102, 241, 0.08)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '16px' : '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: isMobile ? '12px' : '14px', fontWeight: '500' }}>
+                  <Calendar style={{ width: '17px', height: '17px' }} />
+                  <span>{formatDate(project.updatedAt)}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: isMobile ? '12px' : '14px', fontWeight: '500' }}>
+                  <Users style={{ width: '17px', height: '17px' }} />
+                  <span>{project._count?.members || 1}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {exportMenu === project.id && (
+            <div style={{
+              position: 'absolute',
+              top: '80px',
+              right: '16px',
+              backgroundColor: 'var(--bg-surface)',
+              border: '1px solid rgba(99, 102, 241, 0.15)',
+              borderRadius: '16px',
+              boxShadow: '0 25px 50px -12px rgba(99, 102, 241, 0.25), 0 12px 24px -8px rgba(99, 102, 241, 0.15)',
+              minWidth: '220px',
+              zIndex: 50,
+              padding: '6px',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+            }}>
+              <button
+                onClick={() => handleExport('json', project.id, project.name)}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(79, 70, 229, 0.08)';
+                  e.currentTarget.style.transform = 'translateX(4px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.transform = 'translateX(0)';
+                }}
+              >
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(79, 70, 229, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <JsonIcon size={18} />
+                </div>
+                <span>导出 JSON</span>
+              </button>
+              <button
+                onClick={() => handleExport('videos', project.id, project.name)}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(139, 92, 246, 0.08)';
+                  e.currentTarget.style.transform = 'translateX(4px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.transform = 'translateX(0)';
+                }}
+              >
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(139, 92, 246, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <VideoIcon size={18} />
+                </div>
+                <span>导出视频</span>
+              </button>
+              <button
+                onClick={() => handleExport('bundle', project.id, project.name)}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(168, 85, 247, 0.08)';
+                  e.currentTarget.style.transform = 'translateX(4px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.transform = 'translateX(0)';
+                }}
+              >
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(168, 85, 247, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <BundleIcon size={18} />
+                </div>
+                <span>导出完整包</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </Link>
+    );
+  });
+
+  const ProjectListItem = React.memo(({ project }: { project: Project }) => {
+    const status = getStatusInfo(project.status);
+    const StatusIcon = status.icon;
+    const TypeIcon = getProjectTypeIcon(project.type);
+
+    return (
+      <Link to={`/projects/${project.id}`} style={{ textDecoration: 'none' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: isMobile ? 'flex-start' : 'center',
+          gap: isMobile ? '16px' : '28px',
+          padding: isMobile ? '20px' : '28px',
+          backgroundColor: 'var(--bg-surface)',
+          borderRadius: '20px',
+          border: '1px solid rgba(99, 102, 241, 0.1)',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          cursor: 'pointer',
+          boxShadow: '0 4px 20px -4px rgba(0, 0, 0, 0.05), 0 2px 8px -4px rgba(0, 0, 0, 0.02)',
+        }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.3)';
+            e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.02)';
+            if (!isMobile) {
+              e.currentTarget.style.transform = 'translateX(8px)';
+              e.currentTarget.style.boxShadow = '0 16px 40px -8px rgba(99, 102, 241, 0.15), 0 8px 20px -6px rgba(99, 102, 241, 0.1)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.1)';
+            e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+            if (!isMobile) {
+              e.currentTarget.style.transform = 'translateX(0)';
+              e.currentTarget.style.boxShadow = '0 4px 20px -4px rgba(0, 0, 0, 0.05), 0 2px 8px -4px rgba(0, 0, 0, 0.02)';
+            }
+          }}
+        >
+          <div style={{ position: 'relative', width: isMobile ? '64px' : '80px', height: isMobile ? '64px' : '80px', flexShrink: 0 }}>
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: isMobile ? '16px' : '20px',
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 8px 24px -4px rgba(99, 102, 241, 0.4)',
+            }}>
+              <TypeIcon style={{ width: isMobile ? '32px' : '40px', height: isMobile ? '32px' : '40px', color: 'white' }} />
+            </div>
+            <div style={{
+              position: 'absolute',
+              bottom: isMobile ? '-8px' : '-10px',
+              right: isMobile ? '-8px' : '-10px',
+              width: isMobile ? '26px' : '32px',
+              height: isMobile ? '26px' : '32px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--bg-surface)',
+              border: '3px solid var(--bg-surface)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            }}>
+              <div style={{
+                width: isMobile ? '20px' : '24px',
+                height: isMobile ? '20px' : '24px',
+                borderRadius: '50%',
+                backgroundColor: status.bg,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <StatusIcon style={{ width: isMobile ? '12px' : '15px', height: isMobile ? '12px' : '15px', color: status.color }} />
+              </div>
+            </div>
+          </div>
+
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '10px', flexDirection: isMobile ? 'column' : 'row' as const }}>
+              <h3 style={{
+                fontSize: isMobile ? '17px' : '19px',
+                fontWeight: '700',
+                color: 'var(--text-primary)',
+                whiteSpace: 'nowrap' as const,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                letterSpacing: '-0.02em',
+              }}>
+                {project.name}
+              </h3>
+              <span style={{
+                padding: isMobile ? '6px 14px' : '7px 16px',
+                borderRadius: '12px',
+                backgroundColor: status.bg,
+                color: status.color,
+                fontSize: isMobile ? '11px' : '13px',
+                fontWeight: '600',
+                letterSpacing: '0.02em',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                border: `1px solid ${status.color}20`,
+              }}>
+                <StatusIcon style={{ width: isMobile ? '13px' : '15px', height: isMobile ? '13px' : '15px' }} />
+                {status.label}
+              </span>
+            </div>
+
+            <p style={{
+              fontSize: '14px',
+              color: 'var(--text-secondary)',
+              whiteSpace: 'nowrap' as const,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              marginBottom: '16px',
+              lineHeight: '1.7',
+              display: isMobile ? 'none' : 'block',
+            }}>
+              {project.description || '暂无描述'}
+            </p>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '16px' : '28px', fontSize: '14px', color: 'var(--text-secondary)', flexWrap: 'wrap' as const }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}>
+                <Calendar style={{ width: '17px', height: '17px' }} />
+                {formatDate(project.updatedAt)}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}>
+                <Users style={{ width: '17px', height: '17px' }} />
+                {project._count?.members || 1}
+              </div>
+              <span style={{
+                padding: isMobile ? '5px 12px' : '6px 14px',
+                borderRadius: '10px',
+                backgroundColor: 'rgba(99, 102, 241, 0.08)',
+                fontWeight: '600',
+                color: 'var(--accent)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                border: '1px solid rgba(99, 102, 241, 0.15)',
+              }}>
+                <TypeIcon style={{ width: isMobile ? '13px' : '15px', height: isMobile ? '13px' : '15px' }} />
+                {getProjectTypeLabel(project.type)}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              onClick={(e) => toggleExportMenu(e, project.id)}
+              aria-label="导出菜单"
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                border: '1px solid rgba(99, 102, 241, 0.15)',
+                backgroundColor: 'transparent',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.1)';
+                e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.3)';
+                e.currentTarget.style.color = 'var(--accent)';
+                e.currentTarget.style.transform = 'scale(1.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.15)';
+                e.currentTarget.style.color = 'var(--text-secondary)';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+            >
+              <MoreMenuIcon size={20} />
+            </button>
+          </div>
+
+          {exportMenu === project.id && (
+            <div style={{
+              position: 'fixed',
+              backgroundColor: 'var(--bg-surface)',
+              border: '1px solid rgba(99, 102, 241, 0.15)',
+              borderRadius: '16px',
+              boxShadow: '0 25px 50px -12px rgba(99, 102, 241, 0.25), 0 12px 24px -8px rgba(99, 102, 241, 0.15)',
+              minWidth: '220px',
+              zIndex: 100,
+              padding: '6px',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+            }}>
+              <button
+                onClick={() => handleExport('json', project.id, project.name)}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(79, 70, 229, 0.08)';
+                  e.currentTarget.style.transform = 'translateX(4px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.transform = 'translateX(0)';
+                }}
+              >
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(79, 70, 229, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <JsonIcon size={18} />
+                </div>
+                <span>导出 JSON</span>
+              </button>
+              <button
+                onClick={() => handleExport('videos', project.id, project.name)}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(139, 92, 246, 0.08)';
+                  e.currentTarget.style.transform = 'translateX(4px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.transform = 'translateX(0)';
+                }}
+              >
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(139, 92, 246, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <VideoIcon size={18} />
+                </div>
+                <span>导出视频</span>
+              </button>
+              <button
+                onClick={() => handleExport('bundle', project.id, project.name)}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(168, 85, 247, 0.08)';
+                  e.currentTarget.style.transform = 'translateX(4px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.transform = 'translateX(0)';
+                }}
+              >
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(168, 85, 247, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <BundleIcon size={18} />
+                </div>
+                <span>导出完整包</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </Link>
+    );
+  });
+
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', height: '100vh' }}>
+      {isMobile ? null : <Sidebar />}
+
+      {isMobile && mobileMenuOpen && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 9999,
+        }} onClick={() => setMobileMenuOpen(false)} />
+      )}
+
+      {isMobile && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'var(--bg-secondary)',
+          zIndex: 10000,
+          transform: mobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.3s ease',
+        }}>
+          <div style={{ height: '64px', display: 'flex', alignItems: 'center', padding: '0 16px', borderBottom: '1px solid var(--border-primary)' }}>
+            <div className="w-8 h-8 bg-[var(--accent)] rounded-lg flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <span style={{ marginLeft: '12px', fontSize: '18px', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+              开演AI
+            </span>
+          </div>
+          <nav style={{ padding: '16px' }}>
+            {[
+              { title: '我的项目', icon: ProjectGridIcon, href: '/projects' },
+              { title: '文档管理', icon: FileText, href: '/documents' },
+              { title: '团队管理', icon: Users, href: '/team' },
+              { title: '设置', icon: MoreMenuIcon, href: '/settings' },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                to={item.href}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '16px',
+                  color: 'var(--text-primary)',
+                  textDecoration: 'none',
+                  borderRadius: '12px',
+                  marginBottom: '8px',
+                }}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <item.icon style={{ width: '24px', height: '24px', color: 'var(--text-tertiary)' }} />
+                <span style={{ fontSize: '16px', fontWeight: '500' }}>{item.title}</span>
+              </Link>
+            ))}
+          </nav>
+        </div>
+      )}
+
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <header style={{
+          height: isMobile ? '64px' : '80px',
+          borderBottom: '1px solid var(--border-primary)',
+          backgroundColor: 'var(--bg-elevated)',
+          padding: `0 ${isMobile ? '16px' : isTablet ? '24px' : '32px'}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexShrink: 0,
+          gap: isMobile ? '12px' : '0',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '24px', flex: 1, minWidth: 0 }}>
+            {isMobile && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                <Menu style={{ width: '24px', height: '24px' }} />
+              </Button>
+            )}
+            <div style={{ display: isMobile ? 'none' : 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <h1 style={{
+                  fontSize: '26px',
+                  fontWeight: '600',
+                  color: 'var(--text-primary)',
+                  margin: 0,
+                  letterSpacing: '-0.01em',
+                }}>
+                  我的项目
+                </h1>
+                <span style={{
+                  padding: '2px 8px',
+                  borderRadius: '9999px',
+                  backgroundColor: 'var(--accent-bg)',
+                  color: 'var(--accent-text)',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                }}>
+                  {projects.length}
+                </span>
+              </div>
+              <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', margin: 0, fontWeight: '400' }}>
+                管理和追踪所有你的创作项目
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px' }}>
+            {isMobile ? (
+              <div style={{ position: 'relative' }}>
+                <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'var(--text-muted)' }} />
+                <Input
+                  placeholder="搜索..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: '140px',
+                    paddingLeft: '40px',
+                    height: '36px',
+                    fontSize: '13px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-primary)',
+                    backgroundColor: 'var(--bg-hover)',
+                    color: 'var(--text-primary)',
+                  }}
+                />
+              </div>
+            ) : (
+              <div style={{ position: 'relative' }}>
+                <Search style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', width: '20px', height: '20px', color: 'var(--text-muted)' }} />
+                <Input
+                  placeholder="搜索项目名称或描述..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: isTablet ? '200px' : '320px',
+                    paddingLeft: '48px',
+                    height: '44px',
+                    fontSize: '14px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border-primary)',
+                    backgroundColor: 'var(--bg-hover)',
+                    color: 'var(--text-primary)',
+                  }}
+                />
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: isMobile ? '8px' : '12px', alignItems: 'center' }}>
+              <div style={{ position: 'relative' }}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowFilters(!showFilters)}
+                  aria-label="筛选"
+                  style={{
+                    padding: isMobile ? '0 12px' : '0 16px',
+                    height: isMobile ? '40px' : '44px',
+                    gap: '8px',
+                    borderRadius: '11px',
+                    fontWeight: '600',
+                    fontSize: isMobile ? '13px' : '14px',
+                    border: '1px solid var(--border-primary)',
+                    backgroundColor: 'var(--bg-surface)',
+                    color: (filterType !== 'all' || filterStatus !== 'all') ? 'var(--accent)' : 'var(--text-secondary)',
+                  }}
+                >
+                  <Filter style={{ width: isMobile ? '16px' : '17px', height: isMobile ? '16px' : '17px' }} />
+                  {!isMobile && <span>筛选</span>}
+                  {(filterType !== 'all' || filterStatus !== 'all') && (
+                    <span style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--accent)',
+                      position: 'absolute',
+                      top: '10px',
+                      right: isMobile ? '10px' : '14px',
+                    }} />
+                  )}
+                </Button>
+
+                {showFilters && (
+                  <div style={{
+                    position: 'absolute',
+                    top: isMobile ? '52px' : '56px',
+                    right: 0,
+                    backgroundColor: 'var(--bg-surface)',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '14px',
+                    boxShadow: '0 12px 28px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08)',
+                    padding: '14px',
+                    zIndex: 50,
+                    minWidth: '200px',
+                  }}>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.04em', marginBottom: '10px' }}>
+                      项目类型
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '4px', marginBottom: '14px' }}>
+                      {['all', 'SCRIPT', 'NOVEL', 'MIXED'].map((type) => (
+                        <Button
+                          key={type}
+                          variant="ghost"
+                          onClick={() => setFilterType(type)}
+                          fullWidth
+                          style={{ 
+                            justifyContent: 'space-between',
+                            color: filterType === type ? 'var(--accent)' : 'var(--text-secondary)',
+                            backgroundColor: filterType === type ? 'var(--accent-bg)' : 'transparent',
+                            borderRadius: '8px',
+                            padding: '8px 12px',
+                            fontSize: '13px',
+                          }}
+                        >
+                          <span>{type === 'all' ? '全部类型' : getProjectTypeLabel(type)}</span>
+                          {filterType === type && <X style={{ width: '14px', height: '14px' }} />}
+                        </Button>
+                      ))}
+                    </div>
+
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.04em', marginBottom: '10px' }}>
+                      项目状态
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '4px' }}>
+                      {['all', 'ACTIVE', 'COMPLETED', 'PAUSED'].map((status) => {
+                        const statusInfo = getStatusInfo(status);
+                        const StatusIcon = statusInfo.icon;
+                        return (
+                          <Button
+                            key={status}
+                            variant="ghost"
+                            onClick={() => setFilterStatus(status)}
+                            fullWidth
+                            style={{ 
+                              justifyContent: 'space-between',
+                              color: filterStatus === status ? statusInfo.textColor : 'var(--text-secondary)',
+                              backgroundColor: filterStatus === status ? statusInfo.bg : 'transparent',
+                              borderRadius: '8px',
+                              padding: '8px 12px',
+                              fontSize: '13px',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <StatusIcon style={{ width: '14px', height: '14px' }} />
+                              <span>{status === 'all' ? '全部状态' : statusInfo.label}</span>
+                            </div>
+                            {filterStatus === status && <X style={{ width: '14px', height: '14px' }} />}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '2px', padding: '4px', backgroundColor: 'var(--bg-hover)', borderRadius: '10px' }}>
+                <button
+                  onClick={() => setViewMode('grid')}
+                  aria-label="网格视图"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '36px',
+                    height: '36px',
+                    backgroundColor: viewMode === 'grid' ? 'var(--bg-surface)' : 'transparent',
+                    color: viewMode === 'grid' ? 'var(--text-primary)' : 'var(--text-muted)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = viewMode === 'grid' ? 'var(--bg-surface)' : 'var(--bg-surface)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = viewMode === 'grid' ? 'var(--bg-surface)' : 'transparent';
+                  }}
+                >
+                  <LayoutGrid style={{ width: '18px', height: '18px' }} />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  aria-label="列表视图"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '36px',
+                    height: '36px',
+                    backgroundColor: viewMode === 'list' ? 'var(--bg-surface)' : 'transparent',
+                    color: viewMode === 'list' ? 'var(--text-primary)' : 'var(--text-muted)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = viewMode === 'list' ? 'var(--bg-surface)' : 'var(--bg-surface)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = viewMode === 'list' ? 'var(--bg-surface)' : 'transparent';
+                  }}
+                >
+                  <LayoutList style={{ width: '18px', height: '18px' }} />
+                </button>
+              </div>
+
+              <button
+                onClick={() => navigate('/projects/new')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
+                  border: 'none',
+                  borderRadius: '10px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: '0 4px 16px rgba(99, 102, 241, 0.35)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 24px rgba(99, 102, 241, 0.45)';
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 50%, #a855f7 100%)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(99, 102, 241, 0.35)';
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)';
+                }}
+              >
+                <Plus style={{ width: '16px', height: '16px' }} />
+                {!isMobile && <span>创建项目</span>}
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '16px' : isTablet ? '24px' : '32px', position: 'relative' }}>
+          {loading ? (
+            <div style={{
+              display: viewMode === 'grid' ? 'grid' : 'flex',
+              flexDirection: viewMode === 'list' ? 'column' : 'inherit',
+              gridTemplateColumns: viewMode === 'grid' ? (isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(380px, 1fr))') : undefined,
+              gap: viewMode === 'grid' ? (isMobile ? '16px' : '24px') : '16px'
+            }}>
+              {Array.from({ length: viewMode === 'grid' ? (isMobile ? 2 : isTablet ? 4 : 6) : 4 }).map((_, index) => (
+                <div key={index}>
+                  {viewMode === 'grid' ? <SkeletonCard /> : <SkeletonList />}
+                </div>
+              ))}
+            </div>
+          ) : projects.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <>
+              {viewMode === 'grid' ? (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(380px, 1fr))',
+                  gap: isMobile ? '16px' : '24px',
+                }}>
+                  {projects.map((project) => (
+                    <ProjectCard key={project.id} project={project} />
+                  ))}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '16px' }}>
+                  {projects.map((project) => (
+                    <ProjectListItem key={project.id} project={project} />
+                  ))}
+                </div>
+              )}
+
+              {!loading && totalPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '40px', padding: '24px', flexWrap: 'wrap' as const }}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    style={{
+                      padding: '0 20px',
+                      height: '44px',
+                      borderRadius: '12px',
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      border: '1px solid var(--border-primary)',
+                      backgroundColor: 'var(--bg-surface)',
+                      color: 'var(--text-tertiary)',
+                      cursor: page === 1 ? 'not-allowed' : 'pointer',
+                      opacity: page === 1 ? 0.5 : 1,
+                    }}
+                  >
+                    上一页
+                  </Button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 20px', fontSize: '15px', color: 'var(--text-tertiary)', fontWeight: '500' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>第</span>
+                    <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>{page}</span>
+                  </div>
+                  <span style={{ fontSize: '15px', color: 'var(--text-muted)' }}>/</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 20px', fontSize: '15px', color: 'var(--text-tertiary)', fontWeight: '500' }}>
+                    <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>{totalPages}</span>
+                  </div>
+                  <span style={{ fontSize: '15px', color: 'var(--text-muted)', marginRight: '8px' }}>页</span>
+                  <Button
+                    variant="outline"
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    style={{
+                      padding: '0 20px',
+                      height: '44px',
+                      borderRadius: '12px',
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      border: '1px solid var(--border-primary)',
+                      backgroundColor: 'var(--bg-surface)',
+                      color: 'var(--text-tertiary)',
+                      cursor: page === totalPages ? 'not-allowed' : 'pointer',
+                      opacity: page === totalPages ? 0.5 : 1,
+                    }}
+                  >
+                    下一页
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </main>
+
+      <style>
+        {`
+          @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-10px) scale(1.02); }
+          }
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          @media (max-width: 767px) {
+            .sidebar-hidden { display: none; }
+          }
+        `}
+      </style>
+    </div>
+  );
+}

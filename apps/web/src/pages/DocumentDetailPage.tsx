@@ -4,7 +4,6 @@ import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { EmptyState } from '../components/ui/EmptyState';
-import { Sidebar } from '../components/Sidebar';
 import { apiClient } from '../lib/api-client';
 import {
   ArrowLeft,
@@ -43,19 +42,19 @@ interface Document {
 }
 
 const DOCUMENT_TYPES: Record<string, { icon: React.ElementType; color: string; bgColor: string; label: string }> = {
-  script: { icon: FileCode, color: '#8b5cf6', bgColor: 'rgba(139, 92, 246, 0.1)', label: '剧本' },
-  novel: { icon: FileText, color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.1)', label: '小说' },
-  outline: { icon: FileText, color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.1)', label: '大纲' },
-  storyline: { icon: FileText, color: '#f59e0b', bgColor: 'rgba(245, 158, 11, 0.1)', label: '故事线' },
-  notes: { icon: FileText, color: '#ec4899', bgColor: 'rgba(236, 72, 159, 0.1)', label: '笔记' },
-  general: { icon: File, color: '#64748b', bgColor: 'rgba(100, 116, 139, 0.1)', label: '文档' },
+  script: { icon: FileCode, color: 'var(--accent)', bgColor: 'var(--accent-light)', label: '剧本' },
+  novel: { icon: FileText, color: 'var(--info)', bgColor: 'var(--info-light)', label: '小说' },
+  outline: { icon: FileText, color: 'var(--success)', bgColor: 'var(--success-light)', label: '大纲' },
+  storyline: { icon: FileText, color: 'var(--warning)', bgColor: 'var(--warning-light)', label: '故事线' },
+  notes: { icon: FileText, color: 'var(--error)', bgColor: 'var(--error-light)', label: '笔记' },
+  general: { icon: File, color: 'var(--text-tertiary)', bgColor: 'var(--bg-tertiary-light)', label: '文档' },
 };
 
 const STATUS_CONFIG: Record<string, { color: string; bgColor: string; label: string }> = {
-  draft: { color: '#64748b', bgColor: 'rgba(100, 116, 139, 0.1)', label: '草稿' },
-  in_progress: { color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.1)', label: '进行中' },
-  completed: { color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.1)', label: '已完成' },
-  review: { color: '#f59e0b', bgColor: 'rgba(245, 158, 11, 0.1)', label: '待审核' },
+  draft: { color: 'var(--text-tertiary)', bgColor: 'var(--bg-tertiary-light)', label: '草稿' },
+  in_progress: { color: 'var(--info)', bgColor: 'var(--info-light)', label: '进行中' },
+  completed: { color: 'var(--success)', bgColor: 'var(--success-light)', label: '已完成' },
+  review: { color: 'var(--warning)', bgColor: 'var(--warning-light)', label: '待审核' },
 };
 
 const DocumentDetailPage: React.FC = () => {
@@ -139,27 +138,21 @@ const DocumentDetailPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
-        <Sidebar />
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <LoadingSpinner size="large" />
-        </div>
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <LoadingSpinner size="large" />
       </div>
     );
   }
 
   if (error || !document) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
-        <Sidebar />
-        <div style={{ flex: 1, padding: '32px' }}>
-          <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-            <EmptyState
-              title="文档未找到"
-              description={error || '您查找的文档不存在'}
-              action={{ label: '返回文档列表', onClick: () => navigate('/documents') }}
-            />
-          </div>
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', padding: '32px' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+          <EmptyState
+            title="文档未找到"
+            description={error || '您查找的文档不存在'}
+            action={{ label: '返回文档列表', onClick: () => navigate('/documents') }}
+          />
         </div>
       </div>
     );
@@ -172,10 +165,8 @@ const DocumentDetailPage: React.FC = () => {
   const wordCount = editData.content.trim() ? editData.content.trim().split(/\s+/).length : 0;
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
-      <Sidebar />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: 'var(--bg-base)' }}>
+      <div style={{
           background: 'linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-base) 100%)',
           padding: '24px 32px',
           borderBottom: '1px solid var(--border-primary)',
@@ -192,28 +183,37 @@ const DocumentDetailPage: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    height: '40px',
-                    padding: '0 16px',
+                    height: '48px',
+                    padding: '0 24px',
                     backgroundColor: 'var(--bg-surface)',
                     border: '1px solid var(--border-primary)',
-                    borderRadius: '10px',
-                    color: 'var(--text-secondary)',
+                    borderRadius: '12px',
+                    color: 'var(--text-primary)',
                     fontSize: '14px',
-                    fontWeight: '500',
+                    fontWeight: '600',
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: 'var(--shadow-sm)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    backdropFilter: 'blur(8px)',
+                    WebkitBackdropFilter: 'blur(8px)',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                    e.currentTarget.style.color = 'var(--text-primary)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                    e.currentTarget.style.borderColor = 'var(--accent)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
-                    e.currentTarget.style.color = 'var(--text-secondary)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
                   }}
                 >
                   <ArrowLeft style={{ width: '16px', height: '16px' }} />
-                  返回
+                  返回文档
                 </button>
                 <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border-primary)' }} />
                 <div>
@@ -305,19 +305,29 @@ const DocumentDetailPage: React.FC = () => {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
-                        height: '44px',
-                        padding: '0 20px',
+                        height: '52px',
+                        padding: '0 28px',
                         backgroundColor: 'var(--bg-surface)',
-                        border: '1px solid var(--border-primary)',
-                        borderRadius: '12px',
+                        border: '2px solid var(--border-primary)',
+                        borderRadius: '14px',
                         color: 'var(--text-secondary)',
                         fontSize: '14px',
-                        fontWeight: '500',
+                        fontWeight: '600',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
+                        boxShadow: 'var(--shadow-sm)',
+                        position: 'relative',
+                        overflow: 'hidden',
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.08)';
                       }}
                     >
                       <X style={{ width: '16px', height: '16px' }} />
@@ -330,18 +340,28 @@ const DocumentDetailPage: React.FC = () => {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
-                        height: '44px',
-                        padding: '0 24px',
-                        background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                        height: '52px',
+                        padding: '0 28px',
+                        background: 'var(--gradient-primary)',
                         border: 'none',
-                        borderRadius: '12px',
+                        borderRadius: '14px',
                         color: 'white',
                         fontSize: '14px',
                         fontWeight: '600',
                         cursor: saving ? 'not-allowed' : 'pointer',
                         transition: 'all 0.2s ease',
-                        boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
+                        boxShadow: '0 6px 16px rgba(139, 92, 246, 0.4)',
                         opacity: saving ? 0.7 : 1,
+                        position: 'relative',
+                        overflow: 'hidden',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-3px)';
+                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(139, 92, 246, 0.5)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 6px 16px rgba(139, 92, 246, 0.4)';
                       }}
                     >
                       {saving ? (
@@ -365,29 +385,35 @@ const DocumentDetailPage: React.FC = () => {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
-                        height: '44px',
-                        padding: '0 20px',
-                        background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                        height: '52px',
+                        padding: '0 28px',
+                        background: 'var(--gradient-primary)',
                         border: 'none',
-                        borderRadius: '12px',
+                        borderRadius: '14px',
                         color: 'white',
                         fontSize: '14px',
                         fontWeight: '600',
                         cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        boxShadow: '0 8px 24px rgba(139, 92, 246, 0.4)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(139, 92, 246, 0.4)';
+                        e.currentTarget.style.transform = 'translateY(-3px)';
+                        e.currentTarget.style.boxShadow = '0 12px 32px rgba(139, 92, 246, 0.5)';
+                        e.currentTarget.style.background = 'var(--gradient-primary-hover)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.3)';
+                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(139, 92, 246, 0.4)';
+                        e.currentTarget.style.background = 'var(--gradient-primary)';
                       }}
                     >
                       <Edit3 style={{ width: '16px', height: '16px' }} />
-                      编辑
+                      编辑文档
                     </button>
                     <button
                       onClick={() => setShowDeleteConfirm(true)}
@@ -395,24 +421,33 @@ const DocumentDetailPage: React.FC = () => {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
-                        height: '44px',
-                        padding: '0 20px',
+                        height: '52px',
+                        padding: '0 28px',
                         backgroundColor: 'var(--bg-surface)',
-                        border: '1px solid var(--border-primary)',
-                        borderRadius: '12px',
-                        color: '#ef4444',
+                        border: '2px solid var(--border-primary)',
+                        borderRadius: '14px',
+                        color: 'var(--error)',
                         fontSize: '14px',
-                        fontWeight: '500',
+                        fontWeight: '600',
                         cursor: 'pointer',
-                        transition: 'all 0.2s ease',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
-                        e.currentTarget.style.borderColor = '#ef4444';
+                        e.currentTarget.style.backgroundColor = 'var(--error-light)';
+                        e.currentTarget.style.borderColor = 'var(--error)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(239, 68, 68, 0.3)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
                         e.currentTarget.style.borderColor = 'var(--border-primary)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.08)';
                       }}
                     >
                       <Trash2 style={{ width: '16px', height: '16px' }} />
@@ -581,23 +616,36 @@ const DocumentDetailPage: React.FC = () => {
                   <button
                     style={{
                       width: '100%',
-                      height: '40px',
+                      height: '48px',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '10px',
-                      padding: '0 16px',
+                      padding: '0 20px',
                       backgroundColor: 'var(--bg-surface)',
                       border: '1px solid var(--border-primary)',
-                      borderRadius: '10px',
-                      color: 'var(--text-secondary)',
-                      fontSize: '13px',
-                      fontWeight: '500',
+                      borderRadius: '12px',
+                      color: 'var(--text-primary)',
+                      fontSize: '14px',
+                      fontWeight: '600',
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                      e.currentTarget.style.color = 'var(--text-primary)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.15)';
+                      e.currentTarget.style.borderColor = 'var(--accent)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.08)';
+                      e.currentTarget.style.borderColor = 'var(--border-primary)';
                     }}
                   >
                     <Share2 style={{ width: '16px', height: '16px' }} />
@@ -606,23 +654,36 @@ const DocumentDetailPage: React.FC = () => {
                   <button
                     style={{
                       width: '100%',
-                      height: '40px',
+                      height: '48px',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '10px',
-                      padding: '0 16px',
+                      padding: '0 20px',
                       backgroundColor: 'var(--bg-surface)',
                       border: '1px solid var(--border-primary)',
-                      borderRadius: '10px',
-                      color: 'var(--text-secondary)',
-                      fontSize: '13px',
-                      fontWeight: '500',
+                      borderRadius: '12px',
+                      color: 'var(--text-primary)',
+                      fontSize: '14px',
+                      fontWeight: '600',
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                      e.currentTarget.style.color = 'var(--text-primary)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.15)';
+                      e.currentTarget.style.borderColor = 'var(--accent)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.08)';
+                      e.currentTarget.style.borderColor = 'var(--border-primary)';
                     }}
                   >
                     <Copy style={{ width: '16px', height: '16px' }} />
@@ -631,23 +692,36 @@ const DocumentDetailPage: React.FC = () => {
                   <button
                     style={{
                       width: '100%',
-                      height: '40px',
+                      height: '48px',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '10px',
-                      padding: '0 16px',
+                      padding: '0 20px',
                       backgroundColor: 'var(--bg-surface)',
                       border: '1px solid var(--border-primary)',
-                      borderRadius: '10px',
-                      color: 'var(--text-secondary)',
-                      fontSize: '13px',
-                      fontWeight: '500',
+                      borderRadius: '12px',
+                      color: 'var(--text-primary)',
+                      fontSize: '14px',
+                      fontWeight: '600',
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                      e.currentTarget.style.color = 'var(--text-primary)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.15)';
+                      e.currentTarget.style.borderColor = 'var(--accent)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.08)';
+                      e.currentTarget.style.borderColor = 'var(--border-primary)';
                     }}
                   >
                     <Download style={{ width: '16px', height: '16px' }} />
@@ -658,7 +732,6 @@ const DocumentDetailPage: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
 
       {showDeleteConfirm && (
         <div style={{
@@ -712,7 +785,7 @@ const DocumentDetailPage: React.FC = () => {
                 style={{
                   height: '44px',
                   padding: '0 24px',
-                  backgroundColor: '#ef4444',
+                  backgroundColor: 'var(--error)',
                   border: 'none',
                   borderRadius: '12px',
                   color: 'white',

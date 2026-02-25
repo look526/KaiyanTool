@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Save, RefreshCw, Download, Upload, AlertCircle, CheckCircle2, Loader2, Settings2, Play, X, History, ChevronDown, ChevronUp, CheckSquare, Square } from 'lucide-react'
-import { Sidebar } from '../components/Sidebar'
 import { ModelSelector, ContentType, BatchOperations, BatchModelItem } from '../components/ui/ModelSelector'
 import { AIProviderModel } from '../components/ui/ModelSelector'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { apiClient } from '../lib/api-client'
+import { uiConfig } from '../config'
 
 interface ModelConfiguration {
   contentType: ContentType
@@ -86,7 +86,7 @@ export default function ModelConfigurationPage() {
       setError(null)
       await apiClient.setDefaultModels(configurations)
       setSuccess('配置保存成功')
-      setTimeout(() => setSuccess(null), 3000)
+      setTimeout(() => setSuccess(null), uiConfig.successMessageDuration)
       await loadConfiguration()
     } catch (err: any) {
       setError(err.message || '保存配置失败')
@@ -123,7 +123,7 @@ export default function ModelConfigurationPage() {
           if (data.defaultModels) {
             setConfigurations(data.defaultModels)
             setSuccess('配置导入成功')
-            setTimeout(() => setSuccess(null), 3000)
+            setTimeout(() => setSuccess(null), uiConfig.successMessageDuration)
           } else {
             setError('无效的配置文件格式')
           }
@@ -139,7 +139,7 @@ export default function ModelConfigurationPage() {
     if (confirm('确定要重置所有默认模型配置吗？')) {
       setConfigurations({})
       setSuccess('配置已重置')
-      setTimeout(() => setSuccess(null), 3000)
+      setTimeout(() => setSuccess(null), uiConfig.successMessageDuration)
     }
   }
 
@@ -175,7 +175,7 @@ export default function ModelConfigurationPage() {
       
       const successCount = Object.values(testResults).filter(r => r.success).length
       setSuccess(`批量测试完成：${successCount}/${models.length} 个模型测试成功`)
-      setTimeout(() => setSuccess(null), 3000)
+      setTimeout(() => setSuccess(null), uiConfig.successMessageDuration)
     } catch (err) {
       setError('批量测试失败')
     }
@@ -249,23 +249,17 @@ export default function ModelConfigurationPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
-        <Sidebar />
-        <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ textAlign: 'center' }}>
-            <Loader2 style={{ width: 48, height: 48, margin: '0 auto 16px', animation: 'spin 1s linear infinite', color: 'var(--accent)' }} />
-            <div style={{ color: 'var(--text-secondary)' }}>加载中...</div>
-          </div>
-        </main>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-base)' }}>
+        <div style={{ textAlign: 'center' }}>
+          <Loader2 style={{ width: 48, height: 48, margin: '0 auto 16px', animation: 'spin 1s linear infinite', color: 'var(--accent)' }} />
+          <div style={{ color: 'var(--text-secondary)' }}>加载中...</div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
-      <Sidebar />
-
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-base)' }}>
         <header style={{
           height: '64px',
           borderBottom: '1px solid var(--border-primary)',
@@ -953,7 +947,6 @@ export default function ModelConfigurationPage() {
             </Card>
           )}
         </div>
-      </main>
 
       <style>{`
         @keyframes spin {

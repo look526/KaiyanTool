@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { UserPlus, Search, Trash2, Crown, Shield, Eye, Mail, Loader2, User } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Button } from '../components/ui/button';
+import { Button } from '../components/ui/button-new';
 import { apiClient } from '../lib/api-client';
 
 interface Member {

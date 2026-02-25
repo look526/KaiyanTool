@@ -2,58 +2,71 @@ import { ReactNode } from 'react';
 
 export interface BadgeProps {
   children: ReactNode;
-  variant?: 'default' | 'primary' | 'success' | 'warning' | 'error' | 'info';
+  variant?: 'default' | 'primary' | 'success' | 'warning' | 'error' | 'info' | 'gradient';
   size?: 'small' | 'medium' | 'large';
   dot?: boolean;
+  pulse?: boolean;
   className?: string;
 }
 
 const VARIANT_COLORS = {
   default: {
-    bg: 'var(--bg-hover)',
-    text: 'var(--text-secondary)',
-    dot: 'var(--text-tertiary)',
+    bg: 'rgba(255, 255, 255, 0.1)',
+    text: '#ffffff',
+    dot: '#ffffff',
+    border: 'rgba(255, 255, 255, 0.15)',
   },
   primary: {
-    bg: 'rgba(139, 92, 246, 0.15)',
-    text: '#8b5cf6',
-    dot: '#8b5cf6',
+    bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    text: '#ffffff',
+    dot: '#667eea',
+    border: 'transparent',
   },
   success: {
-    bg: 'rgba(16, 185, 129, 0.15)',
-    text: '#10b981',
-    dot: '#10b981',
+    bg: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+    text: '#ffffff',
+    dot: '#4facfe',
+    border: 'transparent',
   },
   warning: {
-    bg: 'rgba(245, 158, 11, 0.15)',
-    text: '#f59e0b',
-    dot: '#f59e0b',
+    bg: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+    text: '#ffffff',
+    dot: '#fa709a',
+    border: 'transparent',
   },
   error: {
-    bg: 'rgba(239, 68, 68, 0.15)',
-    text: '#ef4444',
-    dot: '#ef4444',
+    bg: 'linear-gradient(135deg, #ff0844 0%, #ffb199 100%)',
+    text: '#ffffff',
+    dot: '#ff0844',
+    border: 'transparent',
   },
   info: {
-    bg: 'rgba(59, 130, 246, 0.15)',
-    text: '#3b82f6',
-    dot: '#3b82f6',
+    bg: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    text: '#ffffff',
+    dot: '#f093fb',
+    border: 'transparent',
+  },
+  gradient: {
+    bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    text: '#ffffff',
+    dot: '#667eea',
+    border: 'transparent',
   },
 };
 
 const SIZE_CONFIG = {
   small: {
-    padding: '2px 6px',
+    padding: '4px 10px',
     fontSize: '11px',
     dotSize: '6px',
   },
   medium: {
-    padding: '4px 10px',
+    padding: '6px 14px',
     fontSize: '12px',
     dotSize: '8px',
   },
   large: {
-    padding: '6px 14px',
+    padding: '8px 18px',
     fontSize: '14px',
     dotSize: '10px',
   },
@@ -64,10 +77,12 @@ export function Badge({
   variant = 'default',
   size = 'medium',
   dot = false,
+  pulse = false,
   className,
 }: BadgeProps) {
   const colors = VARIANT_COLORS[variant];
   const sizeConfig = SIZE_CONFIG[size];
+  const isGradient = variant === 'primary' || variant === 'success' || variant === 'warning' || variant === 'error' || variant === 'info' || variant === 'gradient';
 
   return (
     <span
@@ -78,12 +93,30 @@ export function Badge({
         gap: '6px',
         padding: sizeConfig.padding,
         fontSize: sizeConfig.fontSize,
-        fontWeight: '500',
+        fontWeight: '700',
         backgroundColor: colors.bg,
         color: colors.text,
+        border: isGradient ? 'none' : `1px solid ${colors.border}`,
         borderRadius: '9999px',
         whiteSpace: 'nowrap' as const,
         lineHeight: 1,
+        backdropFilter: isGradient ? 'none' : 'blur(10px)',
+        WebkitBackdropFilter: isGradient ? 'none' : 'blur(10px)',
+        boxShadow: isGradient ? '0 4px 12px rgba(102, 126, 234, 0.3)' : 'none',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        cursor: 'default',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'scale(1.05)';
+        if (isGradient) {
+          e.currentTarget.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.5)';
+        }
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'scale(1)';
+        if (isGradient) {
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
+        }
       }}
     >
       {dot && (
@@ -94,6 +127,7 @@ export function Badge({
             borderRadius: '50%',
             backgroundColor: colors.dot,
             flexShrink: 0,
+            boxShadow: `0 0 8px ${colors.dot}60`,
           }}
         />
       )}
@@ -105,18 +139,20 @@ export function Badge({
 export interface BadgeCountProps {
   count: number;
   max?: number;
-  variant?: 'default' | 'primary' | 'success' | 'warning' | 'error' | 'info';
+  variant?: 'default' | 'primary' | 'success' | 'warning' | 'error' | 'info' | 'gradient';
   size?: 'small' | 'medium' | 'large';
   showZero?: boolean;
+  pulse?: boolean;
   className?: string;
 }
 
 export function BadgeCount({
   count,
   max = 99,
-  variant = 'default',
+  variant = 'gradient',
   size = 'medium',
   showZero = false,
+  pulse = false,
   className,
 }: BadgeCountProps) {
   if (!showZero && count === 0) return null;
@@ -124,6 +160,7 @@ export function BadgeCount({
   const displayCount = count > max ? `${max}+` : count;
   const colors = VARIANT_COLORS[variant];
   const sizeConfig = SIZE_CONFIG[size];
+  const isGradient = variant === 'primary' || variant === 'success' || variant === 'warning' || variant === 'error' || variant === 'info' || variant === 'gradient';
 
   return (
     <span
@@ -132,18 +169,34 @@ export function BadgeCount({
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        minWidth: size === 'small' ? '18px' : size === 'medium' ? '22px' : '28px',
-        height: size === 'small' ? '18px' : size === 'medium' ? '22px' : '28px',
-        padding: `0 ${count > 9 ? '6px' : '4px'}`,
+        minWidth: size === 'small' ? '22px' : size === 'medium' ? '26px' : '32px',
+        height: size === 'small' ? '22px' : size === 'medium' ? '26px' : '32px',
+        padding: `0 ${count > 9 ? '8px' : '6px'}`,
         fontSize: sizeConfig.fontSize,
-        fontWeight: '600',
+        fontWeight: '800',
         backgroundColor: colors.bg,
         color: colors.text,
+        border: isGradient ? 'none' : `1px solid ${colors.border}`,
         borderRadius: '9999px',
         lineHeight: 1,
+        backdropFilter: isGradient ? 'none' : 'blur(10px)',
+        WebkitBackdropFilter: isGradient ? 'none' : 'blur(10px)',
+        boxShadow: isGradient ? '0 4px 12px rgba(102, 126, 234, 0.3)' : 'none',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        animation: pulse ? 'pulse-badge 2s ease-in-out infinite' : 'none',
       }}
     >
       {displayCount}
+      <style>{`
+        @keyframes pulse-badge {
+          0%, 100% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.1);
+          }
+        }
+      `}</style>
     </span>
   );
 }
@@ -162,7 +215,7 @@ const DOT_SIZE_CONFIG = {
 };
 
 export function BadgeDot({
-  color = '#10b981',
+  color = '#667eea',
   size = 'medium',
   pulse = false,
   className,
@@ -170,7 +223,7 @@ export function BadgeDot({
   const dotSize = DOT_SIZE_CONFIG[size];
 
   return (
-    <span className={className} style={{ display: 'inline-flex', alignItems: 'center' }}>
+    <span className={className} style={{ display: 'inline-flex', alignItems: 'center', position: 'relative' }}>
       <span
         style={{
           width: dotSize,
@@ -178,6 +231,7 @@ export function BadgeDot({
           borderRadius: '50%',
           backgroundColor: color,
           flexShrink: 0,
+          boxShadow: `0 0 12px ${color}80`,
         }}
       />
       {pulse && (
@@ -189,7 +243,7 @@ export function BadgeDot({
             borderRadius: '50%',
             backgroundColor: color,
             opacity: 0.5,
-            animation: 'badge-dot-pulse 2s ease-in-out infinite',
+            animation: 'badge-dot-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
           }}
         />
       )}
@@ -200,7 +254,7 @@ export function BadgeDot({
             opacity: 0.5;
           }
           50% {
-            transform: scale(1.5);
+            transform: scale(2.5);
             opacity: 0;
           }
         }

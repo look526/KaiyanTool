@@ -2,6 +2,7 @@ import { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { aiProviderService } from '../services/ai/provider.service'
 import logger from '../lib/logger'
+import { buildCharacterImagePrompt } from '../config/prompt-templates'
 
 class ShotGenerationController {
   async generateStartImage(req: Request, res: Response): Promise<void> {
@@ -266,39 +267,21 @@ class ShotGenerationController {
   }
 
   private buildImagePrompt(shot: any, type: 'start' | 'end', style?: string): string {
-    const parts = []
+    const character = shot?.character?.name || ''
+    const scene = shot?.scene?.location || ''
+    const action = shot?.actionSummary || ''
+    const camera = shot?.cameraMovement || ''
+    const selectedStyle = style || 'cinematic'
 
-    if (shot.visualStyle) {
-      parts.push(shot.visualStyle)
-    }
-
-    if (shot.scene) {
-      parts.push(`Scene: ${shot.scene.location}, ${shot.scene.time}`)
-    }
-
-    if (shot.character) {
-      parts.push(`Character: ${shot.character.name}`)
-    }
-
-    if (shot.actionSummary) {
-      parts.push(`Action: ${shot.actionSummary}`)
-    }
-
-    if (shot.cameraMovement) {
-      parts.push(`Camera: ${shot.cameraMovement}`)
-    }
+    let prompt = buildCharacterImagePrompt(character, scene, action, camera, selectedStyle)
 
     if (type === 'start') {
-      parts.push('Start frame')
+      prompt = 'Start frame: ' + prompt
     } else {
-      parts.push('End frame')
+      prompt = 'End frame: ' + prompt
     }
 
-    if (style) {
-      parts.push(`Style: ${style}`)
-    }
-
-    return parts.join(', ') + ', high quality, detailed'
+    return prompt
   }
 }
 

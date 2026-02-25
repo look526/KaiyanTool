@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Button } from '../components/ui/button';
+import { Button } from '../components/ui/button-new';
 import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/Badge';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
-import { Sidebar } from '../components/Sidebar';
 import EmptyState from '../components/EmptyState';
 import { apiClient } from '../lib/api-client';
 
@@ -204,7 +203,7 @@ const DocumentsPage: React.FC = () => {
               justifyContent: 'center',
               marginBottom: '24px',
             }}>
-              <FileText style={{ width: '40px', height: '40px', color: '#ef4444' }} />
+              <FileText style={{ width: '40px', height: '40px', color: 'var(--error)' }} />
             </div>
             <h2 style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '8px' }}>
               加载失败
@@ -220,9 +219,7 @@ const DocumentsPage: React.FC = () => {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
-      <Sidebar />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: 'var(--bg-base)' }}>
       <div style={{
         background: 'linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-base) 100%)',
         padding: '32px 32px 24px',
@@ -236,7 +233,7 @@ const DocumentsPage: React.FC = () => {
                   width: '40px',
                   height: '40px',
                   borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                  background: 'var(--gradient-primary)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -259,7 +256,7 @@ const DocumentsPage: React.FC = () => {
                 gap: '8px',
                 height: '44px',
                 padding: '0 24px',
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                background: 'var(--gradient-primary)',
                 border: 'none',
                 borderRadius: '12px',
                 fontSize: '15px',
@@ -321,7 +318,7 @@ const DocumentsPage: React.FC = () => {
                 }}
                 onFocus={(e) => {
                   e.currentTarget.style.borderColor = 'var(--accent)';
-                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(139, 92, 246, 0.1)';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
                 }}
                 onBlur={(e) => {
                   e.currentTarget.style.borderColor = 'var(--border-primary)';
@@ -497,8 +494,8 @@ const DocumentsPage: React.FC = () => {
                 description={searchQuery
                   ? '尝试使用不同的关键词或清除筛选条件'
                   : '创建您的第一个文档，开始您的创作之旅'}
-                iconColor="#8b5cf6"
-                iconBgColor="linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%)"
+                iconColor="var(--accent)"
+                iconBgColor="var(--gradient-primary-light)"
                 action={!searchQuery ? {
                   label: '创建第一个文档',
                   onClick: handleCreateDocument,
@@ -773,7 +770,6 @@ const DocumentsPage: React.FC = () => {
             </div>
           )}
         </div>
-      </div>
       </div>
     </div>
   );

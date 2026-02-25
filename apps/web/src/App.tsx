@@ -10,7 +10,6 @@ import RegisterPage from './pages/RegisterPage'
 import { ToastProvider } from './components/ui/Toast'
 import PageTransition from './components/PageTransition'
 
-// 懒加载组件
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
 const CreateProjectPage = lazy(() => import('./pages/CreateProjectPage'))
 const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'))
@@ -38,6 +37,14 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const SecuritySettingsPage = lazy(() => import('./pages/SecuritySettingsPage'))
 const AppearanceSettingsPage = lazy(() => import('./pages/AppearanceSettingsPage'))
 const NotificationSettingsPage = lazy(() => import('./pages/NotificationSettingsPage'))
+const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'))
+const ItemsPageSimple = lazy(() => import('./pages/ItemsPageSimple'))
+const HelpPage = lazy(() => import('./pages/HelpPage'))
+const AssetsPage = lazy(() => import('./pages/AssetsPage'))
+const ImageGenerationPage = lazy(() => import('./pages/ImageGenerationPage'))
+const VideoGenerationPage = lazy(() => import('./pages/VideoGenerationPage'))
+const DashboardLayout = lazy(() => import('./layouts/DashboardLayout').then(module => ({ default: module.DashboardLayout })))
+const ProjectLayout = lazy(() => import('./layouts/ProjectLayout').then(module => ({ default: module.ProjectLayout })))
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -82,7 +89,6 @@ function LoadingComponent() {
   );
 }
 
-
 function App() {
   return (
     <ThemeProvider>
@@ -98,33 +104,45 @@ function App() {
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/register" element={<RegisterPage />} />
                   <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                  <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
                   <Route path="/projects/new" element={<ProtectedRoute><CreateProjectPage /></ProtectedRoute>} />
                   <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetailPage /></ProtectedRoute>} />
-                  <Route path="/projects/:projectId/script" element={<ProtectedRoute><ScriptEditorPage /></ProtectedRoute>} />
-                  <Route path="/projects/:projectId/scripts/:scriptId" element={<ProtectedRoute><ScriptViewerPage /></ProtectedRoute>} />
-                  <Route path="/projects/:projectId/scripts/:scriptId/edit" element={<ProtectedRoute><ScriptEditorPage /></ProtectedRoute>} />
-                  <Route path="/projects/:id/novel" element={<ProtectedRoute><NovelEditorPage /></ProtectedRoute>} />
-                  <Route path="/projects/:id/novels" element={<ProtectedRoute><NovelsPage /></ProtectedRoute>} />
-                  <Route path="/projects/:projectId/storyline" element={<ProtectedRoute><StorylinePage /></ProtectedRoute>} />
-                  <Route path="/projects/:projectId/outline" element={<ProtectedRoute><OutlinePage /></ProtectedRoute>} />
-                  <Route path="/projects/:id/characters" element={<ProtectedRoute><CharactersPage /></ProtectedRoute>} />
-                  <Route path="/projects/:id/scenes" element={<ProtectedRoute><ScenesPage /></ProtectedRoute>} />
-                  <Route path="/projects/:id/members" element={<ProtectedRoute><ProjectMembersPage /></ProtectedRoute>} />
-                  <Route path="/projects/:id/shots" element={<ProtectedRoute><ShotsPage /></ProtectedRoute>} />
-                  <Route path="/projects/:id/video-merge" element={<ProtectedRoute><VideoMergePage /></ProtectedRoute>} />
+
+                  <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+                    <Route path="/help" element={<HelpPage />} />
+                    <Route path="/projects" element={<ProjectsPage />} />
+                    <Route path="/analytics" element={<AnalyticsPage />} />
+                    <Route path="/team" element={<TeamPage />} />
+                    <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/settings/ai" element={<AIProvidersPage />} />
+                    <Route path="/settings/models" element={<ModelConfigurationPage />} />
+                    <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/settings/security" element={<SecuritySettingsPage />} />
+                    <Route path="/settings/appearance" element={<AppearanceSettingsPage />} />
+                    <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
+                    <Route path="/documents" element={<DocumentsPage />} />
+                    <Route path="/documents/create" element={<DocumentCreatePage />} />
+                    <Route path="/documents/:id" element={<DocumentDetailPage />} />
+                  </Route>
+
+                  <Route element={<ProtectedRoute><ProjectLayout /></ProtectedRoute>}>
+                    <Route path="/projects/:projectId/script" element={<ScriptEditorPage />} />
+                    <Route path="/projects/:projectId/scripts/:scriptId" element={<ScriptViewerPage />} />
+                    <Route path="/projects/:projectId/scripts/:scriptId/edit" element={<ScriptEditorPage />} />
+                    <Route path="/projects/:id/novel" element={<NovelEditorPage />} />
+                    <Route path="/projects/:id/novels" element={<NovelsPage />} />
+                    <Route path="/projects/:projectId/storyline" element={<StorylinePage />} />
+                    <Route path="/projects/:projectId/outline" element={<OutlinePage />} />
+                    <Route path="/projects/:id/characters" element={<CharactersPage />} />
+                    <Route path="/projects/:id/scenes" element={<ScenesPage />} />
+                    <Route path="/projects/:id/members" element={<ProjectMembersPage />} />
+                    <Route path="/projects/:id/shots" element={<ShotsPage />} />
+                    <Route path="/projects/:id/items" element={<ItemsPageSimple />} />
+                    <Route path="/projects/:id/assets" element={<AssetsPage />} />
+                    <Route path="/projects/:id/video-merge" element={<VideoMergePage />} />
+                    <Route path="/projects/:id/image-generation" element={<ImageGenerationPage />} />
+                    <Route path="/projects/:id/video-generation" element={<VideoGenerationPage />} />
+                  </Route>
                   <Route path="/shots/:id/panels" element={<ProtectedRoute><PanelsPage /></ProtectedRoute>} />
-                  <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
-                  <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-                  <Route path="/settings/ai" element={<ProtectedRoute><AIProvidersPage /></ProtectedRoute>} />
-                  <Route path="/settings/models" element={<ProtectedRoute><ModelConfigurationPage /></ProtectedRoute>} />
-                  <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-                  <Route path="/settings/security" element={<ProtectedRoute><SecuritySettingsPage /></ProtectedRoute>} />
-                  <Route path="/settings/appearance" element={<ProtectedRoute><AppearanceSettingsPage /></ProtectedRoute>} />
-                  <Route path="/settings/notifications" element={<ProtectedRoute><NotificationSettingsPage /></ProtectedRoute>} />
-                  <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
-                  <Route path="/documents/create" element={<ProtectedRoute><DocumentCreatePage /></ProtectedRoute>} />
-                  <Route path="/documents/:id" element={<ProtectedRoute><DocumentDetailPage /></ProtectedRoute>} />
                 </Routes>
               </Suspense>
             </PageTransition>

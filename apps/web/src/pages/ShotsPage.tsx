@@ -15,9 +15,10 @@ import {
   Grid3x3,
   Video as VideoIcon,
   FileText,
-  Wand2
+  Wand2,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
-import { Sidebar } from '../components/Sidebar';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { VideoPlayer } from '../components/VideoPlayer';
@@ -68,6 +69,37 @@ export default function ShotsPage() {
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [selectedVideoModel, setSelectedVideoModel] = useState<string>('');
   const { addToast } = useToast();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelect = (shotId: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(shotId)) newSet.delete(shotId);
+    else newSet.add(shotId);
+    setSelectedIds(newSet);
+  };
+
+  const selectAll = () => {
+    if (selectedIds.size === shots.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(shots.map(s => s.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    try {
+      for (const sid of selectedIds) {
+        await apiClient.deleteShot(sid);
+      }
+      setSelectedIds(new Set());
+      addToast({ type: 'success', title: '删除成功', message: `已删除 ${selectedIds.size} 个分镜` });
+      await loadShots();
+    } catch (error) {
+      console.error('Failed to delete shots:', error);
+      addToast({ type: 'error', title: '删除失败', message: '批量删除失败' });
+    }
+  };
 
   const [form, setForm] = useState<ShotFormData>({
     sceneId: '',
@@ -437,21 +469,15 @@ export default function ShotsPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
-        <Sidebar />
-        <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Loader2 style={{ width: '48px', height: '48px', animation: 'spin 1s linear infinite' }} />
-        </main>
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader2 style={{ width: '48px', height: '48px', animation: 'spin 1s linear infinite' }} />
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
-      <Sidebar />
-
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <header style={{
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-base)' }}>
+      <header style={{
           height: '64px',
           borderBottom: '1px solid var(--border-primary)',
           backgroundColor: 'var(--bg-elevated)',
@@ -494,6 +520,18 @@ export default function ShotsPage() {
                 共 {shots.length} 个镜头
               </div>
             </div>
+            {shots.length > 0 && (
+              <Button variant="outline" size="sm" onClick={selectAll}>
+                {selectedIds.size === shots.length ? <Square style={{ width: '16px', height: '16px', marginRight: '6px' }} /> : <CheckSquare style={{ width: '16px', height: '16px', marginRight: '6px' }} />}
+                {selectedIds.size > 0 ? `${selectedIds.size}/${shots.length}` : '全选'}
+              </Button>
+            )}
+            {selectedIds.size > 0 && (
+              <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
+                <Trash2 style={{ width: '16px', height: '16px', marginRight: '6px' }} />
+                删除 ({selectedIds.size})
+              </Button>
+            )}
             <ModelSelector
               contentType="image"
               value={selectedModel}
@@ -574,10 +612,42 @@ export default function ShotsPage() {
               <Wand2 style={{ width: '16px', height: '16px' }} />
               从剧本生成
             </button>
-            <Button onClick={() => handleOpenModal()}>
-              <Plus style={{ width: '16px', height: '16px', marginRight: '8px' }} />
+            <button
+              onClick={() => handleOpenModal()}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                height: '52px',
+                padding: '0 32px',
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                border: 'none',
+                borderRadius: '14px',
+                color: 'white',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: '0 8px 24px rgba(139, 92, 246, 0.4)',
+                position: 'relative',
+                overflow: 'hidden',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-3px)';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(139, 92, 246, 0.5)';
+                e.currentTarget.style.background = 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(139, 92, 246, 0.4)';
+                e.currentTarget.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)';
+              }}
+            >
+              <Plus style={{ width: '16px', height: '16px' }} />
               添加镜头
-            </Button>
+            </button>
           </div>
         </header>
 
@@ -594,10 +664,42 @@ export default function ShotsPage() {
               <p style={{ color: 'var(--text-tertiary)', fontSize: '16px', marginBottom: '24px' }}>
                 暂无镜头，点击右上角添加
               </p>
-              <Button onClick={() => handleOpenModal()}>
-                <Plus style={{ width: '16px', height: '16px', marginRight: '8px' }} />
-                添加镜头
-              </Button>
+              <button
+              onClick={() => handleOpenModal()}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                height: '56px',
+                padding: '0 36px',
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                border: 'none',
+                borderRadius: '16px',
+                color: 'white',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: '0 8px 24px rgba(139, 92, 246, 0.45)',
+                position: 'relative',
+                overflow: 'hidden',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(139, 92, 246, 0.55)';
+                e.currentTarget.style.background = 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(139, 92, 246, 0.45)';
+                e.currentTarget.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)';
+              }}
+            >
+              <Plus style={{ width: '20px', height: '20px' }} />
+              添加镜头
+            </button>
             </div>
           ) : (
             <div style={{
@@ -622,13 +724,23 @@ export default function ShotsPage() {
                     padding: '16px',
                     cursor: 'grab',
                     userSelect: 'none',
-                    border: draggingId === shot.id ? '2px dashed var(--accent)' : '1px solid var(--border-primary)',
+                    border: selectedIds.has(shot.id) ? '2px solid var(--accent)' : (draggingId === shot.id ? '2px dashed var(--accent)' : '1px solid var(--border-primary)'),
                     opacity: draggingId === shot.id ? 0.5 : 1,
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <div
+                          onClick={(e) => { e.stopPropagation(); toggleSelect(shot.id); }}
+                          style={{ cursor: 'pointer', padding: '2px' }}
+                        >
+                          {selectedIds.has(shot.id) ? (
+                            <CheckSquare style={{ width: '18px', height: '18px', color: 'var(--accent)' }} />
+                          ) : (
+                            <Square style={{ width: '18px', height: '18px', color: 'var(--text-tertiary)' }} />
+                          )}
+                        </div>
                         <GripVertical style={{ width: '16px', height: '16px', color: 'var(--text-muted)' }} />
                         <span style={{
                           padding: '4px 8px',
@@ -686,7 +798,7 @@ export default function ShotsPage() {
                         onMouseEnter={(e) => {
                           if (!generatingImages.has(shot.id)) {
                             e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                            e.currentTarget.style.color = '#6366f1';
+                            e.currentTarget.style.color = 'var(--accent)';
                           }
                         }}
                         onMouseLeave={(e) => {
@@ -713,7 +825,7 @@ export default function ShotsPage() {
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                          e.currentTarget.style.color = '#f59e0b';
+                          e.currentTarget.style.color = 'var(--warning)';
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.backgroundColor = 'transparent';
@@ -758,7 +870,7 @@ export default function ShotsPage() {
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                          e.currentTarget.style.color = '#ef4444';
+                          e.currentTarget.style.color = 'var(--error)';
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.backgroundColor = 'transparent';
@@ -780,7 +892,7 @@ export default function ShotsPage() {
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                          e.currentTarget.style.color = '#10b981';
+                          e.currentTarget.style.color = 'var(--success)';
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.backgroundColor = 'transparent';
@@ -889,7 +1001,7 @@ export default function ShotsPage() {
                         padding: '8px 12px',
                         borderRadius: '6px',
                         border: 'none',
-                        background: generatingVideo.has(shot.id) ? 'var(--bg-hover)' : '#6366f1',
+                        background: generatingVideo.has(shot.id) ? 'var(--bg-hover)' : 'var(--accent)',
                         color: 'white',
                         cursor: generatingVideo.has(shot.id) ? 'not-allowed' : 'pointer',
                         transition: 'all 0.2s ease',
@@ -898,11 +1010,11 @@ export default function ShotsPage() {
                       }}
                       onMouseEnter={(e) => {
                         if (!generatingVideo.has(shot.id)) {
-                          e.currentTarget.style.backgroundColor = '#4f46e5';
+                          e.currentTarget.style.backgroundColor = 'var(--accent-hover)';
                         }
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = generatingVideo.has(shot.id) ? 'var(--bg-hover)' : '#6366f1';
+                        e.currentTarget.style.backgroundColor = generatingVideo.has(shot.id) ? 'var(--bg-hover)' : 'var(--accent)';
                       }}
                     >
                       {generatingVideo.has(shot.id) ? (
@@ -924,7 +1036,6 @@ export default function ShotsPage() {
             </div>
           )}
         </div>
-      </main>
 
       {showModal && (
         <div style={{
@@ -1356,8 +1467,8 @@ export default function ShotsPage() {
               <Button
                 style={{
                   flex: 1,
-                  backgroundColor: '#ef4444',
-                  borderColor: '#ef4444',
+                  backgroundColor: 'var(--error)',
+                  borderColor: 'var(--error)',
                 }}
                 onClick={handleDelete}
               >
@@ -1689,10 +1800,10 @@ export default function ShotsPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: '#f59e0b15',
+              backgroundColor: 'var(--warning-light)',
               marginBottom: '16px',
             }}>
-              <Wand2 style={{ width: '24px', height: '24px', color: '#f59e0b' }} />
+              <Wand2 style={{ width: '24px', height: '24px', color: 'var(--warning)' }} />
             </div>
 
             <h2 style={{
@@ -1802,7 +1913,7 @@ export default function ShotsPage() {
                   padding: '0 24px',
                   fontSize: '14px',
                   fontWeight: '600',
-                  background: '#f59e0b',
+                  background: 'var(--warning)',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '10px',
@@ -1816,14 +1927,14 @@ export default function ShotsPage() {
                 }}
                 onMouseEnter={(e) => {
                   if (!optimizingPrompt) {
-                    e.currentTarget.style.background = '#d97706';
+                    e.currentTarget.style.background = 'var(--warning-hover)';
                     e.currentTarget.style.transform = 'translateY(-1px)';
                     e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.15)';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!optimizingPrompt) {
-                    e.currentTarget.style.background = '#f59e0b';
+                    e.currentTarget.style.background = 'var(--warning)';
                     e.currentTarget.style.transform = 'translateY(0)';
                     e.currentTarget.style.boxShadow = 'none';
                   }

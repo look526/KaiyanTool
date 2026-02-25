@@ -294,3 +294,89 @@ export const rewriteScript = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'AI改写失败' });
   }
 };
+
+export const optimizeScene = async (req: Request, res: Response) => {
+  try {
+    const { sceneContent, location, time, direction } = req.body;
+
+    if (!sceneContent || typeof sceneContent !== 'string') {
+      return res.status(400).json({ error: '场景内容不能为空' });
+    }
+
+    const aiProviders = await prisma.aIProvider.findMany({
+      where: { enabled: true },
+      include: { models: true },
+    });
+
+    if (aiProviders.length === 0) {
+      return res.status(400).json({ error: '没有可用的 AI 提供商' });
+    }
+
+    const provider = aiProviders[0];
+
+    try {
+      providerManager.addProvider({
+        id: provider.id,
+        name: provider.name,
+        type: provider.type as any,
+        apiKey: provider.apiKey,
+        baseUrl: provider.baseUrl || undefined,
+      });
+
+      const aiProvider = providerManager.getProvider(provider.id);
+      if (!aiProvider) {
+        throw new Error('AI 提供商初始化失败');
+      }
+
+      const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
+        {
+          role: 'system',
+          content: `你是一个专业的剧本场景优化专家。你的任务是优化剧本中的场景描写，使其更加生动、具体、有画面感。
+优化原则：
+1. 保持原有剧情和人物设定不变
+2. 增强环境细节描写（光线、声音、气味等）
+3. 强化氛围渲染
+4. 使对话更加自然流畅
+5. 添加适当的动作和表情描写
+6. 保持剧本格式规范`
+        },
+        {
+          role: 'user',
+          content: `请优化以下场景：
+
+场景位置：${location || '未指定'}
+时间：${time || '未指定'}
+优化方向：${direction || '增强场景描述，使画面感更强'}
+
+原始场景内容：
+${sceneContent}
+
+请直接输出优化后的场景内容，保持剧本格式，不需要任何额外说明。`
+        }
+      ];
+
+      const result = await aiProvider.chat(messages);
+      
+      let optimizedContent = result.content;
+      if (!optimizedContent) {
+        optimizedContent = sceneContent;
+      }
+
+      res.json({
+        success: true,
+        suggestion: optimizedContent,
+        optimized: optimizedContent
+      });
+    } catch (aiError) {
+      console.error('AI 调用失败:', aiError);
+      res.json({
+        success: true,
+        suggestion: sceneContent,
+        optimized: sceneContent
+      });
+    }
+  } catch (error) {
+    console.error('场景优化失败:', error);
+    res.status(500).json({ error: '场景优化失败' });
+  }
+};

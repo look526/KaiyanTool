@@ -1,73 +1,152 @@
-/* 开演AI 亮色主题 - 基于 BigBanana 设计风格 */
+/* 开演AI 亮色主题 - 现代紫蓝渐变方案 */
 [data-theme="light"] {
-  --bg-base: #F7F5F0;
+  /* 背景色系 - 更清爽 */
+  --bg-base: #F8FAFC;
   --bg-primary: #FFFFFF;
-  --bg-secondary: #FAF9F7;
+  --bg-secondary: #F1F5F9;
   --bg-surface: #FFFFFF;
-  --bg-elevated: #F5F3EE;
-  --bg-deep: #F0EDE8;
-  --bg-sunken: #F9F7F4;
-  --bg-hover: #E5E0DA;
-  --border-primary: #E5E0DA;
-  --border-secondary: #D1CDC6;
-  --border-subtle: #EDE9E3;
-  --text-primary: #1A1816;
-  --text-secondary: #44413D;
-  --text-tertiary: #6B6862;
-  --text-muted: #8A8680;
-  --scrollbar-track: #F0EDE8;
-  --scrollbar-thumb: #D1CDC6;
-  --scrollbar-thumb-hover: #ADA9A2;
-  --glass-bg: rgba(255, 255, 255, 0.75);
-  --glass-border: rgba(26, 24, 22, 0.08);
-  --nav-active-bg: rgba(229, 224, 218, 0.8);
-  --nav-hover-bg: rgba(229, 224, 218, 0.5);
-  --btn-primary-bg: #B5936B;
-  --btn-primary-text: #ffffff;
-  --btn-primary-hover: #A07D57;
-  --btn-primary-shadow: rgba(181, 147, 107, 0.3);
-  --btn-selected-bg: #E5E0DA;
-  --btn-selected-border: #E5E0DA;
-  --overlay-heavy: rgba(0, 0, 0, 0.6);
-  --overlay-medium: rgba(0, 0, 0, 0.4);
-  --overlay-light: rgba(0, 0, 0, 0.2);
-  --overlay-full: rgba(0, 0, 0, 0.85);
-  --overlay-border: rgba(0, 0, 0, 0.1);
-  --selection-bg: rgba(26, 24, 22, 0.15);
-  --accent: #B5936B;
-  --accent-hover: #A07D57;
-  --accent-muted: #C4A882;
-  --accent-bg: rgba(181, 147, 107, 0.12);
-  --accent-bg-hover: rgba(181, 147, 107, 0.2);
-  --accent-border: rgba(181, 147, 107, 0.35);
-  --accent-text: #8B6E4E;
-  --accent-text-hover: #6B5138;
+  --bg-elevated: #F8FAFC;
+  --bg-deep: #E2E8F0;
+  --bg-sunken: #F1F5F9;
+  --bg-hover: #E2E8F0;
+  
+  /* 边框色系 */
+  --border-primary: #E2E8F0;
+  --border-secondary: #CBD5E1;
+  --border-subtle: #F1F5F9;
+  
+  /* 文本色系 - 更清晰的对比度 */
+  --text-primary: #0F172A;
+  --text-secondary: #334155;
+  --text-tertiary: #64748B;
+  --text-muted: #94A3B8;
+  
+  /* 滚动条 */
+  --scrollbar-track: #F1F5F9;
+  --scrollbar-thumb: #CBD5E1;
+  --scrollbar-thumb-hover: #94A3B8;
+  
+  /* 玻璃拟态 */
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(15, 23, 42, 0.08);
+  
+  /* 导航 */
+  --nav-active-bg: rgba(99, 102, 241, 0.1);
+  --nav-hover-bg: rgba(99, 102, 241, 0.05);
+  
+  /* 主色调 - 现代紫蓝 */
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-muted: #818cf8;
+  --accent-bg: rgba(99, 102, 241, 0.1);
+  --accent-bg-hover: rgba(99, 102, 241, 0.2);
+  --accent-border: rgba(99, 102, 241, 0.3);
+  --accent-text: #4338ca;
+  --accent-text-hover: #3730a3;
   --accent-on: #ffffff;
-  --accent-shadow: rgba(181, 147, 107, 0.2);
-  --toggle-active: #B5936B;
+  --accent-shadow: rgba(99, 102, 241, 0.25);
+  
+  /* 按钮 */
+  --btn-primary-bg: #6366f1;
+  --btn-primary-text: #ffffff;
+  --btn-primary-hover: #4f46e5;
+  --btn-primary-shadow: rgba(99, 102, 241, 0.35);
+  --btn-selected-bg: rgba(99, 102, 241, 0.1);
+  --btn-selected-border: #6366f1;
+  
+  /* 遮罩 */
+  --overlay-heavy: rgba(15, 23, 42, 0.7);
+  --overlay-medium: rgba(15, 23, 42, 0.5);
+  --overlay-light: rgba(15, 23, 42, 0.2);
+  --overlay-full: rgba(15, 23, 42, 0.9);
+  --overlay-border: rgba(15, 23, 42, 0.1);
+  --selection-bg: rgba(99, 102, 241, 0.2);
+  
+  /* 状态色 */
+  --success: #10b981;
+  --success-text: #047857;
+  --success-bg: rgba(16, 185, 129, 0.1);
+  --success-border: rgba(16, 185, 129, 0.3);
+  
+  --error: #ef4444;
+  --error-text: #dc2626;
+  --error-bg: rgba(239, 68, 68, 0.1);
+  --error-border: rgba(239, 68, 68, 0.3);
+  --error-hover-bg: rgba(239, 68, 68, 0.15);
+  
+  --warning: #f59e0b;
+  --warning-text: #d97706;
+  --warning-bg: rgba(245, 158, 11, 0.1);
+  --warning-border: rgba(245, 158, 11, 0.3);
+  
+  --info: #3b82f6;
+  --info-text: #2563eb;
+  --info-bg: rgba(59, 130, 246, 0.1);
+  --info-border: rgba(59, 130, 246, 0.3);
+  
+  /* 标签色 */
+  --tag-purple: #8b5cf6;
+  --tag-purple-bg: rgba(139, 92, 246, 0.1);
+  --tag-purple-border: rgba(139, 92, 246, 0.3);
+  --tag-purple-hover: rgba(139, 92, 246, 0.15);
+  
+  /* 渐变 */
+  --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --gradient-primary-light: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+  --gradient-secondary: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --gradient-accent: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  --gradient-text: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --gradient-bg: linear-gradient(135deg, rgba(99, 102, 241, 0.03) 0%, rgba(139, 92, 246, 0.03) 100%);
+  
+  /* 阴影 */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 20px 40px -8px rgba(0, 0, 0, 0.15);
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.06);
+  --shadow-glow: 0 8px 24px rgba(99, 102, 241, 0.25);
+  --shadow-glow-strong: 0 12px 32px rgba(99, 102, 241, 0.35);
+  --shadow-glow-extra: 0 20px 40px rgba(99, 102, 241, 0.45);
+  
+  /* 输入框 */
+  --accent-soft: rgba(99, 102, 241, 0.08);
+  --text-on-accent: #ffffff;
+  --bg-input: #F8FAFC;
+  --border-input: #E2E8F0;
+  --overlay-bg: rgba(15, 23, 42, 0.6);
+  --overlay-dark: rgba(15, 23, 42, 0.8);
+  
+  /* 颜色变量 */
+  --color-primary: #6366f1;
+  --color-secondary: #8b5cf6;
+  --color-accent: #4f46e5;
+  --color-error: #ef4444;
+  --color-error-light: #f87171;
+  
+  /* 圆角 */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  
+  /* 阴影变量 */
+  --shadow-primary: 0 4px 12px rgba(99, 102, 241, 0.25);
+  --shadow-primary-hover: 0 8px 20px rgba(99, 102, 241, 0.35);
+  --shadow-xl: 0 20px 40px -10px rgba(0, 0, 0, 0.12);
+  --border-accent: #6366f1;
+  
+  /* 首页渐变 */
+  --gradient-home-bg: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #ffffff 100%);
+  --gradient-text-animated: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+  --gradient-purple: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --gradient-green: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --gradient-orange: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  --gradient-teal: linear-gradient(135deg, #14b8a6 0%, #2dd4bf 100%);
+  --gradient-pink: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+  
+  /* 亮色主题特定 */
+  --toggle-active: #6366f1;
   --toggle-inactive: var(--border-secondary);
   --toggle-knob: #ffffff;
-  --success: #16a34a;
-  --success-text: #15803d;
-  --success-bg: rgba(22, 163, 74, 0.08);
-  --success-border: rgba(22, 163, 74, 0.25);
-  --error: #dc2626;
-  --error-text: #b91c1c;
-  --error-bg: rgba(220, 38, 38, 0.06);
-  --error-border: rgba(220, 38, 38, 0.2);
-  --error-hover-bg: rgba(220, 38, 38, 0.12);
-  --warning: #d97706;
-  --warning-text: #b45309;
-  --warning-bg: rgba(217, 119, 6, 0.08);
-  --warning-border: rgba(217, 119, 6, 0.25);
-  --info: #2563eb;
-  --info-text: #1d4ed8;
-  --info-bg: rgba(37, 99, 235, 0.06);
-  --info-border: rgba(37, 99, 235, 0.2);
-  --tag-purple: #7c3aed;
-  --tag-purple-bg: rgba(124, 58, 237, 0.08);
-  --tag-purple-border: rgba(124, 58, 237, 0.2);
-  --tag-purple-hover: rgba(124, 58, 237, 0.08);
 }
 
 body[data-theme="light"] {

@@ -52,6 +52,7 @@ export class AuthController {
           name: true,
           email: true,
           avatarUrl: true,
+          role: true,
           createdAt: true,
         },
       });
@@ -100,6 +101,7 @@ export class AuthController {
           name: true,
           email: true,
           avatarUrl: true,
+          role: true,
           createdAt: true,
           passwordHash: true,
         },
@@ -196,6 +198,7 @@ export class AuthController {
               name: true,
               email: true,
               avatarUrl: true,
+              role: true,
               bio: true,
               createdAt: true,
             },

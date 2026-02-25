@@ -13,7 +13,6 @@ import {
   Lightbulb,
   Zap
 } from 'lucide-react';
-import { Sidebar } from '../components/Sidebar';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -577,11 +576,8 @@ const StorylinePage: React.FC = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: inputBg, display: 'flex' }}>
-      <Sidebar />
-
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <header style={{
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <header style={{
           height: '64px',
           borderBottom: `1px solid ${borderColor}`,
           backgroundColor: cardBg,
@@ -628,7 +624,6 @@ const StorylinePage: React.FC = () => {
           {step === 'generating' && renderGeneratingStep()}
           {step === 'result' && renderResultStep()}
         </div>
-      </main>
     </div>
   );
 };

@@ -16,5 +16,7 @@ router.post('/:providerId/models', aiProviderController.createModel)
 router.put('/:providerId/models/:modelId', aiProviderController.updateModel)
 router.delete('/:providerId/models/:modelId', aiProviderController.deleteModel)
 router.post('/models/:modelId/test', aiProviderController.testModel)
+router.post('/models/:modelId/set-assistant-default', aiProviderController.setAssistantDefault)
+router.post('/models/:modelId/unset-assistant-default', aiProviderController.unsetAssistantDefault)
 
 export default router

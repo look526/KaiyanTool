@@ -5,6 +5,7 @@ export interface User {
   avatarUrl: string | null
   bio: string | null
   plan: string
+  role: string
   storageUsed: bigint
   storageLimit: bigint
   createdAt: Date

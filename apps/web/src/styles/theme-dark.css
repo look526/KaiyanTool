@@ -68,6 +68,51 @@
   --tag-purple-bg: rgba(192, 132, 252, 0.1);
   --tag-purple-border: rgba(192, 132, 252, 0.3);
   --tag-purple-hover: rgba(192, 132, 252, 0.1);
+  
+  --gradient-primary: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+  --gradient-primary-dark: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --gradient-secondary: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  --gradient-accent: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  --gradient-text: linear-gradient(135deg, #818cf8 0%, #c084fc 100%);
+  --gradient-bg: linear-gradient(135deg, rgba(129, 140, 248, 0.03) 0%, rgba(99, 130, 246, 0.03) 100%);
+  
+  --shadow-sm: 0 2px 16px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 6px 24px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.06);
+  --shadow-glow: 0 8px 24px rgba(99, 102, 241, 0.3);
+  --shadow-glow-strong: 0 12px 32px rgba(99, 102, 241, 0.4);
+  --shadow-glow-extra: 0 20px 40px rgba(99, 102, 241, 0.5);
+  
+  --accent-soft: rgba(99, 102, 241, 0.1);
+  --text-on-accent: #ffffff;
+  --bg-input: rgba(255, 255, 255, 0.05);
+  --border-input: rgba(255, 255, 255, 0.1);
+  --overlay-bg: rgba(0, 0, 0, 0.6);
+  --overlay-dark: rgba(0, 0, 0, 0.7);
+  --accent-border: rgba(99, 102, 241, 0.1);
+  
+  --color-primary: #818cf8;
+  --color-secondary: #6366f1;
+  --color-accent: #8b5cf6;
+  --color-error: #f87171;
+  --color-error-light: #ef4444;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
+  --shadow-primary: 0 4px 12px rgba(99, 102, 241, 0.3);
+  --shadow-primary-hover: 0 8px 20px rgba(99, 102, 241, 0.4);
+  --shadow-xl: 0 20px 40px -10px rgba(0, 0, 0, 0.3);
+  --border-accent: #818cf8;
+  
+  --gradient-home-bg: linear-gradient(135deg, #0a0a0f 0%, #12121a 50%, #0f0f16 100%);
+  --gradient-text-animated: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+  --gradient-purple: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --gradient-green: linear-gradient(135deg, #0ea5e9 0%, #22d3ee 100%);
+  --gradient-orange: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+  --gradient-teal: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  --gradient-pink: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
 }
 
 body[data-theme="dark"] {

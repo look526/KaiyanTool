@@ -21,7 +21,7 @@ import {
   Shot,
   NineGridPanel
 } from '@ai-content-platform/shared';
-const API_BASE_URL = '';
+const API_BASE_URL = 'http://localhost:3001';
 
 let authErrorHandler: (() => void) | null = null;
 
@@ -277,6 +277,18 @@ class ApiClient {
     });
   }
 
+  async setAssistantDefaultModel(modelId: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/api/ai-providers/models/${modelId}/set-assistant-default`, {
+      method: 'POST',
+    });
+  }
+
+  async unsetAssistantDefaultModel(modelId: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/api/ai-providers/models/${modelId}/unset-assistant-default`, {
+      method: 'POST',
+    });
+  }
+
   async exportProject(projectId: string): Promise<ExportData> {
     return this.request<ExportData>(`/api/projects/${projectId}/export`);
   }
@@ -479,6 +491,18 @@ class ApiClient {
     return this.request<{ scenes: any[]; characters: string[] }>('/api/script/parse', {
       method: 'POST',
       body: JSON.stringify({ content }),
+    });
+  }
+
+  async optimizeScene(data: {
+    sceneContent: string;
+    location: string;
+    time: string;
+    direction?: string;
+  }): Promise<{ suggestion: string; optimized: string }> {
+    return this.request<{ suggestion: string; optimized: string }>('/api/script/optimize-scene', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 
@@ -739,8 +763,90 @@ class ApiClient {
     return this.request<any[]>(`/api/projects/${projectId}/videos`);
   }
 
-  async deleteVideo(videoId: string): Promise<{ message: string }> {
-    return this.request<{ message: string }>(`/api/videos/${videoId}`, {
+  async getProjectAssets(projectId: string, type?: string, search?: string): Promise<any[]> {
+    const params = new URLSearchParams();
+    if (type) params.append('type', String(type));
+    if (search) params.append('search', String(search));
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.request<any[]>(`/api/upload/projects/${projectId}/assets${query}`);
+  }
+
+  async uploadAsset(projectId: string, file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request<any>(`/api/upload/projects/${projectId}/assets`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Content-Type': undefined,
+      },
+    });
+  }
+
+  async deleteItem(itemId: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/api/items/${itemId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getItems(projectId: string): Promise<any[]> {
+    return this.request<any[]>(`/api/projects/${projectId}/items`);
+  }
+
+  async createItem(projectId: string, data: {
+    name: string;
+    type?: string;
+    image?: string;
+    description?: string;
+    prompt?: string;
+  }): Promise<any> {
+    return this.request<any>(`/api/projects/${projectId}/items`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async generateItemsFromScript(projectId: string): Promise<{ message: string; items: any[] }> {
+    return this.request<{ message: string; items: any[] }>(`/api/projects/${projectId}/items/generate`, {
+      method: 'POST',
+    });
+  }
+
+  async updateItem(itemId: string, data: any): Promise<any> {
+    return this.request<any>(`/api/items/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async batchGenerateImages(data: {
+    prompt: string;
+    count: number;
+    referenceImageUrl?: string;
+    providerId?: string;
+  }): Promise<{ assets: Array<{ url: string; filename: string }> }> {
+    return this.request<{ assets: Array<{ url: string; filename: string }> }>('/api/image-generation/batch', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async generateImage(data: {
+    prompt: string;
+    negativePrompt?: string;
+    width: number;
+    height: number;
+    style: string;
+    projectId: string;
+  }): Promise<{ asset: { url: string } }> {
+    return this.request<{ asset: { url: string } }>('/api/image-generation', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAsset(assetId: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/api/assets/${assetId}`, {
       method: 'DELETE',
     });
   }
@@ -1009,6 +1115,274 @@ class ApiClient {
     };
   }> {
     return this.request('/api/model-preferences/analytics');
+  }
+
+  async getUserAnalytics(): Promise<{
+    projects: number;
+    collaborations: number;
+    contributions: {
+      today: number;
+      thisWeek: number;
+      thisMonth: number;
+    };
+    topProjects: Array<{
+      id: string;
+      name: string;
+      role: string;
+      assetCount: number;
+    }>;
+  }> {
+    return this.request('/api/analytics/user');
+  }
+
+  async getPlatformAnalytics(): Promise<{
+    totals: {
+      users: number;
+      projects: number;
+      assets: number;
+      generations: number;
+    };
+    recentActivity: {
+      dailyStats: Array<{
+        date: string;
+        projects: number;
+        assets: number;
+        generations: number;
+      }>;
+      topProjects: Array<{
+        id: string;
+        name: string;
+        assetCount: number;
+      }>;
+    };
+  }> {
+    return this.request('/api/analytics/platform');
+  }
+
+  async exportPremiere(data: {
+    projectId: string;
+    format: 'prproj' | 'aep' | 'edl' | 'xml';
+    resolution: '720p' | '1080p' | '4k';
+    frameRate: '24' | '25' | '30' | '60';
+    includeAudio?: boolean;
+    includeMarkers?: boolean;
+  }): Promise<Blob> {
+    const response = await fetch(`${this.baseUrl}/export/premiere`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.getToken()}`,
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Export failed');
+    return response.blob();
+  }
+
+  async exportVideos(data: {
+    projectId: string;
+    shotIds?: string[];
+    format?: 'mp4' | 'webm' | 'mov';
+    resolution?: '480p' | '720p' | '1080p' | '4k';
+    fps?: number;
+    quality?: 'low' | 'medium' | 'high';
+  }): Promise<{ taskId: string; status: string; totalVideos: number }> {
+    return this.request('/api/export/videos', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async exportAssets(projectId: string, assetTypes?: string[]): Promise<Blob> {
+    const response = await fetch(`${this.baseUrl}/export/assets`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.getToken()}`,
+      },
+      body: JSON.stringify({ projectId, assetTypes }),
+    });
+    if (!response.ok) throw new Error('Export failed');
+    return response.blob();
+  }
+
+  async exportKeyframes(projectId: string, shotIds?: string[]): Promise<Blob> {
+    const response = await fetch(`${this.baseUrl}/export/keyframes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.getToken()}`,
+      },
+      body: JSON.stringify({ projectId, shotIds }),
+    });
+    if (!response.ok) throw new Error('Export failed');
+    return response.blob();
+  }
+
+  async getExportPreview(projectId: string): Promise<{
+    project: { id: string; name: string; type: string };
+    shots: Array<{
+      id: string;
+      sequence: number;
+      duration: number;
+      hasStartFrame: boolean;
+      hasEndFrame: boolean;
+      hasVideo: boolean;
+    }>;
+    assets: {
+      total: number;
+      byType: Record<string, number>;
+    };
+    totalDuration: number;
+    estimatedExportSize: string;
+  }> {
+    return this.request(`/api/export/project/${projectId}/preview`);
+  }
+
+  async getExportFormats(): Promise<{
+    videoFormats: Array<{ id: string; name: string; extension: string; description: string }>;
+    resolutions: Array<{ id: string; name: string; width: number; height: number }>;
+    frameRates: Array<{ id: string; name: string; description: string }>;
+    projectFormats: Array<{ id: string; name: string; extension: string; description: string }>;
+  }> {
+    return this.request('/api/export/formats');
+  }
+
+  async getPromptTemplates(params?: { type?: string; category?: string; projectId?: string }): Promise<any[]> {
+    const queryParams = new URLSearchParams();
+    if (params?.type) queryParams.append('type', params.type);
+    if (params?.category) queryParams.append('category', params.category);
+    if (params?.projectId) queryParams.append('projectId', params.projectId);
+    const queryString = queryParams.toString();
+    return this.request(`/api/prompt-templates${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async getPromptTemplate(code: string): Promise<any> {
+    return this.request(`/api/prompt-templates/${code}`);
+  }
+
+  async createPromptTemplate(data: {
+    code: string;
+    name: string;
+    type?: string;
+    category?: string;
+    defaultValue: string;
+    customValue?: string;
+    description?: string;
+    variables?: any[];
+    projectId?: string;
+  }): Promise<any> {
+    return this.request('/api/prompt-templates', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updatePromptTemplate(code: string, data: Partial<{
+    name: string;
+    type: string;
+    category: string;
+    defaultValue: string;
+    customValue: string;
+    description: string;
+    variables: any[];
+    isActive: boolean;
+  }>): Promise<any> {
+    return this.request(`/api/prompt-templates/${code}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deletePromptTemplate(code: string): Promise<void> {
+    return this.request(`/api/prompt-templates/${code}`, { method: 'DELETE' });
+  }
+
+  async renderPromptTemplate(code: string, variables: Record<string, any>): Promise<{
+    code: string;
+    original: string;
+    rendered: string;
+    variables: Record<string, any>;
+  }> {
+    return this.request(`/api/prompt-templates/${code}/render`, {
+      method: 'POST',
+      body: JSON.stringify({ variables }),
+    });
+  }
+
+  async getProjectSettings(projectId: string): Promise<{
+    projectId: string;
+    settings: {
+      imageModel: string | null;
+      languageModel: string | null;
+      videoModel: string | null;
+      hasTokenKey: boolean;
+      defaultStyle: string | null;
+      defaultAspectRatio: string;
+      defaultResolution: string;
+    };
+  }> {
+    return this.request(`/api/project-settings/${projectId}`);
+  }
+
+  async updateProjectSettings(projectId: string, settings: Partial<{
+    imageModel: string;
+    languageModel: string;
+    videoModel: string;
+    defaultStyle: string;
+    defaultAspectRatio: string;
+    defaultResolution: string;
+  }>): Promise<{ success: boolean; settings: any }> {
+    return this.request(`/api/project-settings/${projectId}`, {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    });
+  }
+
+  async setProjectTokenKey(projectId: string, tokenKey: string): Promise<{ success: boolean }> {
+    return this.request(`/api/project-settings/${projectId}/token-key`, {
+      method: 'POST',
+      body: JSON.stringify({ tokenKey }),
+    });
+  }
+
+  async getProjectTokenKey(projectId: string): Promise<{ tokenKey: string | null }> {
+    return this.request(`/api/project-settings/${projectId}/token-key`);
+  }
+
+  async deleteProjectTokenKey(projectId: string): Promise<{ success: boolean }> {
+    return this.request(`/api/project-settings/${projectId}/token-key`, { method: 'DELETE' });
+  }
+
+  async generateProjectTokenKey(projectId: string): Promise<{ success: boolean; tokenKey: string }> {
+    return this.request(`/api/project-settings/${projectId}/generate-token-key`, { method: 'POST' });
+  }
+
+  async getChatSessions(projectId?: string): Promise<any[]> {
+    const queryParams = projectId ? `?projectId=${projectId}` : '';
+    return this.request(`/api/chat-history${queryParams}`);
+  }
+
+  async getChatSession(sessionId: string): Promise<any> {
+    return this.request(`/api/chat-history/${sessionId}`);
+  }
+
+  async createChatSession(data: { projectId?: string; title?: string }): Promise<any> {
+    return this.request('/api/chat-history', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateChatSession(sessionId: string, data: { title?: string; messages?: any[] }): Promise<any> {
+    return this.request(`/api/chat-history/${sessionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteChatSession(sessionId: string): Promise<void> {
+    return this.request(`/api/chat-history/${sessionId}`, { method: 'DELETE' });
   }
 }
 

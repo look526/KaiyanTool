@@ -101,7 +101,10 @@ export class AssetController {
         where: {
           id,
           project: {
-            ownerId: req.userId,
+            OR: [
+              { ownerId: req.userId },
+              { members: { some: { userId: req.userId } } },
+            ],
           },
         },
       })
@@ -141,7 +144,10 @@ export class AssetController {
         where: {
           id,
           project: {
-            ownerId: req.userId,
+            OR: [
+              { ownerId: req.userId },
+              { members: { some: { userId: req.userId } } },
+            ],
           },
         },
       })

@@ -36,6 +36,7 @@ export class AIProviderController {
               types: true,
               description: true,
               capabilities: true,
+              isAssistantDefault: true,
               createdAt: true,
               updatedAt: true,
             },
@@ -439,6 +440,58 @@ export class AIProviderController {
     } catch (error) {
       logger.error('Failed to test AI provider model', { userId: req.userId, modelId: req.params.modelId, error })
       res.status(500).json({ error: 'Failed to test model' })
+    }
+  }
+
+  async setAssistantDefault(req: Request, res: Response): Promise<void> {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized' })
+      return
+    }
+
+    const { modelId } = req.params
+
+    try {
+      await prisma.$transaction([
+        prisma.aIProviderModel.updateMany({
+          where: {
+            provider: { userId: req.userId },
+          },
+          data: { isAssistantDefault: false },
+        }),
+        prisma.aIProviderModel.update({
+          where: { id: modelId },
+          data: { isAssistantDefault: true },
+        }),
+      ])
+
+      logger.info('AI provider model set as assistant default', { userId: req.userId, modelId })
+      res.json({ message: 'Model set as assistant default' })
+    } catch (error) {
+      logger.error('Failed to set assistant default', { userId: req.userId, modelId, error })
+      res.status(500).json({ error: 'Failed to set assistant default' })
+    }
+  }
+
+  async unsetAssistantDefault(req: Request, res: Response): Promise<void> {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized' })
+      return
+    }
+
+    const { modelId } = req.params
+
+    try {
+      await prisma.aIProviderModel.update({
+        where: { id: modelId },
+        data: { isAssistantDefault: false },
+      })
+
+      logger.info('AI provider model unset as assistant default', { userId: req.userId, modelId })
+      res.json({ message: 'Model unset as assistant default' })
+    } catch (error) {
+      logger.error('Failed to unset assistant default', { userId: req.userId, modelId, error })
+      res.status(500).json({ error: 'Failed to unset assistant default' })
     }
   }
 }

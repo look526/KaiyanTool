@@ -26,25 +26,12 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  const bgGradient = theme === 'dark'
-    ? 'radial-gradient(ellipse at top right, rgba(99, 102, 241, 0.15) 0%, transparent 50%), radial-gradient(ellipse at bottom left, rgba(139, 92, 246, 0.15) 0%, transparent 50%)'
-    : 'radial-gradient(ellipse at top right, rgba(99, 102, 241, 0.08) 0%, transparent 50%), radial-gradient(ellipse at bottom left, rgba(139, 92, 246, 0.08) 0%, transparent 50%)';
 
-  const cardBg = theme === 'dark'
-    ? 'rgba(17, 17, 17, 0.8)'
-    : 'rgba(255, 255, 255, 0.9)';
-
-  const textColor = theme === 'dark' ? '#ffffff' : '#0f172a';
-  const mutedTextColor = theme === 'dark' ? '#a1a1aa' : '#64748b';
-  const borderColor = theme === 'dark' ? '#27272a' : '#e2e8f0';
-  const inputBg = theme === 'dark' ? '#18181b' : '#f8fafc';
-  const inputBorder = theme === 'dark' ? '#27272a' : '#e2e8f0';
 
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: theme === 'dark' ? '#09090b' : '#f8fafc',
-      backgroundImage: bgGradient,
+      backgroundColor: 'var(--bg-base)',
       position: 'relative',
       overflow: 'hidden',
       display: 'flex',
@@ -73,13 +60,13 @@ export default function ForgotPasswordPage() {
           <h1 style={{
             fontSize: '28px',
             fontWeight: '700',
-            color: textColor,
+            color: 'var(--text-primary)',
             marginBottom: '8px',
             margin: '0 0 8px 0',
             letterSpacing: '-0.5px',
           }}>找回密码</h1>
           <p style={{
-            color: mutedTextColor,
+            color: 'var(--text-secondary)',
             margin: 0,
             fontSize: '14px',
             fontWeight: '400',
@@ -87,8 +74,8 @@ export default function ForgotPasswordPage() {
         </div>
 
         <div style={{
-          backgroundColor: cardBg,
-          border: `1px solid ${borderColor}`,
+          backgroundColor: 'var(--bg-surface)',
+          border: '1px solid var(--border-primary)',
           borderRadius: '20px',
           padding: '32px',
           backdropFilter: 'blur(20px)',
@@ -103,7 +90,7 @@ export default function ForgotPasswordPage() {
                 display: 'block',
                 fontSize: '13px',
                 fontWeight: '600',
-                color: textColor,
+                color: 'var(--text-primary)',
                 marginBottom: '8px',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
@@ -116,7 +103,7 @@ export default function ForgotPasswordPage() {
                   left: '14px',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  color: mutedTextColor,
+                  color: 'var(--text-secondary)',
                   pointerEvents: 'none',
                   zIndex: 1,
                 }}>
@@ -133,20 +120,20 @@ export default function ForgotPasswordPage() {
                     padding: '14px 14px 14px 46px',
                     fontSize: '15px',
                     fontWeight: '400',
-                    backgroundColor: inputBg,
-                    border: `1px solid ${inputBorder}`,
+                    backgroundColor: 'var(--bg-deep)',
+                    border: '1px solid var(--border-primary)',
                     borderRadius: '12px',
-                    color: textColor,
+                    color: 'var(--text-primary)',
                     outline: 'none',
                     transition: 'all 0.2s ease',
                     boxSizing: 'border-box',
                   }}
                   onFocus={(e) => {
-                    e.target.style.borderColor = '#6366f1';
+                    e.target.style.borderColor = 'var(--accent)';
                     e.target.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)';
                   }}
                   onBlur={(e) => {
-                    e.target.style.borderColor = inputBorder;
+                    e.target.style.borderColor = 'var(--border-primary)';
                     e.target.style.boxShadow = 'none';
                   }}
                 />
@@ -162,7 +149,7 @@ export default function ForgotPasswordPage() {
                 fontSize: '16px',
                 fontWeight: '600',
                 letterSpacing: '0.5px',
-                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                background: 'var(--gradient-primary)',
                 border: 'none',
                 borderRadius: '12px',
                 color: 'white',
@@ -180,7 +167,7 @@ export default function ForgotPasswordPage() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
-              color: mutedTextColor,
+              color: 'var(--text-secondary)',
               textDecoration: 'none',
               fontSize: '14px',
               justifyContent: 'center',

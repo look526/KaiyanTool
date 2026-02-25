@@ -1,12 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Search, MoreVertical, Sparkles, Users, FolderKanban, FileJson, FileVideo, FileArchive, Filter, X, LayoutGrid, LayoutList, TrendingUp, Calendar, CheckCircle2, Pause, FileText, BookOpen, Layers, Menu } from 'lucide-react';
-import { Sidebar } from '../components/Sidebar';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { SkeletonCard, SkeletonList } from '../components/ui/Skeleton';
 import { apiClient, Project } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
+import { Button } from '../components/ui/button-new';
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -21,6 +18,7 @@ export default function ProjectsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
+  const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { addToast } = useToast();
 
@@ -166,84 +164,6 @@ export default function ProjectsPage() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [exportMenu]);
 
-  const EmptyState = () => (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column' as const,
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '400px',
-      padding: isMobile ? '40px 20px' : '60px 20px',
-    }}>
-      <div style={{
-        width: '64px',
-        height: '64px',
-        borderRadius: '16px',
-        backgroundColor: 'var(--accent-bg)',
-        display: 'flex',
-        alignItems: 'center' as const,
-        justifyContent: 'center',
-        marginBottom: '20px',
-      }}>
-        <Plus style={{ width: '32px', height: '32px', color: 'var(--accent)' }} />
-      </div>
-
-      <h2 style={{
-        fontSize: '20px',
-        fontWeight: '600',
-        color: 'var(--text-primary)',
-        marginBottom: '8px',
-        letterSpacing: '-0.01em',
-        textAlign: 'center' as const,
-      }}>
-        创建第一个项目
-      </h2>
-
-      <p style={{
-        fontSize: '14px',
-        color: 'var(--text-tertiary)',
-        marginBottom: '24px',
-        textAlign: 'center' as const,
-        maxWidth: '320px',
-        lineHeight: '1.5',
-      }}>
-        开始你的AI内容创作之旅
-      </p>
-
-      <button
-        onClick={() => navigate('/projects/new')}
-        style={{
-          height: '38px',
-          padding: '0 20px',
-          fontSize: '14px',
-          fontWeight: '500',
-          background: 'var(--accent)',
-          color: 'var(--accent-on)',
-          border: 'none',
-          borderRadius: '9px',
-          cursor: 'pointer',
-          boxShadow: 'none',
-          transition: 'all 0.15s ease',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'var(--accent-hover)';
-          e.currentTarget.style.transform = 'translateY(-1px)';
-          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'var(--accent)';
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = 'none';
-        }}
-      >
-        创建项目
-      </button>
-    </div>
-  );
-
   const ProjectCard = React.memo(({ project }: { project: Project }) => {
     const status = getStatusInfo(project.status);
     const StatusIcon = status.icon;
@@ -252,167 +172,159 @@ export default function ProjectsPage() {
     return (
       <Link to={`/projects/${project.id}`} style={{ textDecoration: 'none' }}>
         <div style={{
-          position: 'relative',
           backgroundColor: 'var(--bg-surface)',
-          borderRadius: isMobile ? '12px' : '20px',
-          border: '2px solid var(--border-primary)',
+          borderRadius: '16px',
+          border: '1px solid var(--border-subtle)',
           overflow: 'hidden',
-          transition: 'all 0.3s ease-out',
+          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           cursor: 'pointer',
+          padding: isMobile ? '16px' : '20px',
         }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-6px)';
-            e.currentTarget.style.borderColor = 'var(--accent)';
-            e.currentTarget.style.boxShadow = '0 20px 60px rgba(99, 102, 241, 0.15)';
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.1)';
+            e.currentTarget.style.borderColor = 'var(--border-primary)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.borderColor = 'var(--border-primary)';
-            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+            e.currentTarget.style.boxShadow = 'none';
+            e.currentTarget.style.borderColor = 'var(--border-subtle)';
           }}
         >
-          <div style={{
-            height: '5px',
-            background: 'linear-gradient(90deg, var(--accent) 0%, var(--accent-hover) 50%, #a855f7 100%)',
-          }} />
-
-          <div style={{ padding: isMobile ? '16px' : '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: isMobile ? '12px' : '20px' }}>
-              <div style={{ position: 'relative', width: isMobile ? '48px' : '64px', height: isMobile ? '48px' : '64px' }}>
-                <div style={{
-                  position: 'absolute',
-                  inset: 0,
-                  borderRadius: isMobile ? '10px' : '12px',
-                  background: 'linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%)',
-                  border: '2px solid #c7d2fe',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <TypeIcon style={{ width: isMobile ? '24px' : '32px', height: isMobile ? '24px' : '32px', color: '#4f46e5' }} />
-                </div>
-                <div style={{
-                  position: 'absolute',
-                  top: isMobile ? '-4px' : '-6px',
-                  right: isMobile ? '-4px' : '-6px',
-                  width: isMobile ? '20px' : '24px',
-                  height: isMobile ? '20px' : '24px',
-                  borderRadius: '50%',
-                  backgroundColor: 'var(--success-bg)',
-                  border: '3px solid var(--bg-surface)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                }}>
-                  <StatusIcon style={{ width: isMobile ? '10px' : '12px', height: isMobile ? '10px' : '12px', color: 'var(--success-text)' }} />
-                </div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: isMobile ? '12px' : '16px' }}>
+            <div style={{ position: 'relative', width: isMobile ? '48px' : '56px', height: isMobile ? '48px' : '56px' }}>
+              <div style={{
+                width: '100%',
+                height: '100%',
+                borderRadius: '12px',
+                backgroundColor: 'var(--bg-elevated)',
+                border: '1px solid var(--border-subtle)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <TypeIcon style={{ width: isMobile ? '24px' : '28px', height: isMobile ? '24px' : '28px', color: 'var(--accent)' }} />
               </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button
-                  onClick={(e) => toggleExportMenu(e, project.id)}
-                  aria-label="导出菜单"
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    backgroundColor: 'transparent',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'background 0.2s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
-                >
-                  <MoreVertical style={{ width: '20px', height: '20px', color: 'var(--text-tertiary)' }} />
-                </button>
+              <div style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-4px',
+                width: isMobile ? '18px' : '20px',
+                height: isMobile ? '18px' : '20px',
+                borderRadius: '50%',
+                backgroundColor: status.color,
+                border: '2px solid var(--bg-surface)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <StatusIcon style={{ width: isMobile ? '8px' : '10px', height: isMobile ? '8px' : '10px', color: 'white' }} />
               </div>
             </div>
 
-            <h3 style={{
-              fontSize: isMobile ? '16px' : '20px',
-              fontWeight: '700',
-              color: 'var(--text-primary)',
-              marginBottom: isMobile ? '8px' : '10px',
-              letterSpacing: '-0.5px',
-              whiteSpace: 'nowrap' as const,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}>
-              {project.name}
-            </h3>
-
-            <p style={{
-              fontSize: '14px',
-              color: 'var(--text-tertiary)',
-              marginBottom: isMobile ? '16px' : '24px',
-              lineHeight: '1.6',
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical' as const,
-              overflow: 'hidden',
-              minHeight: '45px',
-            }}>
-              {project.description || '暂无描述'}
-            </p>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: isMobile ? '12px' : '20px', flexWrap: 'wrap' as const }}>
-              <span style={{
-                padding: isMobile ? '4px 10px' : '6px 14px',
-                borderRadius: '8px',
-                backgroundColor: 'var(--success-bg)',
-                color: 'var(--success-text)',
-                fontSize: isMobile ? '10px' : '12px',
-                fontWeight: '700',
-                textTransform: 'uppercase' as const,
-                letterSpacing: '0.5px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}>
-                <StatusIcon style={{ width: isMobile ? '12px' : '14px', height: isMobile ? '12px' : '14px' }} />
-                {status.label}
-              </span>
-              <span style={{
-                padding: isMobile ? '4px 10px' : '6px 14px',
-                borderRadius: '8px',
-                backgroundColor: 'var(--bg-hover)',
-                color: 'var(--text-tertiary)',
-                fontSize: isMobile ? '10px' : '12px',
-                fontWeight: '600',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}>
-                <TypeIcon style={{ width: isMobile ? '12px' : '14px', height: isMobile ? '12px' : '14px' }} />
-                {getProjectTypeLabel(project.type)}
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                onClick={(e) => toggleExportMenu(e, project.id)}
+                aria-label="导出菜单"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-tertiary)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                <MoreVertical size={18} />
+              </button>
             </div>
+          </div>
 
-            <div style={{
+          <h3 style={{
+            fontSize: isMobile ? '15px' : '17px',
+            fontWeight: '600',
+            color: 'var(--text-primary)',
+            marginBottom: '6px',
+            whiteSpace: 'nowrap' as const,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}>
+            {project.name}
+          </h3>
+
+          <p style={{
+            fontSize: '13px',
+            color: 'var(--text-secondary)',
+            marginBottom: isMobile ? '12px' : '16px',
+            lineHeight: '1.5',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical' as const,
+            overflow: 'hidden',
+            minHeight: '40px',
+          }}>
+            {project.description || '暂无描述'}
+          </p>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: isMobile ? '12px' : '16px', flexWrap: 'wrap' as const }}>
+            <span style={{
+              padding: '4px 10px',
+              borderRadius: '6px',
+              backgroundColor: 'var(--bg-elevated)',
+              color: 'var(--text-secondary)',
+              fontSize: '12px',
+              fontWeight: '500',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingTop: isMobile ? '12px' : '20px',
-              borderTop: '1px solid var(--border-primary)',
+              gap: '4px',
+              border: '1px solid var(--border-subtle)',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-tertiary)', fontSize: isMobile ? '11px' : '13px', fontWeight: '500' }}>
-                  <Calendar style={{ width: '16px', height: '16px' }} />
-                  <span>{formatDate(project.updatedAt)}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-tertiary)', fontSize: isMobile ? '11px' : '13px', fontWeight: '500' }}>
-                  <Users style={{ width: '16px', height: '16px' }} />
-                  <span>{project._count?.members || 1}</span>
-                </div>
+              <StatusIcon style={{ width: '12px', height: '12px' }} />
+              {status.label}
+            </span>
+            <span style={{
+              padding: '4px 10px',
+              borderRadius: '6px',
+              backgroundColor: 'var(--bg-elevated)',
+              color: 'var(--text-secondary)',
+              fontSize: '12px',
+              fontWeight: '500',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              border: '1px solid var(--border-subtle)',
+            }}>
+              <TypeIcon style={{ width: '12px', height: '12px' }} />
+              {getProjectTypeLabel(project.type)}
+            </span>
+          </div>
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingTop: isMobile ? '12px' : '14px',
+            borderTop: '1px solid var(--border-subtle)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-tertiary)', fontSize: '12px' }}>
+                <Calendar style={{ width: '14px', height: '14px' }} />
+                <span>{formatDate(project.updatedAt)}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-tertiary)', fontSize: '12px' }}>
+                <Users style={{ width: '14px', height: '14px' }} />
+                <span>{project._count?.members || 1}</span>
               </div>
             </div>
           </div>
@@ -420,42 +332,44 @@ export default function ProjectsPage() {
           {exportMenu === project.id && (
             <div style={{
               position: 'absolute',
-              top: '80px',
-              right: '16px',
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-primary)',
+              top: '72px',
+              right: '12px',
               borderRadius: '12px',
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
-              minWidth: '200px',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+              minWidth: '180px',
               zIndex: 50,
-              padding: '8px',
+              padding: '6px',
+              backgroundColor: 'var(--bg-surface)',
+              border: '1px solid var(--border-subtle)',
             }}>
               <button
                 onClick={() => handleExport('json', project.id, project.name)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'flex-start',
                   gap: '12px',
                   padding: '12px 16px',
                   border: 'none',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer',
-                  color: 'var(--text-tertiary)',
-                  width: '100%',
-                  textAlign: 'left' as const,
                   borderRadius: '8px',
-                  transition: 'background 0.2s ease',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-tertiary)',
+                  cursor: 'pointer',
+                  width: '100%',
+                  transition: 'all 0.3s ease',
                   fontSize: '14px',
                   fontWeight: '500',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255, 0.05)';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-tertiary)';
                 }}
               >
-                <FileJson style={{ width: '18px', height: '18px', color: '#4f46e5' }} />
+                <FileJson size={18} />
                 <span>导出 JSON</span>
               </button>
               <button
@@ -463,27 +377,29 @@ export default function ProjectsPage() {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'flex-start',
                   gap: '12px',
                   padding: '12px 16px',
                   border: 'none',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer',
-                  color: 'var(--text-tertiary)',
-                  width: '100%',
-                  textAlign: 'left' as const,
                   borderRadius: '8px',
-                  transition: 'background 0.2s ease',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-tertiary)',
+                  cursor: 'pointer',
+                  width: '100%',
+                  transition: 'all 0.3s ease',
                   fontSize: '14px',
                   fontWeight: '500',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255, 0.05)';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-tertiary)';
                 }}
               >
-                <FileVideo style={{ width: '18px', height: '18px', color: '#8b5cf6' }} />
+                <FileVideo size={18} />
                 <span>导出视频</span>
               </button>
               <button
@@ -491,27 +407,29 @@ export default function ProjectsPage() {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'flex-start',
                   gap: '12px',
                   padding: '12px 16px',
                   border: 'none',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer',
-                  color: 'var(--text-tertiary)',
-                  width: '100%',
-                  textAlign: 'left' as const,
                   borderRadius: '8px',
-                  transition: 'background 0.2s ease',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-tertiary)',
+                  cursor: 'pointer',
+                  width: '100%',
+                  transition: 'all 0.3s ease',
                   fontSize: '14px',
                   fontWeight: '500',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255, 0.05)';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-tertiary)';
                 }}
               >
-                <FileArchive style={{ width: '18px', height: '18px', color: '#a855f7' }} />
+                <FileArchive size={18} />
                 <span>导出完整包</span>
               </button>
             </div>
@@ -528,44 +446,43 @@ export default function ProjectsPage() {
 
     return (
       <Link to={`/projects/${project.id}`} style={{ textDecoration: 'none' }}>
-        <div style={{
+        <div className="glass" style={{
           display: 'flex',
           alignItems: isMobile ? 'flex-start' : 'center',
           gap: isMobile ? '12px' : '24px',
           padding: isMobile ? '16px' : '24px',
-          backgroundColor: 'var(--bg-surface)',
           borderRadius: '16px',
-          border: '2px solid var(--border-primary)',
           transition: 'all 0.3s ease-out',
           cursor: 'pointer',
         }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = 'var(--accent)';
-            e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+            e.currentTarget.style.boxShadow = '0 20px 60px rgba(99, 102, 241, 0.2)';
             if (!isMobile) {
               e.currentTarget.style.transform = 'translateX(4px)';
             }
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = 'var(--border-primary)';
-            e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
             if (!isMobile) {
               e.currentTarget.style.transform = 'translateX(0)';
             }
           }}
         >
+          <div className="card-glow"></div>
+          
           <div style={{ position: 'relative', width: isMobile ? '56px' : '72px', height: isMobile ? '56px' : '72px', flexShrink: 0 }}>
             <div style={{
               position: 'absolute',
               inset: 0,
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%)',
-              border: '2px solid #c7d2fe',
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)',
+              border: '1px solid rgba(99, 102, 241, 0.2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              boxShadow: '0 4px 24px rgba(99, 102, 241, 0.2)',
             }}>
-              <TypeIcon style={{ width: isMobile ? '28px' : '36px', height: isMobile ? '28px' : '36px', color: '#4f46e5' }} />
+              <TypeIcon style={{ width: isMobile ? '28px' : '36px', height: isMobile ? '28px' : '36px', color: 'var(--primary-500)' }} />
             </div>
             <div style={{
               position: 'absolute',
@@ -574,19 +491,19 @@ export default function ProjectsPage() {
               width: isMobile ? '22px' : '28px',
               height: isMobile ? '22px' : '28px',
               borderRadius: '50%',
-              backgroundColor: 'var(--success-bg)',
-              border: '3px solid var(--bg-surface)',
+              background: 'linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%)',
+              border: '3px solid rgba(255,255,255, 0.03)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+              boxShadow: '0 2px 8px rgba(99, 102, 241, 0.4)',
             }}>
-              <StatusIcon style={{ width: isMobile ? '12px' : '14px', height: isMobile ? '12px' : '14px', color: 'var(--success-text)' }} />
+              <StatusIcon style={{ width: isMobile ? '12px' : '14px', height: isMobile ? '12px' : '14px', color: 'white' }} />
             </div>
           </div>
 
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '8px', flexDirection: isMobile ? 'column' : 'row' as const }}>
+          <div style={{ flex: 1, minWidth: 0, position: 'relative', zIndex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '8px', flexDirection: isMobile ? 'column' : 'row' as const, alignItems: isMobile ? 'flex-start' : 'center' }}>
               <h3 style={{
                 fontSize: isMobile ? '16px' : '18px',
                 fontWeight: '700',
@@ -595,14 +512,15 @@ export default function ProjectsPage() {
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 letterSpacing: '-0.5px',
+                margin: 0,
               }}>
                 {project.name}
               </h3>
               <span style={{
                 padding: isMobile ? '4px 10px' : '6px 14px',
                 borderRadius: '8px',
-                backgroundColor: 'var(--success-bg)',
-                color: 'var(--success-text)',
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)',
+                color: 'var(--primary-500)',
                 fontSize: isMobile ? '10px' : '12px',
                 fontWeight: '700',
                 textTransform: 'uppercase' as const,
@@ -610,6 +528,7 @@ export default function ProjectsPage() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
+                border: '1px solid rgba(99, 102, 241, 0.2)',
               }}>
                 <StatusIcon style={{ width: isMobile ? '12px' : '14px', height: isMobile ? '12px' : '14px' }} />
                 {status.label}
@@ -625,6 +544,7 @@ export default function ProjectsPage() {
               marginBottom: '12px',
               lineHeight: '1.6',
               display: isMobile ? 'none' : 'block',
+              margin: '0 0 12px 0',
             }}>
               {project.description || '暂无描述'}
             </p>
@@ -641,12 +561,13 @@ export default function ProjectsPage() {
               <span style={{
                 padding: isMobile ? '4px 8px' : '4px 10px',
                 borderRadius: '6px',
-                backgroundColor: 'var(--bg-hover)',
+                background: 'rgba(255,255,255, 0.05)',
                 fontWeight: '600',
                 color: 'var(--text-tertiary)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
+                border: '1px solid rgba(255,255,255, 0.1)',
               }}>
                 <TypeIcon style={{ width: isMobile ? '12px' : '14px', height: isMobile ? '12px' : '14px' }} />
                 {getProjectTypeLabel(project.type)}
@@ -654,37 +575,37 @@ export default function ProjectsPage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', position: 'relative', zIndex: 1 }}>
             <button
               onClick={(e) => toggleExportMenu(e, project.id)}
+              aria-label="导出菜单"
               style={{
-                width: isMobile ? '36px' : '40px',
-                height: isMobile ? '36px' : '40px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: 'transparent',
-                cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                transition: 'background 0.2s ease',
+                width: '36px',
+                height: '36px',
+                borderRadius: '12px',
+                border: 'none',
+                backgroundColor: 'rgba(255,255,255, 0.05)',
+                color: 'var(--text-tertiary)',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                e.currentTarget.style.backgroundColor = 'rgba(255,255,255, 0.1)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.backgroundColor = 'rgba(255,255,255, 0.05)';
               }}
             >
-              <MoreVertical style={{ width: '20px', height: '20px', color: 'var(--text-tertiary)' }} />
+              <MoreVertical size={20} />
             </button>
           </div>
 
           {exportMenu === project.id && (
-            <div style={{
+            <div className="glass" style={{
               position: 'fixed',
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-primary)',
               borderRadius: '12px',
               boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
               minWidth: '200px',
@@ -696,27 +617,29 @@ export default function ProjectsPage() {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'flex-start',
                   gap: '12px',
                   padding: '12px 16px',
                   border: 'none',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer',
-                  color: 'var(--text-tertiary)',
-                  width: '100%',
-                  textAlign: 'left' as const,
                   borderRadius: '8px',
-                  transition: 'background 0.2s ease',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-tertiary)',
+                  cursor: 'pointer',
+                  width: '100%',
+                  transition: 'all 0.3s ease',
                   fontSize: '14px',
                   fontWeight: '500',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255, 0.05)';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-tertiary)';
                 }}
               >
-                <FileJson style={{ width: '18px', height: '18px', color: '#4f46e5' }} />
+                <FileJson size={18} />
                 <span>导出 JSON</span>
               </button>
               <button
@@ -724,27 +647,29 @@ export default function ProjectsPage() {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'flex-start',
                   gap: '12px',
                   padding: '12px 16px',
                   border: 'none',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer',
-                  color: 'var(--text-tertiary)',
-                  width: '100%',
-                  textAlign: 'left' as const,
                   borderRadius: '8px',
-                  transition: 'background 0.2s ease',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-tertiary)',
+                  cursor: 'pointer',
+                  width: '100%',
+                  transition: 'all 0.3s ease',
                   fontSize: '14px',
                   fontWeight: '500',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255, 0.05)';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-tertiary)';
                 }}
               >
-                <FileVideo style={{ width: '18px', height: '18px', color: '#8b5cf6' }} />
+                <FileVideo size={18} />
                 <span>导出视频</span>
               </button>
               <button
@@ -752,27 +677,29 @@ export default function ProjectsPage() {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'flex-start',
                   gap: '12px',
                   padding: '12px 16px',
                   border: 'none',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer',
-                  color: 'var(--text-tertiary)',
-                  width: '100%',
-                  textAlign: 'left' as const,
                   borderRadius: '8px',
-                  transition: 'background 0.2s ease',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-tertiary)',
+                  cursor: 'pointer',
+                  width: '100%',
+                  transition: 'all 0.3s ease',
                   fontSize: '14px',
                   fontWeight: '500',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255, 0.05)';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-tertiary)';
                 }}
               >
-                <FileArchive style={{ width: '18px', height: '18px', color: '#a855f7' }} />
+                <FileArchive size={18} />
                 <span>导出完整包</span>
               </button>
             </div>
@@ -783,8 +710,14 @@ export default function ProjectsPage() {
   });
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', height: '100vh' }}>
-      {isMobile ? null : <Sidebar />}
+    <div ref={containerRef} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
+      <div className="background-decoration" style={{
+        position: 'absolute',
+        inset: 0,
+        pointerEvents: 'none',
+        overflow: 'hidden',
+      }}>
+      </div>
 
       {isMobile && mobileMenuOpen && (
         <div style={{
@@ -807,11 +740,30 @@ export default function ProjectsPage() {
           transform: mobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)',
           transition: 'transform 0.3s ease',
         }}>
-          <div style={{ height: '64px', display: 'flex', alignItems: 'center', padding: '0 16px', borderBottom: '1px solid var(--border-primary)' }}>
-            <div className="w-8 h-8 bg-[var(--accent)] rounded-lg flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
+          <div style={{ height: '64px', display: 'flex', alignItems: 'center', padding: '0 16px', borderBottom: '1px solid var(--border-subtle)' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              background: 'linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%)',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              boxShadow: '0 4px 24px rgba(99, 102, 241, 0.5)',
+              position: 'relative',
+            }}>
+              <div style={{
+                position: 'absolute',
+                inset: -2,
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, var(--primary-500), var(--primary-600))',
+                filter: 'blur(8px)',
+                opacity: 0.6,
+              }}></div>
+              <Sparkles style={{ width: '20px', height: '20px', color: 'white', position: 'relative', zIndex: 1 }} />
             </div>
-            <span style={{ marginLeft: '12px', fontSize: '18px', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+            <span style={{ marginLeft: '12px', fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
               开演AI
             </span>
           </div>
@@ -830,12 +782,21 @@ export default function ProjectsPage() {
                   alignItems: 'center',
                   gap: '12px',
                   padding: '16px',
-                  color: 'var(--text-primary)',
+                  color: 'var(--text-tertiary)',
                   textDecoration: 'none',
                   borderRadius: '12px',
                   marginBottom: '8px',
+                  transition: 'all 0.3s ease',
                 }}
                 onClick={() => setMobileMenuOpen(false)}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-tertiary)';
+                }}
               >
                 <item.icon style={{ width: '24px', height: '24px', color: 'var(--text-tertiary)' }} />
                 <span style={{ fontSize: '16px', fontWeight: '500' }}>{item.title}</span>
@@ -845,31 +806,45 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <header style={{
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', zIndex: 1 }}>
+        <header className="glass" style={{
           height: isMobile ? '64px' : '80px',
-          borderBottom: '1px solid var(--border-primary)',
-          backgroundColor: 'var(--bg-elevated)',
+          borderBottom: '1px solid var(--border-subtle)',
           padding: `0 ${isMobile ? '16px' : isTablet ? '24px' : '32px'}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexShrink: 0,
           gap: isMobile ? '12px' : '0',
+          margin: isMobile ? '16px' : '24px',
+          borderRadius: '16px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '24px', flex: 1, minWidth: 0 }}>
             {isMobile && (
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-label="移动端菜单"
                 style={{
-                  padding: '8px',
-                  backgroundColor: 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '12px',
                   border: 'none',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  color: 'var(--text-secondary)',
                   cursor: 'pointer',
-                  color: 'var(--text-primary)',
+                  transition: 'all 0.3s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
                 }}
               >
-                <Menu style={{ width: '24px', height: '24px' }} />
+                <Menu size={24} />
               </button>
             )}
             <div style={{ display: isMobile ? 'none' : 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -879,17 +854,18 @@ export default function ProjectsPage() {
                   fontWeight: '600',
                   color: 'var(--text-primary)',
                   margin: 0,
-                  letterSpacing: '-0.01em',
+                  letterSpacing: '-0.3px',
                 }}>
                   我的项目
                 </h1>
                 <span style={{
                   padding: '2px 8px',
                   borderRadius: '9999px',
-                  backgroundColor: 'var(--accent-bg)',
-                  color: 'var(--accent-text)',
+                  backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                  color: 'var(--text-primary)',
                   fontSize: '12px',
                   fontWeight: '600',
+                  boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)',
                 }}>
                   {projects.length}
                 </span>
@@ -903,39 +879,34 @@ export default function ProjectsPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px' }}>
             {isMobile ? (
               <div style={{ position: 'relative' }}>
-                <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'var(--text-muted)' }} />
-                <Input
+                <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'var(--text-tertiary)' }} />
+                <input
                   placeholder="搜索..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  className="input"
                   style={{
                     width: '140px',
                     paddingLeft: '40px',
                     height: '36px',
                     fontSize: '13px',
                     borderRadius: '10px',
-                    border: '1px solid var(--border-primary)',
-                    backgroundColor: 'var(--bg-hover)',
-                    color: 'var(--text-primary)',
                   }}
                 />
               </div>
             ) : (
               <div style={{ position: 'relative' }}>
-                <Search style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', width: '20px', height: '20px', color: 'var(--text-muted)' }} />
-                <Input
+                <Search style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', width: '20px', height: '20px', color: 'var(--text-tertiary)' }} />
+                <input
                   placeholder="搜索项目名称或描述..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  className="input"
                   style={{
                     width: isTablet ? '200px' : '320px',
                     paddingLeft: '48px',
                     height: '44px',
                     fontSize: '14px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border-primary)',
-                    backgroundColor: 'var(--bg-hover)',
-                    color: 'var(--text-primary)',
                   }}
                 />
               </div>
@@ -943,40 +914,44 @@ export default function ProjectsPage() {
 
             <div style={{ display: 'flex', gap: isMobile ? '8px' : '12px', alignItems: 'center' }}>
               <div style={{ position: 'relative' }}>
-                <Button
-                  variant="outline"
+                <button
                   onClick={() => setShowFilters(!showFilters)}
                   aria-label="筛选"
                   style={{
-                    padding: isMobile ? '0 12px' : '0 16px',
-                    height: isMobile ? '40px' : '44px',
-                    gap: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: isMobile ? '8px 12px' : '12px 16px',
                     borderRadius: '12px',
-                    fontWeight: '600',
-                    fontSize: isMobile ? '13px' : '14px',
-                    border: '1px solid var(--border-primary)',
-                    backgroundColor: 'var(--bg-surface)',
-                    color: (filterType !== 'all' || filterStatus !== 'all') ? '#4f46e5' : 'var(--text-tertiary)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    color: (filterType !== 'all' || filterStatus !== 'all') ? 'var(--primary-500)' : 'var(--text-tertiary)',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
                   }}
                 >
-                  <Filter style={{ width: isMobile ? '16px' : '18px', height: isMobile ? '16px' : '18px' }} />
-                  {!isMobile && <span>筛选</span>}
-                </Button>
+                  <Filter size={isMobile ? 16 : 18} />
+                  {!isMobile && <span style={{ fontSize: '14px', fontWeight: '500' }}>筛选</span>}
+                </button>
 
                 {showFilters && (
-                  <div style={{
+                  <div className="glass" style={{
                     position: 'absolute',
                     top: isMobile ? '52px' : '56px',
                     right: 0,
-                    backgroundColor: 'var(--bg-surface)',
-                    border: '1px solid var(--border-primary)',
                     borderRadius: '16px',
                     boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
                     padding: '16px',
                     zIndex: 50,
                     minWidth: '200px',
                   }}>
-                    <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.5px', marginBottom: '12px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.5px', marginBottom: '12px' }}>
                       项目类型
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '6px', marginBottom: '16px' }}>
@@ -993,15 +968,15 @@ export default function ProjectsPage() {
                             cursor: 'pointer',
                             width: '100%',
                             borderRadius: '12px',
-                            transition: 'background 0.2s ease',
+                            transition: 'all 0.3s ease',
                             fontSize: '14px',
                             fontWeight: '500',
-                            color: filterType === type ? '#4f46e5' : 'var(--text-tertiary)',
-                            backgroundColor: filterType === type ? 'var(--accent-bg)' : 'transparent',
+                            color: filterType === type ? 'var(--primary-500)' : 'var(--text-tertiary)',
+                            backgroundColor: filterType === type ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
                           }}
                           onMouseEnter={(e) => {
                             if (filterType !== type) {
-                              e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
                             }
                           }}
                           onMouseLeave={(e) => {
@@ -1016,7 +991,7 @@ export default function ProjectsPage() {
                       ))}
                     </div>
 
-                    <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' as const, letterSpacing: '0.5px', marginBottom: '12px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.5px', marginBottom: '12px' }}>
                       项目状态
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '6px' }}>
@@ -1036,15 +1011,15 @@ export default function ProjectsPage() {
                               cursor: 'pointer',
                               width: '100%',
                               borderRadius: '12px',
-                              transition: 'background 0.2s ease',
+                              transition: 'all 0.3s ease',
                               fontSize: '14px',
                               fontWeight: '500',
-                              color: filterStatus === status ? statusInfo.textColor : 'var(--text-tertiary)',
-                              backgroundColor: filterStatus === status ? statusInfo.bg : 'transparent',
+                              color: filterStatus === status ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                              backgroundColor: filterStatus === status ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
                             }}
                             onMouseEnter={(e) => {
                               if (filterStatus !== status) {
-                                e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
                               }
                             }}
                             onMouseLeave={(e) => {
@@ -1066,74 +1041,32 @@ export default function ProjectsPage() {
                 )}
               </div>
 
-              <div style={{ display: 'flex', gap: '6px', padding: '6px', backgroundColor: 'var(--bg-hover)', borderRadius: '12px' }}>
-                <button
+              <div style={{ display: 'flex', gap: '6px', padding: '6px', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '12px' }}>
+                <Button
                   onClick={() => setViewMode('grid')}
                   aria-label="网格视图"
-                  style={{
-                    padding: '10px',
-                    border: 'none',
-                    backgroundColor: viewMode === 'grid' ? 'var(--bg-surface)' : 'transparent',
-                    cursor: 'pointer',
-                    borderRadius: '8px',
-                    transition: 'all 0.2s ease',
-                    color: viewMode === 'grid' ? '#4f46e5' : 'var(--text-muted)',
-                    boxShadow: viewMode === 'grid' ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none',
-                  }}
-                >
-                  <LayoutGrid style={{ width: '20px', height: '20px' }} />
-                </button>
-                <button
+                  variant={viewMode === 'grid' ? 'primary' : 'ghost'}
+                  size="icon"
+                  icon={<LayoutGrid size={20} />}
+                />
+                <Button
                   onClick={() => setViewMode('list')}
                   aria-label="列表视图"
-                  style={{
-                    padding: '10px',
-                    border: 'none',
-                    backgroundColor: viewMode === 'list' ? 'var(--bg-surface)' : 'transparent',
-                    cursor: 'pointer',
-                    borderRadius: '8px',
-                    transition: 'all 0.2s ease',
-                    color: viewMode === 'list' ? '#4f46e5' : 'var(--text-muted)',
-                    boxShadow: viewMode === 'list' ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none',
-                  }}
-                >
-                  <LayoutList style={{ width: '20px', height: '20px' }} />
-                </button>
+                  variant={viewMode === 'list' ? 'primary' : 'ghost'}
+                  size="icon"
+                  icon={<LayoutList size={20} />}
+                />
               </div>
 
-              <button
+              <Button
                 onClick={() => navigate('/projects/new')}
-                style={{
-                  height: '38px',
-                  padding: '0 20px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  background: 'var(--accent)',
-                  color: 'var(--accent-on)',
-                  border: 'none',
-                  borderRadius: '9px',
-                  cursor: 'pointer',
-                  boxShadow: 'none',
-                  transition: 'all 0.15s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--accent-hover)';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'var(--accent)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
+                variant="primary"
+                size={isMobile ? 'sm' : 'md'}
+                icon={<Plus size={16} />}
+                iconPosition="left"
               >
-                <Plus style={{ width: '16px', height: '16px' }} />
-                {!isMobile && <span>创建项目</span>}
-              </button>
+                {!isMobile && '创建项目'}
+              </Button>
             </div>
           </div>
         </header>
@@ -1147,13 +1080,71 @@ export default function ProjectsPage() {
               gap: viewMode === 'grid' ? (isMobile ? '16px' : '24px') : '16px'
             }}>
               {Array.from({ length: viewMode === 'grid' ? (isMobile ? 2 : isTablet ? 4 : 6) : 4 }).map((_, index) => (
-                <div key={index}>
-                  {viewMode === 'grid' ? <SkeletonCard /> : <SkeletonList />}
+                <div key={index} className="glass" style={{ padding: '24px', borderRadius: '16px', height: '300px' }}>
+                  <div style={{ width: '64px', height: '64px', borderRadius: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', marginBottom: '20px' }}></div>
+                  <div style={{ width: '80%', height: '20px', borderRadius: '8px', backgroundColor: 'rgba(255, 255, 255, 0.05)', marginBottom: '12px' }}></div>
+                  <div style={{ width: '60%', height: '16px', borderRadius: '8px', backgroundColor: 'rgba(255, 255, 255, 0.05)', marginBottom: '20px' }}></div>
+                  <div style={{ width: '40%', height: '12px', borderRadius: '8px', backgroundColor: 'rgba(255, 255, 255, 0.05)' }}></div>
                 </div>
               ))}
             </div>
           ) : projects.length === 0 ? (
-            <EmptyState />
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column' as const,
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: '400px',
+              padding: isMobile ? '40px 20px' : '60px 20px',
+            }}>
+              <div style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '20px',
+                background: 'linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%)',
+                display: 'flex',
+                alignItems: 'center' as const,
+                justifyContent: 'center',
+                marginBottom: '24px',
+                boxShadow: '0 12px 48px rgba(99, 102, 241, 0.4)',
+              }}>
+                <Plus style={{ width: '36px', height: '36px', color: 'white' }} />
+              </div>
+
+              <h2 style={{
+                fontSize: '24px',
+                fontWeight: '600',
+                color: 'var(--text-primary)',
+                marginBottom: '12px',
+                letterSpacing: '-0.5px',
+                textAlign: 'center' as const,
+              }}>
+                创建第一个项目
+              </h2>
+
+              <p style={{
+                fontSize: '16px',
+                color: 'var(--text-tertiary)',
+                marginBottom: '32px',
+                textAlign: 'center' as const,
+                maxWidth: '320px',
+                lineHeight: '1.6',
+              }}>
+                开始你的AI内容创作之旅
+              </p>
+
+              <button
+                onClick={() => navigate('/projects/new')}
+                className="btn-primary"
+                style={{
+                  padding: '16px 40px',
+                  fontSize: '16px',
+                }}
+              >
+                <Plus size={16} />
+                <span>创建项目</span>
+              </button>
+            </div>
           ) : (
             <>
               {viewMode === 'grid' ? (
@@ -1177,49 +1168,27 @@ export default function ProjectsPage() {
               {!loading && totalPages > 1 && (
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '40px', padding: '24px', flexWrap: 'wrap' as const }}>
                   <Button
-                    variant="outline"
                     onClick={() => setPage(p => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    style={{
-                      padding: '0 20px',
-                      height: '44px',
-                      borderRadius: '12px',
-                      fontWeight: '600',
-                      fontSize: '14px',
-                      border: '1px solid var(--border-primary)',
-                      backgroundColor: 'var(--bg-surface)',
-                      color: 'var(--text-tertiary)',
-                      cursor: page === 1 ? 'not-allowed' : 'pointer',
-                      opacity: page === 1 ? 0.5 : 1,
-                    }}
+                    variant="outline"
+                    size="md"
                   >
                     上一页
                   </Button>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 20px', fontSize: '15px', color: 'var(--text-tertiary)', fontWeight: '500' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>第</span>
+                    <span style={{ color: 'var(--text-tertiary)' }}>第</span>
                     <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>{page}</span>
                   </div>
-                  <span style={{ fontSize: '15px', color: 'var(--text-muted)' }}>/</span>
+                  <span style={{ fontSize: '15px', color: 'var(--text-tertiary)' }}>/</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 20px', fontSize: '15px', color: 'var(--text-tertiary)', fontWeight: '500' }}>
                     <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>{totalPages}</span>
                   </div>
-                  <span style={{ fontSize: '15px', color: 'var(--text-muted)', marginRight: '8px' }}>页</span>
+                  <span style={{ fontSize: '15px', color: 'var(--text-tertiary)', marginRight: '8px' }}>页</span>
                   <Button
-                    variant="outline"
                     onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
-                    style={{
-                      padding: '0 20px',
-                      height: '44px',
-                      borderRadius: '12px',
-                      fontWeight: '600',
-                      fontSize: '14px',
-                      border: '1px solid var(--border-primary)',
-                      backgroundColor: 'var(--bg-surface)',
-                      color: 'var(--text-tertiary)',
-                      cursor: page === totalPages ? 'not-allowed' : 'pointer',
-                      opacity: page === totalPages ? 0.5 : 1,
-                    }}
+                    variant="outline"
+                    size="md"
                   >
                     下一页
                   </Button>

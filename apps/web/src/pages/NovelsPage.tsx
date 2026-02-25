@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Sidebar } from '../components/Sidebar';
-import { Button } from '../components/ui/button';
+import { Button } from '../components/ui/button-new';
 import { Card } from '../components/ui/card';
 import MonacoEditor from '../components/MonacoEditor';
 import { apiClient } from '../lib/api';
@@ -27,12 +26,6 @@ interface Chapter {
 export default function NovelsPage() {
   const { id } = useParams();
   const { theme } = useTheme();
-
-  const textColor = theme === 'dark' ? '#ffffff' : '#0f172a';
-  const mutedTextColor = theme === 'dark' ? '#a1a1aa' : '#64748b';
-  const borderColor = theme === 'dark' ? '#27272a' : '#e2e8f0';
-  const inputBg = theme === 'dark' ? '#09090b' : '#f8fafc';
-  const cardBg = theme === 'dark' ? '#18181b' : '#ffffff';
 
   const [novels, setNovels] = useState<Novel[]>([]);
   const [selectedNovel, setSelectedNovel] = useState<Novel | null>(null);
@@ -163,15 +156,13 @@ export default function NovelsPage() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: 'var(--bg-base)', color: textColor }}>
-      <Sidebar />
-      
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
           padding: '16px 24px',
-          borderBottom: `1px solid ${borderColor}`,
+          borderBottom: '1px solid var(--border-light)',
           gap: '16px',
         }}>
           <Link to={`/projects/${id}`} style={{
@@ -201,8 +192,7 @@ export default function NovelsPage() {
               共 {novels.length} 部小说
             </div>
           </div>
-          <Button onClick={() => setShowNovelModal(true)}>
-            <Plus style={{ width: '16px', height: '16px', marginRight: '8px' }} />
+          <Button variant="primary" onClick={() => setShowNovelModal(true)} icon={<Plus size={16} />}>
             新建小说
           </Button>
         </div>
@@ -210,21 +200,20 @@ export default function NovelsPage() {
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
           <div style={{
             width: '300px',
-            borderRight: `1px solid ${borderColor}`,
+            borderRight: '1px solid var(--border-light)',
             backgroundColor: 'var(--bg-hover)',
             overflowY: 'auto',
             padding: '12px',
           }}>
             {loading ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: mutedTextColor }}>
+              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
                 加载中...
               </div>
             ) : novels.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: mutedTextColor }}>
-                <FileText style={{ width: '48px', height: '48px', margin: '0 auto 16px', color: mutedTextColor }} />
-                <p style={{ margin: '0', color: mutedTextColor }}>暂无小说</p>
-                <Button onClick={() => setShowNovelModal(true)} style={{ width: '100%' }}>
-                  <Plus style={{ width: '16px', height: '16px', marginRight: '8px' }} />
+              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+                <FileText style={{ width: '48px', height: '48px', margin: '0 auto 16px', color: 'var(--text-secondary)' }} />
+                <p style={{ margin: '0', color: 'var(--text-secondary)' }}>暂无小说</p>
+                <Button variant="primary" onClick={() => setShowNovelModal(true)} style={{ width: '100%' }} icon={<Plus size={16} />}>
                   创建第一部小说
                 </Button>
               </div>
@@ -243,7 +232,7 @@ export default function NovelsPage() {
                   }}
                   onMouseEnter={(e) => {
                     if (selectedNovel?.id !== novel.id) {
-                      e.currentTarget.style.backgroundColor = inputBg;
+                      e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -255,7 +244,7 @@ export default function NovelsPage() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{
                       fontWeight: '500',
-                      color: selectedNovel?.id === novel.id ? '#ffffff' : textColor,
+                      color: selectedNovel?.id === novel.id ? 'var(--text-on-accent)' : 'var(--text-primary)',
                     }}>
                       {novel.title}
                     </span>
@@ -271,7 +260,7 @@ export default function NovelsPage() {
                           borderRadius: '4px',
                           border: 'none',
                           background: 'transparent',
-                          color: selectedNovel?.id === novel.id ? '#ffffff' : mutedTextColor,
+                          color: selectedNovel?.id === novel.id ? 'var(--text-on-accent)' : 'var(--text-secondary)',
                           cursor: 'pointer',
                         }}
                       >
@@ -287,7 +276,7 @@ export default function NovelsPage() {
                           borderRadius: '4px',
                           border: 'none',
                           background: 'transparent',
-                          color: selectedNovel?.id === novel.id ? '#ffffff' : mutedTextColor,
+                          color: selectedNovel?.id === novel.id ? 'var(--text-on-accent)' : 'var(--text-secondary)',
                           cursor: 'pointer',
                         }}
                       >
@@ -299,7 +288,7 @@ export default function NovelsPage() {
                     <div style={{
                       marginTop: '8px',
                       paddingTop: '8px',
-                      borderTop: `1px solid ${borderColor}`,
+                      borderTop: '1px solid var(--border-primary)',
                     }}>
                       {novel.chapters.map((chapter) => (
                         <div
@@ -310,7 +299,7 @@ export default function NovelsPage() {
                             borderRadius: '6px',
                             marginBottom: '4px',
                             cursor: 'pointer',
-                            backgroundColor: selectedChapter?.id === chapter.id ? inputBg : 'transparent',
+                            backgroundColor: selectedChapter?.id === chapter.id ? 'var(--bg-deep)' : 'transparent',
                             transition: 'all 0.2s ease',
                             display: 'flex',
                             alignItems: 'center',
@@ -318,7 +307,7 @@ export default function NovelsPage() {
                           }}
                           onMouseEnter={(e) => {
                             if (selectedChapter?.id !== chapter.id) {
-                              e.currentTarget.style.backgroundColor = inputBg;
+                              e.currentTarget.style.backgroundColor = 'var(--bg-deep)';
                             }
                           }}
                           onMouseLeave={(e) => {
@@ -329,7 +318,7 @@ export default function NovelsPage() {
                         >
                           <span style={{
                             fontSize: '13px',
-                            color: selectedChapter?.id === chapter.id ? 'var(--accent)' : textColor,
+                            color: selectedChapter?.id === chapter.id ? 'var(--accent)' : 'var(--text-primary)',
                           }}>
                             {chapter.order}. {chapter.title}
                           </span>
@@ -345,7 +334,7 @@ export default function NovelsPage() {
                                 borderRadius: '4px',
                                 border: 'none',
                                 background: 'transparent',
-                                color: mutedTextColor,
+                                color: 'var(--text-secondary)',
                                 cursor: 'pointer',
                               }}
                             >
@@ -361,7 +350,7 @@ export default function NovelsPage() {
                                 borderRadius: '4px',
                                 border: 'none',
                                 background: 'transparent',
-                                color: mutedTextColor,
+                                color: 'var(--text-secondary)',
                                 cursor: 'pointer',
                               }}
                             >
@@ -380,9 +369,9 @@ export default function NovelsPage() {
                           width: '100%',
                           padding: '8px',
                           borderRadius: '6px',
-                          border: `1px dashed ${borderColor}`,
+                          border: '1px dashed var(--border-light)',
                           background: 'transparent',
-                          color: mutedTextColor,
+                          color: 'var(--text-secondary)',
                           cursor: 'pointer',
                           fontSize: '13px',
                           marginTop: '8px',
@@ -445,7 +434,7 @@ export default function NovelsPage() {
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backgroundColor: 'var(--overlay-bg)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -457,7 +446,7 @@ export default function NovelsPage() {
             padding: '24px',
             width: '100%',
             maxWidth: '500px',
-            backgroundColor: cardBg,
+            backgroundColor: 'var(--bg-primary)',
           }}
           onClick={(e) => e.stopPropagation()}
           >
@@ -466,7 +455,7 @@ export default function NovelsPage() {
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: textColor }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: 'var(--text-primary)' }}>
                   标题
                 </label>
                 <input
@@ -478,15 +467,15 @@ export default function NovelsPage() {
                     width: '100%',
                     padding: '10px 14px',
                     borderRadius: '8px',
-                    border: `1px solid ${borderColor}`,
-                    backgroundColor: inputBg,
-                    color: textColor,
+                    border: '1px solid var(--border-light)',
+                    backgroundColor: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
                     fontSize: '14px',
                   }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: textColor }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: 'var(--text-primary)' }}>
                   描述（可选）
                 </label>
                 <textarea
@@ -498,9 +487,9 @@ export default function NovelsPage() {
                     width: '100%',
                     padding: '10px 14px',
                     borderRadius: '8px',
-                    border: `1px solid ${borderColor}`,
-                    backgroundColor: inputBg,
-                    color: textColor,
+                    border: '1px solid var(--border-light)',
+                    backgroundColor: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
                     fontSize: '14px',
                     resize: 'vertical',
                   }}
@@ -545,7 +534,7 @@ export default function NovelsPage() {
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backgroundColor: 'var(--overlay-bg)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -557,7 +546,7 @@ export default function NovelsPage() {
             padding: '24px',
             width: '100%',
             maxWidth: '500px',
-            backgroundColor: cardBg,
+            backgroundColor: 'var(--bg-primary)',
           }}
           onClick={(e) => e.stopPropagation()}
           >
@@ -566,7 +555,7 @@ export default function NovelsPage() {
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: textColor }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: 'var(--text-primary)' }}>
                   标题
                 </label>
                 <input
@@ -578,9 +567,9 @@ export default function NovelsPage() {
                     width: '100%',
                     padding: '10px 14px',
                     borderRadius: '8px',
-                    border: `1px solid ${borderColor}`,
-                    backgroundColor: inputBg,
-                    color: textColor,
+                    border: '1px solid var(--border-light)',
+                    backgroundColor: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
                     fontSize: '14px',
                   }}
                 />

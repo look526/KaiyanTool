@@ -10,7 +10,8 @@ import {
   Sparkles,
   Sun,
   Moon,
-  Bot
+  Cpu,
+  BarChart3
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -19,6 +20,11 @@ const navItems = [
     title: '我的项目',
     icon: FolderKanban,
     href: '/projects',
+  },
+  {
+    title: '数据分析',
+    icon: BarChart3,
+    href: '/analytics',
   },
   {
     title: '文档管理',
@@ -32,7 +38,7 @@ const navItems = [
   },
   {
     title: 'AI提供商',
-    icon: Bot,
+    icon: Cpu,
     href: '/settings/ai',
   },
   {
@@ -51,45 +57,44 @@ export function Sidebar() {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
-    padding: '10px 12px',
-    borderRadius: '8px',
+    padding: '12px 16px',
+    borderRadius: '12px',
     textDecoration: 'none',
-    transition: 'all 0.2s ease',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     color: 'var(--text-tertiary)',
     cursor: 'pointer',
+    position: 'relative',
+    overflow: 'hidden',
+    zIndex: 1,
   };
 
   const navItemActiveStyle: React.CSSProperties = {
-    backgroundColor: 'var(--accent-bg)',
-    color: 'var(--accent-text)',
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    color: 'var(--text-primary)',
+    boxShadow: '0 4px 24px rgba(99, 102, 241, 0.2)',
   };
 
   const buttonStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
-    padding: '10px 12px',
-    borderRadius: '8px',
+    padding: '12px 16px',
+    borderRadius: '12px',
     border: 'none',
     backgroundColor: 'transparent',
     color: 'var(--text-tertiary)',
     cursor: 'pointer',
     width: '100%',
-    transition: 'all 0.2s ease',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    position: 'relative',
+    overflow: 'hidden',
+    zIndex: 1,
   };
 
   return (
-    <div style={{
-      height: '100%',
-      backgroundColor: 'var(--bg-secondary)',
-      borderRight: '1px solid var(--border-primary)',
-      display: 'flex',
-      flexDirection: 'column',
-      transition: 'all 0.3s ease',
-      width: collapsed ? '64px' : '256px',
-    }}>
+    <div className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
       <div style={{
-        padding: '16px',
+        padding: '20px 16px',
         borderBottom: '1px solid var(--border-subtle)',
         display: 'flex',
         alignItems: 'center',
@@ -102,26 +107,38 @@ export function Sidebar() {
             alignItems: 'center',
             gap: '12px',
             textDecoration: 'none',
+            position: 'relative',
+            zIndex: 1,
           }}
         >
           <div style={{
-            width: '32px',
-            height: '32px',
-            backgroundColor: 'var(--accent)',
-            borderRadius: '8px',
+            width: '40px',
+            height: '40px',
+            background: 'linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%)',
+            borderRadius: '12px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
+            boxShadow: '0 4px 24px rgba(99, 102, 241, 0.5)',
+            position: 'relative',
           }}>
-            <Sparkles style={{ width: '20px', height: '20px', color: 'white' }} />
+            <div style={{
+              position: 'absolute',
+              inset: -2,
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, var(--primary-500), var(--primary-600))',
+              filter: 'blur(8px)',
+              opacity: 0.6,
+            }}></div>
+            <Sparkles style={{ width: '20px', height: '20px', color: 'white', position: 'relative', zIndex: 1 }} />
           </div>
           {!collapsed && (
             <span style={{
               fontSize: '18px',
-              fontWeight: 'bold',
+              fontWeight: '600',
               color: 'var(--text-primary)',
-              letterSpacing: '0.5px',
+              letterSpacing: '-0.3px',
             }}>
               开演AI
             </span>
@@ -131,7 +148,7 @@ export function Sidebar() {
 
       <nav style={{
         flex: 1,
-        padding: '12px',
+        padding: '16px 12px',
         overflowY: 'auto',
       }}>
         {navItems.map((item) => {
@@ -146,21 +163,44 @@ export function Sidebar() {
                 justifyContent: collapsed ? 'center' : 'flex-start',
               }}
               title={collapsed ? item.title : undefined}
+              onMouseEnter={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-tertiary)';
+                }
+              }}
             >
-              <item.icon style={{ width: '20px', height: '20px', flexShrink: 0 }} />
+              <item.icon style={{ 
+                width: '20px', 
+                height: '20px', 
+                flexShrink: 0,
+                transition: 'all 0.3s ease',
+                color: isActive ? 'var(--primary-500)' : 'var(--text-tertiary)'
+              }} />
               {!collapsed && (
                 <>
-                  <span style={{ fontSize: '14px', fontWeight: '500' }}>{item.title}</span>
+                  <span style={{ 
+                    fontSize: '14px', 
+                    fontWeight: '500',
+                    transition: 'all 0.3s ease'
+                  }}>{item.title}</span>
                   {isActive && (
                     <div style={{
                       position: 'absolute',
                       left: 0,
                       top: '50%',
                       transform: 'translateY(-50%)',
-                      width: '3px',
-                      height: '32px',
-                      backgroundColor: 'var(--accent)',
-                      borderRadius: '0 4px 4px 0',
+                      width: '4px',
+                      height: '36px',
+                      background: 'linear-gradient(135deg, var(--primary-500), var(--primary-600))',
+                      borderRadius: '0 8px 8px 0',
+                      boxShadow: '0 0 12px rgba(99, 102, 241, 0.4)',
                     }} />
                   )}
                 </>
@@ -171,11 +211,11 @@ export function Sidebar() {
       </nav>
 
       <div style={{
-        padding: '12px',
+        padding: '16px 12px',
         borderTop: '1px solid var(--border-subtle)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '4px',
+        gap: '8px',
       }}>
         <button
           onClick={toggleTheme}
@@ -184,8 +224,16 @@ export function Sidebar() {
             justifyContent: collapsed ? 'center' : 'flex-start',
           }}
           title={collapsed ? (theme === 'dark' ? '切换亮色主题' : '切换暗色主题') : undefined}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+            e.currentTarget.style.color = 'var(--text-secondary)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.color = 'var(--text-tertiary)';
+          }}
         >
-          {theme === 'dark' ? <Sun style={{ width: '20px', height: '20px', flexShrink: 0 }} /> : <Moon style={{ width: '20px', height: '20px', flexShrink: 0 }} />}
+          {theme === 'dark' ? <Sun style={{ width: '20px', height: '20px', flexShrink: 0, color: 'var(--text-tertiary)' }} /> : <Moon style={{ width: '20px', height: '20px', flexShrink: 0, color: 'var(--text-tertiary)' }} />}
           {!collapsed && <span style={{ fontSize: '14px', fontWeight: '500' }}>切换主题</span>}
         </button>
 
@@ -196,8 +244,16 @@ export function Sidebar() {
             justifyContent: collapsed ? 'center' : 'flex-start',
           }}
           title={collapsed ? '帮助' : undefined}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+            e.currentTarget.style.color = 'var(--text-secondary)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.color = 'var(--text-tertiary)';
+          }}
         >
-          <HelpCircle style={{ width: '20px', height: '20px', flexShrink: 0 }} />
+          <HelpCircle style={{ width: '20px', height: '20px', flexShrink: 0, color: 'var(--text-tertiary)' }} />
           {!collapsed && <span style={{ fontSize: '14px', fontWeight: '500' }}>帮助</span>}
         </Link>
 
@@ -208,6 +264,14 @@ export function Sidebar() {
             justifyContent: collapsed ? 'center' : 'flex-start',
           }}
           title={collapsed ? '展开侧边栏' : '收起侧边栏'}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+            e.currentTarget.style.color = 'var(--text-secondary)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.color = 'var(--text-tertiary)';
+          }}
         >
           <ChevronRight
             style={{
@@ -216,6 +280,7 @@ export function Sidebar() {
               flexShrink: 0,
               transform: collapsed ? 'rotate(180deg)' : 'rotate(0deg)',
               transition: 'transform 0.3s ease',
+              color: 'var(--text-tertiary)',
             }}
           />
           {!collapsed && <span style={{ fontSize: '14px', fontWeight: '500' }}>收起</span>}

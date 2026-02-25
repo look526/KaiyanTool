@@ -5,30 +5,31 @@ export interface TabItem {
   label: string;
   icon?: ReactNode;
   disabled?: boolean;
+  badge?: number;
 }
 
 export interface TabsProps {
   items: TabItem[];
   activeKey: string;
   onChange: (key: string) => void;
-  variant?: 'default' | 'pills' | 'underline';
+  variant?: 'default' | 'pills' | 'underline' | 'segmented';
   size?: 'small' | 'medium' | 'large';
   className?: string;
 }
 
 const SIZE_CONFIG = {
   small: {
-    padding: '6px 12px',
+    padding: '10px 16px',
     fontSize: '13px',
     iconSize: '14px',
   },
   medium: {
-    padding: '8px 16px',
+    padding: '12px 20px',
     fontSize: '14px',
     iconSize: '16px',
   },
   large: {
-    padding: '10px 20px',
+    padding: '14px 24px',
     fontSize: '15px',
     iconSize: '18px',
   },
@@ -49,11 +50,14 @@ export function Tabs({
       return (
         <div
           style={{
-            display: 'flex',
+            display: 'inline-flex',
             gap: '8px',
-            padding: '4px',
-            backgroundColor: 'var(--bg-hover)',
-            borderRadius: '10px',
+            padding: '8px',
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderRadius: '20px',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
           }}
         >
           {items.map((item) => (
@@ -64,26 +68,101 @@ export function Tabs({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '8px',
                 padding: sizeConfig.padding,
                 fontSize: sizeConfig.fontSize,
-                fontWeight: '500',
-                backgroundColor: activeKey === item.key ? 'var(--bg-base)' : 'transparent',
-                color: activeKey === item.key ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                border: 'none',
-                borderRadius: '8px',
+                fontWeight: '600',
+                backgroundColor: activeKey === item.key 
+                  ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+                  : 'transparent',
+                color: activeKey === item.key ? '#ffffff' : 'rgba(255, 255, 255, 0.6)',
+                border: activeKey === item.key ? 'none' : '1px solid transparent',
+                borderRadius: '14px',
                 cursor: item.disabled ? 'not-allowed' : 'pointer',
-                transition: 'all 0.15s ease',
-                boxShadow: activeKey === item.key ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: activeKey === item.key ? '0 4px 16px rgba(102, 126, 234, 0.4)' : 'none',
+                position: 'relative',
               }}
               onMouseEnter={(e) => {
                 if (!item.disabled && activeKey !== item.key) {
-                  e.currentTarget.style.backgroundColor = 'var(--bg-base)';
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+                  e.currentTarget.style.color = '#ffffff';
                 }
               }}
               onMouseLeave={(e) => {
                 if (!item.disabled && activeKey !== item.key) {
                   e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)';
+                }
+              }}
+            >
+              {item.icon && <span style={{ width: sizeConfig.iconSize, height: sizeConfig.iconSize }}>{item.icon}</span>}
+              {item.label}
+              {item.badge && (
+                <span
+                  style={{
+                    minWidth: '20px',
+                    height: '20px',
+                    padding: '0 6px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    color: '#ffffff',
+                    borderRadius: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {item.badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      );
+    }
+
+    if (variant === 'segmented') {
+      return (
+        <div
+          style={{
+            display: 'inline-flex',
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderRadius: '16px',
+            padding: '4px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+          }}
+        >
+          {items.map((item) => (
+            <button
+              key={item.key}
+              onClick={() => !item.disabled && onChange(item.key)}
+              disabled={item.disabled}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: sizeConfig.padding,
+                fontSize: sizeConfig.fontSize,
+                fontWeight: '600',
+                backgroundColor: activeKey === item.key ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                color: activeKey === item.key ? '#ffffff' : 'rgba(255, 255, 255, 0.6)',
+                border: 'none',
+                borderRadius: '12px',
+                cursor: item.disabled ? 'not-allowed' : 'pointer',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+              onMouseEnter={(e) => {
+                if (!item.disabled && activeKey !== item.key) {
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+                  e.currentTarget.style.color = '#ffffff';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!item.disabled && activeKey !== item.key) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)';
                 }
               }}
             >
@@ -106,27 +185,28 @@ export function Tabs({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '8px',
                 padding: sizeConfig.padding,
-                paddingBottom: 'calc(' + sizeConfig.padding + ' - 2px)',
+                paddingBottom: 'calc(' + sizeConfig.padding + ' - 4px)',
                 fontSize: sizeConfig.fontSize,
-                fontWeight: '500',
-                color: activeKey === item.key ? 'var(--accent)' : 'var(--text-tertiary)',
+                fontWeight: '600',
+                color: activeKey === item.key ? '#667eea' : 'rgba(255, 255, 255, 0.6)',
                 backgroundColor: 'transparent',
                 border: 'none',
-                borderBottom: activeKey === item.key ? '2px solid var(--accent)' : '2px solid transparent',
+                borderBottom: activeKey === item.key ? '3px solid #667eea' : '3px solid transparent',
                 cursor: item.disabled ? 'not-allowed' : 'pointer',
-                transition: 'all 0.15s ease',
-                marginBottom: '-2px',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                marginBottom: '-3px',
+                position: 'relative',
               }}
               onMouseEnter={(e) => {
                 if (!item.disabled && activeKey !== item.key) {
-                  e.currentTarget.style.color = 'var(--text-primary)';
+                  e.currentTarget.style.color = '#ffffff';
                 }
               }}
               onMouseLeave={(e) => {
                 if (!item.disabled && activeKey !== item.key) {
-                  e.currentTarget.style.color = 'var(--text-tertiary)';
+                  e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)';
                 }
               }}
             >
@@ -139,7 +219,7 @@ export function Tabs({
     }
 
     return (
-      <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid var(--border-primary)' }}>
+      <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
         {items.map((item) => (
           <button
             key={item.key}
@@ -148,27 +228,27 @@ export function Tabs({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '8px',
               padding: sizeConfig.padding,
-              paddingBottom: 'calc(' + sizeConfig.padding + ' - 1px)',
+              paddingBottom: 'calc(' + sizeConfig.padding + ' - 3px)',
               fontSize: sizeConfig.fontSize,
-              fontWeight: '500',
-              color: activeKey === item.key ? 'var(--accent)' : 'var(--text-tertiary)',
+              fontWeight: '600',
+              color: activeKey === item.key ? '#667eea' : 'rgba(255, 255, 255, 0.6)',
               backgroundColor: 'transparent',
               border: 'none',
-              borderBottom: activeKey === item.key ? '2px solid var(--accent)' : '2px solid transparent',
+              borderBottom: activeKey === item.key ? '3px solid #667eea' : '3px solid transparent',
               cursor: item.disabled ? 'not-allowed' : 'pointer',
-              transition: 'all 0.15s ease',
-              marginBottom: '-1px',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              marginBottom: '-3px',
             }}
             onMouseEnter={(e) => {
               if (!item.disabled && activeKey !== item.key) {
-                e.currentTarget.style.color = 'var(--text-primary)';
+                e.currentTarget.style.color = '#ffffff';
               }
             }}
             onMouseLeave={(e) => {
               if (!item.disabled && activeKey !== item.key) {
-                e.currentTarget.style.color = 'var(--text-tertiary)';
+                e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)';
               }
             }}
           >
@@ -194,7 +274,7 @@ export interface TabPanelProps {
 
 export function TabPanel({ children, className }: TabPanelProps) {
   return (
-    <div className={className} style={{ padding: '16px 0' }}>
+    <div className={className} style={{ padding: '24px 0' }}>
       {children}
     </div>
   );

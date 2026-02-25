@@ -49,7 +49,7 @@ export class AnalyticsService {
     const monthStart = startOfMonth(now);
 
     const [
-      projectCount,
+      ownedProjects,
       totalContributions,
       todayContributions,
       weekContributions,
@@ -57,8 +57,8 @@ export class AnalyticsService {
       topProjects,
       recentActivity
     ] = await Promise.all([
-      prisma.project.count({ where: { ownerId: userId } }),
-      prisma.projectMember.count({ where: { userId } }),
+      prisma.project.findMany({ where: { ownerId: userId }, select: { id: true } }),
+      prisma.projectMember.findMany({ where: { userId }, select: { projectId: true } }),
       this.getUserContributions(userId, today),
       this.getUserContributions(userId, weekStart),
       this.getUserContributions(userId, monthStart),
@@ -66,9 +66,14 @@ export class AnalyticsService {
       this.getRecentUserActivity(userId, 10)
     ]);
 
+    const allProjectIds = new Set([
+      ...ownedProjects.map(p => p.id),
+      ...totalContributions.map(m => m.projectId)
+    ]);
+
     return {
-      projects: projectCount,
-      collaborations: totalContributions,
+      projects: allProjectIds.size,
+      collaborations: totalContributions.length,
       contributions: {
         today: todayContributions,
         thisWeek: weekContributions,
@@ -284,43 +289,73 @@ export class AnalyticsService {
     const projects = await prisma.project.findMany({
       take: limit,
       orderBy: {
-        documents: { _count: 'desc' }
+        createdAt: 'desc'
       },
       select: {
         id: true,
         name: true,
-        _count: { select: { documents: true } }
+        _count: { select: { contents: true } }
       }
     });
 
     return projects.map(p => ({
       id: p.id,
       name: p.name,
-      assetCount: p._count.documents
+      assetCount: p._count.contents
     }));
   }
 
   private async getTopProjectsByUser(userId: string, limit: number) {
-    const memberships = await prisma.projectMember.findMany({
-      where: { userId },
-      take: limit,
-      include: {
-        project: {
-          select: {
-            id: true,
-            name: true,
-            _count: { select: { documents: true } }
+    const [ownedProjects, memberProjects] = await Promise.all([
+      prisma.project.findMany({
+        where: { ownerId: userId },
+        take: limit,
+        select: {
+          id: true,
+          name: true,
+        }
+      }),
+      prisma.projectMember.findMany({
+        where: { userId },
+        take: limit,
+        include: {
+          project: {
+            select: {
+              id: true,
+              name: true,
+            }
           }
         }
-      }
-    });
+      })
+    ]);
 
-    return memberships.map(m => ({
+    const owned = ownedProjects.map(p => ({
+      id: p.id,
+      name: p.name,
+      role: 'owner' as const,
+      assetCount: 0
+    }));
+
+    const member = memberProjects.map(m => ({
       id: m.project.id,
       name: m.project.name,
       role: m.role,
-      assetCount: m.project._count.documents
+      assetCount: 0
     }));
+
+    const allProjects = [...owned, ...member];
+    const uniqueProjects = allProjects.filter((project, index, self) =>
+      index === self.findIndex(p => p.id === project.id)
+    );
+
+    for (const project of uniqueProjects) {
+      const assetCount = await prisma.asset.count({
+        where: { projectId: project.id }
+      });
+      project.assetCount = assetCount;
+    }
+
+    return uniqueProjects.slice(0, limit);
   }
 
   private async getTopUsers(limit: number) {

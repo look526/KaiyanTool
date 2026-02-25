@@ -1,0 +1,691 @@
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { Sidebar } from '../components/Sidebar';
+import { Card } from '../components/ui/card';
+import MonacoEditor from '../components/MonacoEditor';
+import { apiClient } from '../lib/api';
+import { Plus, Edit, Trash2, FileText, PlusCircle, ArrowLeft } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
+import { useToast } from '../components/ui/Toast';
+
+interface Novel {
+  id: string;
+  title: string;
+  description: string;
+  createdAt: string;
+  chapters: Chapter[];
+}
+
+interface Chapter {
+  id: string;
+  title: string;
+  content: string;
+  order: number;
+}
+
+export default function NovelsPage() {
+  const { id } = useParams();
+  const { theme } = useTheme();
+
+  const textColor = theme === 'dark' ? '#ffffff' : '#0f172a';
+  const mutedTextColor = theme === 'dark' ? '#a1a1aa' : '#64748b';
+  const borderColor = theme === 'dark' ? '#27272a' : '#e2e8f0';
+  const inputBg = theme === 'dark' ? '#09090b' : '#f8fafc';
+  const cardBg = theme === 'dark' ? '#18181b' : '#ffffff';
+
+  const [novels, setNovels] = useState<Novel[]>([]);
+  const [selectedNovel, setSelectedNovel] = useState<Novel | null>(null);
+  const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
+  const [showNovelModal, setShowNovelModal] = useState(false);
+  const [showChapterModal, setShowChapterModal] = useState(false);
+  const [editingNovel, setEditingNovel] = useState<Novel | null>(null);
+  const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { addToast } = useToast();
+
+  useEffect(() => {
+    loadNovels();
+  }, [id]);
+
+  const loadNovels = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.getNovels(id!);
+      setNovels(response.novels);
+    } catch (error) {
+      console.error('Failed to load novels:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateNovel = async () => {
+    try {
+      await apiClient.createNovel(id!, { title: '未命名小说', description: '' });
+      await loadNovels();
+      setShowNovelModal(false);
+    } catch (error) {
+      console.error('Failed to create novel:', error);
+      addToast({
+        type: 'error',
+        title: '创建小说失败',
+        message: '请稍后重试。',
+      });
+    }
+  };
+
+  const handleUpdateNovel = async () => {
+    if (!editingNovel) return;
+    try {
+      await apiClient.updateNovel(editingNovel.id, { title: editingNovel.title, description: editingNovel.description });
+      await loadNovels();
+      setShowNovelModal(false);
+      setEditingNovel(null);
+    } catch (error) {
+      console.error('Failed to update novel:', error);
+      addToast({
+        type: 'error',
+        title: '更新小说失败',
+        message: '请稍后重试。',
+      });
+    }
+  };
+
+  const handleDeleteNovel = async (novelId: string) => {
+    if (!confirm('确定要删除这个小说吗？')) return;
+    try {
+      await apiClient.deleteNovel(novelId);
+      await loadNovels();
+      if (selectedNovel?.id === novelId) {
+        setSelectedNovel(null);
+        setSelectedChapter(null);
+      }
+    } catch (error) {
+      console.error('Failed to delete novel:', error);
+      addToast({
+        type: 'error',
+        title: '删除小说失败',
+        message: '请稍后重试。',
+      });
+    }
+  };
+
+  const handleCreateChapter = async () => {
+    if (!selectedNovel) return;
+    try {
+      await apiClient.createChapter(selectedNovel.id, { title: '未命名章节', content: '' });
+      await loadNovels();
+      setShowChapterModal(false);
+    } catch (error) {
+      console.error('Failed to create chapter:', error);
+      addToast({
+        type: 'error',
+        title: '创建章节失败',
+        message: '请稍后重试。',
+      });
+    }
+  };
+
+  const handleUpdateChapter = async () => {
+    if (!editingChapter) return;
+    try {
+      await apiClient.updateChapter(editingChapter.id, { title: editingChapter.title, content: editingChapter.content });
+      await loadNovels();
+      setShowChapterModal(false);
+      setEditingChapter(null);
+    } catch (error) {
+      console.error('Failed to update chapter:', error);
+      addToast({
+        type: 'error',
+        title: '更新章节失败',
+        message: '请稍后重试。',
+      });
+    }
+  };
+
+  const handleDeleteChapter = async (chapterId: string) => {
+    if (!confirm('确定要删除这个章节吗？')) return;
+    try {
+      await apiClient.deleteChapter(chapterId);
+      await loadNovels();
+      if (selectedChapter?.id === chapterId) {
+        setSelectedChapter(null);
+      }
+    } catch (error) {
+      console.error('Failed to delete chapter:', error);
+      addToast({
+        type: 'error',
+        title: '删除章节失败',
+        message: '请稍后重试。',
+      });
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: 'var(--bg-base)', color: textColor }}>
+      <Sidebar />
+      
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '16px 24px',
+          borderBottom: `1px solid ${borderColor}`,
+          gap: '16px',
+        }}>
+          <Link to={`/projects/${id}`} style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 12px',
+            borderRadius: '8px',
+            textDecoration: 'none',
+            color: 'var(--text-muted)',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+            e.currentTarget.style.color = 'var(--text-primary)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.color = 'var(--text-muted)';
+          }}
+          >
+            <ArrowLeft style={{ width: '16px', height: '16px' }} />
+          </Link>
+          <div style={{ flex: 1 }}>
+            <h1 style={{ fontSize: '20px', fontWeight: '700', margin: '0 0 4px 0' }}>小说管理</h1>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              共 {novels.length} 部小说
+            </div>
+          </div>
+          <button
+            onClick={() => setShowNovelModal(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '10px 20px',
+              borderRadius: '8px',
+              border: 'none',
+              background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
+              color: 'var(--accent-on)',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+            }}
+          >
+            <Plus style={{ width: '16px', height: '16px' }} />
+            新建小说
+          </button>
+        </div>
+
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          <div style={{
+            width: '300px',
+            borderRight: `1px solid ${borderColor}`,
+            backgroundColor: 'var(--bg-hover)',
+            overflowY: 'auto',
+            padding: '12px',
+          }}>
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: mutedTextColor }}>
+                加载中...
+              </div>
+            ) : novels.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: mutedTextColor }}>
+                <FileText style={{ width: '48px', height: '48px', margin: '0 auto 16px', color: mutedTextColor }} />
+                <p style={{ margin: '0 0 20px 0', color: mutedTextColor, fontSize: '16px' }}>暂无小说</p>
+                <button
+                  onClick={() => setShowNovelModal(true)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    width: '100%',
+                    padding: '12px 24px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
+                    color: 'var(--accent-on)',
+                    fontSize: '15px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.15)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+                  }}
+                >
+                  <Plus style={{ width: '18px', height: '18px' }} />
+                  创建第一部小说
+                </button>
+              </div>
+            ) : (
+              novels.map((novel) => (
+                <div
+                  key={novel.id}
+                  onClick={() => setSelectedNovel(novel)}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '8px',
+                    marginBottom: '8px',
+                    cursor: 'pointer',
+                    backgroundColor: selectedNovel?.id === novel.id ? 'var(--accent)' : 'transparent',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (selectedNovel?.id !== novel.id) {
+                      e.currentTarget.style.backgroundColor = inputBg;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedNovel?.id !== novel.id) {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{
+                      fontWeight: '500',
+                      color: selectedNovel?.id === novel.id ? '#ffffff' : textColor,
+                    }}>
+                      {novel.title}
+                    </span>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingNovel(novel);
+                          setShowNovelModal(true);
+                        }}
+                        style={{
+                          padding: '4px',
+                          borderRadius: '4px',
+                          border: 'none',
+                          background: 'transparent',
+                          color: selectedNovel?.id === novel.id ? '#ffffff' : mutedTextColor,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Edit style={{ width: '14px', height: '14px' }} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteNovel(novel.id);
+                        }}
+                        style={{
+                          padding: '4px',
+                          borderRadius: '4px',
+                          border: 'none',
+                          background: 'transparent',
+                          color: selectedNovel?.id === novel.id ? '#ffffff' : mutedTextColor,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Trash2 style={{ width: '14px', height: '14px' }} />
+                      </button>
+                    </div>
+                  </div>
+                  {selectedNovel?.id === novel.id && (
+                    <div style={{
+                      marginTop: '8px',
+                      paddingTop: '8px',
+                      borderTop: `1px solid ${borderColor}`,
+                    }}>
+                      {novel.chapters.map((chapter) => (
+                        <div
+                          key={chapter.id}
+                          onClick={() => setSelectedChapter(chapter)}
+                          style={{
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            marginBottom: '4px',
+                            cursor: 'pointer',
+                            backgroundColor: selectedChapter?.id === chapter.id ? inputBg : 'transparent',
+                            transition: 'all 0.2s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (selectedChapter?.id !== chapter.id) {
+                              e.currentTarget.style.backgroundColor = inputBg;
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (selectedChapter?.id !== chapter.id) {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                            }
+                          }}
+                        >
+                          <span style={{
+                            fontSize: '13px',
+                            color: selectedChapter?.id === chapter.id ? 'var(--accent)' : textColor,
+                          }}>
+                            {chapter.order}. {chapter.title}
+                          </span>
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingChapter(chapter);
+                                setShowChapterModal(true);
+                              }}
+                              style={{
+                                padding: '4px',
+                                borderRadius: '4px',
+                                border: 'none',
+                                background: 'transparent',
+                                color: mutedTextColor,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <Edit style={{ width: '12px', height: '12px' }} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteChapter(chapter.id);
+                              }}
+                              style={{
+                                padding: '4px',
+                                borderRadius: '4px',
+                                border: 'none',
+                                background: 'transparent',
+                                color: mutedTextColor,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <Trash2 style={{ width: '12px', height: '12px' }} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingChapter(null);
+                          setShowChapterModal(true);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '10px 16px',
+                          borderRadius: '8px',
+                          border: `2px dashed var(--accent)`,
+                          background: 'var(--accent-bg)',
+                          color: 'var(--accent)',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          marginTop: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'var(--accent-bg-hover)';
+                          e.currentTarget.style.borderColor = 'var(--accent-hover)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'var(--accent-bg)';
+                          e.currentTarget.style.borderColor = 'var(--accent)';
+                        }}
+                      >
+                        <PlusCircle style={{ width: '14px', height: '14px' }} />
+                        添加章节
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          <div style={{ flex: 1, padding: '24px', overflowY: 'auto' }}>
+            {selectedChapter ? (
+              <Card style={{ padding: '24px', height: '100%', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03)' }}>
+                <div style={{ marginBottom: '16px' }}>
+                  <h2 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0' }}>{selectedChapter.title}</h2>
+                  <span style={{ fontSize: '12px', color: mutedTextColor }}>
+                    第 {selectedChapter.order} 章
+                  </span>
+                </div>
+                <div style={{ height: 'calc(100% - 80px)' }}>
+                  <MonacoEditor
+                    value={selectedChapter.content}
+                    onChange={(value) => {
+                      setEditingChapter({ ...selectedChapter, content: value || '' });
+                    }}
+                    onSave={async () => {
+                      if (editingChapter) {
+                        await handleUpdateChapter();
+                      } else {
+                        await apiClient.updateChapter(selectedChapter.id, { content: selectedChapter.content || '' });
+                        await loadNovels();
+                      }
+                    }}
+                  />
+                </div>
+              </Card>
+            ) : (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                color: mutedTextColor,
+              }}>
+                <FileText style={{ width: '64px', height: '64px', marginBottom: '16px', color: mutedTextColor }} />
+                <p style={{ fontSize: '16px', margin: '0' }}>选择一个章节开始编辑</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {showNovelModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}
+        onClick={() => setShowNovelModal(false)}
+        >
+          <Card style={{
+            padding: '24px',
+            width: '100%',
+            maxWidth: '500px',
+            backgroundColor: cardBg,
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 20px 0' }}>
+              {editingNovel ? '编辑小说' : '新建小说'}
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: textColor }}>
+                  标题
+                </label>
+                <input
+                  type="text"
+                  value={editingNovel?.title || ''}
+                  onChange={(e) => setEditingNovel({ ...editingNovel!, title: e.target.value })}
+                  placeholder="输入小说标题"
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: `1px solid ${borderColor}`,
+                    backgroundColor: inputBg,
+                    color: textColor,
+                    fontSize: '14px',
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: textColor }}>
+                  描述（可选）
+                </label>
+                <textarea
+                  value={editingNovel?.description || ''}
+                  onChange={(e) => setEditingNovel({ ...editingNovel!, description: e.target.value })}
+                  placeholder="输入小说描述"
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: `1px solid ${borderColor}`,
+                    backgroundColor: inputBg,
+                    color: textColor,
+                    fontSize: '14px',
+                    resize: 'vertical',
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setShowNovelModal(false)}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: mutedTextColor,
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                  }}
+                >
+                  取消
+                </button>
+                <button
+                  onClick={editingNovel ? handleUpdateNovel : handleCreateNovel}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'var(--accent)',
+                    color: 'var(--accent-on)',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                  }}
+                >
+                  {editingNovel ? '更新' : '创建'}
+                </button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {showChapterModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}
+        onClick={() => setShowChapterModal(false)}
+        >
+          <Card style={{
+            padding: '24px',
+            width: '100%',
+            maxWidth: '500px',
+            backgroundColor: cardBg,
+          }}
+          onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 20px 0' }}>
+              {editingChapter ? '编辑章节' : '新建章节'}
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: textColor }}>
+                  标题
+                </label>
+                <input
+                  type="text"
+                  value={editingChapter?.title || ''}
+                  onChange={(e) => setEditingChapter({ ...editingChapter!, title: e.target.value })}
+                  placeholder="输入章节标题"
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: `1px solid ${borderColor}`,
+                    backgroundColor: inputBg,
+                    color: textColor,
+                    fontSize: '14px',
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setShowChapterModal(false)}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: mutedTextColor,
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                  }}
+                >
+                  取消
+                </button>
+                <button
+                  onClick={editingChapter ? handleUpdateChapter : handleCreateChapter}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'var(--accent)',
+                    color: 'var(--accent-on)',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                  }}
+                >
+                  {editingChapter ? '更新' : '创建'}
+                </button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -62,7 +62,7 @@ class NovelController {
         orderBy: { createdAt: 'desc' },
       })
 
-      res.json(novels)
+      res.json({ novels })
     } catch (error) {
       logger.error('获取小说列表失败', { error, projectId: req.params.projectId })
       res.status(500).json({ error: 'Failed to get novels' })

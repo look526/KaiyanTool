@@ -30,22 +30,22 @@ export interface SelectProps {
 
 const SIZE_CONFIG = {
   small: {
-    height: '32px',
+    height: '36px',
     fontSize: '13px',
-    padding: '4px 10px',
-    itemHeight: '32px',
+    padding: '6px 12px',
+    itemHeight: '36px',
   },
   medium: {
-    height: '40px',
+    height: '44px',
     fontSize: '14px',
-    padding: '8px 12px',
-    itemHeight: '40px',
+    padding: '10px 14px',
+    itemHeight: '44px',
   },
   large: {
-    height: '48px',
+    height: '52px',
     fontSize: '15px',
-    padding: '12px 16px',
-    itemHeight: '48px',
+    padding: '12px 18px',
+    itemHeight: '52px',
   },
 };
 
@@ -147,9 +147,10 @@ export function Select({
         <label style={{
           display: 'block',
           fontSize: '14px',
-          fontWeight: '500',
+          fontWeight: '600',
           color: 'var(--text-secondary)',
-          marginBottom: '6px',
+          marginBottom: '8px',
+          letterSpacing: '-0.01em',
         }}>
           {label}
         </label>
@@ -167,26 +168,30 @@ export function Select({
           height: sizeConfig.height,
           padding: sizeConfig.padding,
           fontSize: sizeConfig.fontSize,
-          backgroundColor: 'var(--bg-base)',
-          border: error ? '1px solid var(--error)' : '1px solid var(--border-primary)',
-          borderRadius: '8px',
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          border: error ? '1px solid var(--error)' : '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '12px',
           cursor: disabled ? 'not-allowed' : 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '8px',
+          gap: '10px',
           color: disabled ? 'var(--text-tertiary)' : 'var(--text-primary)',
-          transition: 'all 0.15s ease',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           opacity: disabled ? 0.6 : 1,
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
         }}
         onMouseEnter={(e) => {
           if (!disabled) {
-            e.currentTarget.style.borderColor = 'var(--accent)';
+            e.currentTarget.style.borderColor = error ? 'var(--error)' : 'rgba(255, 255, 255, 0.2)';
+            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
           }
         }}
         onMouseLeave={(e) => {
           if (!disabled && !error) {
-            e.currentTarget.style.borderColor = 'var(--border-primary)';
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
           }
         }}
       >
@@ -199,20 +204,29 @@ export function Select({
         }}>
           {getDisplayValues()}
         </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           {clearable && value && !disabled && (
             <div
               onClick={handleClear}
               style={{
-                width: '18px',
-                height: '18px',
+                width: '20px',
+                height: '20px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderRadius: '50%',
-                background: 'var(--bg-hover)',
+                background: 'rgba(255, 255, 255, 0.1)',
                 color: 'var(--text-tertiary)',
                 cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.color = 'var(--text-tertiary)';
               }}
             >
               <X style={{ width: '12px', height: '12px' }} />
@@ -220,10 +234,10 @@ export function Select({
           )}
           <ChevronDown
             style={{
-              width: '18px',
-              height: '18px',
+              width: '20px',
+              height: '20px',
               color: 'var(--text-tertiary)',
-              transition: 'transform 0.15s ease',
+              transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
             }}
           />
@@ -231,9 +245,9 @@ export function Select({
       </div>
       {error && (
         <span style={{
-          fontSize: '12px',
+          fontSize: '13px',
           color: 'var(--error)',
-          marginTop: '4px',
+          marginTop: '6px',
           display: 'block',
         }}>
           {error}
@@ -243,36 +257,41 @@ export function Select({
         <div
           style={{
             position: 'absolute',
-            top: 'calc(100% + 4px)',
+            top: 'calc(100% + 8px)',
             left: 0,
             right: 0,
-            maxHeight: '240px',
+            maxHeight: '280px',
             overflow: 'auto',
-            backgroundColor: 'var(--bg-base)',
-            border: '1px solid var(--border-primary)',
-            borderRadius: '8px',
-            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '16px',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+            backdropFilter: 'blur(40px) saturate(200%)',
+            WebkitBackdropFilter: 'blur(40px) saturate(200%)',
             zIndex: 1000,
-            animation: 'dropdown-enter 0.15s ease-out',
+            animation: 'dropdown-enter 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         >
           {searchable && (
             <div style={{
-              padding: '8px',
-              borderBottom: '1px solid var(--border-primary)',
+              padding: '12px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
               position: 'sticky',
               top: 0,
-              background: 'var(--bg-base)',
+              background: 'rgba(255, 255, 255, 0.05)',
+              backdropFilter: 'blur(40px)',
+              WebkitBackdropFilter: 'blur(40px)',
             }}>
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                padding: '6px 10px',
-                background: 'var(--bg-hover)',
-                borderRadius: '6px',
+                gap: '10px',
+                padding: '8px 12px',
+                background: 'rgba(255, 255, 255, 0.08)',
+                borderRadius: '10px',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
               }}>
-                <Search style={{ width: '16px', height: '16px', color: 'var(--text-tertiary)' }} />
+                <Search style={{ width: '18px', height: '18px', color: 'var(--text-tertiary)' }} />
                 <input
                   ref={inputRef}
                   type="text"
@@ -298,12 +317,12 @@ export function Select({
                   {groupIndex > 0 && (
                     <div style={{
                       height: '1px',
-                      background: 'var(--border-primary)',
-                      margin: '4px 0',
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      margin: '6px 0',
                     }} />
                   )}
                   <div style={{
-                    padding: '8px 12px 4px',
+                    padding: '10px 14px 6px',
                     fontSize: '12px',
                     fontWeight: '600',
                     color: 'var(--text-tertiary)',
@@ -330,15 +349,15 @@ export function Select({
                       padding: `0 ${sizeConfig.padding}`,
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '10px',
+                      gap: '12px',
                       cursor: optionDisabled ? 'not-allowed' : 'pointer',
                       color: optionDisabled ? 'var(--text-tertiary)' : 'var(--text-primary)',
-                      backgroundColor: selected ? 'var(--accent-bg)' : 'transparent',
-                      transition: 'all 0.1s ease',
+                      backgroundColor: selected ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                     }}
                     onMouseEnter={(e) => {
                       if (!optionDisabled && !selected) {
-                        e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -348,14 +367,14 @@ export function Select({
                     }}
                   >
                     {optionIcon && (
-                      <span style={{ width: '18px', height: '18px' }}>{optionIcon}</span>
+                      <span style={{ width: '20px', height: '20px' }}>{optionIcon}</span>
                     )}
                     <span style={{ flex: 1 }}>{optionLabel}</span>
                     {multiple && selected && (
-                      <Check style={{ width: '16px', height: '16px', color: 'var(--accent)' }} />
+                      <Check style={{ width: '18px', height: '18px', color: 'var(--accent)' }} />
                     )}
                     {!multiple && selected && (
-                      <Check style={{ width: '16px', height: '16px', color: 'var(--accent)' }} />
+                      <Check style={{ width: '18px', height: '18px', color: 'var(--accent)' }} />
                     )}
                   </div>
                 );
@@ -364,7 +383,7 @@ export function Select({
           ))}
           {filteredOptions.length === 0 && (
             <div style={{
-              padding: '16px',
+              padding: '24px',
               textAlign: 'center',
               color: 'var(--text-tertiary)',
               fontSize: '14px',
@@ -378,11 +397,11 @@ export function Select({
         @keyframes dropdown-enter {
           from {
             opacity: 0;
-            transform: translateY(-8px);
+            transform: translateY(-12px) scale(0.98);
           }
           to {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
           }
         }
       `}</style>
