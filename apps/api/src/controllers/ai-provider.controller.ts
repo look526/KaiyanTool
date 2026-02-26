@@ -48,9 +48,9 @@ export class AIProviderController {
       })
 
       res.json({ providers, pagination: { total: providers.length, page: 1, limit: providers.length } })
-    } catch (error) {
-      logger.error('Failed to get AI providers', { userId: req.userId, error })
-      res.status(500).json({ error: 'Failed to get AI providers' })
+    } catch (error: any) {
+      logger.error('Failed to get AI providers', { userId: req.userId, error: error?.message, stack: error?.stack })
+      res.status(500).json({ error: error?.message || 'Failed to get AI providers' })
     }
   }
 
