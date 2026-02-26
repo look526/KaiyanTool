@@ -10,7 +10,6 @@ import {
   Smartphone,
   Clock,
 } from 'lucide-react';
-import { Sidebar } from '../components/Sidebar';
 import { Card } from '../components/ui/card';
 
 interface NotificationSetting {
@@ -80,9 +79,7 @@ export default function NotificationSettingsPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
-      <Sidebar />
-
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <header style={{
           height: '64px',

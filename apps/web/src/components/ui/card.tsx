@@ -3,61 +3,89 @@ import * as React from 'react';
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   tabIndex?: number;
   role?: string;
-  glass?: boolean;
-  hover?: boolean;
-  glow?: boolean;
-  gradient?: boolean;
+  variant?: 'default' | 'elevated' | 'outlined' | 'filled';
+  interactive?: boolean;
+  padding?: 'none' | 'sm' | 'md' | 'lg';
 }
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, tabIndex, role, style, glass = true, hover = true, glow = false, gradient = false, ...props }, ref) => (
-    <div
-      ref={ref}
-      style={{
-        backgroundColor: glass ? 'rgba(255, 255, 255, 0.05)' : gradient ? 'rgba(102, 126, 234, 0.1)' : 'rgba(255, 255, 255, 0.03)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: '24px',
-        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-        backdropFilter: glass ? 'blur(20px) saturate(180%)' : 'none',
-        WebkitBackdropFilter: glass ? 'blur(20px) saturate(180%)' : 'none',
-        boxShadow: glow ? '0 8px 32px rgba(102, 126, 234, 0.2)' : '0 4px 24px rgba(0, 0, 0, 0.08)',
-        ...style,
-      }}
-      className={className}
-      tabIndex={tabIndex}
-      role={role}
-      onMouseEnter={(e) => {
-        if (hover) {
-          e.currentTarget.style.transform = 'translateY(-6px) scale(1.01)';
-          e.currentTarget.style.boxShadow = glow 
-            ? '0 16px 48px rgba(102, 126, 234, 0.3)' 
-            : '0 20px 60px rgba(0, 0, 0, 0.15)';
-          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-          e.currentTarget.style.backgroundColor = glass 
-            ? 'rgba(255, 255, 255, 0.08)' 
-            : gradient 
-              ? 'rgba(102, 126, 234, 0.15)' 
-              : 'rgba(255, 255, 255, 0.05)';
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (hover) {
-          e.currentTarget.style.transform = 'translateY(0) scale(1)';
-          e.currentTarget.style.boxShadow = glow 
-            ? '0 8px 32px rgba(102, 126, 234, 0.2)' 
-            : '0 4px 24px rgba(0, 0, 0, 0.08)';
-          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-          e.currentTarget.style.backgroundColor = glass 
-            ? 'rgba(255, 255, 255, 0.05)' 
-            : gradient 
-              ? 'rgba(102, 126, 234, 0.1)' 
-              : 'rgba(255, 255, 255, 0.03)';
-        }
-      }}
-      {...props}
-    />
-  ),
+  ({ 
+    className, 
+    tabIndex, 
+    role, 
+    style, 
+    variant = 'default', 
+    interactive = false,
+    padding = 'md',
+    ...props 
+  }, ref) => {
+    const variantStyles: Record<string, React.CSSProperties> = {
+      default: {
+        backgroundColor: 'var(--card-bg)',
+        border: '1px solid var(--card-border)',
+        boxShadow: 'var(--card-shadow)',
+      },
+      elevated: {
+        backgroundColor: 'var(--card-bg-solid)',
+        border: 'none',
+        boxShadow: 'var(--shadow-lg)',
+      },
+      outlined: {
+        backgroundColor: 'transparent',
+        border: '1px solid var(--border-primary)',
+        boxShadow: 'none',
+      },
+      filled: {
+        backgroundColor: 'var(--bg-secondary)',
+        border: 'none',
+        boxShadow: 'none',
+      },
+    };
+
+    const paddingStyles: Record<string, string> = {
+      none: '0',
+      sm: 'var(--spacing-4)',
+      md: 'var(--spacing-6)',
+      lg: 'var(--spacing-8)',
+    };
+
+    return (
+      <div
+        ref={ref}
+        style={{
+          borderRadius: 'var(--radius-xl)',
+          transition: 'transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out)',
+          cursor: interactive ? 'pointer' : 'default',
+          padding: paddingStyles[padding],
+          ...variantStyles[variant],
+          ...style,
+        }}
+        className={className}
+        tabIndex={tabIndex}
+        role={role}
+        onMouseEnter={(e) => {
+          if (interactive) {
+            e.currentTarget.style.transform = 'translateY(-4px) scale(1.01)';
+            e.currentTarget.style.boxShadow = 'var(--card-shadow-hover)';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (interactive) {
+            e.currentTarget.style.transform = 'translateY(0) scale(1)';
+            e.currentTarget.style.boxShadow = variantStyles[variant].boxShadow as string;
+          }
+        }}
+        onMouseDown={(e) => {
+          if (interactive) {
+            e.currentTarget.style.transform = 'translateY(-2px) scale(0.99)';
+          }
+        }}
+        {...props}
+      />
+    );
+  },
 );
+
 Card.displayName = 'Card';
 
 export { Card };

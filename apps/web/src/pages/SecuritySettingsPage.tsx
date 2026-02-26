@@ -14,7 +14,6 @@ import {
   Smartphone,
   LogOut,
 } from 'lucide-react';
-import { Sidebar } from '../components/Sidebar';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { useAuth } from '../contexts/AuthContext';
@@ -95,9 +94,7 @@ export default function SecuritySettingsPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
-      <Sidebar />
-
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <header style={{
           height: '64px',

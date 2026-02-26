@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
+import { buildCharacterImagePrompt } from '../config/prompt-templates';
 
 const ImageGenerationSchema = z.object({
   prompt: z.string().min(10),

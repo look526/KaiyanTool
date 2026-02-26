@@ -91,13 +91,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string, rememberMe?: boolean) => {
     const response = await apiClient.login({ email, password, rememberMe });
     setUser(response.user);
-    setRememberMe(response.rememberMe || false);
+    setRememberMe(rememberMe || false);
   };
 
   const register = async (name: string, email: string, password: string) => {
     const response = await apiClient.register({ name, email, password });
     setUser(response.user);
-    setRememberMe(response.rememberMe || false);
+    setRememberMe(false);
   };
 
   const logout = async () => {

@@ -1,6 +1,41 @@
 import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
-import { logger } from '../lib/logger';
+import logger from '../lib/logger';
+
+const STYLE_TEMPLATES = {
+  cinematic: { 
+    name: 'Cinematic', 
+    prompt: 'cinematic lighting, film grain, anamorphic lens flares',
+    keywords: ['cinematic', 'film', 'drama'],
+    qualityModifiers: ['high quality', 'detailed', 'professional'],
+    lighting: ['cinematic lighting', 'natural light', 'dramatic shadows'],
+    negative: ['amateur', 'low quality', 'blurry']
+  },
+  anime: { 
+    name: 'Anime', 
+    prompt: 'anime style, cel shading, vibrant colors',
+    keywords: ['anime', 'manga', 'cartoon'],
+    qualityModifiers: ['clean lines', 'vibrant colors', 'detailed'],
+    lighting: ['bright', 'vibrant', 'colorful'],
+    negative: ['realistic', 'photorealistic', '3d']
+  },
+  realistic: { 
+    name: 'Realistic', 
+    prompt: 'photorealistic, detailed textures, natural lighting',
+    keywords: ['realistic', 'photorealistic', 'natural'],
+    qualityModifiers: ['high detail', 'realistic textures', 'lifelike'],
+    lighting: ['natural lighting', 'soft shadows', 'realistic'],
+    negative: ['cartoon', 'anime', 'stylized']
+  },
+  stylized: { 
+    name: 'Stylized', 
+    prompt: 'stylized, artistic, creative composition',
+    keywords: ['stylized', 'artistic', 'creative'],
+    qualityModifiers: ['artistic', 'unique', 'expressive'],
+    lighting: ['artistic lighting', 'dramatic', 'moody'],
+    negative: ['generic', 'plain', 'boring']
+  },
+};
 
 interface StoryboardInput {
   outlineId: string;

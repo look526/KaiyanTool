@@ -5,14 +5,12 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   error?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
-  glass?: boolean;
-  floating?: boolean;
+  variant?: 'default' | 'filled' | 'ghost';
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, error, leftIcon, rightIcon, glass = true, floating = false, ...props }, ref) => {
+  ({ className, type, error, leftIcon, rightIcon, variant = 'default', ...props }, ref) => {
     const [isFocused, setIsFocused] = React.useState(false);
-    const [hasValue, setHasValue] = React.useState(false);
 
     const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
       setIsFocused(true);
@@ -24,48 +22,45 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       props.onBlur?.(e);
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setHasValue(e.target.value.length > 0);
-      props.onChange?.(e);
+    const variantStyles = {
+      default: 'bg-[var(--input-bg)] border border-[var(--input-border)]',
+      filled: 'bg-[var(--bg-secondary)] border border-transparent',
+      ghost: 'bg-transparent border-b border-[var(--border-primary)] rounded-none',
     };
 
     return (
       <div className="relative w-full">
         {leftIcon && (
-          <div className="absolute left-5 top-1/2 -translate-y-1/2 text-white/50 transition-colors duration-300">
+          <div 
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] transition-colors duration-200"
+            style={{ color: isFocused ? 'var(--color-primary-500)' : undefined }}
+          >
             {leftIcon}
           </div>
         )}
         <input
           type={type}
           className={cn(
-            'w-full text-sm text-white placeholder:text-white/40 outline-none transition-all duration-300',
-            glass
-              ? 'bg-white/5 border border-white/10 backdrop-blur-xl'
-              : 'bg-white/3 border border-white/8',
-            'focus:border-[#667eea] focus:shadow-[0_0_0_3px_rgba(102,126,234,0.2)]',
-            'hover:border-white/15',
+            'w-full text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none transition-all duration-200',
+            variantStyles[variant],
+            'focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-500)]/20',
+            'hover:border-[var(--border-focus)]',
             error
-              ? 'border-[#ff0844] focus:border-[#ff0844] focus:shadow-[0_0_0_3px_rgba(255,8,68,0.2)]'
+              ? 'border-[var(--color-error)] focus:border-[var(--color-error)] focus:ring-[var(--color-error)]/20'
               : '',
-            leftIcon ? 'pl-12' : '',
-            rightIcon ? 'pr-12' : '',
-            floating ? 'pt-6 pb-2' : 'py-3.5',
-            'rounded-2xl',
+            leftIcon ? 'pl-11' : 'pl-4',
+            rightIcon ? 'pr-11' : 'pr-4',
+            variant !== 'ghost' ? 'rounded-[var(--radius-lg)]' : '',
+            'py-3',
             className,
           )}
           ref={ref}
           onFocus={handleFocus}
           onBlur={handleBlur}
-          onChange={handleChange}
-          style={{
-            borderRadius: '16px',
-            padding: floating ? '22px 18px 10px' : '14px 18px',
-          }}
           {...props}
         />
         {rightIcon && (
-          <div className="absolute right-5 top-1/2 -translate-y-1/2 text-white/50 transition-colors duration-300">
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] transition-colors duration-200">
             {rightIcon}
           </div>
         )}
@@ -73,6 +68,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     );
   },
 );
+
 Input.displayName = 'Input';
 
 export { Input };

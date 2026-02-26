@@ -165,7 +165,7 @@ export default function CreateProjectPage() {
               top: `${p.y}%`,
               width: `${p.size}px`,
               height: `${p.size}px`,
-              '--p-opacity': p.opacity,
+              opacity: p.opacity,
               animationDelay: `${p.id * 0.1}s`,
               animationDuration: `${8 / p.speed}s`,
             }}

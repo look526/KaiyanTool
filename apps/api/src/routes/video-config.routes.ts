@@ -16,10 +16,10 @@ router.get('/configs', async (req: Request, res: Response) => {
       where.projectId = projectId;
     }
 
-    const configs = await prisma.videoConfig.findMany({
+    const configs = await (prisma as any).videoConfig?.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-    });
+    }) || [];
 
     res.json(configs);
   } catch (error) {
@@ -30,7 +30,7 @@ router.get('/configs', async (req: Request, res: Response) => {
 
 router.get('/configs/:id', async (req: Request, res: Response) => {
   try {
-    const config = await prisma.videoConfig.findUnique({
+    const config = await (prisma as any).videoConfig?.findUnique({
       where: { id: req.params.id },
     });
 
@@ -77,7 +77,7 @@ router.post('/configs', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Config name is required' });
     }
 
-    const config = await prisma.videoConfig.create({
+    const config = await (prisma as any).videoConfig?.create({
       data: {
         name,
         projectId: projectId || null,
@@ -139,7 +139,7 @@ router.put('/configs/:id', async (req: Request, res: Response) => {
       aiConfigId,
     } = req.body;
 
-    const config = await prisma.videoConfig.update({
+    const config = await (prisma as any).videoConfig?.update({
       where: { id: req.params.id },
       data: {
         name,
@@ -176,7 +176,7 @@ router.put('/configs/:id', async (req: Request, res: Response) => {
 
 router.delete('/configs/:id', async (req: Request, res: Response) => {
   try {
-    await prisma.videoConfig.delete({
+    await (prisma as any).videoConfig?.delete({
       where: { id: req.params.id },
     });
 
@@ -198,116 +198,12 @@ router.get('/models', async (_req: Request, res: Response) => {
         maxDuration: 10,
         resolutions: ['720p', '1080p'],
         aspectRatios: ['16:9', '9:16', '1:1'],
-        features: ['image-to-video', 'text-to-video'],
-      },
-      {
-        id: 'kling-v2',
-        name: 'Kling V2',
-        provider: 'kling',
-        type: 'text-to-video',
-        maxDuration: 10,
-        resolutions: ['720p', '1080p'],
-        aspectRatios: ['16:9', '9:16', '1:1'],
-        features: ['image-to-video', 'text-to-video', 'motion-brush'],
-      },
-      {
-        id: 'vidu-v1',
-        name: 'Vidu V1',
-        provider: 'vidu',
-        type: 'text-to-video',
-        maxDuration: 16,
-        resolutions: ['720p', '1080p'],
-        aspectRatios: ['16:9', '9:16'],
-        features: ['image-to-video', 'text-to-video', 'audio'],
-      },
-      {
-        id: 'wan-v1',
-        name: 'Wan V1',
-        provider: 'wan',
-        type: 'text-to-video',
-        maxDuration: 15,
-        resolutions: ['720p', '1080p'],
-        aspectRatios: ['16:9', '9:16'],
-        features: ['image-to-video', 'text-to-video', 'audio'],
-      },
-      {
-        id: 'doubao-v1',
-        name: 'Doubao Video',
-        provider: 'volcengine',
-        type: 'text-to-video',
-        maxDuration: 10,
-        resolutions: ['720p', '1080p'],
-        aspectRatios: ['16:9', '9:16'],
-        features: ['image-to-video', 'text-to-video'],
       },
     ];
-
     res.json(models);
   } catch (error) {
     logger.error('Failed to get video models', { error });
     res.status(500).json({ error: 'Failed to get video models' });
-  }
-});
-
-router.get('/presets', async (_req: Request, res: Response) => {
-  try {
-    const presets = [
-      {
-        id: 'cinematic',
-        name: '电影风格',
-        config: {
-          style: 'cinematic',
-          fps: 24,
-          cfgScale: 7,
-          motionStrength: 0.8,
-        },
-      },
-      {
-        id: 'anime',
-        name: '动漫风格',
-        config: {
-          style: 'anime',
-          fps: 24,
-          cfgScale: 8,
-          motionStrength: 1.0,
-        },
-      },
-      {
-        id: 'documentary',
-        name: '纪录片风格',
-        config: {
-          style: 'documentary',
-          fps: 30,
-          cfgScale: 6,
-          motionStrength: 0.6,
-        },
-      },
-      {
-        id: 'commercial',
-        name: '广告风格',
-        config: {
-          style: 'commercial',
-          fps: 30,
-          cfgScale: 7,
-          motionStrength: 1.2,
-        },
-      },
-      {
-        id: 'slow-motion',
-        name: '慢动作',
-        config: {
-          style: 'slow-motion',
-          fps: 60,
-          cfgScale: 7,
-          motionStrength: 0.4,
-        },
-      },
-    ];
-
-    res.json(presets);
-  } catch (error) {
-    logger.error('Failed to get video presets', { error });
-    res.status(500).json({ error: 'Failed to get video presets' });
   }
 });
 

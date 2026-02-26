@@ -1,6 +1,5 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { useAuth } from '../contexts/AuthContext';
 
 interface UseWebSocketOptions {
   projectId?: string;
@@ -12,8 +11,13 @@ interface UseWebSocketOptions {
 
 export function useWebSocket(options: UseWebSocketOptions = {}) {
   const { projectId, onProgress, onComplete, onError, onStreamChunk } = options;
-  const { token } = useAuth();
+  const [token, setToken] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem('token');
+    setToken(storedToken);
+  }, []);
 
   useEffect(() => {
     if (!token) return;

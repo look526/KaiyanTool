@@ -33,7 +33,7 @@ export function DashboardLayout() {
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden',
+        overflow: 'auto',
         position: 'relative',
       }}>
         <Outlet />

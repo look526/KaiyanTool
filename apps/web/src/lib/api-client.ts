@@ -54,12 +54,13 @@ export class ApiClient {
     return this.request<T>(endpoint, { method: 'DELETE' })
   }
 
-  // Auth endpoints - 只发送必需的字段
-  async login(email: string, password: string) {
-    return this.post<{ user: User; token: string }>('/auth/login', {
-      email,
-      password,
-    })
+  // Auth endpoints
+  async login(data: { email: string; password: string; rememberMe?: boolean }) {
+    return this.post<{ user: User; token: string }>('/auth/login', data)
+  }
+
+  async register(data: { name: string; email: string; password: string }) {
+    return this.post<{ user: User; token: string }>('/auth/register', data)
   }
 
   async logout() {
@@ -110,7 +111,7 @@ export class ApiClient {
 }
 
 // Auth error handler
-export function setAuthErrorHandler(handler: (error: Error) => void {
+export function setAuthErrorHandler(handler: (error: Error) => void) {
   // Auth error handler
   // This function can be used to set a global error handler for auth errors
 }

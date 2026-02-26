@@ -1,6 +1,5 @@
 import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
-import { logger } from '../lib/logger';
 
 interface OutlineInput {
   storylineId: string;

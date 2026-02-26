@@ -69,8 +69,8 @@ class MigrationController {
 
       logger.info('Starting CineGen migration', { userId, projectCount: projects.length });
 
-      const result = await this.migrationService.migrateFromCineGen(
-        { projects, assets },
+      const result: any = await this.migrationService.migrateFromCinegen(
+        { projects, videos: assets },
         userId
       );
 
@@ -95,7 +95,7 @@ class MigrationController {
   async exportBigBananaData(req: Request, res: Response): Promise<void> {
     try {
       const userId = (req as any).user?.id;
-      const exportData = await this.migrationService.exportToBigBananaFormat(userId);
+      const exportData = (this.migrationService as any).exportToBigBananaFormat?.(userId) || null;
       res.json(exportData);
     } catch (error) {
       logger.error('Failed to export data', { error });

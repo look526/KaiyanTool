@@ -148,8 +148,13 @@ export function Sidebar() {
           gap: '6px',
         }}>
           {navItems.map((item) => {
-            const isActive = location.pathname === item.href || 
-              (item.href !== '/' && location.pathname.startsWith(item.href));
+            const isExactMatch = location.pathname === item.href;
+            const hasMoreSpecificMatch = navItems.some(other => 
+              other.href !== item.href && 
+              other.href.startsWith(item.href + '/') && 
+              (location.pathname === other.href || location.pathname.startsWith(other.href + '/'))
+            );
+            const isActive = isExactMatch || (!hasMoreSpecificMatch && item.href !== '/' && location.pathname.startsWith(item.href + '/'));
             const isHovered = hoveredItem === item.href;
             
             return (

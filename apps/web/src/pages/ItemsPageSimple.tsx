@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import {
   Plus,
   Edit2,
@@ -13,8 +14,12 @@ import {
   Square,
   CheckSquare,
   Sparkles,
+  Search,
+  Filter,
+  Grid3x3,
+  List,
+  PackageOpen,
 } from 'lucide-react';
-import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button-new';
 import { ImageSelector } from '../components/ImageSelector';
 import { apiClient } from '../lib/api-client';
@@ -33,13 +38,14 @@ interface Item {
 }
 
 const ITEM_TYPES = [
-  { id: 'prop', name: '道具', icon: Box },
-  { id: 'clothing', name: '服装', icon: Shirt },
-  { id: 'accessory', name: '配饰', icon: Wand },
+  { id: 'prop', name: '道具', icon: Box, color: '#f97316', bgColor: 'rgba(249, 115, 22, 0.15)', borderColor: 'rgba(249, 115, 22, 0.3)' },
+  { id: 'clothing', name: '服装', icon: Shirt, color: '#8b5cf6', bgColor: 'rgba(139, 92, 246, 0.15)', borderColor: 'rgba(139, 92, 246, 0.3)' },
+  { id: 'accessory', name: '配饰', icon: Wand, color: '#ec4899', bgColor: 'rgba(236, 72, 153, 0.15)', borderColor: 'rgba(236, 72, 153, 0.3)' },
 ];
 
 export default function ItemsPageSimple() {
-  const { id: projectId } = useParams<{ id: string }>();
+  const { id: projectId = '' } = useParams<{ id: string }>();
+  const { user, loading: authLoading } = useAuth();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -53,6 +59,9 @@ export default function ItemsPageSimple() {
     prompt: '',
   });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<string>('all');
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const { addToast } = useToast();
 
   const toggleSelect = (id: string) => {
@@ -63,15 +72,15 @@ export default function ItemsPageSimple() {
   };
 
   const selectAll = () => {
-    if (selectedIds.size === items.length) {
+    if (selectedIds.size === filteredItems.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(items.map(i => i.id)));
+      setSelectedIds(new Set(filteredItems.map(i => i.id)));
     }
   };
 
   const handleBulkDelete = async () => {
-    if (selectedIds.size === 0) return;
+    if (selectedIds.size === 0 || !user) return;
     try {
       for (const iid of selectedIds) {
         await apiClient.deleteItem(iid);
@@ -88,7 +97,7 @@ export default function ItemsPageSimple() {
   const [generating, setGenerating] = useState(false);
 
   const handleGenerateFromScript = async () => {
-    if (!projectId || generating) return;
+    if (!projectId || generating || !user) return;
     try {
       setGenerating(true);
       const result = await apiClient.generateItemsFromScript(projectId);
@@ -111,7 +120,7 @@ export default function ItemsPageSimple() {
   };
 
   const loadItems = useCallback(async () => {
-    if (!projectId) return;
+    if (!projectId || authLoading || !user) return;
     try {
       setLoading(true);
       const data = await apiClient.getItems(projectId);
@@ -126,11 +135,25 @@ export default function ItemsPageSimple() {
     } finally {
       setLoading(false);
     }
-  }, [projectId, addToast]);
+  }, [projectId, addToast, authLoading, user]);
 
   useEffect(() => {
     loadItems();
-  }, [loadItems]);
+  }, [loadItems, authLoading, user]);
+
+  const filteredItems = items.filter(item => {
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.description?.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesType = filterType === 'all' || item.type === filterType;
+    return matchesSearch && matchesType;
+  });
+
+  const stats = {
+    total: items.length,
+    props: items.filter(i => i.type === 'prop').length,
+    clothing: items.filter(i => i.type === 'clothing').length,
+    accessories: items.filter(i => i.type === 'accessory').length,
+  };
 
   const handleOpenModal = (item?: Item) => {
     if (item) {
@@ -168,7 +191,7 @@ export default function ItemsPageSimple() {
   };
 
   const handleSave = async () => {
-    if (!formData.name.trim()) {
+    if (!formData.name.trim() || !user) {
       addToast({
         type: 'error',
         title: '请填写物品名称',
@@ -223,6 +246,16 @@ export default function ItemsPageSimple() {
   };
 
   const handleDelete = async (itemId: string) => {
+    if (!user) {
+      addToast({
+        type: 'error',
+        title: '删除失败',
+        message: '请先登录',
+      });
+      setShowDeleteConfirm(null);
+      return;
+    }
+
     try {
       await apiClient.deleteItem(itemId);
       addToast({
@@ -243,223 +276,605 @@ export default function ItemsPageSimple() {
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    const typeInfo = ITEM_TYPES.find(t => t.id === type);
-    return typeInfo?.icon || Box;
-  };
-
-  const getTypeName = (type: string) => {
-    const typeInfo = ITEM_TYPES.find(t => t.id === type);
-    return typeInfo?.name || type;
+  const getTypeInfo = (type: string) => {
+    return ITEM_TYPES.find(t => t.id === type) || ITEM_TYPES[0];
   };
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100%', backgroundColor: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Loader2 style={{ width: '48px', height: '48px', animation: 'spin 1s linear infinite' }} />
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--bg-page)',
+      }}>
+        <Loader2 style={{ width: '48px', height: '48px', animation: 'spin 1s linear infinite', color: '#f97316' }} />
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100%', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
-      <header style={{
-        height: '64px',
+    <div style={{ minHeight: '100vh', background: 'var(--bg-page)' }}>
+      <div style={{
+        background: 'var(--bg-header)',
+        backdropFilter: 'blur(20px)',
         borderBottom: '1px solid var(--border-primary)',
-        backgroundColor: 'var(--bg-elevated)',
-        padding: '0 24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexShrink: 0,
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div>
-            <h1 style={{
-              fontSize: '20px',
-              fontWeight: '700',
-              color: 'var(--text-primary)',
-              margin: '0 0 4px 0',
-            }}>物品管理</h1>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              共 {items.length} 个物品
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '16px 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{
+                padding: '12px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                boxShadow: '0 4px 14px rgba(249, 115, 22, 0.3)',
+              }}>
+                <Package style={{ width: '24px', height: '24px', color: 'white' }} />
+              </div>
+              <div>
+                <h1 style={{ fontSize: '22px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>物品管理</h1>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>共 {items.length} 个物品</p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {items.length > 0 && (
+                <>
+                  <button
+                    onClick={selectAll}
+                    style={{
+                      height: '40px',
+                      padding: '0 14px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border-primary)',
+                      background: 'transparent',
+                      color: 'var(--text-secondary)',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'var(--bg-hover)';
+                      e.currentTarget.style.borderColor = 'var(--border-hover)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.borderColor = 'var(--border-primary)';
+                    }}
+                  >
+                    {selectedIds.size === filteredItems.length ? <Square style={{ width: '16px', height: '16px' }} /> : <CheckSquare style={{ width: '16px', height: '16px' }} />}
+                    {selectedIds.size > 0 ? `${selectedIds.size}/${filteredItems.length}` : '全选'}
+                  </button>
+                  {selectedIds.size > 0 && (
+                    <button
+                      onClick={handleBulkDelete}
+                      style={{
+                        height: '40px',
+                        padding: '0 14px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: 'rgba(239, 68, 68, 0.15)',
+                        color: '#ef4444',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <Trash2 style={{ width: '16px', height: '16px' }} />
+                      删除 ({selectedIds.size})
+                    </button>
+                  )}
+                  <button
+                    onClick={handleGenerateFromScript}
+                    disabled={generating}
+                    style={{
+                      height: '40px',
+                      padding: '0 16px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border-primary)',
+                      background: 'transparent',
+                      color: 'var(--text-secondary)',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      cursor: generating ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      opacity: generating ? 0.7 : 1,
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!generating) {
+                        e.currentTarget.style.background = 'var(--bg-hover)';
+                        e.currentTarget.style.borderColor = 'var(--border-hover)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.borderColor = 'var(--border-primary)';
+                    }}
+                  >
+                    {generating ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Sparkles style={{ width: '16px', height: '16px' }} />}
+                    {generating ? '生成中...' : '从剧本生成'}
+                  </button>
+                </>
+              )}
+              <Button
+                variant="primary"
+                onClick={() => handleOpenModal()}
+                style={{
+                  height: '44px',
+                  padding: '0 20px',
+                  background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 14px rgba(249, 115, 22, 0.3)',
+                }}
+              >
+                <Plus style={{ width: '18px', height: '18px' }} />
+                添加物品
+              </Button>
             </div>
           </div>
         </div>
+      </div>
 
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {items.length > 0 && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={selectAll}
-                icon={selectedIds.size === items.length ? <CheckSquare size={16} /> : <Square size={16} />}
-              >
-                {selectedIds.size > 0 ? `${selectedIds.size}/${items.length}` : '全选'}
-              </Button>
-              {selectedIds.size > 0 && (
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={handleBulkDelete}
-                  icon={<Trash2 size={16} />}
-                >
-                  删除 ({selectedIds.size})
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={handleGenerateFromScript}
-                disabled={generating}
-                icon={generating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-              >
-                {generating ? '生成中...' : '从剧本生成'}
-              </Button>
-            </>
-          )}
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={() => handleOpenModal()}
-            icon={<Plus size={16} />}
-          >
-            添加物品
-          </Button>
-        </div>
-      </header>
-
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-        {items.length === 0 ? (
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: '16px',
+          marginBottom: '24px',
+        }}>
           <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '400px',
+            background: 'var(--bg-card)',
+            borderRadius: '16px',
+            padding: '20px',
+            border: '1px solid var(--border-primary)',
+            backdropFilter: 'blur(20px)',
           }}>
-            <Package style={{ width: '64px', height: '64px', color: 'var(--text-muted)', marginBottom: '16px' }} />
-            <p style={{ color: 'var(--text-tertiary)', fontSize: '16px', marginBottom: '24px' }}>
-              暂无物品，点击右上角添加
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                background: 'rgba(249, 115, 22, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Package style={{ width: '20px', height: '20px', color: '#f97316' }} />
+              </div>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>总物品</span>
+            </div>
+            <div style={{ fontSize: '32px', fontWeight: '700', color: 'var(--text-primary)' }}>{stats.total}</div>
+          </div>
+
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: '16px',
+            padding: '20px',
+            border: '1px solid var(--border-primary)',
+            backdropFilter: 'blur(20px)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                background: 'rgba(249, 115, 22, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Box style={{ width: '20px', height: '20px', color: '#f97316' }} />
+              </div>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>道具</span>
+            </div>
+            <div style={{ fontSize: '32px', fontWeight: '700', color: '#f97316' }}>{stats.props}</div>
+          </div>
+
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: '16px',
+            padding: '20px',
+            border: '1px solid var(--border-primary)',
+            backdropFilter: 'blur(20px)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                background: 'rgba(139, 92, 246, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Shirt style={{ width: '20px', height: '20px', color: '#8b5cf6' }} />
+              </div>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>服装</span>
+            </div>
+            <div style={{ fontSize: '32px', fontWeight: '700', color: '#8b5cf6' }}>{stats.clothing}</div>
+          </div>
+
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: '16px',
+            padding: '20px',
+            border: '1px solid var(--border-primary)',
+            backdropFilter: 'blur(20px)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                background: 'rgba(236, 72, 153, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Wand style={{ width: '20px', height: '20px', color: '#ec4899' }} />
+              </div>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>配饰</span>
+            </div>
+            <div style={{ fontSize: '32px', fontWeight: '700', color: '#ec4899' }}>{stats.accessories}</div>
+          </div>
+        </div>
+
+        {items.length > 0 && (
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: '20px',
+            padding: '20px',
+            border: '1px solid var(--border-primary)',
+            backdropFilter: 'blur(20px)',
+            marginBottom: '20px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative' }}>
+                <Search style={{
+                  position: 'absolute',
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '16px',
+                  height: '16px',
+                  color: 'var(--text-muted)',
+                }} />
+                <input
+                  type="text"
+                  placeholder="搜索物品..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: '240px',
+                    height: '40px',
+                    padding: '0 12px 0 36px',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '10px',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-primary)',
+                    fontSize: '13px',
+                    outline: 'none',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#f97316';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(249, 115, 22, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {ITEM_TYPES.map(type => {
+                  const Icon = type.icon;
+                  const isActive = filterType === type.id;
+                  return (
+                    <button
+                      key={type.id}
+                      onClick={() => setFilterType(type.id)}
+                      style={{
+                        height: '40px',
+                        padding: '0 14px',
+                        borderRadius: '10px',
+                        border: '1px solid',
+                        borderColor: isActive ? type.color : 'var(--border-primary)',
+                        background: isActive ? type.bgColor : 'transparent',
+                        color: isActive ? type.color : 'var(--text-secondary)',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <Icon style={{ width: '16px', height: '16px' }} />
+                      {type.name}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => setFilterType('all')}
+                  style={{
+                    height: '40px',
+                    padding: '0 14px',
+                    borderRadius: '10px',
+                    border: '1px solid',
+                    borderColor: filterType === 'all' ? '#f97316' : 'var(--border-primary)',
+                    background: filterType === 'all' ? 'rgba(249, 115, 22, 0.15)' : 'transparent',
+                    color: filterType === 'all' ? '#f97316' : 'var(--text-secondary)',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  全部
+                </button>
+              </div>
+
+              <span style={{
+                marginLeft: 'auto',
+                color: 'var(--text-muted)',
+                fontSize: '13px',
+              }}>
+                显示 {filteredItems.length} / {items.length} 个物品
+              </span>
+            </div>
+          </div>
+        )}
+
+        {filteredItems.length === 0 ? (
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: '20px',
+            padding: '64px 32px',
+            border: '1px solid var(--border-primary)',
+            textAlign: 'center',
+          }}>
+            <div style={{
+              width: '80px',
+              height: '80px',
+              borderRadius: '24px',
+              background: 'var(--bg-hover)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 20px',
+            }}>
+              <PackageOpen style={{ width: '36px', height: '36px', color: 'var(--text-muted)' }} />
+            </div>
+            <p style={{ fontSize: '16px', fontWeight: '500', color: 'var(--text-primary)', marginBottom: '8px' }}>
+              {searchQuery || filterType !== 'all' ? '未找到匹配的物品' : '暂无物品'}
             </p>
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={() => handleOpenModal()}
-              icon={<Plus size={20} />}
-            >
-              添加物品
-            </Button>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>
+              {searchQuery || filterType !== 'all' ? '尝试调整搜索条件或筛选器' : '点击右上角添加您的第一个物品'}
+            </p>
+            {!searchQuery && filterType === 'all' && (
+              <Button variant="primary" onClick={() => handleOpenModal()}>
+                <Plus style={{ width: '16px', height: '16px', marginRight: '6px' }} />
+                添加物品
+              </Button>
+            )}
           </div>
         ) : (
           <div style={{
-            maxWidth: '1400px',
-            margin: '0 auto',
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: '20px'
+            gap: '16px',
           }}>
-            {items.map((item) => {
-              const TypeIcon = getTypeIcon(item.type);
+            {filteredItems.map((item) => {
+              const typeInfo = getTypeInfo(item.type);
+              const TypeIcon = typeInfo.icon;
+              const isHovered = hoveredCard === item.id;
+
               return (
-                <Card key={item.id} style={{ padding: '16px', overflow: 'hidden', border: selectedIds.has(item.id) ? '2px solid var(--accent)' : undefined }}>
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                    <div onClick={() => toggleSelect(item.id)} style={{ cursor: 'pointer', paddingTop: '4px' }}>
-                      {selectedIds.has(item.id) ? (
-                        <CheckSquare style={{ width: '20px', height: '20px', color: 'var(--accent)' }} />
-                      ) : (
-                        <Square style={{ width: '20px', height: '20px', color: 'var(--text-muted)' }} />
-                      )}
-                    </div>
-                    <div style={{ flex: 1 }}>
+                <div
+                  key={item.id}
+                  style={{
+                    background: 'var(--bg-card)',
+                    borderRadius: '16px',
+                    border: selectedIds.has(item.id) ? '2px solid #f97316' : '1px solid var(--border-primary)',
+                    overflow: 'hidden',
+                    transition: 'all 0.2s ease',
+                    transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
+                    boxShadow: isHovered ? 'var(--shadow-lg)' : 'none',
+                  }}
+                  onMouseEnter={() => setHoveredCard(item.id)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                >
                   {item.image ? (
                     <div style={{
                       aspectRatio: '16/9',
-                      backgroundColor: 'var(--bg-hover)',
-                      borderRadius: '8px',
                       overflow: 'hidden',
-                      marginBottom: '12px',
+                      position: 'relative',
                     }}>
                       <img
                         src={item.image}
                         alt={item.name}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
                       />
+                      <div style={{
+                        position: 'absolute',
+                        top: '12px',
+                        left: '12px',
+                        display: 'flex',
+                        gap: '8px',
+                      }}>
+                        <div
+                          onClick={(e) => { e.stopPropagation(); toggleSelect(item.id); }}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            background: selectedIds.has(item.id) ? '#f97316' : 'rgba(0, 0, 0, 0.5)',
+                            backdropFilter: 'blur(8px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {selectedIds.has(item.id) ? (
+                            <CheckSquare style={{ width: '16px', height: '16px', color: 'white' }} />
+                          ) : (
+                            <Square style={{ width: '16px', height: '16px', color: 'white' }} />
+                          )}
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <div style={{
                       aspectRatio: '16/9',
-                      backgroundColor: 'var(--bg-hover)',
-                      borderRadius: '8px',
+                      background: typeInfo.bgColor,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      marginBottom: '12px',
+                      position: 'relative',
                     }}>
-                      <TypeIcon style={{ width: '48px', height: '48px', color: 'var(--text-muted)' }} />
+                      <TypeIcon style={{ width: '48px', height: '48px', color: typeInfo.color }} />
+                      <div style={{
+                        position: 'absolute',
+                        top: '12px',
+                        left: '12px',
+                      }}>
+                        <div
+                          onClick={(e) => { e.stopPropagation(); toggleSelect(item.id); }}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            background: selectedIds.has(item.id) ? '#f97316' : 'rgba(0, 0, 0, 0.3)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {selectedIds.has(item.id) ? (
+                            <CheckSquare style={{ width: '16px', height: '16px', color: 'white' }} />
+                          ) : (
+                            <Square style={{ width: '16px', height: '16px', color: 'white' }} />
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <h3 style={{
-                        fontSize: '16px',
-                        fontWeight: '600',
-                        color: 'var(--text-primary)',
-                        margin: '0 0 4px 0',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {item.name}
-                      </h3>
-                      <span style={{
-                        display: 'inline-block',
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                        backgroundColor: 'var(--bg-hover)',
-                        fontSize: '12px',
+                  <div style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h3 style={{
+                          fontSize: '15px',
+                          fontWeight: '600',
+                          color: 'var(--text-primary)',
+                          margin: '0 0 6px 0',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {item.name}
+                        </h3>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '3px 10px',
+                          borderRadius: '6px',
+                          backgroundColor: typeInfo.bgColor,
+                          border: `1px solid ${typeInfo.borderColor}`,
+                          color: typeInfo.color,
+                          fontSize: '11px',
+                          fontWeight: '600',
+                        }}>
+                          <TypeIcon style={{ width: '12px', height: '12px' }} />
+                          {typeInfo.name}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '4px', marginLeft: '8px' }}>
+                        <button
+                          onClick={() => handleOpenModal(item)}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            background: 'transparent',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          <Edit2 style={{ width: '16px', height: '16px' }} />
+                        </button>
+                        <button
+                          onClick={() => setShowDeleteConfirm(item.id)}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            background: 'transparent',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          <Trash2 style={{ width: '16px', height: '16px' }} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {item.description && (
+                      <p style={{
+                        fontSize: '13px',
                         color: 'var(--text-secondary)',
+                        lineHeight: '1.5',
+                        margin: 0,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
                       }}>
-                        {getTypeName(item.type)}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '4px', marginLeft: '8px' }}>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => handleOpenModal(item)}
-                        aria-label="编辑物品"
-                        icon={<Edit2 size={14} />}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => setShowDeleteConfirm(item.id)}
-                        aria-label="删除物品"
-                        icon={<Trash2 size={14} />}
-                      />
-                    </div>
+                        {item.description}
+                      </p>
+                    )}
                   </div>
-
-                  {item.description && (
-                    <p style={{
-                      fontSize: '13px',
-                      color: 'var(--text-secondary)',
-                      lineHeight: '1.5',
-                      margin: 0,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                    }}>
-                      {item.description}
-                    </p>
-                  )}
-                    </div>
-                  </div>
-                </Card>
+                </div>
               );
             })}
           </div>
@@ -470,49 +885,78 @@ export default function ItemsPageSimple() {
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'var(--overlay-bg)',
+          background: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000,
+          padding: '24px',
         }}
-        onClick={handleCloseModal}
+          onClick={handleCloseModal}
         >
-          <Card style={{
-            padding: '32px',
-            maxWidth: '576px',
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: '24px',
             width: '100%',
-            margin: '24px',
+            maxWidth: '560px',
             maxHeight: '90vh',
-            overflowY: 'auto',
+            overflow: 'auto',
+            border: '1px solid var(--border-primary)',
+            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)',
           }}
-          onClick={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h2 style={{
-                fontSize: '20px',
-                fontWeight: '700',
-                color: 'var(--text-primary)',
-                margin: 0,
-              }}>
-                {editingId ? '编辑物品' : '添加物品'}
-              </h2>
-              <Button
-                variant="ghost"
-                size="icon-sm"
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '24px',
+              borderBottom: '1px solid var(--border-primary)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Package style={{ width: '20px', height: '20px', color: 'white' }} />
+                </div>
+                <h2 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
+                  {editingId ? '编辑物品' : '添加物品'}
+                </h2>
+              </div>
+              <button
                 onClick={handleCloseModal}
-                aria-label="关闭"
-                icon={<X size={20} />}
-              />
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-primary)',
+                  background: 'transparent',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <X style={{ width: '18px', height: '18px' }} />
+              </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label style={{
                   display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--text-primary)',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  color: 'var(--text-secondary)',
                   marginBottom: '8px',
                 }}>
                   物品名称 *
@@ -524,12 +968,24 @@ export default function ItemsPageSimple() {
                   placeholder="输入物品名称"
                   style={{
                     width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
+                    height: '44px',
+                    padding: '0 14px',
+                    borderRadius: '10px',
                     border: '1px solid var(--border-primary)',
-                    backgroundColor: 'var(--bg-hover)',
+                    backgroundColor: 'var(--bg-input)',
                     color: 'var(--text-primary)',
                     fontSize: '14px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#f97316';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(249, 115, 22, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                    e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
               </div>
@@ -537,9 +993,9 @@ export default function ItemsPageSimple() {
               <div>
                 <label style={{
                   display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--text-primary)',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  color: 'var(--text-secondary)',
                   marginBottom: '8px',
                 }}>
                   物品类型
@@ -547,15 +1003,32 @@ export default function ItemsPageSimple() {
                 <div style={{ display: 'flex', gap: '8px' }}>
                   {ITEM_TYPES.map((type) => {
                     const Icon = type.icon;
+                    const isActive = formData.type === type.id;
                     return (
-                      <Button
+                      <button
                         key={type.id}
-                        variant={formData.type === type.id ? 'primary' : 'outline'}
                         onClick={() => setFormData({ ...formData, type: type.id as any })}
-                        icon={<Icon size={16} />}
+                        style={{
+                          flex: 1,
+                          height: '44px',
+                          borderRadius: '10px',
+                          border: '1px solid',
+                          borderColor: isActive ? type.color : 'var(--border-primary)',
+                          background: isActive ? type.bgColor : 'transparent',
+                          color: isActive ? type.color : 'var(--text-secondary)',
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease',
+                        }}
                       >
+                        <Icon style={{ width: '16px', height: '16px' }} />
                         {type.name}
-                      </Button>
+                      </button>
                     );
                   })}
                 </div>
@@ -564,17 +1037,18 @@ export default function ItemsPageSimple() {
               <div>
                 <label style={{
                   display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--text-primary)',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  color: 'var(--text-secondary)',
                   marginBottom: '8px',
                 }}>
                   物品图片
                 </label>
                 <ImageSelector
-                  value={formData.image}
-                  onChange={(url) => setFormData({ ...formData, image: url })}
-                  type="item"
+                  projectId={projectId}
+                  value={formData.image || ''}
+                  onChange={(url) => setFormData({ ...formData, image: url || '' })}
+                  type="general"
                   placeholder="选择或上传物品图片"
                 />
               </div>
@@ -582,9 +1056,9 @@ export default function ItemsPageSimple() {
               <div>
                 <label style={{
                   display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--text-primary)',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  color: 'var(--text-secondary)',
                   marginBottom: '8px',
                 }}>
                   物品描述
@@ -596,14 +1070,26 @@ export default function ItemsPageSimple() {
                   rows={3}
                   style={{
                     width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
+                    minHeight: '80px',
+                    padding: '12px 14px',
+                    borderRadius: '10px',
                     border: '1px solid var(--border-primary)',
-                    backgroundColor: 'var(--bg-hover)',
+                    backgroundColor: 'var(--bg-input)',
                     color: 'var(--text-primary)',
                     fontSize: '14px',
-                    resize: 'vertical',
+                    resize: 'none',
+                    outline: 'none',
+                    boxSizing: 'border-box',
                     fontFamily: 'inherit',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#f97316';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(249, 115, 22, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                    e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
               </div>
@@ -611,9 +1097,9 @@ export default function ItemsPageSimple() {
               <div>
                 <label style={{
                   display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--text-primary)',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  color: 'var(--text-secondary)',
                   marginBottom: '8px',
                 }}>
                   AI 提示词
@@ -625,38 +1111,89 @@ export default function ItemsPageSimple() {
                   placeholder="用于 AI 生成的提示词（可选）"
                   style={{
                     width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
+                    height: '44px',
+                    padding: '0 14px',
+                    borderRadius: '10px',
                     border: '1px solid var(--border-primary)',
-                    backgroundColor: 'var(--bg-hover)',
+                    backgroundColor: 'var(--bg-input)',
                     color: 'var(--text-primary)',
                     fontSize: '14px',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#f97316';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(249, 115, 22, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                    e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
               </div>
 
               <div style={{ display: 'flex', gap: '12px', paddingTop: '8px' }}>
-                <Button
-                  variant="outline"
-                  style={{ flex: 1 }}
+                <button
+                  style={{
+                    flex: 1,
+                    height: '48px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    backgroundColor: 'transparent',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
                   onClick={handleCloseModal}
                   disabled={saving}
                 >
                   取消
-                </Button>
-                <Button
-                  variant="primary"
-                  style={{ flex: 1 }}
+                </button>
+                <button
+                  style={{
+                    flex: 1,
+                    height: '48px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 14px rgba(249, 115, 22, 0.3)',
+                    opacity: !formData.name.trim() || saving ? 0.7 : 1,
+                    transition: 'all 0.2s ease',
+                  }}
                   onClick={handleSave}
                   disabled={!formData.name.trim() || saving}
-                  loading={saving}
-                  icon={saving ? <Loader2 size={16} /> : editingId ? <Edit2 size={16} /> : <Plus size={16} />}
                 >
-                  {saving ? '保存中...' : editingId ? '保存' : '添加'}
-                </Button>
+                  {saving ? (
+                    <>
+                      <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                      保存中...
+                    </>
+                  ) : editingId ? (
+                    <>
+                      <Edit2 style={{ width: '16px', height: '16px' }} />
+                      保存
+                    </>
+                  ) : (
+                    <>
+                      <Plus style={{ width: '16px', height: '16px' }} />
+                      添加
+                    </>
+                  )}
+                </button>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
       )}
 
@@ -664,57 +1201,99 @@ export default function ItemsPageSimple() {
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'var(--overlay-bg)',
+          background: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000,
+          padding: '24px',
         }}
-        onClick={() => setShowDeleteConfirm(null)}
+          onClick={() => setShowDeleteConfirm(null)}
         >
-          <Card style={{
-            padding: '32px',
-            maxWidth: '448px',
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: '24px',
             width: '100%',
-            margin: '24px',
+            maxWidth: '400px',
+            padding: '32px',
+            border: '1px solid var(--border-primary)',
+            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)',
           }}
-          onClick={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
-            <h2 style={{
-              fontSize: '20px',
-              fontWeight: '700',
-              color: 'var(--text-primary)',
-              marginBottom: '12px',
-              margin: '0 0 12px 0',
-            }}>确认删除物品</h2>
-            <p style={{
-              fontSize: '14px',
-              color: 'var(--text-secondary)',
-              marginBottom: '24px',
-              lineHeight: '1.6',
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '16px',
+              background: 'rgba(239, 68, 68, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 20px',
             }}>
+              <Trash2 style={{ width: '28px', height: '28px', color: '#ef4444' }} />
+            </div>
+            <h2 style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)', textAlign: 'center', margin: '0 0 8px 0' }}>
+              确认删除
+            </h2>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', textAlign: 'center', lineHeight: '1.6', margin: '0 0 24px 0' }}>
               您确定要删除此物品吗？此操作不可撤销。
             </p>
             <div style={{ display: 'flex', gap: '12px' }}>
-              <Button
-                variant="outline"
-                style={{ flex: 1 }}
+              <button
+                style={{
+                  flex: 1,
+                  height: '48px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-secondary)',
+                  border: '1px solid var(--border-primary)',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
                 onClick={() => setShowDeleteConfirm(null)}
               >
                 取消
-              </Button>
-              <Button
-                variant="danger"
-                style={{ flex: 1 }}
+              </button>
+              <button
+                style={{
+                  flex: 1,
+                  height: '48px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 14px rgba(239, 68, 68, 0.3)',
+                  transition: 'all 0.2s ease',
+                }}
                 onClick={() => handleDelete(showDeleteConfirm)}
-                icon={<Trash2 size={16} />}
               >
+                <Trash2 style={{ width: '16px', height: '16px' }} />
                 删除
-              </Button>
+              </button>
             </div>
-          </Card>
+          </div>
         </div>
       )}
+
+      <style>
+        {`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}
+      </style>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Plus,
   Trash2,
@@ -33,32 +33,29 @@ import {
   LayoutGrid,
   Square,
   CheckSquare,
+  Key,
+  Server,
 } from 'lucide-react';
-import Breadcrumb from '../components/Breadcrumb';
-import { Button } from '../components/ui/button';
-import { Card } from '../components/ui/card';
-import { Modal } from '../components/ui/ModalModern';
-import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button-new';
 import { apiClient } from '../lib/api';
-import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../components/ui/Toast';
 
 const CONTENT_TYPES = [
-  { value: 'text', label: '文本生成', icon: FileText, color: '#6366f1' },
-  { value: 'image', label: '图像生成', icon: Image, color: '#ec4899' },
-  { value: 'video', label: '视频生成', icon: Video, color: '#10b981' },
-  { value: 'audio', label: '音频生成', icon: Mic, color: '#f59e0b' },
-  { value: 'script', label: '剧本创作', icon: Book, color: '#8b5cf6' },
-  { value: 'novel', label: '小说创作', icon: Sparkles, color: '#06b6d4' },
-  { value: 'storyline', label: '故事线', icon: Network, color: '#ef4444' },
-  { value: 'outline', label: '大纲生成', icon: List, color: '#84cc16' },
+  { value: 'text', label: '文本生成', icon: FileText, color: '#6366f1', gradient: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' },
+  { value: 'image', label: '图像生成', icon: Image, color: '#ec4899', gradient: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' },
+  { value: 'video', label: '视频生成', icon: Video, color: '#10b981', gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' },
+  { value: 'audio', label: '音频生成', icon: Mic, color: '#f59e0b', gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' },
+  { value: 'script', label: '剧本创作', icon: Book, color: '#8b5cf6', gradient: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' },
+  { value: 'novel', label: '小说创作', icon: Sparkles, color: '#06b6d4', gradient: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)' },
+  { value: 'storyline', label: '故事线', icon: Network, color: '#ef4444', gradient: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' },
+  { value: 'outline', label: '大纲生成', icon: List, color: '#84cc16', gradient: 'linear-gradient(135deg, #84cc16 0%, #65a30d 100%)' },
 ];
 
 const PROVIDER_TYPES = [
-  { value: 'zhipu', label: '智谱 AI', icon: Zap, color: '#6366f1', description: '国产大语言模型领导者' },
-  { value: 'openai', label: 'OpenAI', icon: Sparkles, color: '#10b981', description: '全球领先的AI研究实验室' },
-  { value: 'anthropic', label: 'Anthropic', icon: Globe, color: '#f59e0b', description: '安全可靠的AI助手' },
-  { value: 'deepseek', label: 'DeepSeek', icon: Lock, color: '#ec4899', description: '深度求索AI模型' },
+  { value: 'zhipu', label: '智谱 AI', icon: Zap, color: '#6366f1', gradient: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', description: '国产大语言模型领导者' },
+  { value: 'openai', label: 'OpenAI', icon: Sparkles, color: '#10b981', gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', description: '全球领先的AI研究实验室' },
+  { value: 'anthropic', label: 'Anthropic', icon: Globe, color: '#f59e0b', gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', description: '安全可靠的AI助手' },
+  { value: 'deepseek', label: 'DeepSeek', icon: Lock, color: '#ec4899', gradient: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)', description: '深度求索AI模型' },
 ];
 
 interface AIProviderModel {
@@ -82,19 +79,7 @@ interface AIProvider {
 }
 
 export default function AIProvidersPage() {
-  const { theme } = useTheme();
   const { addToast } = useToast();
-  const [screenWidth, setScreenWidth] = useState(window.innerWidth);
-
-  useEffect(() => {
-    const handleResize = () => setScreenWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const isMobile = screenWidth < 768;
-  const isTablet = screenWidth >= 768 && screenWidth < 1024;
-
   const [providers, setProviders] = useState<AIProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -108,6 +93,7 @@ export default function AIProvidersPage() {
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
   const [testingModel, setTestingModel] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     type: 'zhipu',
@@ -134,11 +120,7 @@ export default function AIProvidersPage() {
       setProviders(data.providers as any);
     } catch (error) {
       console.error('加载 AI 提供商失败:', error);
-      addToast({
-        type: 'error',
-        title: '加载失败',
-        message: '无法加载 AI 提供商列表',
-      });
+      addToast({ type: 'error', title: '加载失败', message: '无法加载 AI 提供商列表' });
     } finally {
       setLoading(false);
     }
@@ -146,14 +128,9 @@ export default function AIProvidersPage() {
 
   const handleAddProvider = async () => {
     if (!formData.type || !formData.apiKey) {
-      addToast({
-        type: 'error',
-        title: '验证失败',
-        message: '请填写必填字段',
-      });
+      addToast({ type: 'error', title: '验证失败', message: '请填写必填字段' });
       return;
     }
-
     try {
       setSaving(true);
       await apiClient.createAIProvider({
@@ -162,23 +139,12 @@ export default function AIProvidersPage() {
         baseUrl: formData.baseUrl || undefined,
         enabled: formData.enabled,
       } as any);
-
-      addToast({
-        type: 'success',
-        title: '添加成功',
-        message: 'AI 提供商已成功添加',
-      });
-
+      addToast({ type: 'success', title: '添加成功', message: 'AI 提供商已成功添加' });
       setShowAddModal(false);
       resetForm();
       loadProviders();
     } catch (error: any) {
-      console.error('添加 AI 提供商失败:', error);
-      addToast({
-        type: 'error',
-        title: '添加失败',
-        message: error.message || '无法添加 AI 提供商，请检查输入信息',
-      });
+      addToast({ type: 'error', title: '添加失败', message: error.message || '无法添加 AI 提供商' });
     } finally {
       setSaving(false);
     }
@@ -186,7 +152,6 @@ export default function AIProvidersPage() {
 
   const handleUpdateProvider = async () => {
     if (!editingProvider) return;
-
     try {
       setSaving(true);
       await apiClient.updateAIProvider(editingProvider.id, {
@@ -195,24 +160,13 @@ export default function AIProvidersPage() {
         baseUrl: formData.baseUrl || undefined,
         enabled: formData.enabled,
       } as any);
-
-      addToast({
-        type: 'success',
-        title: '更新成功',
-        message: 'AI 提供商已成功更新',
-      });
-
+      addToast({ type: 'success', title: '更新成功', message: 'AI 提供商已成功更新' });
       setShowEditModal(false);
       setEditingProvider(null);
       resetForm();
       loadProviders();
     } catch (error: any) {
-      console.error('更新 AI 提供商失败:', error);
-      addToast({
-        type: 'error',
-        title: '更新失败',
-        message: error.message || '无法更新 AI 提供商',
-      });
+      addToast({ type: 'error', title: '更新失败', message: error.message || '无法更新 AI 提供商' });
     } finally {
       setSaving(false);
     }
@@ -220,22 +174,12 @@ export default function AIProvidersPage() {
 
   const handleDeleteProvider = async (id: string) => {
     if (!confirm('确定要删除此 AI 提供商吗？此操作不可恢复。')) return;
-
     try {
       await apiClient.deleteAIProvider(id);
-      addToast({
-        type: 'success',
-        title: '删除成功',
-        message: 'AI 提供商已成功删除',
-      });
+      addToast({ type: 'success', title: '删除成功', message: 'AI 提供商已成功删除' });
       loadProviders();
     } catch (error: any) {
-      console.error('删除 AI 提供商失败:', error);
-      addToast({
-        type: 'error',
-        title: '删除失败',
-        message: error.message || '无法删除 AI 提供商',
-      });
+      addToast({ type: 'error', title: '删除失败', message: error.message || '无法删除 AI 提供商' });
     }
   };
 
@@ -243,27 +187,13 @@ export default function AIProvidersPage() {
     try {
       setTestingProvider(id);
       const result = await apiClient.testAIProvider(id);
-
       if (result.success) {
-        addToast({
-          type: 'success',
-          title: '测试成功',
-          message: '连接成功，AI 提供商可用',
-        });
+        addToast({ type: 'success', title: '测试成功', message: '连接成功，AI 提供商可用' });
       } else {
-        addToast({
-          type: 'error',
-          title: '测试失败',
-          message: result.message || '连接失败',
-        });
+        addToast({ type: 'error', title: '测试失败', message: result.message || '连接失败' });
       }
     } catch (error: any) {
-      console.error('测试 AI 提供商失败:', error);
-      addToast({
-        type: 'error',
-        title: '测试失败',
-        message: error.message || '无法连接到 AI 提供商',
-      });
+      addToast({ type: 'error', title: '测试失败', message: error.message || '无法连接到 AI 提供商' });
     } finally {
       setTestingProvider(null);
     }
@@ -271,39 +201,18 @@ export default function AIProvidersPage() {
 
   const handleAddModel = async () => {
     if (!selectedProvider || !modelFormData.name) {
-      addToast({
-        type: 'error',
-        title: '验证失败',
-        message: '请填写模型名称',
-      });
+      addToast({ type: 'error', title: '验证失败', message: '请填写模型名称' });
       return;
     }
-
     try {
       setSaving(true);
       await apiClient.createAIProviderModel(selectedProvider.id, modelFormData);
-
-      addToast({
-        type: 'success',
-        title: '添加成功',
-        message: '模型已成功添加',
-      });
-
+      addToast({ type: 'success', title: '添加成功', message: '模型已成功添加' });
       setShowModelModal(false);
-      setModelFormData({
-        name: '',
-        types: [],
-        description: '',
-        capabilities: [],
-      });
+      setModelFormData({ name: '', types: [], description: '', capabilities: [] });
       loadProviders();
     } catch (error: any) {
-      console.error('添加模型失败:', error);
-      addToast({
-        type: 'error',
-        title: '添加失败',
-        message: error.message || '无法添加模型',
-      });
+      addToast({ type: 'error', title: '添加失败', message: error.message || '无法添加模型' });
     } finally {
       setSaving(false);
     }
@@ -311,33 +220,16 @@ export default function AIProvidersPage() {
 
   const handleEditModel = async () => {
     if (!editingModel || !selectedProvider) return;
-
     try {
       setSaving(true);
       await apiClient.updateAIProviderModel(selectedProvider.id, editingModel.id, modelFormData);
-
-      addToast({
-        type: 'success',
-        title: '更新成功',
-        message: '模型已成功更新',
-      });
-
+      addToast({ type: 'success', title: '更新成功', message: '模型已成功更新' });
       setShowModelModal(false);
       setEditingModel(null);
-      setModelFormData({
-        name: '',
-        types: [],
-        description: '',
-        capabilities: [],
-      });
+      setModelFormData({ name: '', types: [], description: '', capabilities: [] });
       loadProviders();
     } catch (error: any) {
-      console.error('更新模型失败:', error);
-      addToast({
-        type: 'error',
-        title: '更新失败',
-        message: error.message || '无法更新模型',
-      });
+      addToast({ type: 'error', title: '更新失败', message: error.message || '无法更新模型' });
     } finally {
       setSaving(false);
     }
@@ -347,57 +239,30 @@ export default function AIProvidersPage() {
     if (!confirm('确定要删除此模型吗？')) return;
     try {
       await apiClient.deleteAIProviderModel(providerId, modelId);
-      addToast({
-        type: 'success',
-        title: '删除成功',
-        message: '模型已成功删除',
-      });
+      addToast({ type: 'success', title: '删除成功', message: '模型已成功删除' });
       loadProviders();
     } catch (error: any) {
-      console.error('删除模型失败:', error);
-      addToast({
-        type: 'error',
-        title: '删除失败',
-        message: error.message || '无法删除模型',
-      });
+      addToast({ type: 'error', title: '删除失败', message: error.message || '无法删除模型' });
     }
   };
 
   const handleSetAssistantDefault = async (modelId: string) => {
     try {
       await apiClient.setAssistantDefaultModel(modelId);
-      addToast({
-        type: 'success',
-        title: '设置成功',
-        message: '已设置为AI助手默认模型',
-      });
+      addToast({ type: 'success', title: '设置成功', message: '已设置为AI助手默认模型' });
       loadProviders();
     } catch (error: any) {
-      console.error('设置失败:', error);
-      addToast({
-        type: 'error',
-        title: '设置失败',
-        message: error.message || '无法设置为AI助手默认模型',
-      });
+      addToast({ type: 'error', title: '设置失败', message: error.message || '无法设置为AI助手默认模型' });
     }
   };
 
   const handleUnsetAssistantDefault = async (modelId: string) => {
     try {
       await apiClient.unsetAssistantDefaultModel(modelId);
-      addToast({
-        type: 'success',
-        title: '取消成功',
-        message: '已取消AI助手默认模型',
-      });
+      addToast({ type: 'success', title: '取消成功', message: '已取消AI助手默认模型' });
       loadProviders();
     } catch (error: any) {
-      console.error('取消失败:', error);
-      addToast({
-        type: 'error',
-        title: '取消失败',
-        message: error.message || '无法取消AI助手默认模型',
-      });
+      addToast({ type: 'error', title: '取消失败', message: error.message || '无法取消AI助手默认模型' });
     }
   };
 
@@ -406,60 +271,32 @@ export default function AIProvidersPage() {
       setTestingModel(modelId);
       const result = await apiClient.testAIProviderModel(modelId);
       if (result.success) {
-        const responseText = result.testResult?.response || '无回复';
-        const usageInfo = result.testResult?.usage 
-          ? ` (使用: ${result.testResult.usage.totalTokens} tokens)` 
-          : '';
-        addToast({
-          type: 'success',
-          title: '测试成功',
-          message: `模型 "${result.model.name}" 可正常使用。回复: "${responseText}"${usageInfo}`,
-        });
+        addToast({ type: 'success', title: '测试成功', message: `模型 "${result.model.name}" 可正常使用` });
       } else {
-        addToast({
-          type: 'error',
-          title: '测试失败',
-          message: result.message || '无法访问此模型',
-        });
+        addToast({ type: 'error', title: '测试失败', message: result.message || '无法访问此模型' });
       }
     } catch (error: any) {
-      console.error('测试模型失败:', error);
-      addToast({
-        type: 'error',
-        title: '测试失败',
-        message: error.message || '无法测试此模型',
-      });
+      addToast({ type: 'error', title: '测试失败', message: error.message || '无法测试此模型' });
     } finally {
       setTestingModel(null);
     }
   };
 
   const resetForm = () => {
-    setFormData({
-      type: 'zhipu',
-      apiKey: '',
-      baseUrl: '',
-      enabled: true,
-    });
+    setFormData({ type: 'zhipu', apiKey: '', baseUrl: '', enabled: true });
   };
 
   const toggleExpand = (id: string) => {
     const newExpanded = new Set(expandedProviders);
-    if (newExpanded.has(id)) {
-      newExpanded.delete(id);
-    } else {
-      newExpanded.add(id);
-    }
+    if (newExpanded.has(id)) newExpanded.delete(id);
+    else newExpanded.add(id);
     setExpandedProviders(newExpanded);
   };
 
   const toggleApiKeyVisibility = (id: string) => {
     const newVisible = new Set(showApiKey);
-    if (newVisible.has(id)) {
-      newVisible.delete(id);
-    } else {
-      newVisible.add(id);
-    }
+    if (newVisible.has(id)) newVisible.delete(id);
+    else newVisible.add(id);
     setShowApiKey(newVisible);
   };
 
@@ -477,12 +314,7 @@ export default function AIProvidersPage() {
   const openAddModelModal = (provider: AIProvider) => {
     setSelectedProvider(provider);
     setEditingModel(null);
-    setModelFormData({
-      name: '',
-      types: [],
-      description: '',
-      capabilities: [],
-    });
+    setModelFormData({ name: '', types: [], description: '', capabilities: [] });
     setShowModelModal(true);
   };
 
@@ -498,271 +330,153 @@ export default function AIProvidersPage() {
     setShowModelModal(true);
   };
 
-  const getProviderInfo = (type: string) => {
-    return PROVIDER_TYPES.find((p) => p.value === type) || PROVIDER_TYPES[0];
-  };
-
-  const getContentTypeInfo = (type: string) => {
-    return CONTENT_TYPES.find((c) => c.value === type) || CONTENT_TYPES[0];
-  };
-
+  const getProviderInfo = (type: string) => PROVIDER_TYPES.find((p) => p.value === type) || PROVIDER_TYPES[0];
+  const getContentTypeInfo = (type: string) => CONTENT_TYPES.find((c) => c.value === type) || CONTENT_TYPES[0];
   const getFirstContentTypeInfo = (types: string[]) => {
     if (!types || types.length === 0) return CONTENT_TYPES[0];
     return CONTENT_TYPES.find((c) => c.value === types[0]) || CONTENT_TYPES[0];
   };
 
+  const stats = {
+    total: providers.length,
+    models: providers.reduce((acc, p) => acc + (p.models?.length || 0), 0),
+    enabled: providers.filter(p => p.enabled).length,
+  };
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-page)' }}>
+        <Loader2 style={{ width: '48px', height: '48px', animation: 'spin 1s linear infinite', color: '#6366f1' }} />
+      </div>
+    );
+  }
+
   return (
-    <>
-    <div style={{ flex: 1, padding: isMobile ? '16px' : isTablet ? '24px' : '40px', overflowY: 'auto', background: 'linear-gradient(135deg, var(--bg-base) 0%, var(--bg-secondary) 100%)' }}>
-      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-          <Breadcrumb items={[
-            { label: '首页', path: '/' },
-            { label: '设置', path: '/settings' },
-            { label: 'AI 服务提供商' },
-          ]} />
-          <div style={{
-            marginBottom: isMobile ? '24px' : '48px',
-            display: 'flex',
-            flexDirection: isMobile ? 'column' : 'row',
-            justifyContent: 'space-between',
-            alignItems: isMobile ? 'flex-start' : 'flex-start',
-            gap: isMobile ? '20px' : 0,
-          }}>
-            <div style={{ flex: 1, width: isMobile ? '100%' : 'auto' }}>
-              <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? '12px' : '20px', marginBottom: '16px', flexDirection: isMobile ? 'column' : 'row' }}>
-                <div style={{
-                  width: isMobile ? '48px' : '64px',
-                  height: isMobile ? '48px' : '64px',
-                  borderRadius: isMobile ? '14px' : '20px',
-                  background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: 'var(--shadow-glow)',
-                }}>
-                  <Zap style={{ width: isMobile ? '24px' : '32px', height: isMobile ? '24px' : '32px', color: '#ffffff' }} />
-                </div>
-                <div>
-                  <h1 style={{
-                    fontSize: isMobile ? '24px' : '36px',
-                    fontWeight: '800',
-                    color: 'var(--text-primary)',
-                    marginBottom: '8px',
-                    margin: '0 0 8px 0',
-                    letterSpacing: '-0.5px',
-                  }}>
-                    AI 服务提供商
-                  </h1>
-                  <p style={{ fontSize: isMobile ? '14px' : '15px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.6' }}>
-                    管理您的 AI 服务提供商和模型配置，轻松连接多个AI服务
-                  </p>
-                </div>
-              </div>
-              
+    <div style={{ minHeight: '100vh', background: 'var(--bg-page)' }}>
+      <div style={{
+        background: 'var(--bg-header)',
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid var(--border-primary)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
+      }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '20px 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div style={{
-                display: 'flex',
-                gap: isMobile ? '12px' : '24px',
-                marginTop: '24px',
-                padding: isMobile ? '16px' : '20px',
-                backgroundColor: 'var(--bg-surface)',
-                borderRadius: '16px',
-                border: '1px solid var(--border-primary)',
-                flexDirection: isMobile ? 'column' : 'row',
-                flexWrap: 'wrap',
+                padding: '12px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                boxShadow: '0 4px 14px rgba(99, 102, 241, 0.3)',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '12px',
-                    backgroundColor: 'var(--success-bg)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Cpu style={{ width: '20px', height: '20px', color: 'var(--success)' }} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)', lineHeight: 1 }}>
-                      {providers?.length || 0}
-                    </div>
-                    <div style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>
-                      已配置提供商
-                    </div>
-                  </div>
-                </div>
-                <div style={{ width: isMobile ? '100%' : '1px', height: isMobile ? '1px' : 'auto', backgroundColor: 'var(--border-secondary)' }} />
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '12px',
-                    backgroundColor: 'var(--info-bg)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <LayoutGrid style={{ width: '20px', height: '20px', color: 'var(--info)' }} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)', lineHeight: 1 }}>
-                      {providers?.reduce((acc, p) => acc + (p.models?.length || 0), 0) || 0}
-                    </div>
-                    <div style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>
-                      模型总数
-                    </div>
-                  </div>
-                </div>
-                <div style={{ width: isMobile ? '100%' : '1px', height: isMobile ? '1px' : 'auto', backgroundColor: 'var(--border-secondary)' }} />
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '12px',
-                    backgroundColor: 'var(--success-bg)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <CheckCircle style={{ width: '20px', height: '20px', color: 'var(--success)' }} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)', lineHeight: 1 }}>
-                      {providers?.filter(p => p.enabled).length || 0}
-                    </div>
-                    <div style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>
-                      已启用服务
-                    </div>
-                  </div>
-                </div>
+                <Cpu style={{ width: '24px', height: '24px', color: 'white' }} />
+              </div>
+              <div>
+                <h1 style={{ fontSize: '22px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>AI 服务提供商</h1>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>管理您的 AI 服务提供商和模型配置</p>
               </div>
             </div>
+
+            <Button
+              onClick={() => { resetForm(); setShowAddModal(true); }}
+              style={{
+                height: '44px',
+                padding: '0 20px',
+                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                borderRadius: '12px',
+                fontSize: '14px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 14px rgba(99, 102, 241, 0.3)',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              <Plus style={{ width: '18px', height: '18px' }} />
+              添加提供商
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-primary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Server style={{ width: '20px', height: '20px', color: '#6366f1' }} />
+              </div>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>提供商</span>
+            </div>
+            <div style={{ fontSize: '32px', fontWeight: '700', color: 'var(--text-primary)' }}>{stats.total}</div>
           </div>
 
-          {loading ? (
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              minHeight: '400px',
-            }}>
-              <Loader2 style={{ width: '48px', height: '48px', animation: 'spin 1s linear infinite', color: 'var(--accent)' }} />
+          <div style={{ background: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-primary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(139, 92, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <LayoutGrid style={{ width: '20px', height: '20px', color: '#8b5cf6' }} />
+              </div>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>模型总数</span>
             </div>
-          ) : !providers || providers.length === 0 ? (
-            <Card style={{
-              padding: '64px',
-              textAlign: 'center',
-              border: '2px dashed var(--border-secondary)',
-            }}>
-              <Settings style={{ width: '80px', height: '80px', marginBottom: '24px', display: 'inline-block', color: 'var(--text-muted)' }} />
-              <h2 style={{
-                fontSize: '24px',
-                fontWeight: '700',
-                color: 'var(--text-primary)',
-                marginBottom: '12px',
-                margin: '0 0 12px 0',
-              }}>
-                暂无 AI 服务提供商
-              </h2>
-              <p style={{ fontSize: '16px', color: 'var(--text-tertiary)', marginBottom: '32px' }}>
-                添加您的第一个 AI 服务提供商开始使用
-              </p>
-              <Button
-                size="lg"
-                onClick={() => {
-                  resetForm();
-                  setShowAddModal(true);
-                }}
-                style={{
-                  background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
-                  border: 'none',
-                  padding: '16px 36px',
-                  fontSize: '16px',
-                  fontWeight: '700',
-                  borderRadius: '16px',
-                  boxShadow: 'var(--shadow-glow-strong)',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-3px)';
-                  e.currentTarget.style.boxShadow = 'var(--shadow-glow-extra)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'var(--shadow-glow-strong)';
-                }}
-              >
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%)',
-                  pointerEvents: 'none',
-                }} />
-                <Plus style={{ width: '22px', height: '22px', strokeWidth: 2.5, position: 'relative', zIndex: 1 }} />
-                <span style={{ marginLeft: '8px', position: 'relative', zIndex: 1 }}>添加提供商</span>
-              </Button>
-            </Card>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              {providers.map((provider) => {
-                const providerInfo = getProviderInfo(provider.type);
-                const isExpanded = expandedProviders.has(provider.id);
-                const isApiKeyVisible = showApiKey.has(provider.id);
+            <div style={{ fontSize: '32px', fontWeight: '700', color: '#8b5cf6' }}>{stats.models}</div>
+          </div>
 
-                return (
-                  <Card key={provider.id} style={{
-                    padding: isMobile ? '20px' : '32px',
+          <div style={{ background: 'var(--bg-card)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-primary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckCircle style={{ width: '20px', height: '20px', color: '#10b981' }} />
+              </div>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>已启用</span>
+            </div>
+            <div style={{ fontSize: '32px', fontWeight: '700', color: '#10b981' }}>{stats.enabled}</div>
+          </div>
+        </div>
+
+        {providers.length === 0 ? (
+          <div style={{ background: 'var(--bg-card)', borderRadius: '20px', padding: '64px 32px', border: '1px solid var(--border-primary)', textAlign: 'center' }}>
+            <div style={{ width: '80px', height: '80px', borderRadius: '24px', background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+              <Cpu style={{ width: '36px', height: '36px', color: 'var(--text-muted)' }} />
+            </div>
+            <p style={{ fontSize: '16px', fontWeight: '500', color: 'var(--text-primary)', marginBottom: '8px' }}>暂无 AI 服务提供商</p>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>添加您的第一个 AI 服务提供商开始使用</p>
+            <Button onClick={() => { resetForm(); setShowAddModal(true); }}>
+              <Plus style={{ width: '16px', height: '16px', marginRight: '6px' }} />
+              添加提供商
+            </Button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {providers.map((provider) => {
+              const providerInfo = getProviderInfo(provider.type);
+              const isExpanded = expandedProviders.has(provider.id);
+              const isApiKeyVisible = showApiKey.has(provider.id);
+              const isHovered = hoveredCard === provider.id;
+
+              return (
+                <div
+                  key={provider.id}
+                  style={{
+                    background: 'var(--bg-card)',
+                    borderRadius: '20px',
                     border: `1px solid ${isExpanded ? providerInfo.color : 'var(--border-primary)'}`,
-                    boxShadow: isExpanded ? `0 8px 32px ${providerInfo.color}15` : 'var(--shadow-sm)',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    position: 'relative',
                     overflow: 'hidden',
+                    transition: 'all 0.3s ease',
+                    boxShadow: isHovered && !isExpanded ? '0 8px 30px rgba(0,0,0,0.12)' : 'none',
                   }}
-                  onMouseEnter={(e) => {
-                    if (!isExpanded) {
-                      e.currentTarget.style.transform = 'translateY(-4px)';
-                      e.currentTarget.style.boxShadow = `0 12px 40px ${providerInfo.color}20`;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isExpanded) {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-                    }
-                  }}>
-                    {isExpanded && (
-                      <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: '4px',
-                        background: `linear-gradient(90deg, ${providerInfo.color} 0%, ${providerInfo.color}80 100%)`,
-                      }} />
-                    )}
-                    
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: isMobile ? 'column' : 'row',
-                      justifyContent: 'space-between',
-                      alignItems: isMobile ? 'flex-start' : 'flex-start',
-                      marginBottom: isExpanded ? '32px' : '0',
-                      gap: isMobile ? '16px' : 0,
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: isMobile ? '16px' : '24px', flex: 1, width: isMobile ? '100%' : 'auto' }}>
+                  onMouseEnter={() => setHoveredCard(provider.id)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                >
+                  <div style={{ padding: '24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px', flex: 1 }}>
                         <div style={{
-                          width: isMobile ? '56px' : '72px',
-                          height: isMobile ? '56px' : '72px',
-                          borderRadius: isMobile ? '16px' : '20px',
-                          background: `linear-gradient(135deg, ${providerInfo.color} 0%, ${providerInfo.color}cc 100%)`,
+                          width: '64px',
+                          height: '64px',
+                          borderRadius: '18px',
+                          background: providerInfo.gradient,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -770,1372 +484,582 @@ export default function AIProvidersPage() {
                           position: 'relative',
                           flexShrink: 0,
                         }}>
-                          <providerInfo.icon style={{ width: isMobile ? '28px' : '36px', height: isMobile ? '28px' : '36px', color: '#ffffff' }} />
+                          <providerInfo.icon style={{ width: '32px', height: '32px', color: 'white' }} />
                           <div style={{
                             position: 'absolute',
                             bottom: '-4px',
                             right: '-4px',
-                            width: '24px',
-                            height: '24px',
+                            width: '22px',
+                            height: '22px',
                             borderRadius: '50%',
-                            backgroundColor: provider.enabled ? 'var(--success)' : 'var(--error)',
-                            border: '3px solid var(--bg-surface)',
+                            background: provider.enabled ? '#10b981' : '#ef4444',
+                            border: '3px solid var(--bg-card)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                           }}>
-                            {provider.enabled ? (
-                              <CheckCircle style={{ width: '14px', height: '14px', color: '#ffffff' }} />
-                            ) : (
-                              <XCircle style={{ width: '14px', height: '14px', color: '#ffffff' }} />
-                            )}
+                            {provider.enabled ? <CheckCircle style={{ width: '12px', height: '12px', color: 'white' }} /> : <XCircle style={{ width: '12px', height: '12px', color: 'white' }} />}
                           </div>
                         </div>
 
                         <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px', flexWrap: 'wrap' }}>
-                            <h3 style={{
-                              fontSize: '22px',
-                              fontWeight: '800',
-                              color: 'var(--text-primary)',
-                              margin: 0,
-                              letterSpacing: '-0.3px',
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                            <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>{providerInfo.label}</h3>
+                            <span style={{
+                              padding: '4px 12px',
+                              borderRadius: '8px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              background: provider.enabled ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                              color: provider.enabled ? '#10b981' : '#ef4444',
                             }}>
-                              {providerInfo.label}
-                            </h3>
-                            {provider.enabled ? (
-                              <span style={{
-                                padding: '6px 16px',
-                                backgroundColor: 'var(--success-bg)',
-                                color: 'var(--success)',
-                                borderRadius: '24px',
-                                fontSize: '13px',
-                                fontWeight: '600',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                              }}>
-                                <CheckCircle style={{ width: '14px', height: '14px' }} />
-                                已启用
-                              </span>
-                            ) : (
-                              <span style={{
-                                padding: '6px 16px',
-                                backgroundColor: 'var(--error-bg)',
-                                color: 'var(--error)',
-                                borderRadius: '24px',
-                                fontSize: '13px',
-                                fontWeight: '600',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                              }}>
-                                <XCircle style={{ width: '14px', height: '14px' }} />
-                                已禁用
-                              </span>
-                            )}
+                              {provider.enabled ? '已启用' : '已禁用'}
+                            </span>
                           </div>
-
-                          <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', margin: 0, marginBottom: '12px', lineHeight: '1.6' }}>
-                            {providerInfo.description}
-                          </p>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', fontSize: '14px', color: 'var(--text-tertiary)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', backgroundColor: 'var(--bg-surface)', borderRadius: '12px' }}>
-                              <LayoutGrid style={{ width: '16px', height: '16px', color: providerInfo.color }} />
-                              <span style={{ fontWeight: '600', color: 'var(--text-secondary)' }}>
-                                {provider.models?.length || 0} 个模型
-                              </span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', backgroundColor: 'var(--bg-surface)', borderRadius: '12px' }}>
-                              <RefreshCw style={{ width: '16px', height: '16px', color: 'var(--text-tertiary)' }} />
-                              <span>
-                                {new Date(provider.updatedAt).toLocaleDateString('zh-CN')}
-                              </span>
-                            </div>
+                          <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: '0 0 12px 0' }}>{providerInfo.description}</p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                              <LayoutGrid style={{ width: '14px', height: '14px' }} />
+                              {provider.models?.length || 0} 个模型
+                            </span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-muted)' }}>
+                              <RefreshCw style={{ width: '14px', height: '14px' }} />
+                              {new Date(provider.updatedAt).toLocaleDateString('zh-CN')}
+                            </span>
                           </div>
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: isMobile ? 'flex-start' : 'flex-end' }}>
-                        <Button
-                          variant="outline"
-                          size="sm"
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button
                           onClick={() => toggleExpand(provider.id)}
-                          style={{ 
-                            height: '44px', 
-                            padding: isMobile ? '0 12px' : '0 20px',
-                            fontSize: '14px',
-                            fontWeight: '600',
-                            borderColor: isExpanded ? providerInfo.color : 'var(--border-primary)',
-                            color: isExpanded ? providerInfo.color : 'var(--text-tertiary)',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = providerInfo.color;
-                            e.currentTarget.style.color = providerInfo.color;
-                            e.currentTarget.style.backgroundColor = `${providerInfo.color}08`;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = isExpanded ? providerInfo.color : 'var(--border-primary)';
-                            e.currentTarget.style.color = isExpanded ? providerInfo.color : 'var(--text-tertiary)';
-                            e.currentTarget.style.backgroundColor = 'transparent';
+                          style={{
+                            height: '40px',
+                            padding: '0 16px',
+                            borderRadius: '10px',
+                            border: `1px solid ${isExpanded ? providerInfo.color : 'var(--border-primary)'}`,
+                            background: isExpanded ? `${providerInfo.color}15` : 'transparent',
+                            color: isExpanded ? providerInfo.color : 'var(--text-secondary)',
+                            fontSize: '13px',
+                            fontWeight: '500',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            transition: 'all 0.2s ease',
                           }}
                         >
-                          {isExpanded ? (
-                            <>
-                              <ChevronDown style={{ width: '18px', height: '18px' }} />
-                              <span style={{ marginLeft: '8px' }}>收起</span>
-                            </>
-                          ) : (
-                            <>
-                              <ChevronRight style={{ width: '18px', height: '18px' }} />
-                              <span style={{ marginLeft: '8px' }}>展开</span>
-                            </>
-                          )}
-                        </Button>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
+                          {isExpanded ? <ChevronDown style={{ width: '16px', height: '16px' }} /> : <ChevronRight style={{ width: '16px', height: '16px' }} />}
+                          {isExpanded ? '收起' : '展开'}
+                        </button>
+                        <button
                           onClick={() => handleTestProvider(provider.id)}
                           disabled={testingProvider === provider.id}
-                          style={{ height: '44px', padding: '0 16px', width: '44px' }}
-                          aria-label="测试连接"
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '10px',
+                            border: '1px solid var(--border-primary)',
+                            background: 'transparent',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s ease',
+                          }}
                         >
-                          {testingProvider === provider.id ? (
-                            <Loader2 style={{ width: '18px', height: '18px', animation: 'spin 1s linear infinite' }} />
-                          ) : (
-                            <TestTube style={{ width: '18px', height: '18px' }} />
-                          )}
-                        </Button>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
+                          {testingProvider === provider.id ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <TestTube style={{ width: '16px', height: '16px' }} />}
+                        </button>
+                        <button
                           onClick={() => openEditModal(provider)}
-                          style={{ height: '44px', padding: '0 16px', width: '44px' }}
-                          aria-label="编辑提供商"
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '10px',
+                            border: '1px solid var(--border-primary)',
+                            background: 'transparent',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s ease',
+                          }}
                         >
-                          <Edit2 style={{ width: '18px', height: '18px' }} />
-                        </Button>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
+                          <Edit2 style={{ width: '16px', height: '16px' }} />
+                        </button>
+                        <button
                           onClick={() => handleDeleteProvider(provider.id)}
-                          style={{ 
-                            height: '44px', 
-                            padding: '0 16px', 
-                            width: '44px',
-                            borderColor: 'var(--error)',
-                            color: 'var(--error)',
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '10px',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s ease',
                           }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = 'var(--error-bg)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                          }}
-                          aria-label="删除提供商"
                         >
-                          <Trash2 style={{ width: '18px', height: '18px' }} />
-                        </Button>
+                          <Trash2 style={{ width: '16px', height: '16px' }} />
+                        </button>
                       </div>
                     </div>
+                  </div>
 
-                    {isExpanded && (
-                      <div style={{
-                        paddingTop: '32px',
-                        borderTop: '1px solid var(--border-primary)',
-                        animation: 'slideDown 0.3s ease-out',
-                      }}>
-                        <style>{`
-                          @keyframes slideDown {
-                            from {
-                              opacity: 0;
-                              transform: translateY(-10px);
-                            }
-                            to {
-                              opacity: 1;
-                              transform: translateY(0);
-                            }
-                          }
-                        `}</style>
-                        
-                        <div style={{
-                          marginBottom: '28px',
-                          padding: '24px',
-                          backgroundColor: 'var(--bg-surface)',
-                          borderRadius: '16px',
-                          border: `1px solid ${providerInfo.color}30`,
-                          position: 'relative',
-                          overflow: 'hidden',
-                        }}>
-                          <div style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            height: '3px',
-                            background: `linear-gradient(90deg, ${providerInfo.color} 0%, ${providerInfo.color}80 100%)`,
-                          }} />
-                          
-                          <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginBottom: '16px',
-                          }}>
-                            <div style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '12px',
-                            }}>
-                              <div style={{
-                                width: '44px',
-                                height: '44px',
-                                borderRadius: '12px',
-                                backgroundColor: `${providerInfo.color}15`,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}>
-                                <Shield style={{ width: '22px', height: '22px', color: providerInfo.color }} />
-                              </div>
-                              <span style={{
-                                fontSize: '16px',
-                                fontWeight: '700',
-                                color: 'var(--text-primary)',
-                              }}>
-                                API 密钥
-                              </span>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => toggleApiKeyVisibility(provider.id)}
-                              style={{ 
-                                height: '40px', 
-                                padding: '0 16px',
-                                borderColor: providerInfo.color,
-                                color: providerInfo.color,
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = `${providerInfo.color}10`;
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = 'transparent';
-                              }}
-                            >
-                              {isApiKeyVisible ? (
-                                <>
-                                  <EyeOff style={{ width: '18px', height: '18px' }} />
-                                  <span style={{ marginLeft: '8px' }}>隐藏</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Eye style={{ width: '18px', height: '18px' }} />
-                                  <span style={{ marginLeft: '8px' }}>显示</span>
-                                </>
-                              )}
-                            </Button>
+                  {isExpanded && (
+                    <div style={{ borderTop: '1px solid var(--border-primary)', padding: '24px', background: 'var(--bg-hover)' }}>
+                      <div style={{ marginBottom: '24px', padding: '20px', background: 'var(--bg-card)', borderRadius: '14px', border: '1px solid var(--border-primary)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <Key style={{ width: '18px', height: '18px', color: providerInfo.color }} />
+                            <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>API 密钥</span>
                           </div>
-                          <div style={{
-                            fontFamily: 'var(--font-mono)',
-                            fontSize: '14px',
-                            color: 'var(--text-primary)',
-                            wordBreak: 'break-all',
-                            letterSpacing: '0.5px',
-                            padding: '16px',
-                            backgroundColor: 'var(--bg-base)',
-                            borderRadius: '12px',
-                            border: '1px solid var(--border-primary)',
-                            lineHeight: '1.6',
-                          }}>
-                            {isApiKeyVisible ? provider.apiKey : '•'.repeat(48)}
-                          </div>
-                        </div>
-
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          marginBottom: '24px',
-                        }}>
-                          <h4 style={{
-                            fontSize: '20px',
-                            fontWeight: '800',
-                            color: 'var(--text-primary)',
-                            margin: 0,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                          }}>
-                            <div style={{
-                              width: '44px',
-                              height: '44px',
-                              borderRadius: '12px',
-                              backgroundColor: `${providerInfo.color}15`,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}>
-                              <LayoutGrid style={{ width: '22px', height: '22px', color: providerInfo.color }} />
-                            </div>
-                            模型列表
-                            <span style={{
-                              fontSize: '14px',
-                              fontWeight: '600',
-                              color: 'var(--text-tertiary)',
-                              marginLeft: '12px',
-                            }}>
-                              ({provider.models?.length || 0})
-                            </span>
-                          </h4>
-
-                          <Button
-                            onClick={() => openAddModelModal(provider)}
+                          <button
+                            onClick={() => toggleApiKeyVisibility(provider.id)}
                             style={{
-                              height: '44px',
-                              padding: '0 24px',
-                              background: `linear-gradient(135deg, ${providerInfo.color} 0%, ${providerInfo.color}cc 100%)`,
-                              border: 'none',
-                              boxShadow: `0 4px 12px ${providerInfo.color}30`,
+                              height: '32px',
+                              padding: '0 12px',
+                              borderRadius: '8px',
+                              border: `1px solid ${providerInfo.color}`,
+                              background: 'transparent',
+                              color: providerInfo.color,
+                              fontSize: '12px',
+                              fontWeight: '500',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
                             }}
                           >
-                            <Plus style={{ width: '18px', height: '18px', color: '#ffffff' }} />
-                            <span style={{ marginLeft: '10px', fontWeight: '600', color: '#ffffff' }}>添加模型</span>
-                          </Button>
+                            {isApiKeyVisible ? <EyeOff style={{ width: '14px', height: '14px' }} /> : <Eye style={{ width: '14px', height: '14px' }} />}
+                            {isApiKeyVisible ? '隐藏' : '显示'}
+                          </button>
                         </div>
+                        <div style={{
+                          fontFamily: 'monospace',
+                          fontSize: '13px',
+                          color: 'var(--text-secondary)',
+                          padding: '12px 16px',
+                          background: 'var(--bg-page)',
+                          borderRadius: '8px',
+                          wordBreak: 'break-all',
+                        }}>
+                          {isApiKeyVisible ? provider.apiKey : '•'.repeat(40)}
+                        </div>
+                      </div>
 
-                        {!provider.models || provider.models.length === 0 ? (
-                          <div style={{
-                            padding: '64px',
-                            textAlign: 'center',
-                            backgroundColor: 'var(--bg-surface)',
-                            borderRadius: '16px',
-                            border: '2px dashed var(--border-secondary)',
-                            transition: 'all 0.3s ease',
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                        <h4 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <LayoutGrid style={{ width: '18px', height: '18px', color: providerInfo.color }} />
+                          模型列表
+                          <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '400' }}>({provider.models?.length || 0})</span>
+                        </h4>
+                        <button
+                          onClick={() => openAddModelModal(provider)}
+                          style={{
+                            height: '38px',
+                            padding: '0 16px',
+                            borderRadius: '10px',
+                            border: 'none',
+                            background: providerInfo.gradient,
+                            color: 'white',
+                            fontSize: '13px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: `0 4px 12px ${providerInfo.color}30`,
                           }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = providerInfo.color;
-                            e.currentTarget.style.backgroundColor = `${providerInfo.color}05`;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = 'var(--border-secondary)';
-                            e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
-                          }}>
-                            <div style={{
-                              width: '64px',
-                              height: '64px',
-                              borderRadius: '20px',
-                              backgroundColor: `${providerInfo.color}15`,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              marginBottom: '20px',
-                            }}>
-                              <LayoutGrid style={{ width: '32px', height: '32px', color: providerInfo.color }} />
-                            </div>
-                            <h3 style={{
-                              fontSize: '18px',
-                              fontWeight: '700',
-                              color: 'var(--text-primary)',
-                              marginBottom: '12px',
-                              margin: '0 0 12px 0',
-                            }}>
-                              暂无模型
-                            </h3>
-                            <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.6' }}>
-                              点击上方"添加模型"按钮开始配置您的第一个AI模型
-                            </p>
-                          </div>
-                        ) : (
-                          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(400px, 1fr))', gap: '24px' }}>
-                            {provider.models.map((model) => {
-                              const contentTypeInfo = getFirstContentTypeInfo(model.types);
-                              return (
-                                <div key={model.id} style={{
-                                  padding: '28px',
-                                  backgroundColor: 'var(--bg-surface)',
-                                  borderRadius: '20px',
-                                  border: `1px solid ${contentTypeInfo.color}30`,
-                                  boxShadow: 'var(--shadow-sm)',
-                                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                  position: 'relative',
-                                  overflow: 'hidden',
+                        >
+                          <Plus style={{ width: '16px', height: '16px' }} />
+                          添加模型
+                        </button>
+                      </div>
+
+                      {!provider.models || provider.models.length === 0 ? (
+                        <div style={{ padding: '48px', textAlign: 'center', background: 'var(--bg-card)', borderRadius: '14px', border: '1px dashed var(--border-primary)' }}>
+                          <LayoutGrid style={{ width: '32px', height: '32px', color: 'var(--text-muted)', marginBottom: '12px' }} />
+                          <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0 }}>暂无模型，点击上方按钮添加</p>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '16px' }}>
+                          {provider.models.map((model) => {
+                            const contentTypeInfo = getFirstContentTypeInfo(model.types);
+                            return (
+                              <div
+                                key={model.id}
+                                style={{
+                                  padding: '20px',
+                                  background: 'var(--bg-card)',
+                                  borderRadius: '16px',
+                                  border: '1px solid var(--border-primary)',
+                                  transition: 'all 0.2s ease',
                                 }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.transform = 'translateY(-6px)';
-                                  e.currentTarget.style.boxShadow = `0 12px 32px ${contentTypeInfo.color}20`;
-                                  e.currentTarget.style.borderColor = contentTypeInfo.color;
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.transform = 'translateY(0)';
-                                  e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-                                  e.currentTarget.style.borderColor = `${contentTypeInfo.color}30`;
-                                }}>
-                                  <div style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    height: '4px',
-                                    background: `linear-gradient(90deg, ${contentTypeInfo.color} 0%, ${contentTypeInfo.color}80 100%)`,
-                                  }} />
-                                  
-                                  <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'flex-start',
-                                    marginBottom: '20px',
-                                  }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '18px', flex: 1 }}>
-                                      <div style={{
-                                        width: '56px',
-                                        height: '56px',
-                                        borderRadius: '16px',
-                                        background: `linear-gradient(135deg, ${contentTypeInfo.color} 0%, ${contentTypeInfo.color}cc 100%)`,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        boxShadow: `0 4px 12px ${contentTypeInfo.color}30`,
-                                      }}>
-                                        <contentTypeInfo.icon style={{ width: '28px', height: '28px', color: '#ffffff' }} />
-                                      </div>
-                                      <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{
-                                          fontSize: '18px',
-                                          fontWeight: '800',
-                                          color: 'var(--text-primary)',
-                                          marginBottom: '10px',
-                                          overflow: 'hidden',
-                                          textOverflow: 'ellipsis',
-                                          whiteSpace: 'nowrap',
-                                          letterSpacing: '-0.2px',
-                                        }}>
-                                          {model.name}
-                                        </div>
-                                        {model.types && model.types.length > 0 && (
-                                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
-                                            {model.types.map((type, idx) => {
-                                              const typeInfo = getContentTypeInfo(type);
-                                              return (
-                                                <div key={idx} style={{
-                                                  display: 'flex',
-                                                  alignItems: 'center',
-                                                  gap: '5px',
-                                                  padding: '5px 12px',
-                                                  borderRadius: '14px',
-                                                  backgroundColor: `${typeInfo.color}15`,
-                                                  color: typeInfo.color,
-                                                  fontSize: '12px',
-                                                  fontWeight: '600',
-                                                  textTransform: 'uppercase',
-                                                  letterSpacing: '0.3px',
-                                                }}>
-                                                  <typeInfo.icon style={{ width: '13px', height: '13px' }} />
-                                                  {typeInfo.label}
-                                                </div>
-                                              );
-                                            })}
-                                          </div>
-                                        )}
-                                      </div>
+                              >
+                                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1 }}>
+                                    <div style={{
+                                      width: '48px',
+                                      height: '48px',
+                                      borderRadius: '14px',
+                                      background: contentTypeInfo.gradient,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      boxShadow: `0 4px 12px ${contentTypeInfo.color}25`,
+                                    }}>
+                                      <contentTypeInfo.icon style={{ width: '24px', height: '24px', color: 'white' }} />
                                     </div>
-
-                                    <div style={{ display: 'flex', gap: '10px' }}>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => openEditModelModal(provider, model)}
-                                        style={{ 
-                                          height: '40px', 
-                                          padding: '0 14px',
-                                          borderColor: contentTypeInfo.color,
-                                          color: contentTypeInfo.color,
-                                        }}
-                                        onMouseEnter={(e) => {
-                                          e.currentTarget.style.backgroundColor = `${contentTypeInfo.color}10`;
-                                        }}
-                                        onMouseLeave={(e) => {
-                                          e.currentTarget.style.backgroundColor = 'transparent';
-                                        }}
-                                        aria-label={`编辑模型 ${model.name}`}
-                                      >
-                                        <Edit2 style={{ width: '18px', height: '18px' }} />
-                                      </Button>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleTestModel(model.id)}
-                                        disabled={testingModel === model.id}
-                                        style={{ 
-                                          height: '40px', 
-                                          padding: '0 14px',
-                                          borderColor: 'var(--success)',
-                                          color: 'var(--success)',
-                                        }}
-                                        onMouseEnter={(e) => {
-                                          e.currentTarget.style.backgroundColor = 'var(--success-bg)';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                          e.currentTarget.style.backgroundColor = 'transparent';
-                                        }}
-                                        aria-label={`测试模型 ${model.name}`}
-                                      >
-                                        {testingModel === model.id ? (
-                                          <Loader2 style={{ width: '18px', height: '18px', animation: 'spin 1s linear infinite' }} />
-                                        ) : (
-                                          <TestTube style={{ width: '18px', height: '18px' }} />
-                                        )}
-                                      </Button>
-                                      <Button
-                                        variant={model.isAssistantDefault ? 'primary' : 'outline'}
-                                        size="sm"
-                                        onClick={() => model.isAssistantDefault ? handleUnsetAssistantDefault(model.id) : handleSetAssistantDefault(model.id)}
-                                        style={{ 
-                                          height: '40px', 
-                                          padding: '0 14px',
-                                          borderColor: model.isAssistantDefault ? 'var(--accent)' : 'var(--accent)',
-                                          color: model.isAssistantDefault ? 'white' : 'var(--accent)',
-                                          backgroundColor: model.isAssistantDefault ? 'var(--accent)' : 'transparent',
-                                        }}
-                                        onMouseEnter={(e) => {
-                                          if (!model.isAssistantDefault) {
-                                            e.currentTarget.style.backgroundColor = 'var(--accent-bg)';
-                                          }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                          if (!model.isAssistantDefault) {
-                                            e.currentTarget.style.backgroundColor = 'transparent';
-                                          }
-                                        }}
-                                        aria-label={model.isAssistantDefault ? '取消AI助手' : '设为AI助手'}
-                                      >
-                                        {model.isAssistantDefault ? (
-                                          <CheckCircle style={{ width: '18px', height: '18px' }} />
-                                        ) : (
-                                          <Sparkles style={{ width: '18px', height: '18px' }} />
-                                        )}
-                                      </Button>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleDeleteModel(provider.id, model.id)}
-                                        style={{ 
-                                          height: '40px', 
-                                          padding: '0 14px',
-                                          borderColor: 'var(--error)',
-                                          color: 'var(--error)',
-                                        }}
-                                        onMouseEnter={(e) => {
-                                          e.currentTarget.style.backgroundColor = 'var(--error-bg)';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                          e.currentTarget.style.backgroundColor = 'transparent';
-                                        }}
-                                        aria-label={`删除模型 ${model.name}`}
-                                      >
-                                        <Trash2 style={{ width: '18px', height: '18px' }} />
-                                      </Button>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '6px' }}>{model.name}</div>
+                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                        {model.types?.slice(0, 3).map((type, idx) => {
+                                          const typeInfo = getContentTypeInfo(type);
+                                          return (
+                                            <span key={idx} style={{
+                                              padding: '3px 8px',
+                                              borderRadius: '6px',
+                                              fontSize: '11px',
+                                              fontWeight: '600',
+                                              background: `${typeInfo.color}15`,
+                                              color: typeInfo.color,
+                                            }}>
+                                              {typeInfo.label}
+                                            </span>
+                                          );
+                                        })}
+                                      </div>
                                     </div>
                                   </div>
 
-                                  {model.description && (
-                                    <p style={{
-                                      fontSize: '15px',
-                                      color: 'var(--text-secondary)',
-                                      marginBottom: '20px',
-                                      margin: '0 0 20px 0',
-                                      lineHeight: '1.7',
-                                    }}>
-                                      {model.description}
-                                    </p>
-                                  )}
-
-                                  {model.capabilities.length > 0 && (
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                                      {model.capabilities.map((cap, idx) => (
-                                        <span key={idx} style={{
-                                          padding: '8px 16px',
-                                          backgroundColor: `${contentTypeInfo.color}12`,
-                                          color: contentTypeInfo.color,
-                                          borderRadius: '18px',
-                                          fontSize: '13px',
-                                          fontWeight: '600',
-                                          textTransform: 'uppercase',
-                                          letterSpacing: '0.5px',
-                                          transition: 'all 0.2s ease',
-                                        }}
-                                        onMouseEnter={(e) => {
-                                          e.currentTarget.style.backgroundColor = `${contentTypeInfo.color}20`;
-                                          e.currentTarget.style.transform = 'translateY(-2px)';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                          e.currentTarget.style.backgroundColor = `${contentTypeInfo.color}12`;
-                                          e.currentTarget.style.transform = 'translateY(0)';
-                                        }}>
-                                          {cap}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  )}
+                                  <div style={{ display: 'flex', gap: '6px' }}>
+                                    <button
+                                      onClick={() => openEditModelModal(provider, model)}
+                                      style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--border-primary)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                    >
+                                      <Edit2 style={{ width: '14px', height: '14px' }} />
+                                    </button>
+                                    <button
+                                      onClick={() => handleTestModel(model.id)}
+                                      disabled={testingModel === model.id}
+                                      style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.3)', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                    >
+                                      {testingModel === model.id ? <Loader2 style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite' }} /> : <TestTube style={{ width: '14px', height: '14px' }} />}
+                                    </button>
+                                    <button
+                                      onClick={() => model.isAssistantDefault ? handleUnsetAssistantDefault(model.id) : handleSetAssistantDefault(model.id)}
+                                      style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        borderRadius: '8px',
+                                        border: model.isAssistantDefault ? 'none' : '1px solid rgba(99, 102, 241, 0.3)',
+                                        background: model.isAssistantDefault ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'rgba(99, 102, 241, 0.1)',
+                                        color: model.isAssistantDefault ? 'white' : '#6366f1',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                      }}
+                                    >
+                                      <Sparkles style={{ width: '14px', height: '14px' }} />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteModel(provider.id, model.id)}
+                                      style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                    >
+                                      <Trash2 style={{ width: '14px', height: '14px' }} />
+                                    </button>
+                                  </div>
                                 </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
 
-      <Modal
-        open={showAddModal}
-        onClose={() => {
-          setShowAddModal(false);
-          resetForm();
-        }}
-        title="添加 AI 服务提供商"
-        size="large"
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: '15px',
-              fontWeight: '700',
-              color: 'var(--text-primary)',
-              marginBottom: '16px',
-            }}>
-              选择提供商类型
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '16px' }}>
-              {PROVIDER_TYPES.map((provider) => {
-                const isSelected = formData.type === provider.value;
-                return (
-                  <div
-                    key={provider.value}
-                    onClick={() => setFormData({ ...formData, type: provider.value })}
-                    style={{
-                      padding: isMobile ? '16px' : '24px',
-                      borderRadius: '16px',
-                      border: `2px solid ${isSelected ? provider.color : 'var(--border-primary)'}`,
-                      backgroundColor: isSelected ? `${provider.color}08` : 'var(--bg-surface)',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: isMobile ? '12px' : '16px',
-                      position: 'relative',
-                      overflow: 'hidden',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = provider.color;
-                        e.currentTarget.style.backgroundColor = `${provider.color}05`;
-                        e.currentTarget.style.transform = 'translateY(-4px)';
-                        e.currentTarget.style.boxShadow = `0 8px 24px ${provider.color}15`;
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = 'var(--border-primary)';
-                        e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = 'none';
-                      }
-                    }}
-                  >
-                    {isSelected && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '12px',
-                        right: '12px',
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '50%',
-                        backgroundColor: provider.color,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}>
-                        <CheckCircle style={{ width: '16px', height: '16px', color: '#ffffff' }} />
-                      </div>
-                    )}
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '14px',
-                      background: `linear-gradient(135deg, ${provider.color} 0%, ${provider.color}cc 100%)`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: `0 4px 12px ${provider.color}30`,
-                    }}>
-                      <provider.icon style={{ width: '24px', height: '24px', color: '#ffffff' }} />
-                    </div>
-                    <div>
-                      <div style={{
-                        fontSize: '16px',
-                        fontWeight: '700',
-                        color: 'var(--text-primary)',
-                        marginBottom: '4px',
-                      }}>
-                        {provider.label}
-                      </div>
-                      <div style={{
-                        fontSize: '13px',
-                        color: 'var(--text-tertiary)',
-                        lineHeight: '1.5',
-                      }}>
-                        {provider.description}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+                                {model.description && (
+                                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '0 0 12px 0', lineHeight: '1.5' }}>{model.description}</p>
+                                )}
 
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: '15px',
-              fontWeight: '700',
-              color: 'var(--text-primary)',
-              marginBottom: '12px',
-            }}>
-              API 密钥
-            </label>
-            <Input
-              type="password"
-              placeholder="请输入您的 API 密钥"
-              value={formData.apiKey}
-              onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
-              style={{
-                width: '100%',
-                fontSize: '14px',
-                padding: '14px 16px',
-              }}
-            />
-          </div>
-
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: '15px',
-              fontWeight: '700',
-              color: 'var(--text-secondary)',
-              marginBottom: '12px',
-            }}>
-              自定义 API 地址（可选）
-            </label>
-            <Input
-              type="text"
-              placeholder="https://api.example.com"
-              value={formData.baseUrl}
-              onChange={(e) => setFormData({ ...formData, baseUrl: e.target.value })}
-              style={{
-                width: '100%',
-                fontSize: '14px',
-                padding: '14px 16px',
-              }}
-            />
-          </div>
-
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-            padding: '20px',
-            backgroundColor: 'var(--bg-surface)',
-            borderRadius: '14px',
-            border: '1px solid var(--border-primary)',
-          }}>
-            <input
-              type="checkbox"
-              id="enabled"
-              checked={formData.enabled}
-              onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
-              style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: 'var(--accent)' }}
-            />
-            <label htmlFor="enabled" style={{
-              fontSize: '15px',
-              fontWeight: '600',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              margin: 0,
-            }}>
-              立即启用此提供商
-            </label>
-          </div>
-
-          <div style={{
-            padding: '20px',
-            backgroundColor: 'var(--info-bg)',
-            borderRadius: '14px',
-            border: `1px solid var(--info-border)`,
-            display: 'flex',
-            gap: '16px',
-            alignItems: 'flex-start',
-          }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '12px',
-              backgroundColor: 'var(--info)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}>
-              <Info style={{ width: '22px', height: '22px', color: '#ffffff' }} />
-            </div>
-            <div>
-              <div style={{
-                fontSize: '15px',
-                fontWeight: '700',
-                color: 'var(--info-text)',
-                marginBottom: '8px',
-              }}>
-                使用提示
-              </div>
-              <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                添加提供商后，您可以配置多个模型，每个模型可以支持不同的内容类型（文本、图像、视频等）。
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', paddingTop: '8px' }}>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowAddModal(false);
-                resetForm();
-              }}
-              style={{ 
-                height: '48px', 
-                padding: '0 28px',
-                fontSize: '15px',
-                fontWeight: '600',
-              }}
-            >
-              取消
-            </Button>
-            <Button
-              onClick={handleAddProvider}
-              disabled={saving}
-              style={{ 
-                height: '48px', 
-                padding: '0 36px',
-                fontSize: '15px',
-                fontWeight: '600',
-                background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
-                boxShadow: 'var(--shadow-glow)',
-                border: 'none',
-              }}
-            >
-              {saving ? (
-                <>
-                  <Loader2 style={{ width: '18px', height: '18px', animation: 'spin 1s linear infinite' }} />
-                  <span style={{ marginLeft: '10px' }}>保存中...</span>
-                </>
-              ) : (
-                <>
-                  <Save style={{ width: '18px', height: '18px' }} />
-                  <span style={{ marginLeft: '10px' }}>保存配置</span>
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        open={showEditModal}
-        onClose={() => {
-          setShowEditModal(false);
-          setEditingProvider(null);
-          resetForm();
-        }}
-        title="编辑 AI 服务提供商"
-        size="large"
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: '15px',
-              fontWeight: '700',
-              color: 'var(--text-primary)',
-              marginBottom: '16px',
-            }}>
-              选择提供商类型
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '16px' }}>
-              {PROVIDER_TYPES.map((provider) => {
-                const isSelected = formData.type === provider.value;
-                return (
-                  <div
-                    key={provider.value}
-                    onClick={() => setFormData({ ...formData, type: provider.value })}
-                    style={{
-                      padding: isMobile ? '16px' : '24px',
-                      borderRadius: '16px',
-                      border: `2px solid ${isSelected ? provider.color : 'var(--border-primary)'}`,
-                      backgroundColor: isSelected ? `${provider.color}08` : 'var(--bg-surface)',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: isMobile ? '12px' : '16px',
-                      position: 'relative',
-                      overflow: 'hidden',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = provider.color;
-                        e.currentTarget.style.backgroundColor = `${provider.color}05`;
-                        e.currentTarget.style.transform = 'translateY(-4px)';
-                        e.currentTarget.style.boxShadow = `0 8px 24px ${provider.color}15`;
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = 'var(--border-primary)';
-                        e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = 'none';
-                      }
-                    }}
-                  >
-                    {isSelected && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '12px',
-                        right: '12px',
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '50%',
-                        backgroundColor: provider.color,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}>
-                        <CheckCircle style={{ width: '16px', height: '16px', color: '#ffffff' }} />
-                      </div>
-                    )}
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '14px',
-                      background: `linear-gradient(135deg, ${provider.color} 0%, ${provider.color}cc 100%)`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: `0 4px 12px ${provider.color}30`,
-                    }}>
-                      <provider.icon style={{ width: '24px', height: '24px', color: '#ffffff' }} />
-                    </div>
-                    <div>
-                      <div style={{
-                        fontSize: '16px',
-                        fontWeight: '700',
-                        color: 'var(--text-primary)',
-                        marginBottom: '4px',
-                      }}>
-                        {provider.label}
-                      </div>
-                      <div style={{
-                        fontSize: '13px',
-                        color: 'var(--text-tertiary)',
-                        lineHeight: '1.5',
-                      }}>
-                        {provider.description}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: '15px',
-              fontWeight: '700',
-              color: 'var(--text-primary)',
-              marginBottom: '12px',
-            }}>
-              API 密钥
-            </label>
-            <Input
-              type="password"
-              placeholder="请输入您的 API 密钥"
-              value={formData.apiKey}
-              onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
-              style={{ 
-                width: '100%',
-                fontSize: '14px',
-                padding: '14px 16px',
-              }}
-            />
-          </div>
-
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: '15px',
-              fontWeight: '700',
-              color: 'var(--text-secondary)',
-              marginBottom: '12px',
-            }}>
-              自定义 API 地址（可选）
-            </label>
-            <Input
-              type="text"
-              placeholder="https://api.example.com"
-              value={formData.baseUrl}
-              onChange={(e) => setFormData({ ...formData, baseUrl: e.target.value })}
-              style={{ 
-                width: '100%',
-                fontSize: '14px',
-                padding: '14px 16px',
-              }}
-            />
-          </div>
-
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-            padding: '20px',
-            backgroundColor: 'var(--bg-surface)',
-            borderRadius: '14px',
-            border: '1px solid var(--border-primary)',
-          }}>
-            <input
-              type="checkbox"
-              id="enabled-edit"
-              checked={formData.enabled}
-              onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
-              style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: 'var(--accent)' }}
-            />
-            <label htmlFor="enabled-edit" style={{
-              fontSize: '15px',
-              fontWeight: '600',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              margin: 0,
-            }}>
-              立即启用此提供商
-            </label>
-          </div>
-
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', paddingTop: '8px', flexDirection: isMobile ? 'column' : 'row' }}>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowEditModal(false);
-                setEditingProvider(null);
-                resetForm();
-              }}
-              style={{ 
-                height: '48px', 
-                padding: '0 28px',
-                fontSize: '15px',
-                fontWeight: '600',
-                width: isMobile ? '100%' : 'auto',
-              }}
-            >
-              取消
-            </Button>
-            <Button
-              onClick={handleUpdateProvider}
-              disabled={saving}
-              style={{ 
-                height: '48px', 
-                padding: '0 36px',
-                fontSize: '15px',
-                fontWeight: '600',
-                background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
-                boxShadow: 'var(--shadow-glow)',
-                border: 'none',
-                width: isMobile ? '100%' : 'auto',
-              }}
-            >
-              {saving ? (
-                <>
-                  <Loader2 style={{ width: '18px', height: '18px', animation: 'spin 1s linear infinite' }} />
-                  <span style={{ marginLeft: '10px' }}>保存中...</span>
-                </>
-              ) : (
-                <>
-                  <Save style={{ width: '18px', height: '18px' }} />
-                  <span style={{ marginLeft: '10px' }}>保存配置</span>
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        open={showModelModal}
-        onClose={() => {
-          setShowModelModal(false);
-          setEditingModel(null);
-          setModelFormData({
-            name: '',
-            types: [],
-            description: '',
-            capabilities: [],
-          });
-        }}
-        title={editingModel ? '编辑模型配置' : '添加新模型'}
-        size="large"
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: '15px',
-              fontWeight: '700',
-              color: 'var(--text-primary)',
-              marginBottom: '12px',
-            }}>
-              模型名称
-            </label>
-            <Input
-              type="text"
-              placeholder="例如：GLM-4.7、GPT-4"
-              value={modelFormData.name}
-              onChange={(e) => setModelFormData({ ...modelFormData, name: e.target.value })}
-              style={{ 
-                width: '100%',
-                fontSize: '14px',
-                padding: '14px 16px',
-              }}
-            />
-          </div>
-
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: '15px',
-              fontWeight: '700',
-              color: 'var(--text-primary)',
-              marginBottom: '16px',
-            }}>
-              选择内容类型（可多选）
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
-              {CONTENT_TYPES.map((type) => {
-                const isSelected = modelFormData.types.includes(type.value);
-                return (
-                  <div
-                    key={type.value}
-                    onClick={() => {
-                      const newTypes = isSelected
-                        ? modelFormData.types.filter(t => t !== type.value)
-                        : [...modelFormData.types, type.value];
-                      setModelFormData({ ...modelFormData, types: newTypes });
-                    }}
-                    style={{
-                      padding: '20px',
-                      borderRadius: '14px',
-                      border: `2px solid ${isSelected ? type.color : 'var(--border-primary)'}`,
-                      backgroundColor: isSelected ? `${type.color}08` : 'var(--bg-surface)',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '14px',
-                      position: 'relative',
-                      overflow: 'hidden',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = type.color;
-                        e.currentTarget.style.backgroundColor = `${type.color}05`;
-                        e.currentTarget.style.transform = 'translateY(-4px)';
-                        e.currentTarget.style.boxShadow = `0 8px 24px ${type.color}15`;
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = 'var(--border-primary)';
-                        e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = 'none';
-                      }
-                    }}
-                  >
-                    <div style={{
-                      width: '24px',
-                      height: '24px',
-                      flexShrink: 0,
-                    }}>
-                      {isSelected ? (
-                        <CheckSquare style={{ width: '24px', height: '24px', color: type.color }} />
-                      ) : (
-                        <Square style={{ width: '24px', height: '24px', color: 'var(--text-tertiary)' }} />
+                                {model.capabilities?.length > 0 && (
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {model.capabilities.map((cap, idx) => (
+                                      <span key={idx} style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '500', background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}>
+                                        {cap}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       )}
                     </div>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '12px',
-                      background: `linear-gradient(135deg, ${type.color} 0%, ${type.color}cc 100%)`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: `0 4px 12px ${type.color}30`,
-                    }}>
-                      <type.icon style={{ width: '20px', height: '20px', color: '#ffffff' }} />
-                    </div>
-                    <span style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                      {type.label}
-                    </span>
-                  </div>
-                );
-              })}
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {showAddModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '24px' }} onClick={() => setShowAddModal(false)}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: '24px', width: '100%', maxWidth: '560px', maxHeight: '90vh', overflow: 'auto', border: '1px solid var(--border-primary)', boxShadow: '0 25px 50px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px', borderBottom: '1px solid var(--border-primary)' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>添加 AI 服务提供商</h2>
+              <button onClick={() => setShowAddModal(false)} style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid var(--border-primary)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X style={{ width: '18px', height: '18px' }} />
+              </button>
+            </div>
+
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '10px' }}>选择提供商类型</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                  {PROVIDER_TYPES.map((provider) => {
+                    const isSelected = formData.type === provider.value;
+                    return (
+                      <div
+                        key={provider.value}
+                        onClick={() => setFormData({ ...formData, type: provider.value })}
+                        style={{
+                          padding: '16px',
+                          borderRadius: '14px',
+                          border: `2px solid ${isSelected ? provider.color : 'var(--border-primary)'}`,
+                          background: isSelected ? `${provider.color}10` : 'var(--bg-hover)',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: provider.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <provider.icon style={{ width: '20px', height: '20px', color: 'white' }} />
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>{provider.label}</div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{provider.description}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>API 密钥</label>
+                <input
+                  type="password"
+                  placeholder="请输入您的 API 密钥"
+                  value={formData.apiKey}
+                  onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
+                  style={{ width: '100%', height: '44px', padding: '0 14px', borderRadius: '10px', border: '1px solid var(--border-primary)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '8px' }}>自定义 API 地址（可选）</label>
+                <input
+                  type="text"
+                  placeholder="https://api.example.com"
+                  value={formData.baseUrl}
+                  onChange={(e) => setFormData({ ...formData, baseUrl: e.target.value })}
+                  style={{ width: '100%', height: '44px', padding: '0 14px', borderRadius: '10px', border: '1px solid var(--border-primary)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', background: 'var(--bg-hover)', borderRadius: '12px' }}>
+                <input type="checkbox" id="enabled" checked={formData.enabled} onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#6366f1' }} />
+                <label htmlFor="enabled" style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)', cursor: 'pointer', margin: 0 }}>立即启用此提供商</label>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button onClick={() => setShowAddModal(false)} style={{ flex: 1, height: '48px', fontSize: '14px', fontWeight: '500', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)', borderRadius: '12px', cursor: 'pointer' }}>取消</button>
+                <button onClick={handleAddProvider} disabled={saving} style={{ flex: 1, height: '48px', fontSize: '14px', fontWeight: '600', background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 14px rgba(99, 102, 241, 0.3)' }}>
+                  {saving ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Save style={{ width: '16px', height: '16px' }} />}
+                  {saving ? '保存中...' : '保存配置'}
+                </button>
+              </div>
             </div>
           </div>
+        </div>
+      )}
 
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: '15px',
-              fontWeight: '700',
-              color: 'var(--text-secondary)',
-              marginBottom: '12px',
-            }}>
-              模型描述（可选）
-            </label>
-            <textarea
-              placeholder="简要描述此模型的用途、特点和适用场景"
-              value={modelFormData.description}
-              onChange={(e) => setModelFormData({ ...modelFormData, description: e.target.value })}
-              style={{
-                width: '100%',
-                minHeight: '120px',
-                padding: '14px 16px',
-                borderRadius: '12px',
-                border: '1px solid var(--border-primary)',
-                backgroundColor: 'var(--bg-surface)',
-                color: 'var(--text-primary)',
-                fontSize: '14px',
-                resize: 'vertical',
-                outline: 'none',
-                transition: 'border-color 0.2s ease',
-                lineHeight: '1.6',
-                fontFamily: 'var(--font-sans)',
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = 'var(--accent)';
-                e.currentTarget.style.boxShadow = '0 0 0 3px var(--accent-soft)';
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = 'var(--border-primary)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            />
-          </div>
+      {showEditModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '24px' }} onClick={() => setShowEditModal(false)}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: '24px', width: '100%', maxWidth: '560px', maxHeight: '90vh', overflow: 'auto', border: '1px solid var(--border-primary)', boxShadow: '0 25px 50px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px', borderBottom: '1px solid var(--border-primary)' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>编辑 AI 服务提供商</h2>
+              <button onClick={() => setShowEditModal(false)} style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid var(--border-primary)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X style={{ width: '18px', height: '18px' }} />
+              </button>
+            </div>
 
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: '15px',
-              fontWeight: '700',
-              color: 'var(--text-secondary)',
-              marginBottom: '12px',
-            }}>
-              能力标签（可选）
-            </label>
-            <Input
-              type="text"
-              placeholder="例如：对话, 创作, 翻译, 代码（用逗号分隔）"
-              value={modelFormData.capabilities.join(', ')}
-              onChange={(e) => setModelFormData({
-                ...modelFormData,
-                capabilities: e.target.value.split(',').map(c => c.trim()).filter(c => c),
-              })}
-              style={{ 
-                width: '100%',
-                fontSize: '14px',
-                padding: '14px 16px',
-              }}
-            />
-            <p style={{
-              fontSize: '13px',
-              color: 'var(--text-tertiary)',
-              marginTop: '8px',
-              margin: '8px 0 0 0',
-              lineHeight: '1.5',
-            }}>
-              这些标签将帮助用户更好地了解模型的能力
-            </p>
-          </div>
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '10px' }}>选择提供商类型</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                  {PROVIDER_TYPES.map((provider) => {
+                    const isSelected = formData.type === provider.value;
+                    return (
+                      <div
+                        key={provider.value}
+                        onClick={() => setFormData({ ...formData, type: provider.value })}
+                        style={{
+                          padding: '16px',
+                          borderRadius: '14px',
+                          border: `2px solid ${isSelected ? provider.color : 'var(--border-primary)'}`,
+                          background: isSelected ? `${provider.color}10` : 'var(--bg-hover)',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: provider.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <provider.icon style={{ width: '20px', height: '20px', color: 'white' }} />
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>{provider.label}</div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{provider.description}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', paddingTop: '8px' }}>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowModelModal(false);
-                setEditingModel(null);
-                setModelFormData({
-                  name: '',
-                  types: [],
-                  description: '',
-                  capabilities: [],
-                });
-              }}
-              style={{ 
-                height: '48px', 
-                padding: '0 28px',
-                fontSize: '15px',
-                fontWeight: '600',
-              }}
-            >
-              取消
-            </Button>
-            <Button
-              onClick={editingModel ? handleEditModel : handleAddModel}
-              disabled={saving}
-              style={{ 
-                height: '48px', 
-                padding: '0 36px',
-                fontSize: '15px',
-                fontWeight: '600',
-                background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
-                boxShadow: 'var(--shadow-glow)',
-                border: 'none',
-              }}
-            >
-              {saving ? (
-                <>
-                  <Loader2 style={{ width: '18px', height: '18px', animation: 'spin 1s linear infinite' }} />
-                  <span style={{ marginLeft: '10px' }}>保存中...</span>
-                </>
-              ) : (
-                <>
-                  <Save style={{ width: '18px', height: '18px' }} />
-                  <span style={{ marginLeft: '10px' }}>保存模型</span>
-                </>
-              )}
-            </Button>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>API 密钥</label>
+                <input
+                  type="password"
+                  placeholder="请输入您的 API 密钥"
+                  value={formData.apiKey}
+                  onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
+                  style={{ width: '100%', height: '44px', padding: '0 14px', borderRadius: '10px', border: '1px solid var(--border-primary)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '8px' }}>自定义 API 地址（可选）</label>
+                <input
+                  type="text"
+                  placeholder="https://api.example.com"
+                  value={formData.baseUrl}
+                  onChange={(e) => setFormData({ ...formData, baseUrl: e.target.value })}
+                  style={{ width: '100%', height: '44px', padding: '0 14px', borderRadius: '10px', border: '1px solid var(--border-primary)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', background: 'var(--bg-hover)', borderRadius: '12px' }}>
+                <input type="checkbox" id="enabled-edit" checked={formData.enabled} onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#6366f1' }} />
+                <label htmlFor="enabled-edit" style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)', cursor: 'pointer', margin: 0 }}>立即启用此提供商</label>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button onClick={() => setShowEditModal(false)} style={{ flex: 1, height: '48px', fontSize: '14px', fontWeight: '500', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)', borderRadius: '12px', cursor: 'pointer' }}>取消</button>
+                <button onClick={handleUpdateProvider} disabled={saving} style={{ flex: 1, height: '48px', fontSize: '14px', fontWeight: '600', background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 14px rgba(99, 102, 241, 0.3)' }}>
+                  {saving ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Save style={{ width: '16px', height: '16px' }} />}
+                  {saving ? '保存中...' : '保存配置'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </Modal>
-    </>
+      )}
+
+      {showModelModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '24px' }} onClick={() => setShowModelModal(false)}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: '24px', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflow: 'auto', border: '1px solid var(--border-primary)', boxShadow: '0 25px 50px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px', borderBottom: '1px solid var(--border-primary)' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>{editingModel ? '编辑模型配置' : '添加新模型'}</h2>
+              <button onClick={() => setShowModelModal(false)} style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid var(--border-primary)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X style={{ width: '18px', height: '18px' }} />
+              </button>
+            </div>
+
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>模型名称</label>
+                <input
+                  type="text"
+                  placeholder="例如：GLM-4、GPT-4"
+                  value={modelFormData.name}
+                  onChange={(e) => setModelFormData({ ...modelFormData, name: e.target.value })}
+                  style={{ width: '100%', height: '44px', padding: '0 14px', borderRadius: '10px', border: '1px solid var(--border-primary)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '10px' }}>选择内容类型（可多选）</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                  {CONTENT_TYPES.map((type) => {
+                    const isSelected = modelFormData.types.includes(type.value);
+                    return (
+                      <div
+                        key={type.value}
+                        onClick={() => {
+                          const newTypes = isSelected ? modelFormData.types.filter(t => t !== type.value) : [...modelFormData.types, type.value];
+                          setModelFormData({ ...modelFormData, types: newTypes });
+                        }}
+                        style={{
+                          padding: '12px',
+                          borderRadius: '12px',
+                          border: `2px solid ${isSelected ? type.color : 'var(--border-primary)'}`,
+                          background: isSelected ? `${type.color}10` : 'var(--bg-hover)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        {isSelected ? <CheckSquare style={{ width: '18px', height: '18px', color: type.color }} /> : <Square style={{ width: '18px', height: '18px', color: 'var(--text-muted)' }} />}
+                        <type.icon style={{ width: '16px', height: '16px', color: isSelected ? type.color : 'var(--text-muted)' }} />
+                        <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-primary)' }}>{type.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '8px' }}>模型描述（可选）</label>
+                <textarea
+                  placeholder="简要描述此模型的用途、特点和适用场景"
+                  value={modelFormData.description}
+                  onChange={(e) => setModelFormData({ ...modelFormData, description: e.target.value })}
+                  style={{ width: '100%', minHeight: '100px', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-primary)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '14px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '8px' }}>能力标签（可选）</label>
+                <input
+                  type="text"
+                  placeholder="例如：对话, 创作, 翻译, 代码（用逗号分隔）"
+                  value={modelFormData.capabilities.join(', ')}
+                  onChange={(e) => setModelFormData({ ...modelFormData, capabilities: e.target.value.split(',').map(c => c.trim()).filter(c => c) })}
+                  style={{ width: '100%', height: '44px', padding: '0 14px', borderRadius: '10px', border: '1px solid var(--border-primary)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button onClick={() => setShowModelModal(false)} style={{ flex: 1, height: '48px', fontSize: '14px', fontWeight: '500', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)', borderRadius: '12px', cursor: 'pointer' }}>取消</button>
+                <button onClick={editingModel ? handleEditModel : handleAddModel} disabled={saving} style={{ flex: 1, height: '48px', fontSize: '14px', fontWeight: '600', background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 14px rgba(99, 102, 241, 0.3)' }}>
+                  {saving ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Save style={{ width: '16px', height: '16px' }} />}
+                  {saving ? '保存中...' : '保存模型'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+    </div>
   );
 }

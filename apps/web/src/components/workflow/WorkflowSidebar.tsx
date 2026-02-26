@@ -1,80 +1,115 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { FileText, Users, Package, Map, LayoutGrid, ArrowLeft } from 'lucide-react';
+import { FileText, Users, Package, Map, LayoutGrid, ArrowLeft, ChevronRight, Sparkles, Zap } from 'lucide-react';
 import { WorkflowStepId } from '../../contexts/WorkflowContext';
-import { useTheme } from '../../contexts/ThemeContext';
 
 interface StepConfig {
   id: WorkflowStepId;
   name: string;
   icon: React.ElementType;
   description: string;
+  gradient: string;
+  shadow: string;
 }
 
 const STEP_CONFIGS: StepConfig[] = [
-  { id: 'script', name: '剧本', icon: FileText, description: '创作或导入剧本内容' },
-  { id: 'characters', name: '角色', icon: Users, description: '定义角色并生成定妆照' },
-  { id: 'items', name: '物品', icon: Package, description: '管理道具和服装' },
-  { id: 'scenes', name: '场景', icon: Map, description: '解析场景并生成概念图' },
-  { id: 'storyboard', name: '分镜', icon: LayoutGrid, description: '制作分镜并生成视频' },
+  { 
+    id: 'script', 
+    name: '剧本', 
+    icon: FileText, 
+    description: '创作或导入剧本内容',
+    gradient: 'linear-gradient(135deg, #007AFF 0%, #0056CC 100%)',
+    shadow: 'rgba(0, 122, 255, 0.4)',
+  },
+  { 
+    id: 'characters', 
+    name: '角色', 
+    icon: Users, 
+    description: '定义角色并生成定妆照',
+    gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+    shadow: 'rgba(16, 185, 129, 0.4)',
+  },
+  { 
+    id: 'items', 
+    name: '物品', 
+    icon: Package, 
+    description: '管理道具和服装',
+    gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+    shadow: 'rgba(245, 158, 11, 0.4)',
+  },
+  { 
+    id: 'scenes', 
+    name: '场景', 
+    icon: Map, 
+    description: '解析场景并生成概念图',
+    gradient: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+    shadow: 'rgba(236, 72, 153, 0.4)',
+  },
+  { 
+    id: 'storyboard', 
+    name: '分镜', 
+    icon: LayoutGrid, 
+    description: '制作分镜并生成视频',
+    gradient: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+    shadow: 'rgba(139, 92, 246, 0.4)',
+  },
 ];
 
 interface WorkflowStepItemProps {
   step: StepConfig;
   isActive: boolean;
+  isCompleted: boolean;
   onClick: () => void;
   isLast: boolean;
+  index: number;
 }
 
-function WorkflowStepItem({ step, isActive, onClick, isLast }: WorkflowStepItemProps) {
+function WorkflowStepItem({ step, isActive, isCompleted, onClick, isLast, index }: WorkflowStepItemProps) {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
     <div style={{ position: 'relative' }}>
       {!isLast && (
         <div
           style={{
             position: 'absolute',
-            left: '19px',
-            top: '44px',
+            left: '23px',
+            top: '52px',
             width: '2px',
-            height: 'calc(100% - 20px)',
-            backgroundColor: 'var(--border-primary)',
-            transition: 'all 0.3s ease',
-            opacity: isActive ? 0.8 : 0.4,
+            height: 'calc(100% - 24px)',
+            background: isCompleted || isActive 
+              ? step.gradient 
+              : 'var(--border-primary)',
+            borderRadius: '1px',
+            transition: 'all 0.4s ease',
+            opacity: isCompleted || isActive ? 0.6 : 0.3,
           }}
         />
       )}
       
       <button
         onClick={onClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
+          gap: '14px',
           width: '100%',
-          padding: '16px',
+          padding: '14px 16px',
           border: 'none',
           borderRadius: '16px',
-          backgroundColor: isActive 
-            ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)'
-            : 'transparent',
+          background: isActive 
+            ? `linear-gradient(135deg, ${step.shadow.replace('0.4', '0.15')} 0%, ${step.shadow.replace('0.4', '0.08')} 100%)`
+            : isHovered 
+              ? 'var(--bg-hover)' 
+              : 'transparent',
           cursor: 'pointer',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           textAlign: 'left',
           position: 'relative',
           overflow: 'hidden',
-          boxShadow: isActive ? '0 8px 24px rgba(99, 102, 241, 0.2)' : 'none',
-        }}
-        onMouseEnter={(e) => {
-          if (!isActive) {
-            e.currentTarget.style.backgroundColor = 'rgba(139, 92, 246, 0.1)';
-            e.currentTarget.style.transform = 'translateX(4px)';
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!isActive) {
-            e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.transform = 'translateX(0)';
-          }
+          transform: isHovered && !isActive ? 'translateX(4px)' : 'translateX(0)',
         }}
       >
         <div
@@ -84,20 +119,24 @@ function WorkflowStepItem({ step, isActive, onClick, isLast }: WorkflowStepItemP
             justifyContent: 'center',
             width: '48px',
             height: '48px',
-            borderRadius: '16px',
-            backgroundColor: isActive
-              ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
-              : 'rgba(139, 92, 246, 0.1)',
-            border: `2px solid ${isActive ? '#8b5cf6' : 'var(--border-primary)'}`,
+            borderRadius: '14px',
+            background: isActive 
+              ? step.gradient 
+              : isHovered 
+                ? `linear-gradient(135deg, ${step.shadow.replace('0.4', '0.2')} 0%, ${step.shadow.replace('0.4', '0.1')} 100%)`
+                : 'var(--bg-secondary)',
+            border: isActive 
+              ? 'none' 
+              : `1px solid ${isHovered ? step.shadow.replace('0.4', '0.4') : 'var(--border-primary)'}`,
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             flexShrink: 0,
-            boxShadow: isActive ? '0 4px 16px rgba(99, 102, 241, 0.4)' : 'none',
+            boxShadow: isActive ? `0 8px 24px ${step.shadow}` : 'none',
           }}
         >
           <step.icon style={{ 
-            width: '20px', 
-            height: '20px', 
-            color: isActive ? 'white' : 'var(--accent)',
+            width: '22px', 
+            height: '22px', 
+            color: isActive ? 'white' : isHovered ? step.shadow.replace('0.4', '1') : 'var(--text-muted)',
             transition: 'all 0.3s ease',
           }} />
         </div>
@@ -111,23 +150,38 @@ function WorkflowStepItem({ step, isActive, onClick, isLast }: WorkflowStepItemP
               marginBottom: '4px',
             }}
           >
-            <span
-              style={{
-                fontSize: '14px',
-                fontWeight: isActive ? '600' : '500',
-                color: isActive ? 'var(--accent)' : 'var(--text-primary)',
-                transition: 'all 0.3s ease',
-              }}
-            >
-              {step.name}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  color: isActive ? step.shadow.replace('0.4', '1') : 'var(--text-muted)',
+                  background: isActive ? `${step.shadow.replace('0.4', '0.15')}` : 'var(--bg-secondary)',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  transition: 'all 0.3s ease',
+                }}
+              >
+                步骤 {index + 1}
+              </span>
+              <span
+                style={{
+                  fontSize: '15px',
+                  fontWeight: isActive ? '600' : '500',
+                  color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  transition: 'all 0.3s ease',
+                }}
+              >
+                {step.name}
+              </span>
+            </div>
             {isActive && (
               <div style={{
                 width: '8px',
                 height: '8px',
                 borderRadius: '50%',
-                backgroundColor: 'var(--primary-500)',
-                boxShadow: '0 0 12px rgba(99, 102, 241, 0.6)',
+                background: step.gradient,
+                boxShadow: `0 0 12px ${step.shadow}`,
                 animation: 'pulse 2s infinite',
               }} />
             )}
@@ -136,7 +190,7 @@ function WorkflowStepItem({ step, isActive, onClick, isLast }: WorkflowStepItemP
           <div
             style={{
               fontSize: '12px',
-              color: 'var(--text-secondary)',
+              color: 'var(--text-muted)',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -146,6 +200,17 @@ function WorkflowStepItem({ step, isActive, onClick, isLast }: WorkflowStepItemP
             {step.description}
           </div>
         </div>
+
+        <ChevronRight 
+          style={{ 
+            width: '16px', 
+            height: '16px', 
+            color: isActive ? step.shadow.replace('0.4', '1') : 'var(--text-muted)',
+            opacity: isHovered || isActive ? 1 : 0,
+            transform: isHovered ? 'translateX(2px)' : 'translateX(0)',
+            transition: 'all 0.3s ease',
+          }} 
+        />
       </button>
     </div>
   );
@@ -160,7 +225,7 @@ export function WorkflowSidebar({ onStepChange }: WorkflowSidebarProps) {
   const { projectId, id } = useParams<{ projectId: string; id: string }>();
   const location = useLocation();
   const projectUuid = projectId || id;
-  const { theme } = useTheme();
+  const [isBackHovered, setIsBackHovered] = useState(false);
 
   const getActiveStep = (): WorkflowStepId => {
     const path = location.pathname;
@@ -173,6 +238,7 @@ export function WorkflowSidebar({ onStepChange }: WorkflowSidebarProps) {
   };
 
   const activeStep = getActiveStep();
+  const activeIndex = STEP_CONFIGS.findIndex(s => s.id === activeStep);
 
   const handleStepClick = (stepId: WorkflowStepId) => {
     onStepChange?.(stepId);
@@ -185,13 +251,12 @@ export function WorkflowSidebar({ onStepChange }: WorkflowSidebarProps) {
   return (
     <div
       style={{
-        width: '260px',
+        width: '280px',
         height: '100%',
-        backgroundColor: theme === 'dark' ? 'rgba(15, 23, 42, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        borderRight: `1px solid ${theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.18)'}`,
-        boxShadow: theme === 'dark' ? '0 8px 32px 0 rgba(0, 0, 0, 0.37)' : '0 8px 32px 0 rgba(31, 38, 135, 0.1)',
+        background: 'var(--bg-sidebar)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderRight: '1px solid var(--border-primary)',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
@@ -200,32 +265,27 @@ export function WorkflowSidebar({ onStepChange }: WorkflowSidebarProps) {
     >
       <div
         style={{
-          padding: '16px',
-          borderBottom: '1px solid var(--border-subtle)',
+          padding: '20px',
+          borderBottom: '1px solid var(--border-primary)',
         }}
       >
         <button
           onClick={handleBackToProjects}
+          onMouseEnter={() => setIsBackHovered(true)}
+          onMouseLeave={() => setIsBackHovered(false)}
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            padding: '8px 12px',
-            borderRadius: '8px',
-            border: 'none',
-            background: 'transparent',
-            color: 'var(--text-muted)',
+            gap: '10px',
+            padding: '12px 16px',
+            borderRadius: '12px',
+            border: '1px solid var(--border-primary)',
+            background: isBackHovered ? 'var(--bg-hover)' : 'transparent',
+            color: isBackHovered ? 'var(--text-primary)' : 'var(--text-muted)',
             cursor: 'pointer',
             width: '100%',
             transition: 'all 0.2s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-            e.currentTarget.style.color = 'var(--text-primary)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = 'var(--text-muted)';
+            transform: isBackHovered ? 'translateX(-2px)' : 'translateX(0)',
           }}
         >
           <ArrowLeft style={{ width: '16px', height: '16px' }} />
@@ -235,27 +295,67 @@ export function WorkflowSidebar({ onStepChange }: WorkflowSidebarProps) {
 
       <div
         style={{
-          padding: '16px',
-          borderBottom: '1px solid var(--border-subtle)',
+          padding: '20px 20px 16px',
         }}
       >
-        <h3
-          style={{
-            fontSize: '14px',
-            fontWeight: '600',
-            color: 'var(--text-secondary)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-          }}
-        >
-          创作流程
-        </h3>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '10px',
+          marginBottom: '8px',
+        }}>
+          <div style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '10px',
+            background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
+          }}>
+            <Zap style={{ width: '16px', height: '16px', color: 'white' }} />
+          </div>
+          <div>
+            <h3 style={{
+              fontSize: '15px',
+              fontWeight: '600',
+              color: 'var(--text-primary)',
+              margin: 0,
+            }}>
+              创作流程
+            </h3>
+            <p style={{
+              fontSize: '11px',
+              color: 'var(--text-muted)',
+              margin: 0,
+            }}>
+              步骤 {activeIndex + 1} / {STEP_CONFIGS.length}
+            </p>
+          </div>
+        </div>
+
+        <div style={{
+          height: '4px',
+          background: 'var(--bg-secondary)',
+          borderRadius: '2px',
+          overflow: 'hidden',
+          marginTop: '12px',
+        }}>
+          <div style={{
+            height: '100%',
+            width: `${((activeIndex + 1) / STEP_CONFIGS.length) * 100}%`,
+            background: 'linear-gradient(90deg, #007AFF 0%, #8b5cf6 100%)',
+            borderRadius: '2px',
+            transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          }} />
+        </div>
       </div>
 
       <div
         style={{
           flex: 1,
-          padding: '12px',
+          padding: '8px 12px',
           overflowY: 'auto',
         }}
       >
@@ -265,12 +365,56 @@ export function WorkflowSidebar({ onStepChange }: WorkflowSidebarProps) {
               key={step.id}
               step={step}
               isActive={activeStep === step.id}
+              isCompleted={index < activeIndex}
               onClick={() => handleStepClick(step.id)}
               isLast={index === STEP_CONFIGS.length - 1}
+              index={index}
             />
           ))}
         </div>
       </div>
+
+      <div
+        style={{
+          padding: '16px',
+          borderTop: '1px solid var(--border-primary)',
+        }}
+      >
+        <div style={{
+          padding: '16px',
+          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%)',
+          borderRadius: '14px',
+          border: '1px solid rgba(139, 92, 246, 0.2)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+            <Sparkles style={{ width: '16px', height: '16px', color: '#8b5cf6' }} />
+            <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>AI 助手</span>
+          </div>
+          <p style={{ 
+            fontSize: '12px', 
+            color: 'var(--text-muted)', 
+            margin: 0,
+            lineHeight: '1.5',
+          }}>
+            每个步骤都有 AI 辅助功能，帮助您更高效地完成创作
+          </p>
+        </div>
+      </div>
+
+      <style>
+        {`
+          @keyframes pulse {
+            0%, 100% {
+              opacity: 1;
+              transform: scale(1);
+            }
+            50% {
+              opacity: 0.6;
+              transform: scale(1.2);
+            }
+          }
+        `}
+      </style>
     </div>
   );
 }

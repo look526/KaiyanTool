@@ -23,7 +23,7 @@ export function ImagePreview({ src, alt = 'Preview', className = '' }: ImagePrev
         onClick={() => setIsOpen(true)}
       />
 
-      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} size="large">
+      <Modal open={isOpen} onClose={() => setIsOpen(false)} size="lg">
         <img
           src={src}
           alt={alt}

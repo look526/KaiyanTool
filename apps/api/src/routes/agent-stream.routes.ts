@@ -4,6 +4,7 @@ import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
 import { emitProgress, emitStreamChunk, emitTaskComplete, emitTaskError } from '../lib/websocket';
 import logger from '../lib/logger';
+import { AIChatMessage } from '../types/ai.types';
 
 const router = Router();
 
@@ -145,15 +146,15 @@ async function runOutlineAgentStream(context: StreamContext, userMessage: string
   ]
 }`;
 
-    const messages = [
+    const messages: AIChatMessage[] = [
       { role: 'system', content: systemPrompt },
-      ...context.conversationHistory,
+      ...context.conversationHistory.map(h => ({ role: h.role as 'user' | 'assistant' | 'system', content: h.content })),
       { role: 'user', content: userMessage },
     ];
 
     emitProgress(projectId, taskId, 20, '正在分析内容...');
 
-    const response = await aiProviderService.streamChat(
+    const response: any = await aiProviderService.streamChat(
       'default',
       messages,
       undefined,
@@ -164,22 +165,34 @@ async function runOutlineAgentStream(context: StreamContext, userMessage: string
 
     emitProgress(projectId, taskId, 80, '正在解析结果...');
 
-    const parsedResult = parseJsonResponse(response);
+    const parsedResult = parseJsonResponse(response.content || response);
 
     if (parsedResult.storyline) {
-      await prisma.storyline.upsert({
-        where: { projectId },
-        create: { projectId, content: parsedResult.storyline },
-        update: { content: parsedResult.storyline },
-      });
+      const existing = await prisma.storyline.findFirst({ where: { projectId } });
+      if (existing) {
+        await prisma.storyline.update({
+          where: { id: existing.id },
+          data: { content: parsedResult.storyline } as any,
+        });
+      } else {
+        await prisma.storyline.create({
+          data: { projectId, content: parsedResult.storyline } as any,
+        });
+      }
     }
 
     if (parsedResult.episodes) {
-      await prisma.outline.upsert({
-        where: { projectId },
-        create: { projectId, content: parsedResult },
-        update: { content: parsedResult },
-      });
+      const existingOutline = await prisma.outline.findFirst({ where: { projectId } });
+      if (existingOutline) {
+        await prisma.outline.update({
+          where: { id: existingOutline.id },
+          data: { content: parsedResult } as any,
+        });
+      } else {
+        await prisma.outline.create({
+          data: { projectId, content: parsedResult } as any,
+        });
+      }
     }
 
     emitStreamChunk(projectId, taskId, '', true);
@@ -235,15 +248,15 @@ async function runStoryboardAgentStream(context: StreamContext, outlineId: strin
   "styleGuide": { "visualStyle": "", "colorPalette": [], "lighting": "", "mood": "" }
 }`;
 
-    const messages = [
+    const messages: AIChatMessage[] = [
       { role: 'system', content: systemPrompt },
-      ...context.conversationHistory,
+      ...context.conversationHistory.map(h => ({ role: h.role as 'user' | 'assistant' | 'system', content: h.content })),
       { role: 'user', content: `大纲内容：\n${JSON.stringify(outline, null, 2)}\n\n用户要求：${userMessage}` },
     ];
 
     emitProgress(projectId, taskId, 20, '正在分析大纲...');
 
-    const response = await aiProviderService.streamChat(
+    const response: any = await aiProviderService.streamChat(
       'default',
       messages,
       undefined,
@@ -254,7 +267,7 @@ async function runStoryboardAgentStream(context: StreamContext, outlineId: strin
 
     emitProgress(projectId, taskId, 80, '正在保存分镜...');
 
-    const parsedResult = parseJsonResponse(response);
+    const parsedResult = parseJsonResponse(response.content || response);
 
     if (parsedResult.shots && Array.isArray(parsedResult.shots)) {
       for (const shot of parsedResult.shots) {
@@ -285,15 +298,15 @@ async function runChatStream(context: StreamContext, userMessage: string, system
   try {
     emitProgress(projectId, taskId, 0, '开始对话...');
 
-    const messages = [
+    const messages: AIChatMessage[] = [
       { role: 'system', content: systemPrompt || '你是一个专业的AI助手，帮助用户进行视频创作。' },
-      ...context.conversationHistory,
+      ...context.conversationHistory.map(h => ({ role: h.role as 'user' | 'assistant' | 'system', content: h.content })),
       { role: 'user', content: userMessage },
     ];
 
     emitProgress(projectId, taskId, 20, '正在思考...');
 
-    const response = await aiProviderService.streamChat(
+    const response: any = await aiProviderService.streamChat(
       'default',
       messages,
       undefined,

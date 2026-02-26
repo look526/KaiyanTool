@@ -388,7 +388,7 @@ const ScriptViewerPage = () => {
 
                 {scene.action && (
                   <p style={{ fontSize: '14px', color: mutedTextColor, fontStyle: 'italic', marginBottom: '16px', margin: '0 0 16px 0' }}>
-                    （{scene.action}）
+                    ({scene.action})
                   </p>
                 )}
 
@@ -425,7 +425,7 @@ const ScriptViewerPage = () => {
                         fontStyle: 'italic',
                         margin: '8px 0 0 28px',
                       }}>
-                        （{d.action}）
+                        ({d.action})
                       </p>
                     )}
                   </div>

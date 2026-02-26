@@ -140,21 +140,13 @@ export function ImageSelector({
     try {
       if (enableMultipleGeneration) {
         // 生成多张图片
-        const prompts = Array.from({ length: imageCount }, () => {
-          let stylePrompt = getStylePrompt(prompt.trim(), style);
-          return {
-            prompt: stylePrompt,
-            negativePrompt: getNegativePrompt(style),
-            width: 1024,
-            height: 1024,
-            projectId,
-          };
-        });
+        const stylePrompt = getStylePrompt(prompt.trim(), style);
         
-        const results = await apiClient.batchGenerateImages(prompts);
-        const imageUrls = results
-          .filter((result: any) => result.success && result.data?.asset?.url)
-          .map((result: any) => result.data.asset.url);
+        const results = await apiClient.batchGenerateImages({
+          prompt: stylePrompt,
+          count: imageCount,
+        });
+        const imageUrls = results.assets.map((asset) => asset.url);
         
         setGeneratedImages(imageUrls);
         setSelectedImage(null);
@@ -381,7 +373,7 @@ export function ImageSelector({
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     }}>
                       <img
-                        src={threeViewsValue[view.key as keyof typeof threeViewsValue]}
+                        src={threeViewsValue[view.key as keyof typeof threeViewsValue] || ''}
                         alt={view.label}
                         style={{
                           width: '100%',
@@ -995,6 +987,7 @@ export function ImageSelector({
                       {styleOptions.map((opt) => (
                         <Button
                           key={opt.value}
+                          type="button"
                           onClick={() => setStyle(opt.value)}
                           variant={style === opt.value ? 'primary' : 'outline'}
                           size="sm"
@@ -1039,6 +1032,7 @@ export function ImageSelector({
 
                   {/* 生成按钮 */}
                   <Button
+                    type="button"
                     onClick={handleGenerate}
                     disabled={generating || !prompt.trim()}
                     variant="primary"

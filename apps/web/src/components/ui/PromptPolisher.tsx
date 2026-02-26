@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Sparkles, Copy, Check, RefreshCw, ArrowRightLeft, X, Loader2 } from 'lucide-react';
-import { Button } from './ui/button';
-import { Card } from './ui/card';
+import { Button } from './button';
+import { Card } from './card';
 import { apiClient } from '../../lib/api';
 import { useToast } from './Toast';
 

@@ -56,6 +56,20 @@ class AIProviderService {
     return provider.chat(messages, { model })
   }
 
+  async streamChat(
+    providerId: string,
+    messages: AIChatMessage[],
+    model?: string,
+    _onChunk?: (chunk: string) => void
+  ): Promise<AIResponse> {
+    const provider = this.getProvider(providerId)
+    if (!provider) {
+      throw new Error(`Provider not found: ${providerId}`)
+    }
+
+    return provider.chat(messages, { model });
+  }
+
   async createImage(
     providerId: string,
     request: AICreateImageRequest

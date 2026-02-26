@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { Mail, Lock, ArrowRight, Sparkles, Eye, EyeOff, ShieldCheck, Moon, Sun } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Sparkles, Eye, EyeOff, ShieldCheck, Moon, Sun, AlertCircle } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button-new';
@@ -13,8 +13,6 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [shake, setShake] = useState(false);
-  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; size: number; speed: number; opacity: number }>>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
@@ -44,18 +42,6 @@ export default function LoginPage() {
     }
   }, [sessionExpired, clearSessionExpired]);
 
-  useEffect(() => {
-    const newParticles = Array.from({ length: 50 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 3 + 1,
-      speed: Math.random() * 0.5 + 0.2,
-      opacity: Math.random() * 0.5 + 0.2,
-    }));
-    setParticles(newParticles);
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -81,428 +67,486 @@ export default function LoginPage() {
     }
   };
 
-  const textColor = 'var(--text-primary)';
-  const mutedTextColor = 'var(--text-secondary)';
-  const inputBg = theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)';
-  const inputBorder = theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)';
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    height: '52px',
+    padding: '0 16px 0 52px',
+    fontSize: '15px',
+    backgroundColor: 'var(--bg-secondary)',
+    border: '2px solid var(--border-primary)',
+    borderRadius: '16px',
+    color: 'var(--text-primary)',
+    outline: 'none',
+    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+    boxSizing: 'border-box',
+    fontFamily: 'var(--font-family-sans)',
+  };
 
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: 'var(--bg-primary)',
+      background: 'var(--bg-primary)',
+      display: 'flex',
       position: 'relative',
       overflow: 'hidden',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px',
     }}>
-      <style>{`
-        @keyframes gradientMove {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-        
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
       <div style={{
-        width: '100%',
-        maxWidth: '440px',
+        position: 'absolute',
+        inset: 0,
+        background: theme === 'dark' 
+          ? 'radial-gradient(ellipse at 20% 0%, rgba(0, 122, 255, 0.15) 0%, transparent 50%), radial-gradient(ellipse at 80% 100%, rgba(88, 86, 214, 0.1) 0%, transparent 50%)'
+          : 'radial-gradient(ellipse at 20% 0%, rgba(0, 122, 255, 0.08) 0%, transparent 50%), radial-gradient(ellipse at 80% 100%, rgba(88, 86, 214, 0.05) 0%, transparent 50%)',
+      }} />
+
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
         position: 'relative',
         zIndex: 10,
       }}>
-        <button
-          onClick={toggleTheme}
-          style={{
-            position: 'absolute',
-            top: '-60px',
-            right: '0',
-            width: '48px',
-            height: '48px',
-            borderRadius: '14px',
-            border: '1px solid var(--border-primary)',
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            color: 'var(--text-primary)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 8px 20px rgba(99, 102, 241, 0.2)';
-            e.currentTarget.style.borderColor = 'var(--accent)';
-            e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.1)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.08)';
-            e.currentTarget.style.borderColor = 'var(--border-primary)';
-            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-          }}
-        >
-          {theme === 'dark' ? <Sun style={{ width: '22px', height: '22px' }} /> : <Moon style={{ width: '22px', height: '22px' }} />}
-        </button>
-        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-          <Link to="/" style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '14px',
-            marginBottom: '28px',
-            textDecoration: 'none',
-          }}>
-            <div style={{
-              width: '56px',
-              height: '56px',
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+        <div style={{ width: '100%', maxWidth: '440px' }}>
+          <button
+            onClick={toggleTheme}
+            aria-label="切换主题"
+            style={{
+              position: 'absolute',
+              top: '24px',
+              right: '24px',
+              width: '48px',
+              height: '48px',
               borderRadius: '16px',
+              border: '2px solid var(--border-subtle)',
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-tertiary)',
+              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 12px 32px rgba(99, 102, 241, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.15) inset',
-              position: 'relative',
-            }}>
-              <div style={{
-                position: 'absolute',
-                inset: '-3px',
-                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                borderRadius: '18px',
-                opacity: '0.4',
-                filter: 'blur(10px)',
-              }} />
-              <Sparkles style={{ width: '28px', height: '28px', color: 'white', position: 'relative', zIndex: 1 }} />
-            </div>
-            <span style={{
-              fontSize: '30px',
-              fontWeight: '800',
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              letterSpacing: '-0.8px',
-              backgroundSize: '200% 200%',
-              animation: 'gradientMove 8s ease infinite',
-            }}>
-              开演AI
-            </span>
-          </Link>
-          <h1 style={{
-            fontSize: '34px',
-            fontWeight: '700',
-            color: 'var(--text-primary)',
-            marginBottom: '10px',
-            margin: '0 0 10px 0',
-            letterSpacing: '-0.6px',
-          }}>欢迎回来</h1>
-          <p style={{
-            color: 'var(--text-secondary)',
-            margin: 0,
-            fontSize: '16px',
-            fontWeight: '400',
-          }}>登录您的账户继续创作</p>
-        </div>
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--bg-hover)';
+              e.currentTarget.style.color = 'var(--text-primary)';
+              e.currentTarget.style.borderColor = 'var(--color-primary)';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'var(--bg-secondary)';
+              e.currentTarget.style.color = 'var(--text-tertiary)';
+              e.currentTarget.style.borderColor = 'var(--border-subtle)';
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.06)';
+            }}
+          >
+            {theme === 'dark' ? <Sun size={22} /> : <Moon size={22} />}
+          </button>
 
-        <div style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.03)',
-          backdropFilter: 'blur(40px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '24px',
-          padding: '44px 36px',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.05) inset',
-          transform: shake ? 'translateX(8px)' : 'translateX(0)',
-          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-            {error && (
+          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+            <Link to="/" style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '16px',
+              marginBottom: '32px',
+              textDecoration: 'none',
+            }}>
               <div style={{
-                padding: '16px 18px',
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.2)',
-                borderRadius: '14px',
-                color: '#ef4444',
-                fontSize: '15px',
+                width: '60px',
+                height: '60px',
+                background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)',
+                borderRadius: '20px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
-                fontWeight: '600',
-                boxShadow: '0 4px 12px rgba(239, 68, 68, 0.15)',
+                justifyContent: 'center',
+                boxShadow: '0 8px 24px rgba(0, 122, 255, 0.35)',
               }}>
-                <ShieldCheck style={{ width: '20px', height: '20px', flexShrink: 0 }} />
-                {error}
+                <Sparkles size={30} color="white" />
               </div>
-            )}
-
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '700',
-                color: textColor,
-                marginBottom: '10px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.8px',
+              <span style={{
+                fontSize: '26px',
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+                letterSpacing: '-0.02em',
               }}>
-                账号
-              </label>
-              <div style={{ position: 'relative' }}>
-                <div style={{
-                  position: 'absolute',
-                  left: '16px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: mutedTextColor,
-                  pointerEvents: 'none',
-                  zIndex: 1,
-                }}>
-                  <Mail style={{ width: '20px', height: '20px' }} />
-                </div>
-                <input
-                  type="text"
-                  placeholder="请输入您的账号"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '16px 16px 16px 48px',
-                    fontSize: '15px',
-                    fontWeight: '400',
-                    backgroundColor: inputBg,
-                    border: `1px solid ${inputBorder}`,
-                    borderRadius: '14px',
-                    color: textColor,
-                    outline: 'none',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxSizing: 'border-box',
-                    position: 'relative',
-                    overflow: 'hidden',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'var(--accent)';
-                    e.target.style.boxShadow = '0 0 0 4px rgba(99, 102, 241, 0.1)';
-                    e.target.style.transform = 'translateY(-2px)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = inputBorder;
-                    e.target.style.boxShadow = 'none';
-                    e.target.style.transform = 'translateY(0)';
-                  }}
-                />
-              </div>
-            </div>
+                开演AI
+              </span>
+            </Link>
+            
+            <h1 style={{
+              fontSize: '32px',
+              fontWeight: 700,
+              color: 'var(--text-primary)',
+              marginBottom: '12px',
+              letterSpacing: '-0.02em',
+            }}>
+              欢迎回来
+            </h1>
+            
+            <p style={{
+              color: 'var(--text-secondary)',
+              fontSize: '16px',
+              lineHeight: 1.6,
+            }}>
+              登录您的账户，继续您的创作之旅
+            </p>
+          </div>
 
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '700',
-                color: textColor,
-                marginBottom: '10px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.8px',
-              }}>
-                密码
-              </label>
-              <div style={{ position: 'relative' }}>
+          <div style={{
+            background: 'var(--bg-secondary)',
+            border: '2px solid var(--border-subtle)',
+            borderRadius: '24px',
+            padding: '32px',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
+            transform: shake ? 'translateX(8px)' : 'translateX(0)',
+            transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {error && (
                 <div style={{
-                  position: 'absolute',
-                  left: '16px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: mutedTextColor,
-                  pointerEvents: 'none',
-                  zIndex: 1,
+                  padding: '16px',
+                  background: 'rgba(255, 59, 48, 0.1)',
+                  border: '2px solid #FF3B30',
+                  borderRadius: '16px',
+                  color: '#FF3B30',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  fontWeight: 500,
                 }}>
-                  <Lock style={{ width: '20px', height: '20px' }} />
+                  <AlertCircle size={20} style={{ flexShrink: 0 }} />
+                  <span>{error}</span>
                 </div>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="请输入您的密码"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '16px 48px 16px 48px',
-                    fontSize: '15px',
-                    fontWeight: '400',
-                    backgroundColor: inputBg,
-                    border: `1px solid ${inputBorder}`,
-                    borderRadius: '14px',
-                    color: textColor,
-                    outline: 'none',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxSizing: 'border-box',
-                    position: 'relative',
-                    overflow: 'hidden',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'var(--accent)';
-                    e.target.style.boxShadow = '0 0 0 4px rgba(99, 102, 241, 0.1)';
-                    e.target.style.transform = 'translateY(-2px)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = inputBorder;
-                    e.target.style.boxShadow = 'none';
-                    e.target.style.transform = 'translateY(0)';
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
+              )}
+
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  marginBottom: '10px',
+                }}>
+                  账号
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <div style={{
                     position: 'absolute',
-                    right: '16px',
+                    left: '18px',
                     top: '50%',
                     transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '6px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: mutedTextColor,
-                    transition: 'all 0.2s ease',
-                    borderRadius: '8px',
+                    color: 'var(--text-tertiary)',
+                    transition: 'color 0.2s',
+                  }}>
+                    <Mail size={20} />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="请输入您的账号"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                    style={inputStyle}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--color-primary)';
+                      e.currentTarget.style.boxShadow = '0 0 0 4px rgba(0, 122, 255, 0.15)';
+                      const icon = e.currentTarget.previousElementSibling as HTMLElement;
+                      if (icon) icon.style.color = 'var(--color-primary)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-primary)';
+                      e.currentTarget.style.boxShadow = 'none';
+                      const icon = e.currentTarget.previousElementSibling as HTMLElement;
+                      if (icon) icon.style.color = 'var(--text-tertiary)';
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  marginBottom: '10px',
+                }}>
+                  密码
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <div style={{
+                    position: 'absolute',
+                    left: '18px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--text-tertiary)',
+                    transition: 'color 0.2s',
+                  }}>
+                    <Lock size={20} />
+                  </div>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="请输入您的密码"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                    style={{ ...inputStyle, paddingRight: '52px' }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--color-primary)';
+                      e.currentTarget.style.boxShadow = '0 0 0 4px rgba(0, 122, 255, 0.15)';
+                      const icon = e.currentTarget.previousElementSibling as HTMLElement;
+                      if (icon) icon.style.color = 'var(--color-primary)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-primary)';
+                      e.currentTarget.style.boxShadow = 'none';
+                      const icon = e.currentTarget.previousElementSibling as HTMLElement;
+                      if (icon) icon.style.color = 'var(--text-tertiary)';
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? '隐藏密码' : '显示密码'}
+                    style={{
+                      position: 'absolute',
+                      right: '16px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--text-tertiary)',
+                      transition: 'all 0.2s',
+                      borderRadius: '8px',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = 'var(--text-primary)';
+                      e.currentTarget.style.background = 'var(--bg-hover)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = 'var(--text-tertiary)';
+                      e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  userSelect: 'none',
+                }}>
+                  <input 
+                    type="checkbox" 
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    style={{
+                      width: '18px',
+                      height: '18px',
+                      borderRadius: '6px',
+                      border: '2px solid var(--border-primary)',
+                      cursor: 'pointer',
+                      accentColor: 'var(--color-primary)',
+                    }} 
+                  />
+                  记住我
+                </label>
+                <Link 
+                  to="/forgot-password" 
+                  style={{
+                    color: 'var(--color-primary)',
+                    textDecoration: 'none',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    transition: 'all 0.2s',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.color = textColor;
-                    e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.1)';
+                    e.currentTarget.style.color = 'var(--color-primary-hover)';
+                    e.currentTarget.style.textDecoration = 'underline';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.color = mutedTextColor;
-                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = 'var(--color-primary)';
+                    e.currentTarget.style.textDecoration = 'none';
                   }}
                 >
-                  {showPassword ? <EyeOff style={{ width: '20px', height: '20px' }} /> : <Eye style={{ width: '20px', height: '20px' }} />}
-                </button>
+                  忘记密码？
+                </Link>
               </div>
-            </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '14px' }}>
-              <label style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
+              <Button
+                type="submit"
+                variant="primary"
+                size="xl"
+                fullWidth
+                disabled={loading}
+                loading={loading}
+                icon={loading ? null : <ArrowRight size={18} />}
+                iconPosition="right"
+              >
+                {loading ? '登录中...' : '登录'}
+              </Button>
+
+              <div style={{ 
+                textAlign: 'center', 
+                fontSize: '14px', 
                 color: 'var(--text-secondary)',
-                cursor: 'pointer',
-                fontWeight: '500',
-                transition: 'all 0.2s ease',
-                userSelect: 'none',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'var(--text-primary)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'var(--text-secondary)';
+                paddingTop: '16px',
+                borderTop: '1px solid var(--border-subtle)',
               }}>
-                <input 
-                  type="checkbox" 
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
+                还没有账户？{' '}
+                <Link 
+                  to="/register" 
                   style={{
-                    width: '18px',
-                    height: '18px',
-                    borderRadius: '5px',
-                    border: '1px solid var(--border-primary)',
-                    cursor: 'pointer',
-                    accentColor: '#6366f1',
-                    flexShrink: 0,
-                  }} 
-                />
-                记住我
-              </label>
-              <Link to="/forgot-password" style={{
-                color: 'var(--accent)',
-                textDecoration: 'none',
-                fontWeight: '600',
-                fontSize: '14px',
-                transition: 'all 0.3s ease',
-                padding: '6px 12px',
-                borderRadius: '8px',
-                display: 'inline-flex',
-                alignItems: 'center',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'var(--accent-hover)';
-                e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'var(--accent)';
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}>
-                忘记密码？
-              </Link>
-            </div>
+                    color: 'var(--color-primary)',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = 'var(--color-primary-hover)';
+                    e.currentTarget.style.textDecoration = 'underline';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'var(--color-primary)';
+                    e.currentTarget.style.textDecoration = 'none';
+                  }}
+                >
+                  创建账户
+                </Link>
+              </div>
+            </form>
+          </div>
 
-            <Button
-              type="submit"
-              variant="primary"
-              size="xl"
-              fullWidth
-              disabled={loading}
-              loading={loading}
-              icon={loading ? null : <ArrowRight size={20} />}
-              iconPosition="right"
-            >
-              {loading ? '登录中...' : '登录'}
-            </Button>
-
-            <div style={{ textAlign: 'center', fontSize: '16px', color: mutedTextColor, marginTop: '8px' }}>
-              还没有账户？{' '}
-              <Link to="/register" style={{
-                color: 'var(--accent)',
-                textDecoration: 'none',
-                fontWeight: '700',
-                transition: 'all 0.3s ease',
-                padding: '4px 12px',
-                borderRadius: '8px',
-                background: 'rgba(99, 102, 241, 0.1)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'var(--accent-hover)';
-                e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'var(--accent)';
-                e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}>
-                创建账户
-              </Link>
+          <div style={{ marginTop: '32px', textAlign: 'center' }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: 'var(--text-tertiary)',
+              fontSize: '13px',
+            }}>
+              <ShieldCheck size={16} />
+              您的账户安全是我们的首要任务
             </div>
-          </form>
+          </div>
         </div>
+      </div>
 
-        <div style={{ marginTop: '28px', textAlign: 'center' }}>
+      <div style={{
+        width: '50%',
+        background: theme === 'dark' 
+          ? 'linear-gradient(135deg, rgba(0, 122, 255, 0.12) 0%, rgba(88, 86, 214, 0.08) 50%, rgba(175, 82, 222, 0.06) 100%)'
+          : 'linear-gradient(135deg, rgba(0, 122, 255, 0.06) 0%, rgba(88, 86, 214, 0.04) 50%, rgba(175, 82, 222, 0.03) 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute',
+          width: '500px',
+          height: '500px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(0, 122, 255, 0.15) 0%, transparent 70%)',
+          top: '10%',
+          right: '5%',
+        }} />
+        <div style={{
+          position: 'absolute',
+          width: '400px',
+          height: '400px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(175, 82, 222, 0.12) 0%, transparent 70%)',
+          bottom: '10%',
+          left: '5%',
+        }} />
+        
+        <div style={{
+          textAlign: 'center',
+          padding: '40px',
+          position: 'relative',
+          zIndex: 1,
+          maxWidth: '480px',
+        }}>
           <div style={{
-            display: 'inline-flex',
+            width: '140px',
+            height: '140px',
+            margin: '0 auto 32px',
+            background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 50%, #AF52DE 100%)',
+            borderRadius: '40px',
+            display: 'flex',
             alignItems: 'center',
-            gap: '10px',
-            backgroundColor: 'rgba(255, 255, 255, 0.03)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            padding: '12px 24px',
-            borderRadius: '9999px',
-            fontSize: '14px',
-            color: 'var(--text-tertiary)',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+            justifyContent: 'center',
+            boxShadow: '0 20px 60px rgba(0, 122, 255, 0.3)',
           }}>
-            <ShieldCheck style={{ width: '18px', height: '18px' }} />
-            您的账户安全是我们的首要任务
+            <Sparkles size={70} color="white" />
+          </div>
+          
+          <h2 style={{
+            fontSize: '36px',
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            marginBottom: '16px',
+            letterSpacing: '-0.02em',
+          }}>
+            AI 驱动创作
+          </h2>
+          
+          <p style={{
+            fontSize: '18px',
+            color: 'var(--text-secondary)',
+            lineHeight: 1.7,
+            marginBottom: '40px',
+          }}>
+            利用人工智能技术，让您的剧本创作更加高效、专业
+          </p>
+          
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '12px',
+            flexWrap: 'wrap',
+          }}>
+            {['剧本解析', '角色生成', '场景优化', 'AI 续写'].map((feature, index) => (
+              <div key={index} style={{
+                padding: '10px 20px',
+                background: 'var(--bg-secondary)',
+                borderRadius: '100px',
+                fontSize: '14px',
+                fontWeight: 500,
+                color: 'var(--text-secondary)',
+                border: '1px solid var(--border-subtle)',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+              }}>
+                {feature}
+              </div>
+            ))}
           </div>
         </div>
       </div>

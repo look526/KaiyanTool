@@ -28,7 +28,7 @@ export class MetricsTracker {
       })
 
       if (!response.ok) {
-        throw new Error(\`Failed to send metric: \${response.status}\`)
+        throw new Error(`Failed to send metric: ${response.status}`)
       }
     } catch (error) {
       console.error('Failed to send metric to backend:', error)

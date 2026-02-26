@@ -10,7 +10,6 @@ import {
   Type,
   Layout,
 } from 'lucide-react';
-import { Sidebar } from '../components/Sidebar';
 import { Card } from '../components/ui/card';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -53,9 +52,7 @@ export default function AppearanceSettingsPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex' }}>
-      <Sidebar />
-
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <header style={{
           height: '64px',

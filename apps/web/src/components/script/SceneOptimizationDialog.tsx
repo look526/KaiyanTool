@@ -356,7 +356,7 @@ export function SceneOptimizationDialog({
                 </p>
               </div>
             </div>
-            <Button variant="ghost" size="md" onClick={onClose} icon={<X style={{ width: '18px', height: '18px' }} />} />
+            <Button variant="ghost" size="default" onClick={onClose} icon={<X style={{ width: '18px', height: '18px' }} />} />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -718,7 +718,7 @@ export function SceneOptimizationDialog({
                   </div>
                 </div>
 
-                <Button variant="ghost" size="md" onClick={() => setShowAdvanced(!showAdvanced)} icon={<Settings2 style={{ width: '16px', height: '16px' }} />} iconPosition="left" style={{ marginBottom: showAdvanced ? '20px' : 0 }}>
+                <Button variant="ghost" size="default" onClick={() => setShowAdvanced(!showAdvanced)} icon={<Settings2 style={{ width: '16px', height: '16px' }} />} iconPosition="left" style={{ marginBottom: showAdvanced ? '20px' : 0 }}>
                   高级选项
                   <ChevronRight style={{ width: '16px', height: '16px', transform: showAdvanced ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease', marginLeft: '8px' }} />
                 </Button>
@@ -882,21 +882,21 @@ export function SceneOptimizationDialog({
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             {step === 'configure' && (
               <>
-                <Button variant="secondary" size="md" onClick={() => setStep('select')}>返回</Button>
-                <Button variant="secondary" size="md" onClick={handleSaveAsTemplate} icon={<Bookmark style={{ width: '16px', height: '16px' }} />}>
+                <Button variant="secondary" size="default" onClick={() => setStep('select')}>返回</Button>
+                <Button variant="secondary" size="default" onClick={handleSaveAsTemplate} icon={<Bookmark style={{ width: '16px', height: '16px' }} />}>
                   保存为模板
                 </Button>
               </>
             )}
             {step === 'result' && (
-              <Button variant="secondary" size="md" onClick={handleRetry} icon={<RotateCcw style={{ width: '16px', height: '16px' }} />}>
+              <Button variant="secondary" size="default" onClick={handleRetry} icon={<RotateCcw style={{ width: '16px', height: '16px' }} />}>
                 重新生成
               </Button>
             )}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <Button variant="ghost" size="md" onClick={onClose}>取消</Button>
+            <Button variant="ghost" size="default" onClick={onClose}>取消</Button>
             {step === 'configure' && (
               <Button variant="primary" size="lg" disabled={selectedSceneIds.length === 0} onClick={handleStartOptimize} icon={<Sparkles style={{ width: '18px', height: '18px' }} />}>
                 获取 AI 建议

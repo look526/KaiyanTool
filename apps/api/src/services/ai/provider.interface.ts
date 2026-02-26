@@ -1,9 +1,12 @@
 import { AIRequest, AIResponse, AIChatMessage, AICreateImageRequest, AICreateImageResponse, AICreateVideoRequest, AICreateVideoResponse } from '../../types/ai.types'
-import { logger } from '../../lib/logger'
+import logger from '../../lib/logger'
 
 export abstract class AIProvider {
   protected apiKey: string
   protected baseUrl?: string
+  public id: string = '';
+  public type: string = '';
+  public models: any[] = [];
 
   constructor(apiKey: string, baseUrl?: string) {
     this.apiKey = apiKey

@@ -135,7 +135,6 @@ router.delete('/assets/:id', async (req, res) => {
 
     const asset = await prisma.asset.findUnique({
       where: { id },
-      include: { project: true },
     })
 
     if (!asset) {

@@ -131,8 +131,6 @@ export function ImageEnhancementPanel({ imageId, imageUrl, onComplete }: ImageEn
             brightness,
             contrast,
             saturation,
-            temperature,
-            tint,
           });
           break;
         case 'style-transfer':

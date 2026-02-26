@@ -32,7 +32,6 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
   return (
     <Card 
       className="group relative overflow-hidden"
-      hoverable
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -55,7 +54,7 @@ export function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
           <h3 className="text-lg font-semibold text-slate-100 group-hover:text-accent transition-colors duration-200">
             {item.name}
           </h3>
-          <Badge variant="secondary">
+          <Badge variant="primary">
             {item.type}
           </Badge>
         </div>

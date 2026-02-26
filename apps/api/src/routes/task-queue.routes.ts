@@ -151,7 +151,7 @@ router.delete('/tasks/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.delete('/tasks/completed', async (req: Request, res: Response) => {
+router.delete('/tasks/completed', async (_req: Request, res: Response) => {
   try {
     const result = await prisma.renderTask.deleteMany({
       where: { status: 'completed' },
@@ -163,7 +163,7 @@ router.delete('/tasks/completed', async (req: Request, res: Response) => {
   }
 });
 
-router.delete('/tasks/failed', async (req: Request, res: Response) => {
+router.delete('/tasks/failed', async (_req: Request, res: Response) => {
   try {
     const result = await prisma.renderTask.deleteMany({
       where: { status: 'failed' },
@@ -215,7 +215,7 @@ router.get('/stats', async (_req: Request, res: Response) => {
         },
         _avg: {
           processingTime: true,
-        },
+        } as any,
       }),
     ]);
 

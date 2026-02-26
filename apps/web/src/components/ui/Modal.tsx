@@ -1,213 +1,168 @@
-import { useEffect, useCallback, ReactNode, useState } from 'react';
+import * as React from 'react';
 import { X } from 'lucide-react';
 
 export interface ModalProps {
-  isOpen: boolean;
+  open: boolean;
   onClose: () => void;
+  children: React.ReactNode;
   title?: string;
-  children: ReactNode;
-  size?: 'small' | 'medium' | 'large';
-  showCloseButton?: boolean;
+  description?: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  showClose?: boolean;
+  closeOnOverlayClick?: boolean;
   className?: string;
 }
 
-const SIZE_CONFIG = {
-  small: {
-    maxWidth: '400px',
-    padding: '24px',
-  },
-  medium: {
-    maxWidth: '560px',
-    padding: '32px',
-  },
-  large: {
-    maxWidth: '720px',
-    padding: '40px',
-  },
+const sizeStyles: Record<string, string> = {
+  sm: '400px',
+  md: '500px',
+  lg: '600px',
+  xl: '800px',
+  full: '90vw',
 };
 
 export function Modal({
-  isOpen,
+  open,
   onClose,
-  title,
   children,
-  size = 'medium',
-  showCloseButton = true,
-  className,
+  title,
+  description,
+  size = 'md',
+  showClose = true,
+  closeOnOverlayClick = true,
+  className = '',
 }: ModalProps) {
-  const [isVisible, setIsVisible] = useState(false);
-  const sizeConfig = SIZE_CONFIG[size];
+  React.useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
 
-  const handleEscape = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  }, [onClose]);
-
-  useEffect(() => {
-    if (isOpen) {
-      setIsVisible(true);
+    if (open) {
       document.addEventListener('keydown', handleEscape);
       document.body.style.overflow = 'hidden';
-    } else {
-      setIsVisible(false);
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
     }
 
     return () => {
       document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
     };
-  }, [isOpen, handleEscape]);
+  }, [open, onClose]);
 
-  if (!isOpen) return null;
+  if (!open) return null;
 
   return (
     <div
-      className={className}
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 1000,
+        zIndex: 'var(--z-modal)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '24px',
-        animation: 'fade-in 0.2s ease-out',
+        padding: 'var(--spacing-4)',
       }}
+      onClick={closeOnOverlayClick ? onClose : undefined}
     >
       <div
-        onClick={onClose}
         style={{
           position: 'absolute',
           inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          animation: 'backdrop-fade 0.3s ease-out',
+          backgroundColor: 'var(--bg-overlay)',
+          backdropFilter: 'blur(4px)',
         }}
       />
       <div
+        className={className}
         style={{
           position: 'relative',
+          backgroundColor: 'var(--bg-elevated)',
+          borderRadius: 'var(--radius-2xl)',
+          boxShadow: 'var(--shadow-2xl)',
+          maxWidth: sizeStyles[size],
           width: '100%',
-          maxWidth: sizeConfig.maxWidth,
           maxHeight: '90vh',
-          backgroundColor: 'rgba(255, 255, 255, 0.08)',
-          borderRadius: '32px',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-          boxShadow: '0 32px 64px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05)',
-          backdropFilter: 'blur(40px) saturate(200%)',
-          WebkitBackdropFilter: 'blur(40px) saturate(200%)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          animation: 'modal-enter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          animation: 'scaleIn 0.2s var(--ease-out) forwards',
         }}
+        onClick={(e) => e.stopPropagation()}
       >
-        {(title || showCloseButton) && (
+        {(title || showClose) && (
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: sizeConfig.padding,
-              paddingBottom: '20px',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+              padding: 'var(--spacing-5) var(--spacing-6)',
+              borderBottom: '1px solid var(--border-secondary)',
             }}
           >
-            {title && (
-              <h2 style={{
-                fontSize: '22px',
-                fontWeight: '700',
-                color: '#ffffff',
-                margin: 0,
-                letterSpacing: '-0.02em',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}>
-                {title}
-              </h2>
-            )}
-            {showCloseButton && (
+            <div>
+              {title && (
+                <h2
+                  style={{
+                    fontSize: 'var(--font-size-lg)',
+                    fontWeight: 600,
+                    color: 'var(--text-primary)',
+                    margin: 0,
+                  }}
+                >
+                  {title}
+                </h2>
+              )}
+              {description && (
+                <p
+                  style={{
+                    fontSize: 'var(--font-size-sm)',
+                    color: 'var(--text-secondary)',
+                    margin: 'var(--spacing-1) 0 0 0',
+                  }}
+                >
+                  {description}
+                </p>
+              )}
+            </div>
+            {showClose && (
               <button
                 onClick={onClose}
                 style={{
-                  width: '40px',
-                  height: '40px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  borderRadius: '12px',
+                  padding: 'var(--spacing-2)',
+                  borderRadius: 'var(--radius-md)',
+                  border: 'none',
+                  background: 'transparent',
+                  color: 'var(--text-tertiary)',
                   cursor: 'pointer',
-                  color: 'rgba(255, 255, 255, 0.6)',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  marginLeft: 'auto',
+                  transition: 'all 0.2s ease',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
-                  e.currentTarget.style.color = '#ffffff';
-                  e.currentTarget.style.transform = 'scale(1.1) rotate(90deg)';
+                  e.currentTarget.style.background = 'var(--bg-secondary)';
+                  e.currentTarget.style.color = 'var(--text-primary)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
-                  e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)';
-                  e.currentTarget.style.transform = 'scale(1) rotate(0deg)';
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-tertiary)';
                 }}
               >
-                <X style={{ width: '22px', height: '22px' }} />
+                <X size={20} />
               </button>
             )}
           </div>
         )}
         <div
           style={{
-            padding: sizeConfig.padding,
-            paddingTop: '24px',
-            overflowY: 'auto',
             flex: 1,
+            overflow: 'auto',
+            padding: 'var(--spacing-6)',
           }}
         >
           {children}
         </div>
       </div>
-      <style>{`
-        @keyframes modal-enter {
-          from {
-            opacity: 0;
-            transform: scale(0.9) translateY(-30px);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
-        }
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-        @keyframes backdrop-fade {
-          from {
-            opacity: 0;
-            backdrop-filter: blur(0px);
-          }
-          to {
-            opacity: 1;
-            backdrop-filter: blur(12px);
-          }
-        }
-      `}</style>
     </div>
   );
 }
+
+export default Modal;

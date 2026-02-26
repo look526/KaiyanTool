@@ -1,281 +1,172 @@
-import { ReactNode } from 'react';
-
-export interface TabItem {
-  key: string;
-  label: string;
-  icon?: ReactNode;
-  disabled?: boolean;
-  badge?: number;
-}
+import * as React from 'react';
 
 export interface TabsProps {
-  items: TabItem[];
-  activeKey: string;
-  onChange: (key: string) => void;
-  variant?: 'default' | 'pills' | 'underline' | 'segmented';
-  size?: 'small' | 'medium' | 'large';
+  value: string;
+  onValueChange: (value: string) => void;
+  children: React.ReactNode;
+  className?: string;
+  variant?: 'default' | 'pills' | 'underline';
+}
+
+export interface TabsListProps {
+  children: React.ReactNode;
   className?: string;
 }
 
-const SIZE_CONFIG = {
-  small: {
-    padding: '10px 16px',
-    fontSize: '13px',
-    iconSize: '14px',
-  },
-  medium: {
-    padding: '12px 20px',
-    fontSize: '14px',
-    iconSize: '16px',
-  },
-  large: {
-    padding: '14px 24px',
-    fontSize: '15px',
-    iconSize: '18px',
-  },
-};
+export interface TabsTriggerProps {
+  value: string;
+  children: React.ReactNode;
+  className?: string;
+  disabled?: boolean;
+}
+
+export interface TabsContentProps {
+  value: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+const TabsContext = React.createContext<{
+  value: string;
+  onValueChange: (value: string) => void;
+  variant: 'default' | 'pills' | 'underline';
+}>({
+  value: '',
+  onValueChange: () => {},
+  variant: 'default',
+});
 
 export function Tabs({
-  items,
-  activeKey,
-  onChange,
+  value,
+  onValueChange,
+  children,
+  className = '',
   variant = 'default',
-  size = 'medium',
-  className,
 }: TabsProps) {
-  const sizeConfig = SIZE_CONFIG[size];
-
-  const renderTabs = () => {
-    if (variant === 'pills') {
-      return (
-        <div
-          style={{
-            display: 'inline-flex',
-            gap: '8px',
-            padding: '8px',
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-            borderRadius: '20px',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-          }}
-        >
-          {items.map((item) => (
-            <button
-              key={item.key}
-              onClick={() => !item.disabled && onChange(item.key)}
-              disabled={item.disabled}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: sizeConfig.padding,
-                fontSize: sizeConfig.fontSize,
-                fontWeight: '600',
-                backgroundColor: activeKey === item.key 
-                  ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
-                  : 'transparent',
-                color: activeKey === item.key ? '#ffffff' : 'rgba(255, 255, 255, 0.6)',
-                border: activeKey === item.key ? 'none' : '1px solid transparent',
-                borderRadius: '14px',
-                cursor: item.disabled ? 'not-allowed' : 'pointer',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                boxShadow: activeKey === item.key ? '0 4px 16px rgba(102, 126, 234, 0.4)' : 'none',
-                position: 'relative',
-              }}
-              onMouseEnter={(e) => {
-                if (!item.disabled && activeKey !== item.key) {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
-                  e.currentTarget.style.color = '#ffffff';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!item.disabled && activeKey !== item.key) {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)';
-                }
-              }}
-            >
-              {item.icon && <span style={{ width: sizeConfig.iconSize, height: sizeConfig.iconSize }}>{item.icon}</span>}
-              {item.label}
-              {item.badge && (
-                <span
-                  style={{
-                    minWidth: '20px',
-                    height: '20px',
-                    padding: '0 6px',
-                    fontSize: '11px',
-                    fontWeight: '700',
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    color: '#ffffff',
-                    borderRadius: '10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      );
-    }
-
-    if (variant === 'segmented') {
-      return (
-        <div
-          style={{
-            display: 'inline-flex',
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-            borderRadius: '16px',
-            padding: '4px',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-          }}
-        >
-          {items.map((item) => (
-            <button
-              key={item.key}
-              onClick={() => !item.disabled && onChange(item.key)}
-              disabled={item.disabled}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: sizeConfig.padding,
-                fontSize: sizeConfig.fontSize,
-                fontWeight: '600',
-                backgroundColor: activeKey === item.key ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
-                color: activeKey === item.key ? '#ffffff' : 'rgba(255, 255, 255, 0.6)',
-                border: 'none',
-                borderRadius: '12px',
-                cursor: item.disabled ? 'not-allowed' : 'pointer',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              }}
-              onMouseEnter={(e) => {
-                if (!item.disabled && activeKey !== item.key) {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
-                  e.currentTarget.style.color = '#ffffff';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!item.disabled && activeKey !== item.key) {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)';
-                }
-              }}
-            >
-              {item.icon && <span style={{ width: sizeConfig.iconSize, height: sizeConfig.iconSize }}>{item.icon}</span>}
-              {item.label}
-            </button>
-          ))}
-        </div>
-      );
-    }
-
-    if (variant === 'underline') {
-      return (
-        <div style={{ display: 'flex', gap: '0' }}>
-          {items.map((item) => (
-            <button
-              key={item.key}
-              onClick={() => !item.disabled && onChange(item.key)}
-              disabled={item.disabled}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: sizeConfig.padding,
-                paddingBottom: 'calc(' + sizeConfig.padding + ' - 4px)',
-                fontSize: sizeConfig.fontSize,
-                fontWeight: '600',
-                color: activeKey === item.key ? '#667eea' : 'rgba(255, 255, 255, 0.6)',
-                backgroundColor: 'transparent',
-                border: 'none',
-                borderBottom: activeKey === item.key ? '3px solid #667eea' : '3px solid transparent',
-                cursor: item.disabled ? 'not-allowed' : 'pointer',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                marginBottom: '-3px',
-                position: 'relative',
-              }}
-              onMouseEnter={(e) => {
-                if (!item.disabled && activeKey !== item.key) {
-                  e.currentTarget.style.color = '#ffffff';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!item.disabled && activeKey !== item.key) {
-                  e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)';
-                }
-              }}
-            >
-              {item.icon && <span style={{ width: sizeConfig.iconSize, height: sizeConfig.iconSize }}>{item.icon}</span>}
-              {item.label}
-            </button>
-          ))}
-        </div>
-      );
-    }
-
-    return (
-      <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-        {items.map((item) => (
-          <button
-            key={item.key}
-            onClick={() => !item.disabled && onChange(item.key)}
-            disabled={item.disabled}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: sizeConfig.padding,
-              paddingBottom: 'calc(' + sizeConfig.padding + ' - 3px)',
-              fontSize: sizeConfig.fontSize,
-              fontWeight: '600',
-              color: activeKey === item.key ? '#667eea' : 'rgba(255, 255, 255, 0.6)',
-              backgroundColor: 'transparent',
-              border: 'none',
-              borderBottom: activeKey === item.key ? '3px solid #667eea' : '3px solid transparent',
-              cursor: item.disabled ? 'not-allowed' : 'pointer',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              marginBottom: '-3px',
-            }}
-            onMouseEnter={(e) => {
-              if (!item.disabled && activeKey !== item.key) {
-                e.currentTarget.style.color = '#ffffff';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!item.disabled && activeKey !== item.key) {
-                e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)';
-              }
-            }}
-          >
-            {item.icon && <span style={{ width: sizeConfig.iconSize, height: sizeConfig.iconSize }}>{item.icon}</span>}
-            {item.label}
-          </button>
-        ))}
-      </div>
-    );
-  };
-
   return (
-    <div className={className}>
-      {renderTabs()}
-    </div>
+    <TabsContext.Provider value={{ value, onValueChange, variant }}>
+      <div className={className}>{children}</div>
+    </TabsContext.Provider>
   );
 }
 
-export interface TabPanelProps {
-  children: ReactNode;
-  className?: string;
-}
+export function TabsList({ children, className = '' }: TabsListProps) {
+  const { variant } = React.useContext(TabsContext);
 
-export function TabPanel({ children, className }: TabPanelProps) {
+  const variantStyles: Record<string, React.CSSProperties> = {
+    default: {
+      display: 'flex',
+      gap: 'var(--spacing-1)',
+      padding: 'var(--spacing-1)',
+      backgroundColor: 'var(--bg-secondary)',
+      borderRadius: 'var(--radius-lg)',
+    },
+    pills: {
+      display: 'flex',
+      gap: 'var(--spacing-2)',
+    },
+    underline: {
+      display: 'flex',
+      gap: 'var(--spacing-0)',
+      borderBottom: '1px solid var(--border-primary)',
+    },
+  };
+
   return (
-    <div className={className} style={{ padding: '24px 0' }}>
+    <div style={variantStyles[variant]} className={className} role="tablist">
       {children}
     </div>
   );
 }
+
+export function TabsTrigger({
+  value,
+  children,
+  className = '',
+  disabled = false,
+}: TabsTriggerProps) {
+  const { value: selectedValue, onValueChange, variant } = React.useContext(TabsContext);
+  const isSelected = selectedValue === value;
+
+  const getVariantStyles = (): React.CSSProperties => {
+    const baseStyles: React.CSSProperties = {
+      padding: 'var(--spacing-2) var(--spacing-4)',
+      fontSize: 'var(--font-size-sm)',
+      fontWeight: 500,
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      opacity: disabled ? 0.5 : 1,
+      transition: 'all 0.2s ease',
+      border: 'none',
+      background: 'transparent',
+    };
+
+    switch (variant) {
+      case 'pills':
+        return {
+          ...baseStyles,
+          borderRadius: 'var(--radius-full)',
+          color: isSelected ? 'var(--color-primary-500)' : 'var(--text-secondary)',
+          backgroundColor: isSelected ? 'var(--color-primary-500)/10' : 'transparent',
+        };
+      case 'underline':
+        return {
+          ...baseStyles,
+          color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
+          borderBottom: isSelected ? '2px solid var(--color-primary-500)' : '2px solid transparent',
+          marginBottom: '-1px',
+        };
+      default:
+        return {
+          ...baseStyles,
+          borderRadius: 'var(--radius-md)',
+          color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
+          backgroundColor: isSelected ? 'var(--bg-elevated)' : 'transparent',
+          boxShadow: isSelected ? 'var(--shadow-sm)' : 'none',
+        };
+    }
+  };
+
+  return (
+    <button
+      className={className}
+      style={getVariantStyles()}
+      onClick={() => !disabled && onValueChange(value)}
+      role="tab"
+      aria-selected={isSelected}
+      disabled={disabled}
+      onMouseEnter={(e) => {
+        if (!disabled && !isSelected) {
+          e.currentTarget.style.color = 'var(--text-primary)';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!disabled && !isSelected) {
+          e.currentTarget.style.color = 'var(--text-secondary)';
+        }
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function TabsContent({ value, children, className = '' }: TabsContentProps) {
+  const { value: selectedValue } = React.useContext(TabsContext);
+
+  if (selectedValue !== value) return null;
+
+  return (
+    <div
+      className={className}
+      role="tabpanel"
+      style={{
+        padding: 'var(--spacing-4) 0',
+        animation: 'fadeIn 0.2s ease forwards',
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+export default Tabs;

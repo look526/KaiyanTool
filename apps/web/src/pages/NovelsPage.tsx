@@ -392,7 +392,7 @@ export default function NovelsPage() {
               <Card style={{ padding: '24px', height: '100%' }}>
                 <div style={{ marginBottom: '16px' }}>
                   <h2 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0' }}>{selectedChapter.title}</h2>
-                  <span style={{ fontSize: '12px', color: mutedTextColor }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                     第 {selectedChapter.order} 章
                   </span>
                 </div>
@@ -420,9 +420,9 @@ export default function NovelsPage() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 height: '100%',
-                color: mutedTextColor,
+                color: 'var(--text-muted)',
               }}>
-                <FileText style={{ width: '64px', height: '64px', marginBottom: '16px', color: mutedTextColor }} />
+                <FileText style={{ width: '64px', height: '64px', marginBottom: '16px', color: 'var(--text-muted)' }} />
                 <p style={{ fontSize: '16px', margin: '0' }}>选择一个章节开始编辑</p>
               </div>
             )}
@@ -503,7 +503,7 @@ export default function NovelsPage() {
                     borderRadius: '8px',
                     border: 'none',
                     background: 'transparent',
-                    color: mutedTextColor,
+                    color: 'var(--text-muted)',
                     cursor: 'pointer',
                     fontSize: '14px',
                   }}
@@ -582,7 +582,7 @@ export default function NovelsPage() {
                     borderRadius: '8px',
                     border: 'none',
                     background: 'transparent',
-                    color: mutedTextColor,
+                    color: 'var(--text-muted)',
                     cursor: 'pointer',
                     fontSize: '14px',
                   }}

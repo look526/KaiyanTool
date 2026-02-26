@@ -44,6 +44,7 @@ import projectSettingsRoutes from './routes/project-settings.routes'
 import chatHistoryRoutes from './routes/chat-history.routes'
 import itemRoutes from './routes/item.routes'
 import assistantRoutes from './routes/assistant.routes'
+import imageGenerationRoutes from './routes/image-generation.routes'
 import logger, { requestLogger } from './lib/logger'
 import { initSentry, sentryRequestHandler, sentryErrorHandler, sentryTracingHandler } from './lib/sentry'
 import { getMetrics } from './lib/metrics'
@@ -136,6 +137,7 @@ app.use('/api/project-settings', projectSettingsRoutes)
 app.use('/api/chat-history', chatHistoryRoutes)
 app.use('/api', itemRoutes)
 app.use('/api/assistant', assistantRoutes)
+app.use('/api/image-generation', imageGenerationRoutes)
 
 app.use(sentryErrorHandler)
 app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {

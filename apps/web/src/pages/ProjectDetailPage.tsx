@@ -14,12 +14,15 @@ import {
   Play,
   Download,
   BookOpen,
-  MapPin
+  MapPin,
+  Calendar,
+  TrendingUp,
+  Clock,
+  ChevronRight
 } from 'lucide-react';
 import Breadcrumb from '../components/Breadcrumb';
-import { Button } from '../components/ui/button';
+import { Button } from '../components/ui/button-new';
 import { Input } from '../components/ui/input';
-import { Card } from '../components/ui/card';
 import { apiClient, Project } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -32,6 +35,16 @@ export default function ProjectDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [editingProject, setEditingProject] = useState({ name: '', description: '' });
+  const [screenWidth, setScreenWidth] = useState(window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => setScreenWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobile = screenWidth < 768;
+  const isTablet = screenWidth >= 768 && screenWidth < 1024;
 
   const loadProject = useCallback(async () => {
     try {
@@ -81,18 +94,59 @@ export default function ProjectDetailPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Loader2 style={{ width: '48px', height: '48px', animation: 'spin 1s linear infinite' }} />
+      <div style={{ 
+        minHeight: '100vh', 
+        background: 'var(--bg-page)',
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center' 
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            background: 'var(--gradient-primary)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 24px',
+            boxShadow: '0 0 40px var(--accent-shadow)',
+          }}>
+            <Loader2 style={{ width: '32px', height: '32px', color: 'white', animation: 'spin 1s linear infinite' }} />
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>加载项目中...</p>
+        </div>
       </div>
     );
   }
 
   if (!project) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ 
+        minHeight: '100vh', 
+        background: 'var(--bg-page)',
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center' 
+      }}>
         <div style={{ textAlign: 'center' }}>
-          <FolderKanban style={{ width: '64px', height: '64px', color: 'var(--text-muted)', marginBottom: '16px' }} />
-          <p style={{ color: 'var(--text-tertiary)', fontSize: '18px' }}>项目不存在</p>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            background: 'var(--bg-hover)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 24px',
+          }}>
+            <FolderKanban style={{ width: '40px', height: '40px', color: 'var(--text-muted)' }} />
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '18px', marginBottom: '24px' }}>项目不存在</p>
+          <Button variant="primary" onClick={() => navigate('/projects')}>
+            返回项目列表
+          </Button>
         </div>
       </div>
     );
@@ -100,864 +154,639 @@ export default function ProjectDetailPage() {
 
   const isOwner = project.ownerId === user?.id;
 
+  const quickActions = [
+    { to: `/projects/${project.id}/script`, icon: FileText, label: '输入剧本', desc: '上传或编写剧本内容', gradient: 'var(--gradient-primary)', shadow: 'var(--accent-shadow)' },
+    { to: `/projects/${project.id}/characters`, icon: Image, label: '管理角色', desc: '创建和管理角色形象', gradient: 'var(--gradient-secondary)', shadow: 'var(--success-shadow)' },
+    { to: `/projects/${project.id}/members`, icon: Users, label: '管理成员', desc: '管理项目成员和权限', gradient: 'var(--gradient-accent)', shadow: 'var(--warning-shadow)' },
+    { to: `/projects/${project.id}/scenes`, icon: MapPin, label: '管理场景', desc: '创建和管理拍摄场景', gradient: 'var(--gradient-pink)', shadow: 'var(--error-shadow)' },
+    { to: `/projects/${project.id}/shots`, icon: FolderKanban, label: '分镜管理', desc: '查看和编辑镜头列表', gradient: 'var(--gradient-teal)', shadow: 'var(--info-shadow)' },
+    { to: `/projects/${project.id}/assets`, icon: Image, label: '素材库', desc: '管理项目图片和视频素材', gradient: 'var(--gradient-purple)', shadow: 'var(--accent-shadow)' },
+    { to: `/projects/${project.id}/image-generation`, icon: Sparkles, label: 'AI 图像', desc: 'AI 生成项目图片素材', gradient: 'var(--gradient-pink)', shadow: 'var(--error-shadow)' },
+    { to: `/projects/${project.id}/video-generation`, icon: Video, label: 'AI 视频', desc: 'AI 生成项目视频素材', gradient: 'var(--gradient-teal)', shadow: 'var(--info-shadow)' },
+    { to: `/projects/${project.id}/novels`, icon: BookOpen, label: '输入小说', desc: '上传或编写小说内容', gradient: 'var(--gradient-purple)', shadow: 'var(--accent-shadow)' },
+  ];
+
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-base)' }}>
+    <div style={{ 
+      flex: 1, 
+      display: 'flex', 
+      flexDirection: 'column', 
+      background: 'var(--bg-page)',
+      minHeight: '100vh',
+    }}>
       <header style={{
-          height: '64px',
-          borderBottom: '1px solid var(--border-primary)',
-          backgroundColor: 'var(--bg-elevated)',
-          padding: '0 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexShrink: 0,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <Link to="/projects" style={{ 
+        height: isMobile ? '64px' : '80px',
+        backgroundColor: 'var(--bg-header)',
+        backdropFilter: 'var(--glass-blur)',
+        borderBottom: '1px solid var(--border-primary)',
+        padding: `0 ${isMobile ? '16px' : '32px'}`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexShrink: 0,
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '16px' }}>
+          <Link 
+            to="/projects" 
+            style={{ 
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              padding: '8px 12px',
-              borderRadius: '8px',
+              justifyContent: 'center',
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
               textDecoration: 'none',
-              color: 'var(--text-muted)',
+              color: 'var(--text-tertiary)',
               transition: 'all 0.2s ease',
+              backgroundColor: 'var(--bg-hover)',
+              border: '1px solid var(--border-primary)',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+              e.currentTarget.style.backgroundColor = 'var(--nav-hover-bg)';
               e.currentTarget.style.color = 'var(--text-primary)';
+              e.currentTarget.style.transform = 'translateX(-2px)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = 'var(--text-muted)';
+              e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+              e.currentTarget.style.color = 'var(--text-tertiary)';
+              e.currentTarget.style.transform = 'translateX(0)';
             }}
-            >
-              <ArrowLeft style={{ width: '16px', height: '16px' }} />
-            </Link>
-            <div>
-              <h1 style={{ 
-                fontSize: '20px', 
-                fontWeight: '700',
-                color: 'var(--text-primary)',
-                margin: '0 0 4px 0',
-              }}>{project.name}</h1>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                <span style={{ padding: '2px 8px', borderRadius: '4px', backgroundColor: 'var(--bg-hover)' }}>
-                  {getProjectTypeLabel(project.type)}
-                </span>
-                <span>创建于 {formatDate(project.createdAt)}</span>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {isOwner && (
-              <>
-                <button
-                  onClick={() => {
-                    setEditingProject({ 
-                      name: project.name, 
-                      description: (project as any).description || '' 
-                    });
-                    setShowSettingsModal(true);
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    height: '48px',
-                    padding: '0 24px',
-                    backgroundColor: 'var(--bg-surface)',
-                    border: '1px solid var(--border-primary)',
-                    borderRadius: '14px',
-                    color: 'var(--text-primary)',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    backdropFilter: 'blur(8px)',
-                    WebkitBackdropFilter: 'blur(8px)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.15)';
-                    e.currentTarget.style.borderColor = 'var(--accent)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.08)';
-                    e.currentTarget.style.borderColor = 'var(--border-primary)';
-                  }}
-                >
-                  <Settings style={{ width: '16px', height: '16px' }} />
-                  项目设置
-                </button>
-                <button
-                  onClick={() => setShowDeleteModal(true)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    height: '48px',
-                    padding: '0 24px',
-                    backgroundColor: 'var(--bg-surface)',
-                    border: '1px solid var(--border-primary)',
-                    borderRadius: '14px',
-                    color: '#ef4444',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    backdropFilter: 'blur(8px)',
-                    WebkitBackdropFilter: 'blur(8px)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
-                    e.currentTarget.style.borderColor = '#ef4444';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(239, 68, 68, 0.3)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
-                    e.currentTarget.style.borderColor = 'var(--border-primary)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.08)';
-                  }}
-                >
-                  <Trash2 style={{ width: '16px', height: '16px' }} />
-                  删除
-                </button>
-              </>
-            )}
-            <button
-              onClick={() => navigate(`/projects/${id}/script`)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                height: '52px',
-                padding: '0 32px',
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
-                border: 'none',
-                borderRadius: '14px',
-                color: 'white',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                boxShadow: '0 8px 24px rgba(139, 92, 246, 0.4)',
-                position: 'relative',
-                overflow: 'hidden',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-3px)';
-                e.currentTarget.style.boxShadow = '0 12px 32px rgba(139, 92, 246, 0.5)';
-                e.currentTarget.style.background = 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(139, 92, 246, 0.4)';
-                e.currentTarget.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)';
-              }}
-            >
-              <Play style={{ width: '16px', height: '16px' }} />
-              开始创作
-            </button>
-          </div>
-        </header>
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-            <Breadcrumb items={[
-              { label: '首页', path: '/' },
-              { label: '我的项目', path: '/projects' },
-              { label: project.name },
-            ]} />
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px', marginBottom: '32px' }}>
-              <Card style={{ padding: '24px' }}>
-                <h2 style={{ 
-                  fontSize: '16px', 
-                  fontWeight: '600',
-                  color: 'var(--text-primary)',
-                  marginBottom: '16px',
-                  margin: '0 0 16px 0',
-                }}>项目描述</h2>
-                <p style={{ 
-                  fontSize: '14px',
-                  color: 'var(--text-secondary)',
-                  lineHeight: '1.7',
-                  margin: 0,
-                  whiteSpace: 'pre-wrap',
-                }}>
-                  {project.description || '暂无描述'}
-                </p>
-              </Card>
-
-              <Card style={{ padding: '24px' }}>
-                <h2 style={{ 
-                  fontSize: '16px', 
-                  fontWeight: '600',
-                  color: 'var(--text-primary)',
-                  marginBottom: '16px',
-                  margin: '0 0 16px 0',
-                }}>项目信息</h2>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '50%',
-                      background: 'var(--gradient-primary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: 'white',
-                    }}>
-                      {project.owner?.name?.charAt(0) || project.owner?.email?.charAt(0).toUpperCase() || 'U'}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                        {project.owner?.name || project.owner?.email}
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>项目所有者</div>
-                    </div>
-                  </div>
-
-                  <div style={{ padding: '12px 0', borderTop: '1px solid var(--border-primary)' }}></div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div style={{ padding: '12px', backgroundColor: 'var(--bg-hover)', borderRadius: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                        <Users style={{ width: '16px', height: '16px', color: 'var(--text-muted)' }} />
-                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>成员</span>
-                      </div>
-                      <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                        {project._count?.members || 1}
-                      </div>
-                    </div>
-                    <div style={{ padding: '12px', backgroundColor: 'var(--bg-hover)', borderRadius: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                        <Image style={{ width: '16px', height: '16px', color: 'var(--text-muted)' }} />
-                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>角色</span>
-                      </div>
-                      <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                        {project._count?.characters || 0}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ padding: '12px', backgroundColor: 'var(--bg-hover)', borderRadius: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                      <FileText style={{ width: '16px', height: '16px', color: 'var(--text-muted)' }} />
-                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>镜头</span>
-                    </div>
-                    <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                      {project._count?.shots || 0}
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </div>
-
-            <h2 style={{ 
-              fontSize: '20px', 
-              fontWeight: '700',
+          >
+            <ArrowLeft style={{ width: '20px', height: '20px' }} />
+          </Link>
+          <div>
+            <h1 style={{ 
+              fontSize: isMobile ? '18px' : '22px', 
+              fontWeight: '600',
               color: 'var(--text-primary)',
-              marginBottom: '24px',
-              margin: '0 0 24px 0',
-            }}>快速操作</h2>
-
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
-              gap: '16px',
-              marginBottom: '32px',
-            }}>
-              <Link to={`/projects/${project.id}/script`} style={{ textDecoration: 'none' }}>
-                <Card style={{ padding: '20px', cursor: 'pointer', transition: 'all 0.2s ease' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      background: 'var(--gradient-primary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      <FileText style={{ width: '20px', height: '20px', color: 'white' }} />
-                    </div>
-                    <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                      输入剧本
-                    </div>
-                  </div>
-                  <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', margin: 0 }}>
-                    上传或编写剧本内容
-                  </p>
-                </Card>
-              </Link>
-
-              <Link to={`/projects/${project.id}/characters`} style={{ textDecoration: 'none' }}>
-                <Card style={{ padding: '20px', cursor: 'pointer', transition: 'all 0.2s ease' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      background: 'var(--gradient-success)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      <Image style={{ width: '20px', height: '20px', color: 'white' }} />
-                    </div>
-                    <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                      管理角色
-                    </div>
-                  </div>
-                  <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', margin: 0 }}>
-                    创建和管理角色形象
-                  </p>
-                </Card>
-              </Link>
-
-              <Link to={`/projects/${project.id}/members`} style={{ textDecoration: 'none' }}>
-                <Card style={{ padding: '20px', cursor: 'pointer', transition: 'all 0.2s ease' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      background: 'var(--gradient-warning)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      <Users style={{ width: '20px', height: '20px', color: 'white' }} />
-                    </div>
-                    <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                      管理成员
-                    </div>
-                  </div>
-                  <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', margin: 0 }}>
-                    管理项目成员和权限
-                  </p>
-                </Card>
-              </Link>
-
-              <Link to={`/projects/${project.id}/scenes`} style={{ textDecoration: 'none' }}>
-                <Card style={{ padding: '20px', cursor: 'pointer', transition: 'all 0.2s ease' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      background: 'var(--gradient-warning)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      <MapPin style={{ width: '20px', height: '20px', color: 'white' }} />
-                    </div>
-                    <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                      管理场景
-                    </div>
-                  </div>
-                  <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', margin: 0 }}>
-                    创建和管理拍摄场景
-                  </p>
-                </Card>
-              </Link>
-
-              <Link to={`/projects/${project.id}/shots`} style={{ textDecoration: 'none' }}>
-                <Card style={{ padding: '20px', cursor: 'pointer', transition: 'all 0.2s ease' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      background: 'var(--gradient-info)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      <FolderKanban style={{ width: '20px', height: '20px', color: 'white' }} />
-                    </div>
-                    <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                      分镜管理
-                    </div>
-                  </div>
-                  <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', margin: 0 }}>
-                    查看和编辑镜头列表
-                  </p>
-                </Card>
-              </Link>
-
-              <Link to={`/projects/${project.id}/assets`} style={{ textDecoration: 'none' }}>
-                <Card style={{ padding: '20px', cursor: 'pointer', transition: 'all 0.2s ease' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      background: 'var(--gradient-primary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      <Image style={{ width: '20px', height: '20px', color: 'white' }} />
-                    </div>
-                    <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                      素材库
-                    </div>
-                  </div>
-                  <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', margin: 0 }}>
-                    管理项目图片和视频素材
-                  </p>
-                </Card>
-              </Link>
-
-              <Link to={`/projects/${project.id}/image-generation`} style={{ textDecoration: 'none' }}>
-                <Card style={{ padding: '20px', cursor: 'pointer', transition: 'all 0.2s ease' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      background: 'var(--gradient-error)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      <Sparkles style={{ width: '20px', height: '20px', color: 'white' }} />
-                    </div>
-                    <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                      AI 图像
-                    </div>
-                  </div>
-                  <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', margin: 0 }}>
-                    AI 生成项目图片素材
-                  </p>
-                </Card>
-              </Link>
-
-              <Link to={`/projects/${project.id}/video-generation`} style={{ textDecoration: 'none' }}>
-                <Card style={{ padding: '20px', cursor: 'pointer', transition: 'all 0.2s ease' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      background: 'var(--gradient-info)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      <Video style={{ width: '20px', height: '20px', color: 'white' }} />
-                    </div>
-                    <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                      AI 视频
-                    </div>
-                  </div>
-                  <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', margin: 0 }}>
-                    AI 生成项目视频素材
-                  </p>
-                </Card>
-              </Link>
-
-              <Link to={`/projects/${project.id}/novels`} style={{ textDecoration: 'none' }}>
-                <Card style={{ padding: '20px', cursor: 'pointer', transition: 'all 0.2s ease' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      background: 'var(--gradient-error)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      <BookOpen style={{ width: '20px', height: '20px', color: 'white' }} />
-                    </div>
-                    <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                      输入小说
-                    </div>
-                  </div>
-                  <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', margin: 0 }}>
-                    上传或编写小说内容
-                  </p>
-                </Card>
-              </Link>
-
-              <Card style={{ padding: '20px', cursor: 'pointer', transition: 'all 0.2s ease' }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                  e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '10px',
-                    background: 'var(--gradient-danger)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Download style={{ width: '20px', height: '20px', color: 'white' }} />
-                  </div>
-                  <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                    导出项目
-                  </div>
-                </div>
-                <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', margin: 0 }}>
-                  导出项目数据或视频
-                </p>
-              </Card>
+              margin: 0,
+              letterSpacing: '-0.02em',
+            }}>{project.name}</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+              <span style={{ 
+                padding: '2px 8px', 
+                borderRadius: '6px', 
+                background: 'var(--gradient-primary)',
+                color: 'white',
+                fontWeight: '500',
+                fontSize: '11px',
+              }}>
+                {getProjectTypeLabel(project.type)}
+              </span>
+              <span style={{ display: isMobile ? 'none' : 'inline', opacity: 0.7 }}>创建于 {formatDate(project.createdAt)}</span>
             </div>
           </div>
         </div>
 
-        {showSettingsModal && (
-          <div style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
-          onClick={() => setShowSettingsModal(false)}
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px' }}>
+          {isOwner && (
+            <>
+              <Button
+                onClick={() => {
+                  setEditingProject({ 
+                    name: project.name, 
+                    description: (project as any).description || '' 
+                  });
+                  setShowSettingsModal(true);
+                }}
+                variant="outline"
+                size={isMobile ? 'sm' : 'md'}
+                icon={<Settings size={16} />}
+                iconPosition="left"
+              >
+                {!isMobile && '项目设置'}
+              </Button>
+              <Button
+                onClick={() => setShowDeleteModal(true)}
+                variant="ghost"
+                size={isMobile ? 'sm' : 'md'}
+                icon={<Trash2 size={16} />}
+                style={{ color: 'var(--error)' }}
+              >
+                {!isMobile && '删除'}
+              </Button>
+            </>
+          )}
+          <Button
+            onClick={() => navigate(`/projects/${id}/script`)}
+            variant="primary"
+            size={isMobile ? 'sm' : 'md'}
+            icon={<Play size={16} />}
+            iconPosition="left"
           >
-            <Card style={{ 
-              padding: '32px',
-              maxWidth: '500px',
-              width: '100%',
-              margin: '24px',
-            }}
-            onClick={(e) => e.stopPropagation()}
-            >
-              <h2 style={{ 
-                fontSize: '20px', 
-                fontWeight: '700',
-                color: 'var(--text-primary)',
-                marginBottom: '24px',
-              }}>项目设置</h2>
-              
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ 
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  color: 'var(--text-primary)',
-                  marginBottom: '8px',
-                }}>
-                  项目名称
-                </label>
-                <Input
-                  value={editingProject.name}
-                  onChange={(e) => setEditingProject({ ...editingProject, name: e.target.value })}
-                  placeholder="输入项目名称"
-                />
-              </div>
-              
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{ 
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  color: 'var(--text-primary)',
-                  marginBottom: '8px',
-                }}>
-                  项目描述
-                </label>
-                <textarea
-                  value={editingProject.description}
-                  onChange={(e) => setEditingProject({ ...editingProject, description: e.target.value })}
-                  placeholder="输入项目描述"
-                  style={{
-                    width: '100%',
-                    minHeight: '100px',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-primary)',
-                    backgroundColor: 'var(--bg-surface)',
-                    color: 'var(--text-primary)',
-                    fontSize: '14px',
-                    resize: 'vertical',
-                  }}
-                />
-              </div>
-              
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    height: '44px',
-                    padding: '0 20px',
-                    backgroundColor: 'var(--bg-surface)',
-                    border: '1px solid var(--border-primary)',
-                    borderRadius: '12px',
-                    color: 'var(--text-secondary)',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                  }}
-                  onClick={() => setShowSettingsModal(false)}
-                >
-                  取消
-                </button>
-                <button
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    height: '44px',
-                    padding: '0 24px',
-                    background: 'var(--gradient-primary)',
-                    border: 'none',
-                    borderRadius: '12px',
-                    color: 'white',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(139, 92, 246, 0.4)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.3)';
-                  }}
-                  onClick={async () => {
-                    try {
-                      await apiClient.updateProject(project!.id, {
-                        name: editingProject.name,
-                        description: editingProject.description,
-                      });
-                      setProject({ ...project!, name: editingProject.name, description: editingProject.description });
-                      setShowSettingsModal(false);
-                    } catch (error) {
-                      console.error('Failed to update project:', error);
-                    }
-                  }}
-                >
-                  保存
-                </button>
-              </div>
-            </Card>
-          </div>
-        )}
+            开始创作
+          </Button>
+        </div>
+      </header>
 
-        {showDeleteModal && (
-          <div style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '16px' : '32px' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <Breadcrumb items={[
+            { label: '首页', path: '/' },
+            { label: '我的项目', path: '/projects' },
+            { label: project.name },
+          ]} />
+          
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: isMobile ? '1fr' : isTablet ? '1fr' : '1.5fr 1fr', 
+            gap: isMobile ? '16px' : '24px', 
+            marginBottom: '32px' 
+          }}>
+            <div style={{
+              background: 'var(--bg-card)',
+              borderRadius: 'var(--radius-xl)',
+              border: '1px solid var(--border-primary)',
+              padding: isMobile ? '20px' : '28px',
+              backdropFilter: 'var(--glass-blur)',
+            }}>
+              <h2 style={{ 
+                fontSize: '14px', 
+                fontWeight: '600',
+                color: 'var(--text-muted)',
+                marginBottom: '16px',
+                margin: '0 0 16px 0',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}>项目描述</h2>
+              <p style={{ 
+                fontSize: '15px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.7',
+                margin: 0,
+                whiteSpace: 'pre-wrap',
+              }}>
+                {project.description || '暂无描述，点击"项目设置"添加项目描述...'}
+              </p>
+            </div>
+
+            <div style={{
+              background: 'var(--bg-card)',
+              borderRadius: 'var(--radius-xl)',
+              border: '1px solid var(--border-primary)',
+              padding: isMobile ? '20px' : '28px',
+              backdropFilter: 'var(--glass-blur)',
+            }}>
+              <h2 style={{ 
+                fontSize: '14px', 
+                fontWeight: '600',
+                color: 'var(--text-muted)',
+                marginBottom: '20px',
+                margin: '0 0 20px 0',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}>项目信息</h2>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px' }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '14px',
+                  background: 'var(--gradient-primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  color: 'white',
+                  boxShadow: '0 4px 14px var(--accent-shadow)',
+                }}>
+                  {project.owner?.name?.charAt(0) || project.owner?.email?.charAt(0).toUpperCase() || 'U'}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                    {project.owner?.name || project.owner?.email}
+                  </div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>项目所有者</div>
+                </div>
+              </div>
+
+              <div style={{ height: '1px', background: 'var(--border-secondary)', margin: '20px 0' }} />
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                <div style={{ 
+                  padding: '16px', 
+                  background: 'var(--bg-hover)', 
+                  borderRadius: '14px',
+                  textAlign: 'center',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '8px' }}>
+                    <Users style={{ width: '14px', height: '14px', color: 'var(--accent)' }} />
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>成员</span>
+                  </div>
+                  <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                    {project._count?.members || 1}
+                  </div>
+                </div>
+                <div style={{ 
+                  padding: '16px', 
+                  background: 'var(--bg-hover)', 
+                  borderRadius: '14px',
+                  textAlign: 'center',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '8px' }}>
+                    <Image style={{ width: '14px', height: '14px', color: 'var(--success)' }} />
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>角色</span>
+                  </div>
+                  <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                    {project._count?.characters || 0}
+                  </div>
+                </div>
+                <div style={{ 
+                  padding: '16px', 
+                  background: 'var(--bg-hover)', 
+                  borderRadius: '14px',
+                  textAlign: 'center',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '8px' }}>
+                    <FileText style={{ width: '14px', height: '14px', color: 'var(--warning)' }} />
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>镜头</span>
+                  </div>
+                  <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                    {project._count?.shots || 0}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <h2 style={{ 
+            fontSize: '18px', 
+            fontWeight: '600',
+            color: 'var(--text-primary)',
+            marginBottom: '20px',
+            margin: '0 0 20px 0',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
-          onClick={() => setShowDeleteModal(false)}
-          >
-            <Card style={{ 
-              padding: '32px',
-              maxWidth: '448px',
-              width: '100%',
-              margin: '24px',
-            }}
-            onClick={(e) => e.stopPropagation()}
-            >
-              <h2 style={{ 
-                fontSize: '20px', 
-                fontWeight: '700',
-                color: 'var(--text-primary)',
-                marginBottom: '12px',
-                margin: '0 0 12px 0',
-              }}>确认删除项目</h2>
-              <p style={{ 
-                fontSize: '14px',
-                color: 'var(--text-secondary)',
-                marginBottom: '24px',
-                lineHeight: '1.6',
-              }}>
-                您确定要删除项目"{project.name}"吗？此操作不可撤销，所有相关数据将被永久删除。
-              </p>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button
+            gap: '10px',
+          }}>
+            <span style={{
+              width: '4px',
+              height: '20px',
+              background: 'var(--gradient-primary)',
+              borderRadius: '2px',
+            }} />
+            快速操作
+          </h2>
+
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(280px, 1fr))', 
+            gap: isMobile ? '12px' : '16px',
+            marginBottom: '32px',
+          }}>
+            {quickActions.map((action, index) => (
+              <Link key={action.to} to={action.to} style={{ textDecoration: 'none' }}>
+                <div
                   style={{
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    height: '44px',
-                    padding: '0 20px',
-                    backgroundColor: 'var(--bg-surface)',
+                    padding: isMobile ? '18px' : '22px',
+                    borderRadius: '18px',
+                    background: 'var(--bg-card)',
                     border: '1px solid var(--border-primary)',
-                    borderRadius: '12px',
-                    color: 'var(--text-secondary)',
-                    fontSize: '14px',
-                    fontWeight: '500',
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    backdropFilter: 'var(--glass-blur)',
+                    position: 'relative',
+                    overflow: 'hidden',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                  }}
-                  onClick={() => setShowDeleteModal(false)}
-                >
-                  取消
-                </button>
-                <button
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    height: '44px',
-                    padding: '0 20px',
-                    backgroundColor: '#ef4444',
-                    border: 'none',
-                    borderRadius: '12px',
-                    color: 'white',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.4)';
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = `0 20px 40px ${action.shadow}`;
+                    e.currentTarget.style.borderColor = 'var(--accent-border)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
                   }}
-                  onClick={handleDeleteProject}
                 >
-                  <Trash2 style={{ width: '16px', height: '16px' }} />
-                  删除项目
-                </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '12px' }}>
+                    <div style={{
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: '14px',
+                      background: action.gradient,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: `0 4px 14px ${action.shadow}`,
+                    }}>
+                      <action.icon style={{ width: '22px', height: '22px', color: 'white' }} />
+                    </div>
+                    <div style={{ flex: 1, fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                      {action.label}
+                    </div>
+                    <ChevronRight style={{ width: '18px', height: '18px', color: 'var(--text-muted)' }} />
+                  </div>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0, paddingLeft: '58px' }}>
+                    {action.desc}
+                  </p>
+                </div>
+              </Link>
+            ))}
+
+            <div
+              style={{
+                padding: isMobile ? '18px' : '22px',
+                borderRadius: '18px',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-primary)',
+                cursor: 'pointer',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                backdropFilter: 'var(--glass-blur)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 20px 40px var(--shadow-lg)';
+                e.currentTarget.style.borderColor = 'var(--accent-border)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = 'var(--border-primary)';
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '12px' }}>
+                <div style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '14px',
+                  background: 'var(--gradient-gray)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 14px var(--shadow-md)',
+                }}>
+                  <Download style={{ width: '22px', height: '22px', color: 'white' }} />
+                </div>
+                <div style={{ flex: 1, fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                  导出项目
+                </div>
+                <ChevronRight style={{ width: '18px', height: '18px', color: 'var(--text-muted)' }} />
               </div>
-            </Card>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0, paddingLeft: '58px' }}>
+                导出项目数据或视频
+              </p>
+            </div>
           </div>
-        )}
+        </div>
+      </div>
+
+      {showSettingsModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'var(--overlay-heavy)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '16px',
+        }}
+        onClick={() => setShowSettingsModal(false)}
+        >
+          <div 
+            style={{ 
+              padding: isMobile ? '28px' : '36px',
+              maxWidth: '480px',
+              width: '100%',
+              background: 'var(--bg-elevated)',
+              borderRadius: 'var(--radius-xl)',
+              border: '1px solid var(--border-primary)',
+              backdropFilter: 'var(--glass-blur)',
+              animation: 'modalIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '28px' }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '14px',
+                background: 'var(--gradient-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 14px var(--accent-shadow)',
+              }}>
+                <Settings style={{ width: '24px', height: '24px', color: 'white' }} />
+              </div>
+              <h2 style={{ 
+                fontSize: '22px', 
+                fontWeight: '600',
+                color: 'var(--text-primary)',
+                margin: 0,
+              }}>项目设置</h2>
+            </div>
+            
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ 
+                display: 'block',
+                fontSize: '13px',
+                fontWeight: '500',
+                color: 'var(--text-muted)',
+                marginBottom: '10px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}>
+                项目名称
+              </label>
+              <Input
+                value={editingProject.name}
+                onChange={(e) => setEditingProject({ ...editingProject, name: e.target.value })}
+                placeholder="输入项目名称"
+                style={{
+                  width: '100%',
+                  padding: '14px 18px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--input-border)',
+                  background: 'var(--input-bg)',
+                  color: 'var(--text-primary)',
+                  fontSize: '15px',
+                  outline: 'none',
+                  transition: 'all 0.2s ease',
+                }}
+              />
+            </div>
+            
+            <div style={{ marginBottom: '32px' }}>
+              <label style={{ 
+                display: 'block',
+                fontSize: '13px',
+                fontWeight: '500',
+                color: 'var(--text-muted)',
+                marginBottom: '10px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}>
+                项目描述
+              </label>
+              <textarea
+                value={editingProject.description}
+                onChange={(e) => setEditingProject({ ...editingProject, description: e.target.value })}
+                placeholder="输入项目描述"
+                style={{
+                  width: '100%',
+                  minHeight: '120px',
+                  padding: '14px 18px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--input-border)',
+                  background: 'var(--input-bg)',
+                  color: 'var(--text-primary)',
+                  fontSize: '15px',
+                  resize: 'vertical',
+                  outline: 'none',
+                  transition: 'all 0.2s ease',
+                  fontFamily: 'inherit',
+                  lineHeight: '1.6',
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--input-focus-border)';
+                  e.currentTarget.style.boxShadow = 'var(--input-focus-shadow)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--input-border)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              />
+            </div>
+            
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <Button
+                onClick={() => setShowSettingsModal(false)}
+                variant="outline"
+                size="lg"
+                style={{ flex: 1 }}
+              >
+                取消
+              </Button>
+              <Button
+                onClick={async () => {
+                  try {
+                    await apiClient.updateProject(project!.id, {
+                      name: editingProject.name,
+                      description: editingProject.description,
+                    });
+                    setProject({ ...project!, name: editingProject.name, description: editingProject.description });
+                    setShowSettingsModal(false);
+                  } catch (error) {
+                    console.error('Failed to update project:', error);
+                  }
+                }}
+                variant="primary"
+                size="lg"
+                style={{ flex: 1 }}
+              >
+                保存更改
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'var(--overlay-heavy)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '16px',
+        }}
+        onClick={() => setShowDeleteModal(false)}
+        >
+          <div 
+            style={{ 
+              padding: isMobile ? '28px' : '36px',
+              maxWidth: '420px',
+              width: '100%',
+              background: 'var(--bg-elevated)',
+              borderRadius: 'var(--radius-xl)',
+              border: '1px solid var(--border-primary)',
+              backdropFilter: 'var(--glass-blur)',
+              animation: 'modalIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px' }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '14px',
+                background: 'var(--btn-danger-bg)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 14px var(--btn-danger-shadow)',
+              }}>
+                <Trash2 style={{ width: '24px', height: '24px', color: 'white' }} />
+              </div>
+              <h2 style={{ 
+                fontSize: '22px', 
+                fontWeight: '600',
+                color: 'var(--text-primary)',
+                margin: 0,
+              }}>确认删除</h2>
+            </div>
+            
+            <p style={{ 
+              fontSize: '15px',
+              color: 'var(--text-secondary)',
+              marginBottom: '32px',
+              lineHeight: '1.6',
+            }}>
+              您确定要删除项目 <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>"{project.name}"</span> 吗？此操作不可撤销，所有相关数据将被永久删除。
+            </p>
+            
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <Button
+                onClick={() => setShowDeleteModal(false)}
+                variant="outline"
+                size="lg"
+                style={{ flex: 1 }}
+              >
+                取消
+              </Button>
+              <Button
+                onClick={handleDeleteProject}
+                variant="danger"
+                size="lg"
+                style={{ flex: 1 }}
+                icon={<Trash2 size={16} />}
+                iconPosition="left"
+              >
+                删除项目
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>
+        {`
+          @keyframes modalIn {
+            from {
+              opacity: 0;
+              transform: scale(0.95) translateY(10px);
+            }
+            to {
+              opacity: 1;
+              transform: scale(1) translateY(0);
+            }
+          }
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}
+      </style>
     </div>
   );
 }

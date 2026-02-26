@@ -10,7 +10,7 @@ router.use(authMiddleware);
 
 const LOG_DIR = path.join(process.cwd(), 'logs');
 
-router.get('/list', async (req: Request, res: Response) => {
+router.get('/list', async (_req: Request, res: Response) => {
   try {
     const files = await fs.readdir(LOG_DIR);
     const logFiles = files.filter(f => f.endsWith('.log'));

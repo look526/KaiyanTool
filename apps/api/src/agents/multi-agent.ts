@@ -1,7 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { aiProviderService } from '../services/ai/provider.service';
-import { emitProgress, emitStreamChunk, emitTaskComplete, emitTaskError } from '../lib/websocket';
-import logger from '../lib/logger';
+import { emitProgress, emitStreamChunk, emitTaskComplete, emitTaskError as _emitTaskError } from '../lib/websocket';
 
 export interface AgentMessage {
   role: 'system' | 'user' | 'assistant';
@@ -63,8 +62,9 @@ export abstract class BaseAgent {
       const assistantMessage = response.content;
       messages.push({ role: 'assistant', content: assistantMessage });
 
-      if (response.toolCalls && response.toolCalls.length > 0) {
-        for (const toolCall of response.toolCalls) {
+      const responseAny = response as any;
+      if (responseAny.toolCalls && responseAny.toolCalls.length > 0) {
+        for (const toolCall of responseAny.toolCalls) {
           const tool = this.config.tools?.find(t => t.name === toolCall.function.name);
           if (tool) {
             try {
@@ -167,16 +167,22 @@ export class StoryAgent extends BaseAgent {
           required: ['storyline'],
         },
         execute: async (params, ctx) => {
-          await prisma.storyline.upsert({
-            where: { projectId: ctx.projectId },
-            create: {
-              projectId: ctx.projectId,
-              content: params.storyline,
-            },
-            update: {
-              content: params.storyline,
-            },
+          const existing = await prisma.storyline.findFirst({
+            where: { projectId: ctx.projectId } as any,
           });
+          if (existing) {
+            await prisma.storyline.update({
+              where: { id: existing.id },
+              data: { content: params.storyline } as any,
+            });
+          } else {
+            await prisma.storyline.create({
+              data: {
+                projectId: ctx.projectId,
+                content: params.storyline,
+              } as any,
+            });
+          }
           return { success: true };
         },
       },
@@ -265,16 +271,22 @@ export class OutlineAgent extends BaseAgent {
           required: ['outline'],
         },
         execute: async (params, ctx) => {
-          await prisma.outline.upsert({
-            where: { projectId: ctx.projectId },
-            create: {
-              projectId: ctx.projectId,
-              content: params.outline,
-            },
-            update: {
-              content: params.outline,
-            },
+          const existingOutline = await prisma.outline.findFirst({
+            where: { projectId: ctx.projectId } as any,
           });
+          if (existingOutline) {
+            await prisma.outline.update({
+              where: { id: existingOutline.id },
+              data: { content: params.outline } as any,
+            });
+          } else {
+            await prisma.outline.create({
+              data: {
+                projectId: ctx.projectId,
+                content: params.outline,
+              } as any,
+            });
+          }
           return { success: true };
         },
       },
@@ -369,8 +381,8 @@ export class DirectorAgent extends BaseAgent {
         },
         execute: async (params, ctx) => {
           await prisma.storyline.updateMany({
-            where: { projectId: ctx.projectId },
-            data: { content: params.storyline },
+            where: { projectId: ctx.projectId } as any,
+            data: { content: params.storyline } as any,
           });
           return { success: true };
         },
@@ -387,8 +399,8 @@ export class DirectorAgent extends BaseAgent {
         },
         execute: async (params, ctx) => {
           await prisma.outline.updateMany({
-            where: { projectId: ctx.projectId },
-            data: { content: params.outline },
+            where: { projectId: ctx.projectId } as any,
+            data: { content: params.outline } as any,
           });
           return { success: true };
         },

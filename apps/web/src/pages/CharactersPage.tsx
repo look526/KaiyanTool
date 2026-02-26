@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
-  ArrowLeft,
   Plus,
   Edit2,
   Trash2,
@@ -10,14 +9,12 @@ import {
   User,
   Shirt,
   Calendar,
+  Search,
   Hash,
-  ImagePlus,
-  Square,
-  CheckSquare,
+  Users,
+  Sparkles,
 } from 'lucide-react';
-import { Sidebar } from '../components/Sidebar';
 import { Button } from '../components/ui/button-new';
-import { Card } from '../components/ui/card';
 import { ImageSelector } from '../components/ImageSelector';
 import { apiClient, Character } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
@@ -39,6 +36,7 @@ interface WardrobeFormData {
 export default function CharactersPage() {
   const { id } = useParams<{ id: string }>();
   const [characters, setCharacters] = useState<Character[]>([]);
+  const [filteredCharacters, setFilteredCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
   const [showWardrobeModal, setShowWardrobeModal] = useState(false);
@@ -47,21 +45,62 @@ export default function CharactersPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [characterToDelete, setCharacterToDelete] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'created' | 'shots'>('name');
+  const [filterGender, setFilterGender] = useState<string>('');
   const { addToast } = useToast();
+
+  const loadCharacters = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await apiClient.getCharacters(id!);
+      setCharacters(data);
+      setFilteredCharacters(data);
+    } catch (error) {
+      console.error('Failed to load characters:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    loadCharacters();
+  }, [loadCharacters]);
+
+  useEffect(() => {
+    let result = characters;
+
+    if (searchQuery) {
+      result = result.filter(c => 
+        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.appearance?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (filterGender) {
+      result = result.filter(c => c.gender === filterGender);
+    }
+
+    switch (sortBy) {
+      case 'name':
+        result.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+        break;
+      case 'shots':
+        result.sort((a, b) => (b._count?.shots || 0) - (a._count?.shots || 0));
+        break;
+      case 'created':
+      default:
+        break;
+    }
+
+    setFilteredCharacters(result);
+  }, [characters, searchQuery, sortBy, filterGender]);
 
   const toggleSelect = (characterId: string) => {
     const newSet = new Set(selectedIds);
     if (newSet.has(characterId)) newSet.delete(characterId);
     else newSet.add(characterId);
     setSelectedIds(newSet);
-  };
-
-  const selectAll = () => {
-    if (selectedIds.size === characters.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(characters.map(c => c.id)));
-    }
   };
 
   const handleBulkDelete = async () => {
@@ -92,22 +131,6 @@ export default function CharactersPage() {
     description: '',
     referenceImage: ''
   });
-
-  const loadCharacters = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await apiClient.getCharacters(id!);
-      setCharacters(data);
-    } catch (error) {
-      console.error('Failed to load characters:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    loadCharacters();
-  }, [loadCharacters]);
 
   const handleSaveCharacter = async () => {
     if (!characterForm.name || !characterForm.appearance) {
@@ -243,233 +266,406 @@ export default function CharactersPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Loader2 style={{ width: '48px', height: '48px', animation: 'spin 1s linear infinite' }} />
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--bg-page)',
+      }}>
+        <Loader2 style={{ width: '48px', height: '48px', animation: 'spin 1s linear infinite', color: 'var(--accent-green)' }} />
       </div>
     );
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-base)' }}>
-      <header style={{
-          height: '64px',
-          borderBottom: '1px solid var(--border-primary)',
-          backgroundColor: 'var(--bg-elevated)',
-          padding: '0 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexShrink: 0,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <Link to={`/projects/${id}`} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              textDecoration: 'none',
-              color: 'var(--text-muted)',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-              e.currentTarget.style.color = 'var(--text-primary)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = 'var(--text-muted)';
-            }}
-            >
-              <ArrowLeft style={{ width: '16px', height: '16px' }} />
-            </Link>
-            <div>
-              <h1 style={{
-                fontSize: '20px',
-                fontWeight: '700',
-                color: 'var(--text-primary)',
-                margin: '0 0 4px 0',
-              }}>角色管理</h1>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                共 {characters.length} 个角色
-              </div>
-            </div>
+    <div style={{
+      minHeight: '100vh',
+      background: 'var(--bg-page)',
+      padding: '24px',
+    }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
+          <div style={{
+            padding: '12px',
+            borderRadius: '16px',
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            boxShadow: '0 8px 24px rgba(16, 185, 129, 0.3)',
+          }}>
+            <Users style={{ width: '28px', height: '28px', color: 'white' }} />
           </div>
+          <div>
+            <h1 style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>角色管理</h1>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>管理项目中的所有角色和服装</p>
+          </div>
+        </div>
 
-          <Button 
-            onClick={() => handleOpenCharacterModal()}
-            variant="primary"
-            size="md"
-            icon={<Plus />}
-          >
-            添加角色
-          </Button>
-        </header>
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-          {characters.length === 0 ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: '400px',
+              background: 'var(--bg-card)',
+              borderRadius: '20px',
+              padding: '24px',
+              border: '1px solid var(--border-primary)',
+              backdropFilter: 'blur(20px)',
             }}>
-              <User style={{ width: '64px', height: '64px', color: 'var(--text-muted)', marginBottom: '16px' }} />
-              <p style={{ color: 'var(--text-tertiary)', fontSize: '16px', marginBottom: '24px' }}>
-                暂无角色，点击右上角添加
-              </p>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>搜索角色</label>
+                <div style={{ position: 'relative' }}>
+                  <Search style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'var(--text-muted)' }} />
+                  <input
+                    type="text"
+                    placeholder="输入角色名称或描述..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{
+                      width: '100%',
+                      height: '44px',
+                      padding: '0 16px 0 42px',
+                      border: '1px solid var(--border-primary)',
+                      borderRadius: '14px',
+                      background: 'var(--bg-input)',
+                      color: 'var(--text-primary)',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--accent-green)';
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-primary)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>性别筛选</label>
+                <select
+                  value={filterGender}
+                  onChange={(e) => setFilterGender(e.target.value)}
+                  style={{
+                    width: '100%',
+                    height: '44px',
+                    padding: '0 14px',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '14px',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--accent-green)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                  }}
+                >
+                  <option value="">全部</option>
+                  <option value="男">男</option>
+                  <option value="女">女</option>
+                  <option value="其他">其他</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>排序方式</label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  style={{
+                    width: '100%',
+                    height: '44px',
+                    padding: '0 14px',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '14px',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--accent-green)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                  }}
+                >
+                  <option value="name">按名称</option>
+                  <option value="shots">按出镜次数</option>
+                  <option value="created">按创建时间</option>
+                </select>
+              </div>
+
               <Button
                 variant="primary"
                 onClick={() => handleOpenCharacterModal()}
-                icon={<Plus size={16} />}
+                style={{
+                  width: '100%',
+                  height: '48px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  borderRadius: '14px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+                }}
               >
+                <Plus style={{ width: '18px', height: '18px' }} />
                 添加角色
               </Button>
             </div>
-          ) : (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h1 style={{ fontSize: '24px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>角色管理</h1>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  {characters.length > 0 && (
-                    <Button variant="outline" size="sm" onClick={selectAll}>
-                      {selectedIds.size === characters.length ? <Square size={16} /> : <CheckSquare size={16} />}
-                      {selectedIds.size > 0 ? `${selectedIds.size}/${characters.length}` : '全选'}
-                    </Button>
-                  )}
-                  {selectedIds.size > 0 && (
-                    <Button variant="danger" size="sm" onClick={handleBulkDelete} icon={<Trash2 size={16} />}>
-                      删除 ({selectedIds.size})
-                    </Button>
-                  )}
-                  <Button variant="primary" onClick={() => setShowCharacterModal(true)} icon={<Plus size={16} />}>
-                    添加角色
+
+            <div style={{
+              background: 'var(--bg-card)',
+              borderRadius: '20px',
+              padding: '24px',
+              border: '1px solid var(--border-primary)',
+              backdropFilter: 'blur(20px)',
+              textAlign: 'center',
+            }}>
+              <div style={{ fontSize: '36px', fontWeight: '700', color: 'var(--accent-green)', marginBottom: '4px' }}>{characters.length}</div>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>总角色数</div>
+            </div>
+
+            <div style={{
+              background: 'var(--bg-card)',
+              borderRadius: '20px',
+              padding: '24px',
+              border: '1px solid var(--border-primary)',
+              backdropFilter: 'blur(20px)',
+              textAlign: 'center',
+            }}>
+              <div style={{ fontSize: '36px', fontWeight: '700', color: 'var(--accent-blue)', marginBottom: '4px' }}>
+                {characters.reduce((sum, c) => sum + (c._count?.shots || 0), 0)}
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>总出镜次数</div>
+            </div>
+          </div>
+
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: '20px',
+            padding: '24px',
+            border: '1px solid var(--border-primary)',
+            backdropFilter: 'blur(20px)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
+                角色列表 <span style={{ color: 'var(--text-muted)', fontWeight: '400' }}>({filteredCharacters.length})</span>
+              </h3>
+              {selectedIds.size > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>已选择 {selectedIds.size} 个</span>
+                  <Button variant="danger" size="sm" onClick={handleBulkDelete}>
+                    <Trash2 style={{ width: '14px', height: '14px', marginRight: '6px' }} />
+                    批量删除
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
+                    取消选择
                   </Button>
                 </div>
-              </div>
+              )}
+            </div>
+
+            {filteredCharacters.length === 0 ? (
               <div style={{
-                maxWidth: '1400px',
-                margin: '0 auto',
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
-                gap: '20px'
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '64px 32px',
+                color: 'var(--text-muted)',
               }}>
-              {characters.map((character) => (
-                <Card key={character.id} style={{ padding: '20px', border: selectedIds.has(character.id) ? '2px solid var(--accent)' : undefined }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', gap: '12px', flex: 1 }}>
-                      <div
-                        onClick={() => toggleSelect(character.id)}
-                        style={{ cursor: 'pointer', padding: '4px' }}
-                      >
-                        {selectedIds.has(character.id) ? (
-                          <CheckSquare style={{ width: '20px', height: '20px', color: 'var(--accent)' }} />
-                        ) : (
-                          <Square style={{ width: '20px', height: '20px', color: 'var(--text-tertiary)' }} />
-                        )}
-                      </div>
-                      {character.referenceImages && character.referenceImages.length > 0 ? (
-                        <img
-                          src={character.referenceImages[0]}
-                          alt={character.name}
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '24px',
+                  background: 'var(--bg-hover)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '20px',
+                }}>
+                  <User style={{ width: '36px', height: '36px', opacity: 0.5 }} />
+                </div>
+                <p style={{ fontSize: '16px', fontWeight: '500', marginBottom: '8px' }}>暂无角色</p>
+                <p style={{ fontSize: '14px', marginBottom: '24px' }}>点击"添加角色"开始创建</p>
+                <Button variant="primary" onClick={() => handleOpenCharacterModal()}>
+                  <Plus style={{ width: '16px', height: '16px', marginRight: '6px' }} />
+                  添加第一个角色
+                </Button>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+                {filteredCharacters.map((character) => (
+                  <div
+                    key={character.id}
+                    style={{
+                      background: 'var(--bg-secondary)',
+                      borderRadius: '16px',
+                      padding: '20px',
+                      border: selectedIds.has(character.id) ? '2px solid var(--accent-green)' : '1px solid var(--border-primary)',
+                      transition: 'all 0.2s ease',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!selectedIds.has(character.id)) {
+                        e.currentTarget.style.borderColor = 'var(--border-hover)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!selectedIds.has(character.id)) {
+                        e.currentTarget.style.borderColor = 'var(--border-primary)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', gap: '12px', flex: 1 }}>
+                        <button
+                          onClick={() => toggleSelect(character.id)}
                           style={{
-                            width: '64px',
-                            height: '64px',
-                            borderRadius: '8px',
-                            objectFit: 'cover',
-                            backgroundColor: 'var(--bg-hover)',
+                            width: '22px',
+                            height: '22px',
+                            borderRadius: '6px',
+                            border: selectedIds.has(character.id) ? 'none' : '2px solid var(--border-secondary)',
+                            background: selectedIds.has(character.id) ? 'var(--accent-green)' : 'transparent',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s ease',
+                            flexShrink: 0,
                           }}
-                        />
-                      ) : (
-                        <div style={{
-                          width: '64px',
-                          height: '64px',
-                          borderRadius: '8px',
-                          background: 'var(--gradient-success)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}>
-                          <User style={{ width: '32px', height: '32px', color: 'white' }} />
-                        </div>
-                      )}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <h3 style={{
-                          fontSize: '16px',
-                          fontWeight: '600',
-                          color: 'var(--text-primary)',
-                          margin: '0 0 4px 0',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}>
-                          {character.name}
-                        </h3>
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                          {character.age && (
-                            <span style={{
-                              fontSize: '12px',
-                              color: 'var(--text-secondary)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                            }}>
-                              <Calendar style={{ width: '12px', height: '12px' }} />
-                              {character.age}岁
-                            </span>
-                          )}
-                          {character.gender && (
-                            <span style={{
-                              fontSize: '12px',
-                              color: 'var(--text-secondary)',
-                            }}>
-                              {character.gender}
-                            </span>
-                          )}
+                        >
+                          {selectedIds.has(character.id) && <X style={{ width: '12px', height: '12px', color: 'white' }} />}
+                        </button>
+                        {character.referenceImages && character.referenceImages.length > 0 ? (
+                          <img
+                            src={character.referenceImages[0]}
+                            alt={character.name}
+                            style={{
+                              width: '56px',
+                              height: '56px',
+                              borderRadius: '12px',
+                              objectFit: 'cover',
+                            }}
+                          />
+                        ) : (
+                          <div style={{
+                            width: '56px',
+                            height: '56px',
+                            borderRadius: '12px',
+                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}>
+                            <User style={{ width: '28px', height: '28px', color: 'white' }} />
+                          </div>
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <h4 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', margin: '0 0 6px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{character.name}</h4>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            {character.age && (
+                              <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <Calendar style={{ width: '12px', height: '12px' }} />
+                                {character.age}岁
+                              </span>
+                            )}
+                            {character.gender && (
+                              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{character.gender}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button
+                          onClick={() => handleOpenCharacterModal(character)}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            background: 'transparent',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'var(--bg-hover)';
+                            e.currentTarget.style.color = 'var(--accent-blue)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = 'var(--text-muted)';
+                          }}
+                        >
+                          <Edit2 style={{ width: '16px', height: '16px' }} />
+                        </button>
+                        <button
+                          onClick={() => handleOpenDeleteModal(character.id)}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            background: 'transparent',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                            e.currentTarget.style.color = '#ef4444';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = 'var(--text-muted)';
+                          }}
+                        >
+                          <Trash2 style={{ width: '16px', height: '16px' }} />
+                        </button>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => handleOpenCharacterModal(character)}
-                        aria-label="编辑角色"
-                        icon={<Edit2 size={14} />}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => handleOpenDeleteModal(character.id)}
-                        aria-label="删除角色"
-                        icon={<Trash2 size={14} />}
-                      />
-                    </div>
-                  </div>
 
-                  <p style={{
-                    fontSize: '14px',
-                    color: 'var(--text-secondary)',
-                    lineHeight: '1.6',
-                    margin: '0 0 16px 0',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                  }}>
-                    {character.appearance}
-                  </p>
+                    <p style={{
+                      fontSize: '13px',
+                      color: 'var(--text-secondary)',
+                      lineHeight: '1.6',
+                      margin: '0 0 16px 0',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}>
+                      {character.appearance}
+                    </p>
 
-                  {character.referenceImages && character.referenceImages.length > 1 && (
-                    <div style={{ marginBottom: '16px' }}>
-                      <div style={{
-                        display: 'flex',
-                        gap: '8px',
-                        overflowX: 'auto',
-                        paddingBottom: '4px',
-                      }}>
-                        {character.referenceImages.slice(1, 5).map((img, idx) => (
+                    {character.referenceImages && character.referenceImages.length > 1 && (
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto' }}>
+                        {character.referenceImages.slice(1, 4).map((img, idx) => (
                           <img
                             key={idx}
                             src={img}
@@ -477,54 +673,66 @@ export default function CharactersPage() {
                             style={{
                               width: '48px',
                               height: '48px',
-                              borderRadius: '6px',
+                              borderRadius: '10px',
                               objectFit: 'cover',
                               flexShrink: 0,
-                              border: '1px solid var(--border-primary)',
                             }}
                           />
                         ))}
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  <div style={{
-                    padding: '12px 0',
-                    borderTop: '1px solid var(--border-primary)',
-                    marginBottom: '12px',
-                  }}>
                     <div style={{
                       display: 'flex',
-                      justifyContent: 'space-between',
                       alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingTop: '16px',
+                      borderTop: '1px solid var(--border-primary)',
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Shirt style={{ width: '14px', height: '14px', color: 'var(--text-muted)' }} />
-                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                          服装 ({character.wardrobes?.length || 0})
-                        </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-muted)' }}>
+                        <Shirt style={{ width: '14px', height: '14px' }} />
+                        <span>服装 ({character.wardrobes?.length || 0})</span>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
+                      <button
                         onClick={() => handleOpenWardrobeModal(character)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-primary)',
+                          background: 'transparent',
+                          color: 'var(--text-secondary)',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = 'var(--accent-green)';
+                          e.currentTarget.style.color = 'var(--accent-green)';
+                          e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = 'var(--border-primary)';
+                          e.currentTarget.style.color = 'var(--text-secondary)';
+                          e.currentTarget.style.background = 'transparent';
+                        }}
                       >
                         添加
-                      </Button>
+                      </button>
                     </div>
 
                     {character.wardrobes && character.wardrobes.length > 0 && (
                       <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {character.wardrobes.slice(0, 3).map((wardrobe) => (
+                        {character.wardrobes.slice(0, 2).map((wardrobe) => (
                           <div
                             key={wardrobe.id}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '8px',
-                              padding: '8px',
-                              backgroundColor: 'var(--bg-hover)',
-                              borderRadius: '6px',
+                              gap: '10px',
+                              padding: '10px 12px',
+                              background: 'var(--bg-hover)',
+                              borderRadius: '10px',
                             }}
                           >
                             {wardrobe.referenceImage ? (
@@ -534,7 +742,7 @@ export default function CharactersPage() {
                                 style={{
                                   width: '32px',
                                   height: '32px',
-                                  borderRadius: '4px',
+                                  borderRadius: '6px',
                                   objectFit: 'cover',
                                 }}
                               />
@@ -542,8 +750,8 @@ export default function CharactersPage() {
                               <div style={{
                                 width: '32px',
                                 height: '32px',
-                                borderRadius: '4px',
-                                backgroundColor: 'var(--bg-elevated)',
+                                borderRadius: '6px',
+                                background: 'var(--bg-secondary)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -551,89 +759,134 @@ export default function CharactersPage() {
                                 <Shirt style={{ width: '16px', height: '16px', color: 'var(--text-muted)' }} />
                               </div>
                             )}
-                            <span style={{ fontSize: '13px', color: 'var(--text-primary)', flex: 1 }}>
-                              {wardrobe.name}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
+                            <span style={{ fontSize: '13px', color: 'var(--text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{wardrobe.name}</span>
+                            <button
                               onClick={() => handleDeleteWardrobe(character.id, wardrobe.id)}
-                              aria-label="删除服装"
-                              icon={<X size={12} />}
-                            />
+                              style={{
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '6px',
+                                border: 'none',
+                                background: 'transparent',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.2s ease',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                                e.currentTarget.style.color = '#ef4444';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'transparent';
+                                e.currentTarget.style.color = 'var(--text-muted)';
+                              }}
+                            >
+                              <X style={{ width: '12px', height: '12px' }} />
+                            </button>
                           </div>
                         ))}
-                        {character.wardrobes.length > 3 && (
-                          <div style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', padding: '4px' }}>
-                            还有 {character.wardrobes.length - 3} 套服装
+                        {character.wardrobes.length > 2 && (
+                          <div style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                            还有 {character.wardrobes.length - 2} 套服装
                           </div>
                         )}
                       </div>
                     )}
-                  </div>
 
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
-                    <Hash style={{ width: '12px', height: '12px' }} />
-                    <span>出镜 {character._count?.shots || 0} 次</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '12px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                      <Hash style={{ width: '12px', height: '12px' }} />
+                      <span>出镜 {character._count?.shots || 0} 次</span>
+                    </div>
                   </div>
-                </Card>
-              ))}
-            </div>
-            </>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
+      </div>
 
       {showCharacterModal && (
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'var(--overlay-bg)',
+          background: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000,
-        }}
-        onClick={handleCloseCharacterModal}
-        >
-          <Card style={{
-            padding: '32px',
-            maxWidth: '576px',
+          padding: '24px',
+        }} onClick={handleCloseCharacterModal}>
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: '24px',
             width: '100%',
-            margin: '24px',
+            maxWidth: '600px',
             maxHeight: '90vh',
-            overflowY: 'auto',
-          }}
-          onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h2 style={{
-                fontSize: '20px',
-                fontWeight: '700',
-                color: 'var(--text-primary)',
-                margin: 0,
-              }}>
-                {editingCharacter ? '编辑角色' : '添加角色'}
-              </h2>
-              <Button
-                variant="ghost"
-                size="icon-sm"
+            overflow: 'auto',
+            border: '1px solid var(--border-primary)',
+            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)',
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '24px',
+              borderBottom: '1px solid var(--border-primary)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+                }}>
+                  <Sparkles style={{ width: '22px', height: '22px', color: 'white' }} />
+                </div>
+                <h2 style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
+                  {editingCharacter ? '编辑角色' : '添加角色'}
+                </h2>
+              </div>
+              <button
                 onClick={handleCloseCharacterModal}
-                aria-label="关闭"
-                icon={<X size={20} />}
-              />
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-primary)',
+                  background: 'transparent',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                  e.currentTarget.style.color = '#ef4444';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.borderColor = 'var(--border-primary)';
+                  e.currentTarget.style.color = 'var(--text-muted)';
+                }}
+              >
+                <X style={{ width: '18px', height: '18px' }} />
+              </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--text-primary)',
-                  marginBottom: '8px',
-                }}>
-                  角色名称 *
-                </label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>角色名称 *</label>
                 <input
                   type="text"
                   value={characterForm.name}
@@ -641,27 +894,30 @@ export default function CharactersPage() {
                   placeholder="输入角色名称"
                   style={{
                     width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
+                    height: '44px',
+                    padding: '0 14px',
                     border: '1px solid var(--border-primary)',
-                    backgroundColor: 'var(--bg-hover)',
+                    borderRadius: '12px',
+                    background: 'var(--bg-input)',
                     color: 'var(--text-primary)',
                     fontSize: '14px',
+                    outline: 'none',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--accent-green)';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                    e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: 'var(--text-primary)',
-                    marginBottom: '8px',
-                  }}>
-                    年龄
-                  </label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>年龄</label>
                   <input
                     type="number"
                     value={characterForm.age}
@@ -669,38 +925,50 @@ export default function CharactersPage() {
                     placeholder="例如：25"
                     style={{
                       width: '100%',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
+                      height: '44px',
+                      padding: '0 14px',
                       border: '1px solid var(--border-primary)',
-                      backgroundColor: 'var(--bg-hover)',
+                      borderRadius: '12px',
+                      background: 'var(--bg-input)',
                       color: 'var(--text-primary)',
                       fontSize: '14px',
+                      outline: 'none',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--accent-green)';
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-primary)';
+                      e.currentTarget.style.boxShadow = 'none';
                     }}
                   />
                 </div>
 
                 <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: 'var(--text-primary)',
-                    marginBottom: '8px',
-                  }}>
-                    性别
-                  </label>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>性别</label>
                   <select
                     value={characterForm.gender}
                     onChange={(e) => setCharacterForm({ ...characterForm, gender: e.target.value })}
                     style={{
                       width: '100%',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
+                      height: '44px',
+                      padding: '0 14px',
                       border: '1px solid var(--border-primary)',
-                      backgroundColor: 'var(--bg-hover)',
+                      borderRadius: '12px',
+                      background: 'var(--bg-input)',
                       color: 'var(--text-primary)',
                       fontSize: '14px',
+                      outline: 'none',
                       cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--accent-green)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-primary)';
                     }}
                   >
                     <option value="">请选择</option>
@@ -712,15 +980,7 @@ export default function CharactersPage() {
               </div>
 
               <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--text-primary)',
-                  marginBottom: '8px',
-                }}>
-                  外貌描述 *
-                </label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>外貌描述 *</label>
                 <textarea
                   value={characterForm.appearance}
                   onChange={(e) => setCharacterForm({ ...characterForm, appearance: e.target.value })}
@@ -728,28 +988,30 @@ export default function CharactersPage() {
                   rows={4}
                   style={{
                     width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
+                    minHeight: '100px',
+                    padding: '14px',
                     border: '1px solid var(--border-primary)',
-                    backgroundColor: 'var(--bg-hover)',
+                    borderRadius: '12px',
+                    background: 'var(--bg-input)',
                     color: 'var(--text-primary)',
                     fontSize: '14px',
-                    resize: 'vertical',
-                    fontFamily: 'inherit',
+                    outline: 'none',
+                    resize: 'none',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--accent-green)';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                    e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
               </div>
 
               <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--text-primary)',
-                  marginBottom: '8px',
-                }}>
-                  参考图片
-                </label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>参考图片</label>
                 <ImageSelector
                   value={characterForm.referenceImages[0] || null}
                   onChange={(url) => {
@@ -770,22 +1032,19 @@ export default function CharactersPage() {
                   placeholder="添加角色参考图"
                   characterDescription={characterForm.appearance || ''}
                   enableReferenceImage={true}
-                  enableMultipleGeneration={true}
-                  enableThreeViews={true}
+                  enableMultipleGeneration={false}
+                  enableThreeViews={false}
                   threeViewsMode="combined"
                 />
               </div>
 
               <div style={{ display: 'flex', gap: '12px', paddingTop: '8px' }}>
-                <Button
-                  variant="outline"
-                  style={{ flex: 1 }}
-                  onClick={handleCloseCharacterModal}
-                >
+                <Button variant="outline" style={{ flex: 1, height: '48px' }} onClick={handleCloseCharacterModal}>
                   取消
                 </Button>
                 <Button
-                  style={{ flex: 1 }}
+                  variant="primary"
+                  style={{ flex: 1, height: '48px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
                   onClick={handleSaveCharacter}
                   disabled={!characterForm.name || !characterForm.appearance}
                 >
@@ -793,7 +1052,7 @@ export default function CharactersPage() {
                 </Button>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
       )}
 
@@ -801,56 +1060,66 @@ export default function CharactersPage() {
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'var(--overlay-bg)',
+          background: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000,
-        }}
-        onClick={handleCloseWardrobeModal}
-        >
-          <Card style={{
-            padding: '32px',
-            maxWidth: '480px',
+          padding: '24px',
+        }} onClick={handleCloseWardrobeModal}>
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: '24px',
             width: '100%',
-            margin: '24px',
-          }}
-          onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            maxWidth: '480px',
+            border: '1px solid var(--border-primary)',
+            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)',
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '24px',
+              borderBottom: '1px solid var(--border-primary)',
+            }}>
               <div>
-                <h2 style={{
-                  fontSize: '20px',
-                  fontWeight: '700',
-                  color: 'var(--text-primary)',
-                  margin: '0 0 4px 0',
-                }}>
-                  添加服装
-                </h2>
-                <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0 }}>
-                  角色：{selectedCharacter.name}
-                </p>
+                <h2 style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)', margin: '0 0 4px 0' }}>添加服装</h2>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>角色：{selectedCharacter.name}</p>
               </div>
-              <Button
-                variant="ghost"
-                size="icon-sm"
+              <button
                 onClick={handleCloseWardrobeModal}
-                aria-label="关闭"
-                icon={<X size={20} />}
-              />
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-primary)',
+                  background: 'transparent',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                  e.currentTarget.style.color = '#ef4444';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.borderColor = 'var(--border-primary)';
+                  e.currentTarget.style.color = 'var(--text-muted)';
+                }}
+              >
+                <X style={{ width: '18px', height: '18px' }} />
+              </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--text-primary)',
-                  marginBottom: '8px',
-                }}>
-                  服装名称 *
-                </label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>服装名称 *</label>
                 <input
                   type="text"
                   value={wardrobeForm.name}
@@ -858,26 +1127,29 @@ export default function CharactersPage() {
                   placeholder="例如：商务正装"
                   style={{
                     width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
+                    height: '44px',
+                    padding: '0 14px',
                     border: '1px solid var(--border-primary)',
-                    backgroundColor: 'var(--bg-hover)',
+                    borderRadius: '12px',
+                    background: 'var(--bg-input)',
                     color: 'var(--text-primary)',
                     fontSize: '14px',
+                    outline: 'none',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--accent-green)';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                    e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
               </div>
 
               <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--text-primary)',
-                  marginBottom: '8px',
-                }}>
-                  描述
-                </label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>描述</label>
                 <textarea
                   value={wardrobeForm.description}
                   onChange={(e) => setWardrobeForm({ ...wardrobeForm, description: e.target.value })}
@@ -885,53 +1157,52 @@ export default function CharactersPage() {
                   rows={3}
                   style={{
                     width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
+                    minHeight: '80px',
+                    padding: '14px',
                     border: '1px solid var(--border-primary)',
-                    backgroundColor: 'var(--bg-hover)',
+                    borderRadius: '12px',
+                    background: 'var(--bg-input)',
                     color: 'var(--text-primary)',
                     fontSize: '14px',
-                    resize: 'vertical',
-                    fontFamily: 'inherit',
+                    outline: 'none',
+                    resize: 'none',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--accent-green)';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                    e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
               </div>
 
               <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--text-primary)',
-                  marginBottom: '8px',
-                }}>
-                  参考图片
-                </label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>参考图片</label>
                 <div
                   style={{
-                    padding: '20px',
-                    border: '2px dashed var(--border-primary)',
-                    borderRadius: '8px',
+                    padding: '32px',
+                    border: '2px dashed var(--border-secondary)',
+                    borderRadius: '16px',
                     textAlign: 'center',
-                    color: 'var(--text-muted)',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
                   }}
+                  onClick={() => document.getElementById('wardrobe-image-input')?.click()}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-secondary)';
-                    e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                    e.currentTarget.style.borderColor = 'var(--accent-green)';
+                    e.currentTarget.style.background = 'rgba(16, 185, 129, 0.05)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-primary)';
-                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.borderColor = 'var(--border-secondary)';
+                    e.currentTarget.style.background = 'transparent';
                   }}
-                  onClick={() => document.getElementById('wardrobe-image-input')?.click()}
                 >
-                  <ImagePlus style={{ width: '32px', height: '32px', marginBottom: '8px', margin: '0 auto 8px' }} />
-                  <p style={{ fontSize: '14px', margin: 0 }}>点击或拖拽上传图片</p>
-                  <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: '4px 0 0 0' }}>
-                    支持 JPG、PNG、WebP 格式，最大 5MB
-                  </p>
+                  <User style={{ width: '32px', height: '32px', margin: '0 auto 12px', color: 'var(--text-muted)' }} />
+                  <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '0 0 4px 0' }}>点击上传参考图片</p>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>支持 JPG、PNG、WebP 格式</p>
                 </div>
                 <input
                   id="wardrobe-image-input"
@@ -959,40 +1230,49 @@ export default function CharactersPage() {
                   }}
                 />
                 {wardrobeForm.referenceImage && (
-                  <div style={{ marginTop: '12px', position: 'relative', display: 'inline-block' }}>
+                  <div style={{ marginTop: '16px', position: 'relative', display: 'inline-block' }}>
                     <img
                       src={wardrobeForm.referenceImage}
                       alt="服装参考图"
                       style={{
                         width: '120px',
                         height: '120px',
-                        borderRadius: '8px',
+                        borderRadius: '16px',
                         objectFit: 'cover',
-                        border: '1px solid var(--border-primary)',
                       }}
                     />
-                    <Button
-                      variant="danger"
-                      size="icon-sm"
+                    <button
                       onClick={() => setWardrobeForm({ ...wardrobeForm, referenceImage: '' })}
-                      aria-label="删除图片"
-                      style={{ position: 'absolute', top: '-8px', right: '-8px', border: '2px solid var(--bg-elevated)' }}
-                      icon={<X size={14} />}
-                    />
+                      style={{
+                        position: 'absolute',
+                        top: '-8px',
+                        right: '-8px',
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: '#ef4444',
+                        color: 'white',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
+                      }}
+                    >
+                      <X style={{ width: '14px', height: '14px' }} />
+                    </button>
                   </div>
                 )}
               </div>
 
               <div style={{ display: 'flex', gap: '12px', paddingTop: '8px' }}>
-                <Button
-                  variant="outline"
-                  style={{ flex: 1 }}
-                  onClick={handleCloseWardrobeModal}
-                >
+                <Button variant="outline" style={{ flex: 1, height: '48px' }} onClick={handleCloseWardrobeModal}>
                   取消
                 </Button>
                 <Button
-                  style={{ flex: 1 }}
+                  variant="primary"
+                  style={{ flex: 1, height: '48px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
                   onClick={handleAddWardrobe}
                   disabled={!wardrobeForm.name}
                 >
@@ -1000,7 +1280,7 @@ export default function CharactersPage() {
                 </Button>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
       )}
 
@@ -1008,60 +1288,64 @@ export default function CharactersPage() {
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'var(--overlay-bg)',
+          background: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000,
-        }}
-        onClick={handleCloseDeleteModal}
-        >
-          <Card style={{
-            padding: '32px',
-            maxWidth: '448px',
+          padding: '24px',
+        }} onClick={handleCloseDeleteModal}>
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: '24px',
             width: '100%',
-            margin: '24px',
-          }}
-          onClick={(e) => e.stopPropagation()}
-          >
-            <h2 style={{
-              fontSize: '20px',
-              fontWeight: '700',
-              color: 'var(--text-primary)',
-              marginBottom: '12px',
-              margin: '0 0 12px 0',
-            }}>确认删除角色</h2>
-            <p style={{
-              fontSize: '14px',
-              color: 'var(--text-secondary)',
-              marginBottom: '24px',
-              lineHeight: '1.6',
+            maxWidth: '400px',
+            padding: '32px',
+            border: '1px solid var(--border-primary)',
+            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)',
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '16px',
+              background: 'rgba(239, 68, 68, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 20px',
             }}>
+              <Trash2 style={{ width: '28px', height: '28px', color: '#ef4444' }} />
+            </div>
+            <h2 style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)', textAlign: 'center', margin: '0 0 8px 0' }}>确认删除角色</h2>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', textAlign: 'center', lineHeight: '1.6', margin: '0 0 24px 0' }}>
               您确定要删除此角色吗？此操作不可撤销，所有相关数据将被永久删除。
             </p>
             <div style={{ display: 'flex', gap: '12px' }}>
-              <Button
-                variant="outline"
-                style={{ flex: 1 }}
-                onClick={handleCloseDeleteModal}
-              >
+              <Button variant="outline" style={{ flex: 1, height: '48px' }} onClick={handleCloseDeleteModal}>
                 取消
               </Button>
               <Button
-                style={{
-                  flex: 1,
-                  backgroundColor: 'var(--error)',
-                  borderColor: 'var(--error)',
-                }}
+                variant="danger"
+                style={{ flex: 1, height: '48px' }}
                 onClick={handleDeleteCharacter}
               >
-                <Trash2 style={{ width: '16px', height: '16px', marginRight: '8px' }} />
+                <Trash2 style={{ width: '16px', height: '16px', marginRight: '6px' }} />
                 删除
               </Button>
             </div>
-          </Card>
+          </div>
         </div>
       )}
+
+      <style>
+        {`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}
+      </style>
     </div>
   );
 }

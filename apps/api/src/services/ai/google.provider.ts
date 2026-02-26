@@ -1,7 +1,7 @@
 import { AIProvider } from './provider.interface'
 import { AIRequest, AIResponse, AIChatMessage, AICreateImageRequest, AICreateImageResponse, AICreateVideoRequest, AICreateVideoResponse } from '../../types/ai.types'
 import { config } from '../../config'
-import { logger } from '../../lib/logger'
+import logger from '../../lib/logger'
 
 export class GoogleProvider extends AIProvider {
   constructor(apiKey: string, baseUrl?: string) {

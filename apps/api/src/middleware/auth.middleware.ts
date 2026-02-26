@@ -3,6 +3,15 @@ import { prisma } from '../lib/prisma'
 
 const ENABLE_AUTH = true
 
+export interface AuthRequest extends Request {
+  userId: string;
+  user: {
+    id: string;
+    email: string;
+    name: string;
+  };
+}
+
 export const authMiddleware = async (
   req: Request,
   res: Response,

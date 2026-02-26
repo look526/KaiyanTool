@@ -56,6 +56,12 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
     renderWhitespace: 'none' as const,
     renderControlCharacters: false,
     renderLineDecorations: false,
+    quickSuggestions: false,
+    suggestOnTriggerCharacters: false,
+    acceptSuggestionOnEnter: 'off' as const,
+    tabCompletion: 'off' as const,
+    wordBasedSuggestions: 'off' as const,
+    parameterHints: { enabled: false },
     ...options,
   };
 

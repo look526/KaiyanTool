@@ -3,7 +3,7 @@ import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Modal } from '../components/ui/Modal';
-import { Tabs, TabPanel } from '../components/ui/Tabs';
+import { Tabs } from '../components/ui/Tabs';
 import { Badge, BadgeCount, BadgeDot } from '../components/ui/Badge';
 import { Search, Plus, Settings, User, Bell, Star, Heart, Zap, Sparkles, Flame } from 'lucide-react';
 
@@ -58,14 +58,12 @@ export default function PremiumUIDemo() {
           </p>
         </div>
 
-        <Tabs
-          items={tabs}
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          variant="pills"
-          size="large"
-          style={{ marginBottom: '48px', justifyContent: 'center' }}
-        />
+        <div style={{ marginBottom: '48px', display: 'flex', justifyContent: 'center', gap: '8px' }}>
+          <Button variant={activeTab === 'overview' ? 'primary' : 'ghost'} size="sm" onClick={() => setActiveTab('overview')}>概览</Button>
+          <Button variant={activeTab === 'features' ? 'primary' : 'ghost'} size="sm" onClick={() => setActiveTab('features')}>功能</Button>
+          <Button variant={activeTab === 'analytics' ? 'primary' : 'ghost'} size="sm" onClick={() => setActiveTab('analytics')}>分析</Button>
+          <Button variant={activeTab === 'settings' ? 'primary' : 'ghost'} size="sm" onClick={() => setActiveTab('settings')}>设置</Button>
+        </div>
 
         <div style={{
           display: 'grid',
@@ -315,7 +313,6 @@ export default function PremiumUIDemo() {
             />
             <Input
               placeholder="浮动标签"
-              floating
             />
           </div>
         </Card>
@@ -352,7 +349,7 @@ export default function PremiumUIDemo() {
             gap: '16px',
             alignItems: 'center',
           }}>
-            <Badge size="sm">小徽章</Badge>
+            <Badge size="small">小徽章</Badge>
             <Badge size="medium">中徽章</Badge>
             <Badge size="large">大徽章</Badge>
             <BadgeCount count={5} />
@@ -376,28 +373,21 @@ export default function PremiumUIDemo() {
             标签页组件
           </h2>
           <div style={{ marginBottom: '32px' }}>
-            <Tabs
-              items={tabs}
-              activeKey={activeTab}
-              onChange={setActiveTab}
-              variant="pills"
-            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button variant="ghost" size="sm">概览</Button>
+              <Button variant="ghost" size="sm">功能</Button>
+            </div>
           </div>
           <div style={{ marginBottom: '32px' }}>
-            <Tabs
-              items={tabs}
-              activeKey={activeTab}
-              onChange={setActiveTab}
-              variant="segmented"
-            />
+            <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-secondary)', padding: '4px', borderRadius: '8px' }}>
+              <Button variant="primary" size="sm">设置1</Button>
+              <Button variant="ghost" size="sm">设置2</Button>
+            </div>
           </div>
           <div>
-            <Tabs
-              items={tabs}
-              activeKey={activeTab}
-              onChange={setActiveTab}
-              variant="underline"
-            />
+            <div style={{ borderBottom: '2px solid var(--border-primary)', paddingBottom: '8px' }}>
+              <span style={{ color: 'var(--color-primary-500)', borderBottom: '2px solid var(--color-primary-500)', paddingBottom: '8px' }}>当前标签</span>
+            </div>
           </div>
         </Card>
 
@@ -428,10 +418,10 @@ export default function PremiumUIDemo() {
         </Card>
 
         <Modal
-          isOpen={isModalOpen}
+          open={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           title="高级模态框"
-          size="large"
+          size="lg"
         >
           <div style={{ marginBottom: '24px' }}>
             <h3 style={{

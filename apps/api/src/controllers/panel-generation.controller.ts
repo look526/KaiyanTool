@@ -2,6 +2,7 @@ import { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { aiProviderService } from '../services/ai/provider.service'
 import logger from '../lib/logger'
+import { buildCharacterImagePrompt } from '../config/prompt-templates'
 
 class PanelGenerationController {
   async generatePanelImage(req: Request, res: Response): Promise<void> {

@@ -42,6 +42,24 @@ export class ProviderManager {
     return this.providers.get(id)
   }
 
+  getProviderId(provider: AIProvider): string {
+    return (provider as any).id || '';
+  }
+
+  getProviderModels(providerId: string): any[] {
+    const provider = this.providers.get(providerId);
+    return provider ? (provider as any).models || [] : [];
+  }
+
+  getAllModels(): any[] {
+    const allModels: any[] = [];
+    for (const provider of this.providers.values()) {
+      const models = (provider as any).models || [];
+      allModels.push(...models);
+    }
+    return allModels;
+  }
+
   removeProvider(id: string): void {
     this.providers.delete(id)
   }

@@ -43,6 +43,7 @@ const HelpPage = lazy(() => import('./pages/HelpPage'))
 const AssetsPage = lazy(() => import('./pages/AssetsPage'))
 const ImageGenerationPage = lazy(() => import('./pages/ImageGenerationPage'))
 const VideoGenerationPage = lazy(() => import('./pages/VideoGenerationPage'))
+const ButtonShowcasePage = lazy(() => import('./pages/ButtonShowcasePage'))
 const DashboardLayout = lazy(() => import('./layouts/DashboardLayout').then(module => ({ default: module.DashboardLayout })))
 const ProjectLayout = lazy(() => import('./layouts/ProjectLayout').then(module => ({ default: module.ProjectLayout })))
 
@@ -101,6 +102,7 @@ function App() {
                   <Route path="/" element={<HomePage />} />
                   <Route path="/test" element={<TestPage />} />
                   <Route path="/simple" element={<SimpleTest />} />
+                  <Route path="/buttons" element={<ButtonShowcasePage />} />
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/register" element={<RegisterPage />} />
                   <Route path="/forgot-password" element={<ForgotPasswordPage />} />

@@ -1,797 +1,917 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Plus,
+import { useState, useEffect } from 'react';
+import { 
+  MapPin, 
+  Clock, 
+  Plus, 
+  Search, 
+  Trash2, 
   Edit2,
-  Trash2,
   X,
-  Loader2,
-  MapPin,
-  Clock,
+  Sun,
+  Moon,
   Cloud,
-  Hash,
-  Square,
-  CheckSquare,
+  Sparkles,
+  Layers
 } from 'lucide-react';
 import { Button } from '../components/ui/button-new';
-import { Card } from '../components/ui/card';
-import ImageUpload from '../components/ImageUpload';
-import { apiClient, Scene } from '../lib/api';
 
-interface SceneFormData {
+interface Scene {
+  id: string;
   location: string;
-  time: string;
-  atmosphere: string;
-  referenceImages: string[];
+  time?: string;
+  atmosphere?: string;
+  description?: string;
+  referenceImages?: string[];
+  _count?: {
+    shots?: number;
+  };
+  createdAt?: string;
+  updatedAt?: string;
 }
 
+const MOCK_SCENES: Scene[] = [
+  {
+    id: '1',
+    location: '咖啡厅',
+    time: '下午',
+    atmosphere: '温馨',
+    description: '午后阳光透过落地窗洒进来，咖啡的香气弥漫在空气中',
+    referenceImages: [],
+    _count: { shots: 5 },
+    createdAt: '2024-01-15T10:00:00Z'
+  },
+  {
+    id: '2',
+    location: '办公室',
+    time: '上午',
+    atmosphere: '严肃',
+    description: '现代化的开放式办公室，整洁有序',
+    referenceImages: [],
+    _count: { shots: 8 },
+    createdAt: '2024-01-16T10:00:00Z'
+  },
+  {
+    id: '3',
+    location: '城市街道',
+    time: '夜晚',
+    atmosphere: '热闹',
+    description: '繁华的都市夜景，霓虹灯闪烁',
+    referenceImages: [],
+    _count: { shots: 3 },
+    createdAt: '2024-01-17T10:00:00Z'
+  }
+];
+
+const TIME_OPTIONS = [
+  { value: '', label: '全部时间' },
+  { value: '上午', label: '上午' },
+  { value: '下午', label: '下午' },
+  { value: '夜晚', label: '夜晚' }
+];
+
+const ATMOSPHERE_OPTIONS = [
+  { value: '', label: '全部氛围' },
+  { value: '温馨', label: '温馨' },
+  { value: '严肃', label: '严肃' },
+  { value: '热闹', label: '热闹' },
+  { value: '安静', label: '安静' },
+  { value: '浪漫', label: '浪漫' }
+];
+
 export default function ScenesPage() {
-  const { id } = useParams<{ id: string }>();
-  const [scenes, setScenes] = useState<Scene[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [scenes, setScenes] = useState<Scene[]>(MOCK_SCENES);
+  const [filteredScenes, setFilteredScenes] = useState<Scene[]>(MOCK_SCENES);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'shots' | 'created'>('name');
+  const [filterTime, setFilterTime] = useState('');
+  const [filterAtmosphere, setFilterAtmosphere] = useState('');
+  
   const [showModal, setShowModal] = useState(false);
   const [editingScene, setEditingScene] = useState<Scene | null>(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [sceneToDelete, setSceneToDelete] = useState<string | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingScene, setDeletingScene] = useState<Scene | null>(null);
 
-  const toggleSelect = (sceneId: string) => {
+  const [formLocation, setFormLocation] = useState('');
+  const [formTime, setFormTime] = useState('');
+  const [formAtmosphere, setFormAtmosphere] = useState('');
+  const [formDescription, setFormDescription] = useState('');
+
+  useEffect(() => {
+    let result = [...scenes];
+
+    if (searchQuery) {
+      result = result.filter(s => 
+        s.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (filterTime) {
+      result = result.filter(s => s.time === filterTime);
+    }
+
+    if (filterAtmosphere) {
+      result = result.filter(s => s.atmosphere === filterAtmosphere);
+    }
+
+    switch (sortBy) {
+      case 'name':
+        result.sort((a, b) => a.location.localeCompare(b.location, 'zh-CN'));
+        break;
+      case 'shots':
+        result.sort((a, b) => (b._count?.shots || 0) - (a._count?.shots || 0));
+        break;
+      case 'created':
+      default:
+        break;
+    }
+
+    setFilteredScenes(result);
+  }, [scenes, searchQuery, sortBy, filterTime, filterAtmosphere]);
+
+  const handleSelect = (id: string) => {
     const newSet = new Set(selectedIds);
-    if (newSet.has(sceneId)) newSet.delete(sceneId);
-    else newSet.add(sceneId);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
     setSelectedIds(newSet);
   };
 
-  const selectAll = () => {
-    if (selectedIds.size === scenes.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(scenes.map(s => s.id)));
+  const handleDelete = (scene: Scene) => {
+    setDeletingScene(scene);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    if (deletingScene) {
+      setScenes(scenes.filter(s => s.id !== deletingScene.id));
+      setShowDeleteConfirm(false);
+      setDeletingScene(null);
     }
   };
 
-  const handleBulkDelete = async () => {
-    if (selectedIds.size === 0) return;
-    try {
-      for (const sid of selectedIds) {
-        await apiClient.deleteScene(sid);
-      }
-      setSelectedIds(new Set());
-      await loadScenes();
-    } catch (error) {
-      console.error('Failed to delete scenes:', error);
-    }
-  };
-
-  const [form, setForm] = useState<SceneFormData>({
-    location: '',
-    time: '',
-    atmosphere: '',
-    referenceImages: []
-  });
-
-  const loadScenes = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await apiClient.getScenes(id!);
-      setScenes(data);
-    } catch (error) {
-      console.error('Failed to load scenes:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    loadScenes();
-  }, [loadScenes]);
-
-  const handleSave = async () => {
-    if (!form.location || !form.time) {
-      return;
-    }
-
-    try {
-      const data = {
-        location: form.location,
-        time: form.time,
-        atmosphere: form.atmosphere || undefined,
-        referenceImages: form.referenceImages
-      };
-
-      if (editingScene) {
-        await apiClient.updateScene(editingScene.id, data);
-      } else {
-        await apiClient.createScene(id!, data);
-      }
-
-      await loadScenes();
-      handleCloseModal();
-    } catch (error) {
-      console.error('Failed to save scene:', error);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!sceneToDelete) return;
-
-    try {
-      await apiClient.deleteScene(sceneToDelete);
-      await loadScenes();
-      handleCloseDeleteModal();
-    } catch (error) {
-      console.error('Failed to delete scene:', error);
-    }
-  };
-
-  const handleOpenModal = (scene?: Scene) => {
-    if (scene) {
-      setEditingScene(scene);
-      setForm({
-        location: scene.location,
-        time: scene.time,
-        atmosphere: scene.atmosphere || '',
-        referenceImages: scene.referenceImages || []
-      });
-    } else {
-      setEditingScene(null);
-      setForm({
-        location: '',
-        time: '',
-        atmosphere: '',
-        referenceImages: []
-      });
-    }
+  const handleEdit = (scene: Scene) => {
+    setEditingScene(scene);
+    setFormLocation(scene.location);
+    setFormTime(scene.time || '');
+    setFormAtmosphere(scene.atmosphere || '');
+    setFormDescription(scene.description || '');
     setShowModal(true);
   };
 
-  const handleCloseModal = () => {
+  const handleSave = () => {
+    if (!formLocation) return;
+    
+    if (editingScene) {
+      setScenes(scenes.map(s => s.id === editingScene.id ? {
+        ...s,
+        location: formLocation,
+        time: formTime,
+        atmosphere: formAtmosphere,
+        description: formDescription
+      } : s));
+    } else {
+      setScenes([...scenes, { 
+        id: Date.now().toString(),
+        location: formLocation,
+        time: formTime,
+        atmosphere: formAtmosphere,
+        description: formDescription,
+        _count: { shots: 0 }
+      }]);
+    }
     setShowModal(false);
     setEditingScene(null);
-    setForm({
-      location: '',
-      time: '',
-      atmosphere: '',
-      referenceImages: []
-    });
+    setFormLocation('');
+    setFormTime('');
+    setFormAtmosphere('');
+    setFormDescription('');
   };
 
-  const handleOpenDeleteModal = (sceneId: string) => {
-    setSceneToDelete(sceneId);
-    setShowDeleteModal(true);
+  const handleOpenModal = () => {
+    setEditingScene(null);
+    setFormLocation('');
+    setFormTime('');
+    setFormAtmosphere('');
+    setFormDescription('');
+    setShowModal(true);
   };
 
-  const handleCloseDeleteModal = () => {
-    setShowDeleteModal(false);
-    setSceneToDelete(null);
+  const getAtmosphereIcon = (atmosphere?: string) => {
+    if (!atmosphere) return <Cloud style={{ width: '14px', height: '14px' }} />;
+    if (atmosphere === '温馨' || atmosphere === '浪漫') return <Sun style={{ width: '14px', height: '14px', color: '#f59e0b' }} />;
+    if (atmosphere === '夜晚') return <Moon style={{ width: '14px', height: '14px', color: '#3b82f6' }} />;
+    return <Cloud style={{ width: '14px', height: '14px' }} />;
   };
 
-  if (loading) {
-    return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Loader2 style={{ width: '48px', height: '48px', animation: 'spin 1s linear infinite' }} />
-      </div>
-    );
-  }
+  const getTimeColor = (time?: string) => {
+    if (time === '上午') return '#f59e0b';
+    if (time === '下午') return '#f97316';
+    if (time === '夜晚') return '#8b5cf6';
+    return 'var(--text-muted)';
+  };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-      <header style={{
-        height: '64px',
-        borderBottom: '1px solid var(--border-primary)',
-        backgroundColor: 'var(--bg-elevated)',
-        padding: '0 24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexShrink: 0,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <Link to={`/projects/${id}`} style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 12px',
-            borderRadius: '8px',
-            textDecoration: 'none',
-            color: 'var(--text-muted)',
-            transition: 'all 0.2s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-            e.currentTarget.style.color = 'var(--text-primary)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = 'var(--text-muted)';
-          }}
-          >
-            <ArrowLeft style={{ width: '16px', height: '16px' }} />
-          </Link>
-          <div>
-            <h1 style={{
-              fontSize: '20px',
-              fontWeight: '700',
-              color: 'var(--text-primary)',
-              margin: '0 0 4px 0',
-            }}>场景管理</h1>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              共 {scenes.length} 个场景
+    <div style={{
+      minHeight: '100vh',
+      background: 'var(--bg-page)',
+      padding: '24px',
+    }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{
+              padding: '12px',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+              boxShadow: '0 8px 24px rgba(236, 72, 153, 0.3)',
+            }}>
+              <Layers style={{ width: '28px', height: '28px', color: 'white' }} />
+            </div>
+            <div>
+              <h1 style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>场景管理</h1>
+              <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>管理项目中的所有场景</p>
             </div>
           </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {scenes.length > 0 && (
-            <>
-              <button
-                onClick={selectAll}
-                style={{
-                  background: 'var(--bg-hover)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border-primary)',
-                  borderRadius: '10px',
-                  padding: '10px 18px',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                {selectedIds.size === scenes.length ? (
-                  <CheckSquare style={{ width: '16px', height: '16px' }} />
-                ) : (
-                  <Square style={{ width: '16px', height: '16px' }} />
-                )}
-                {selectedIds.size > 0 ? `${selectedIds.size}/${scenes.length}` : '全选'}
-              </button>
-              {selectedIds.size > 0 && (
-                <button
-                  onClick={handleBulkDelete}
-                  style={{
-                    background: 'var(--error)',
-                    color: 'var(--text-on-error)',
-                    border: 'none',
-                    borderRadius: '10px',
-                    padding: '10px 18px',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  <Trash2 style={{ width: '16px', height: '16px' }} />
-                  删除 ({selectedIds.size})
-                </button>
-              )}
-            </>
-          )}
-          <button
-            onClick={() => handleOpenModal()}
+          <Button
+            variant="primary"
+            onClick={handleOpenModal}
             style={{
+              height: '48px',
+              padding: '0 24px',
+              background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+              borderRadius: '14px',
+              fontSize: '14px',
+              fontWeight: '600',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              height: '52px',
-              padding: '0 28px',
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
-              border: 'none',
-              borderRadius: '14px',
-              color: 'white',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              boxShadow: '0 8px 24px rgba(139, 92, 246, 0.4)',
-              position: 'relative',
-              overflow: 'hidden',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-3px)';
-              e.currentTarget.style.boxShadow = '0 12px 32px rgba(139, 92, 246, 0.5)';
-              e.currentTarget.style.background = 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 8px 24px rgba(139, 92, 246, 0.4)';
-              e.currentTarget.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)';
+              boxShadow: '0 4px 14px rgba(236, 72, 153, 0.3)',
             }}
           >
-            <Plus style={{ width: '16px', height: '16px' }} />
+            <Plus style={{ width: '18px', height: '18px' }} />
             添加场景
-          </button>
+          </Button>
         </div>
-      </header>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-        {scenes.length === 0 ? (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '400px',
-          }}>
-            <MapPin style={{ width: '64px', height: '64px', color: 'var(--text-muted)', marginBottom: '16px' }} />
-            <p style={{ color: 'var(--text-tertiary)', fontSize: '16px', marginBottom: '24px' }}>
-              暂无场景，点击右上角添加
-            </p>
-            <button
-              onClick={() => handleOpenModal()}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                height: '52px',
-                padding: '0 28px',
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
-                border: 'none',
-                borderRadius: '14px',
-                color: 'white',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                boxShadow: '0 8px 24px rgba(139, 92, 246, 0.4)',
-                position: 'relative',
-                overflow: 'hidden',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-3px)';
-                e.currentTarget.style.boxShadow = '0 12px 32px rgba(139, 92, 246, 0.5)';
-                e.currentTarget.style.background = 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(139, 92, 246, 0.4)';
-                e.currentTarget.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)';
-              }}
-            >
-              <Plus style={{ width: '16px', height: '16px' }} />
-              添加场景
-            </button>
+        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{
+              background: 'var(--bg-card)',
+              borderRadius: '20px',
+              padding: '24px',
+              border: '1px solid var(--border-primary)',
+              backdropFilter: 'blur(20px)',
+            }}>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>搜索场景</label>
+                <div style={{ position: 'relative' }}>
+                  <Search style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'var(--text-muted)' }} />
+                  <input
+                    type="text"
+                    placeholder="搜索地点或描述..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{
+                      width: '100%',
+                      height: '44px',
+                      padding: '0 16px 0 42px',
+                      border: '1px solid var(--border-primary)',
+                      borderRadius: '14px',
+                      background: 'var(--bg-input)',
+                      color: 'var(--text-primary)',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = '#ec4899';
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(236, 72, 153, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-primary)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>时间筛选</label>
+                <select
+                  value={filterTime}
+                  onChange={(e) => setFilterTime(e.target.value)}
+                  style={{
+                    width: '100%',
+                    height: '44px',
+                    padding: '0 14px',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '14px',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#ec4899';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                  }}
+                >
+                  {TIME_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>氛围筛选</label>
+                <select
+                  value={filterAtmosphere}
+                  onChange={(e) => setFilterAtmosphere(e.target.value)}
+                  style={{
+                    width: '100%',
+                    height: '44px',
+                    padding: '0 14px',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '14px',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#ec4899';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                  }}
+                >
+                  {ATMOSPHERE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>排序方式</label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  style={{
+                    width: '100%',
+                    height: '44px',
+                    padding: '0 14px',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '14px',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#ec4899';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                  }}
+                >
+                  <option value="name">按名称排序</option>
+                  <option value="shots">按镜头数排序</option>
+                  <option value="created">按创建时间排序</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{
+              background: 'var(--bg-card)',
+              borderRadius: '20px',
+              padding: '24px',
+              border: '1px solid var(--border-primary)',
+              backdropFilter: 'blur(20px)',
+              textAlign: 'center',
+            }}>
+              <div style={{ fontSize: '36px', fontWeight: '700', color: '#ec4899', marginBottom: '4px' }}>{scenes.length}</div>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>总场景数</div>
+            </div>
+
+            <div style={{
+              background: 'var(--bg-card)',
+              borderRadius: '20px',
+              padding: '24px',
+              border: '1px solid var(--border-primary)',
+              backdropFilter: 'blur(20px)',
+              textAlign: 'center',
+            }}>
+              <div style={{ fontSize: '36px', fontWeight: '700', color: 'var(--accent-blue)', marginBottom: '4px' }}>
+                {scenes.reduce((sum, s) => sum + (s._count?.shots || 0), 0)}
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>总镜头数</div>
+            </div>
           </div>
-        ) : (
+
           <div style={{
-            maxWidth: '1400px',
-            margin: '0 auto',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
-            gap: '20px'
+            background: 'var(--bg-card)',
+            borderRadius: '20px',
+            padding: '24px',
+            border: '1px solid var(--border-primary)',
+            backdropFilter: 'blur(20px)',
           }}>
-            {scenes.map((scene) => (
-              <Card key={scene.id} style={{ padding: '20px', border: selectedIds.has(scene.id) ? '2px solid var(--accent)' : undefined }}>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                  <div onClick={() => toggleSelect(scene.id)} style={{ cursor: 'pointer', paddingTop: '4px' }}>
-                    {selectedIds.has(scene.id) ? (
-                      <CheckSquare style={{ width: '20px', height: '20px', color: 'var(--accent)' }} />
-                    ) : (
-                      <Square style={{ width: '20px', height: '20px', color: 'var(--text-muted)' }} />
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
+                场景列表 <span style={{ color: 'var(--text-muted)', fontWeight: '400' }}>({filteredScenes.length})</span>
+              </h3>
+              {selectedIds.size > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>已选择 {selectedIds.size} 个</span>
+                  <Button variant="danger" size="sm" onClick={() => {}}>
+                    <Trash2 style={{ width: '14px', height: '14px', marginRight: '6px' }} />
+                    批量删除
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
+                    取消选择
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {filteredScenes.length === 0 ? (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '64px 32px',
+                color: 'var(--text-muted)',
+              }}>
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '24px',
+                  background: 'var(--bg-hover)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '20px',
+                }}>
+                  <MapPin style={{ width: '36px', height: '36px', opacity: 0.5 }} />
+                </div>
+                <p style={{ fontSize: '16px', fontWeight: '500', marginBottom: '8px' }}>暂无场景</p>
+                <p style={{ fontSize: '14px', marginBottom: '24px' }}>点击"添加场景"开始创建</p>
+                <Button variant="primary" onClick={handleOpenModal}>
+                  <Plus style={{ width: '16px', height: '16px', marginRight: '6px' }} />
+                  添加第一个场景
+                </Button>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+                {filteredScenes.map(scene => (
+                  <div
+                    key={scene.id}
+                    style={{
+                      background: 'var(--bg-secondary)',
+                      borderRadius: '16px',
+                      padding: '20px',
+                      border: selectedIds.has(scene.id) ? '2px solid #ec4899' : '1px solid var(--border-primary)',
+                      transition: 'all 0.2s ease',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!selectedIds.has(scene.id)) {
+                        e.currentTarget.style.borderColor = 'var(--border-hover)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!selectedIds.has(scene.id)) {
+                        e.currentTarget.style.borderColor = 'var(--border-primary)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }
+                    }}
+                  >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                      <div style={{ flex: 1 }}>
-                        <h3 style={{
-                          fontSize: '16px',
-                          fontWeight: '600',
-                          color: 'var(--text-primary)',
-                          margin: '0 0 12px 0',
+                      <div style={{ display: 'flex', gap: '12px', flex: 1 }}>
+                        <button
+                          onClick={() => handleSelect(scene.id)}
+                          style={{
+                            width: '22px',
+                            height: '22px',
+                            borderRadius: '6px',
+                            border: selectedIds.has(scene.id) ? 'none' : '2px solid var(--border-secondary)',
+                            background: selectedIds.has(scene.id) ? '#ec4899' : 'transparent',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s ease',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {selectedIds.has(scene.id) && <X style={{ width: '12px', height: '12px', color: 'white' }} />}
+                        </button>
+                        <div style={{
+                          width: '48px',
+                          height: '48px',
+                          borderRadius: '12px',
+                          background: `linear-gradient(135deg, ${getTimeColor(scene.time)}20 0%, ${getTimeColor(scene.time)}10 100%)`,
+                          border: `1px solid ${getTimeColor(scene.time)}40`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                         }}>
-                          {scene.location}
-                        </h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <Clock style={{ width: '14px', height: '14px', color: 'var(--text-muted)' }} />
-                            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{scene.time}</span>
-                          </div>
-                          {scene.atmosphere && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <Cloud style={{ width: '14px', height: '14px', color: 'var(--text-muted)' }} />
-                              <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{scene.atmosphere}</span>
-                            </div>
-                          )}
+                          <MapPin style={{ width: '22px', height: '22px', color: getTimeColor(scene.time) }} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <h4 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', margin: '0 0 6px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{scene.location}</h4>
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: '4px' }}>
                         <button
-                          onClick={() => handleOpenModal(scene)}
+                          onClick={() => handleEdit(scene)}
                           style={{
-                            padding: '6px',
-                            borderRadius: '6px',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
                             border: 'none',
                             background: 'transparent',
                             color: 'var(--text-muted)',
                             cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                             transition: 'all 0.2s ease',
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                            e.currentTarget.style.color = 'var(--text-primary)';
+                            e.currentTarget.style.background = 'var(--bg-hover)';
+                            e.currentTarget.style.color = 'var(--accent-blue)';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.background = 'transparent';
                             e.currentTarget.style.color = 'var(--text-muted)';
                           }}
                         >
-                          <Edit2 style={{ width: '14px', height: '14px' }} />
+                          <Edit2 style={{ width: '16px', height: '16px' }} />
                         </button>
                         <button
-                          onClick={() => handleOpenDeleteModal(scene.id)}
+                          onClick={() => handleDelete(scene)}
                           style={{
-                            padding: '6px',
-                            borderRadius: '6px',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
                             border: 'none',
                             background: 'transparent',
                             color: 'var(--text-muted)',
                             cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                             transition: 'all 0.2s ease',
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                            e.currentTarget.style.color = 'var(--error)';
+                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                            e.currentTarget.style.color = '#ef4444';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.background = 'transparent';
                             e.currentTarget.style.color = 'var(--text-muted)';
                           }}
                         >
-                          <Trash2 style={{ width: '14px', height: '14px' }} />
+                          <Trash2 style={{ width: '16px', height: '16px' }} />
                         </button>
                       </div>
                     </div>
 
-                    {scene.referenceImages && scene.referenceImages.length > 0 && (
-                      <div style={{
-                        padding: '12px 0',
-                        borderTop: '1px solid var(--border-primary)',
-                        marginBottom: '12px',
-                      }}>
-                        <div style={{
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                      {scene.time && (
+                        <span style={{
                           display: 'flex',
-                          gap: '8px',
-                          overflowX: 'auto',
-                          paddingBottom: '4px',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '12px',
+                          color: getTimeColor(scene.time),
+                          background: `${getTimeColor(scene.time)}15`,
+                          padding: '4px 10px',
+                          borderRadius: '6px',
                         }}>
-                          {scene.referenceImages.slice(0, 4).map((img, idx) => (
-                            <img
-                              key={idx}
-                              src={img}
-                              alt={`参考图 ${idx + 1}`}
-                              style={{
-                                width: '64px',
-                                height: '64px',
-                                borderRadius: '6px',
-                                objectFit: 'cover',
-                                flexShrink: 0,
-                                border: '1px solid var(--border-primary)',
-                              }}
-                            />
-                          ))}
-                          {scene.referenceImages.length > 4 && (
-                            <div style={{
-                              width: '64px',
-                              height: '64px',
-                              borderRadius: '6px',
-                              backgroundColor: 'var(--bg-hover)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '12px',
-                              color: 'var(--text-muted)',
-                              flexShrink: 0,
-                              border: '1px solid var(--border-primary)',
-                            }}>
-                              +{scene.referenceImages.length - 4}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
+                          <Clock style={{ width: '12px', height: '12px' }} />
+                          {scene.time}
+                        </span>
+                      )}
+                      {scene.atmosphere && (
+                        <span style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '12px',
+                          color: 'var(--text-secondary)',
+                          background: 'var(--bg-hover)',
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                        }}>
+                          {getAtmosphereIcon(scene.atmosphere)}
+                          {scene.atmosphere}
+                        </span>
+                      )}
+                    </div>
 
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
-                      <Hash style={{ width: '12px', height: '12px' }} />
-                      <span>出镜 {scene._count?.shots || 0} 次</span>
+                    <p style={{
+                      fontSize: '13px',
+                      color: 'var(--text-secondary)',
+                      lineHeight: '1.6',
+                      margin: '0 0 16px 0',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}>
+                      {scene.description}
+                    </p>
+
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingTop: '12px',
+                      borderTop: '1px solid var(--border-primary)',
+                    }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                        {scene._count?.shots || 0} 个镜头
+                      </span>
                     </div>
                   </div>
-                </div>
-              </Card>
-            ))}
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {showModal && (
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          background: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000,
-        }}
-        onClick={handleCloseModal}
-        >
-          <Card style={{
-            padding: '32px',
-            maxWidth: '576px',
+          padding: '24px',
+        }} onClick={() => setShowModal(false)}>
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: '24px',
             width: '100%',
-            margin: '24px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-          }}
-          onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h2 style={{
-                fontSize: '20px',
-                fontWeight: '700',
-                color: 'var(--text-primary)',
-                margin: 0,
-              }}>
-                {editingScene ? '编辑场景' : '添加场景'}
-              </h2>
+            maxWidth: '500px',
+            border: '1px solid var(--border-primary)',
+            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)',
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '24px',
+              borderBottom: '1px solid var(--border-primary)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 14px rgba(236, 72, 153, 0.3)',
+                }}>
+                  <Sparkles style={{ width: '22px', height: '22px', color: 'white' }} />
+                </div>
+                <h2 style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
+                  {editingScene ? '编辑场景' : '添加场景'}
+                </h2>
+              </div>
               <button
-                onClick={handleCloseModal}
+                onClick={() => setShowModal(false)}
                 style={{
-                  padding: '6px',
-                  borderRadius: '6px',
-                  border: 'none',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-primary)',
                   background: 'transparent',
                   color: 'var(--text-muted)',
                   cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                  e.currentTarget.style.color = '#ef4444';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.borderColor = 'var(--border-primary)';
+                  e.currentTarget.style.color = 'var(--text-muted)';
                 }}
               >
-                <X style={{ width: '20px', height: '20px' }} />
+                <X style={{ width: '18px', height: '18px' }} />
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--text-primary)',
-                  marginBottom: '8px',
-                }}>
-                  场景位置 *
-                </label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>地点 *</label>
                 <input
                   type="text"
-                  value={form.location}
-                  onChange={(e) => setForm({ ...form, location: e.target.value })}
-                  placeholder="例如：办公室、公园、咖啡厅"
+                  placeholder="输入场景地点"
+                  value={formLocation}
+                  onChange={(e) => setFormLocation(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
+                    height: '44px',
+                    padding: '0 14px',
                     border: '1px solid var(--border-primary)',
-                    backgroundColor: 'var(--bg-hover)',
+                    borderRadius: '12px',
+                    background: 'var(--bg-input)',
                     color: 'var(--text-primary)',
                     fontSize: '14px',
+                    outline: 'none',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#ec4899';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(236, 72, 153, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                    e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
               </div>
 
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--text-primary)',
-                  marginBottom: '8px',
-                }}>
-                  时间段 *
-                </label>
-                <input
-                  type="text"
-                  value={form.time}
-                  onChange={(e) => setForm({ ...form, time: e.target.value })}
-                  placeholder="例如：早晨、白天、夜晚"
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-primary)',
-                    backgroundColor: 'var(--bg-hover)',
-                    color: 'var(--text-primary)',
-                    fontSize: '14px',
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--text-primary)',
-                  marginBottom: '8px',
-                }}>
-                  氛围描述
-                </label>
-                <textarea
-                  value={form.atmosphere}
-                  onChange={(e) => setForm({ ...form, atmosphere: e.target.value })}
-                  placeholder="描述场景的氛围、光线、天气等"
-                  rows={4}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-primary)',
-                    backgroundColor: 'var(--bg-hover)',
-                    color: 'var(--text-primary)',
-                    fontSize: '14px',
-                    resize: 'vertical',
-                    fontFamily: 'inherit',
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--text-primary)',
-                  marginBottom: '8px',
-                }}>
-                  参考图片
-                </label>
-                <ImageUpload
-                  value={form.referenceImages[0] || null}
-                  onChange={(url) => {
-                    if (url) {
-                      setForm({
-                        ...form,
-                        referenceImages: [...form.referenceImages, url]
-                      });
-                    }
-                  }}
-                  type="scene"
-                  placeholder="添加场景参考图"
-                />
-                {form.referenceImages.length > 0 && (
-                  <div style={{
-                    marginTop: '12px',
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-                    gap: '8px',
-                  }}>
-                    {form.referenceImages.map((img, idx) => (
-                      <div key={idx} style={{ position: 'relative' }}>
-                        <img
-                          src={img}
-                          alt={`参考图 ${idx + 1}`}
-                          style={{
-                            width: '100%',
-                            aspectRatio: '16/9',
-                            borderRadius: '6px',
-                            objectFit: 'cover',
-                            border: '1px solid var(--border-primary)',
-                          }}
-                        />
-                        <button
-                          onClick={() => {
-                            setForm({
-                              ...form,
-                              referenceImages: form.referenceImages.filter((_, i) => i !== idx)
-                            });
-                          }}
-                          style={{
-                            position: 'absolute',
-                            top: '-6px',
-                            right: '-6px',
-                            width: '20px',
-                            height: '20px',
-                            borderRadius: '50%',
-                            backgroundColor: 'var(--error)',
-                            border: '2px solid var(--bg-elevated)',
-                            color: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            padding: 0,
-                          }}
-                        >
-                          <X style={{ width: '12px', height: '12px' }} />
-                        </button>
-                      </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>时间</label>
+                  <select
+                    value={formTime}
+                    onChange={(e) => setFormTime(e.target.value)}
+                    style={{
+                      width: '100%',
+                      height: '44px',
+                      padding: '0 14px',
+                      border: '1px solid var(--border-primary)',
+                      borderRadius: '12px',
+                      background: 'var(--bg-input)',
+                      color: 'var(--text-primary)',
+                      fontSize: '14px',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    {TIME_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
-                  </div>
-                )}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>氛围</label>
+                  <select
+                    value={formAtmosphere}
+                    onChange={(e) => setFormAtmosphere(e.target.value)}
+                    style={{
+                      width: '100%',
+                      height: '44px',
+                      padding: '0 14px',
+                      border: '1px solid var(--border-primary)',
+                      borderRadius: '12px',
+                      background: 'var(--bg-input)',
+                      color: 'var(--text-primary)',
+                      fontSize: '14px',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    {ATMOSPHERE_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>描述</label>
+                <textarea
+                  placeholder="描述场景的细节..."
+                  rows={4}
+                  value={formDescription}
+                  onChange={(e) => setFormDescription(e.target.value)}
+                  style={{
+                    width: '100%',
+                    minHeight: '100px',
+                    padding: '14px',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '12px',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                    outline: 'none',
+                    resize: 'none',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#ec4899';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(236, 72, 153, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                />
               </div>
 
               <div style={{ display: 'flex', gap: '12px', paddingTop: '8px' }}>
-                <Button
-                  variant="outline"
-                  style={{ flex: 1 }}
-                  onClick={handleCloseModal}
-                >
+                <Button variant="outline" style={{ flex: 1, height: '48px' }} onClick={() => setShowModal(false)}>
                   取消
                 </Button>
                 <Button
-                  style={{ flex: 1 }}
+                  variant="primary"
+                  style={{ flex: 1, height: '48px', background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' }}
                   onClick={handleSave}
-                  disabled={!form.location || !form.time}
+                  disabled={!formLocation}
                 >
                   {editingScene ? '保存' : '添加'}
                 </Button>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
       )}
 
-      {showDeleteModal && (
+      {showDeleteConfirm && (
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          background: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000,
-        }}
-        onClick={handleCloseDeleteModal}
-        >
-          <Card style={{
-            padding: '32px',
-            maxWidth: '448px',
+          padding: '24px',
+        }} onClick={() => setShowDeleteConfirm(false)}>
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: '24px',
             width: '100%',
-            margin: '24px',
-          }}
-          onClick={(e) => e.stopPropagation()}
-          >
-            <h2 style={{
-              fontSize: '20px',
-              fontWeight: '700',
-              color: 'var(--text-primary)',
-              marginBottom: '12px',
-              margin: '0 0 12px 0',
-            }}>确认删除场景</h2>
-            <p style={{
-              fontSize: '14px',
-              color: 'var(--text-secondary)',
-              marginBottom: '24px',
-              lineHeight: '1.6',
+            maxWidth: '400px',
+            padding: '32px',
+            border: '1px solid var(--border-primary)',
+            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)',
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '16px',
+              background: 'rgba(239, 68, 68, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 20px',
             }}>
-              您确定要删除此场景吗？此操作不可撤销，所有相关数据将被永久删除。
+              <Trash2 style={{ width: '28px', height: '28px', color: '#ef4444' }} />
+            </div>
+            <h2 style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)', textAlign: 'center', margin: '0 0 8px 0' }}>确认删除</h2>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', textAlign: 'center', lineHeight: '1.6', margin: '0 0 24px 0' }}>
+              确定要删除场景"{deletingScene?.location}"吗？此操作无法撤销。
             </p>
             <div style={{ display: 'flex', gap: '12px' }}>
-              <Button
-                variant="outline"
-                style={{ flex: 1 }}
-                onClick={handleCloseDeleteModal}
-              >
+              <Button variant="outline" style={{ flex: 1, height: '48px' }} onClick={() => setShowDeleteConfirm(false)}>
                 取消
               </Button>
               <Button
-                style={{
-                  flex: 1,
-                  backgroundColor: 'var(--error)',
-                  borderColor: 'var(--error)',
-                }}
-                onClick={handleDelete}
+                variant="danger"
+                style={{ flex: 1, height: '48px' }}
+                onClick={confirmDelete}
               >
-                <Trash2 style={{ width: '16px', height: '16px', marginRight: '8px' }} />
+                <Trash2 style={{ width: '16px', height: '16px', marginRight: '6px' }} />
                 删除
               </Button>
             </div>
-          </Card>
+          </div>
         </div>
       )}
     </div>

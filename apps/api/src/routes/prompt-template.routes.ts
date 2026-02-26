@@ -248,7 +248,7 @@ router.post('/:code/render', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/seed', async (req: Request, res: Response) => {
+router.post('/seed', async (_req: Request, res: Response) => {
   try {
     const defaultTemplates = [
       {
