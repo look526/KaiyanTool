@@ -15,10 +15,12 @@ export class AIProviderController {
   async getProviders(req: Request, res: Response): Promise<void> {
     try {
       if (!req.userId) {
+        logger.warn('getProviders: No userId found', { hasSession: !!req.session })
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
+      logger.info('getProviders: Fetching providers', { userId: req.userId })
       const providers = await prisma.aIProvider.findMany({
         where: { userId: req.userId },
         select: {
