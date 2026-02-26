@@ -214,7 +214,8 @@ export default function AIProvidersPage() {
       setModelFormData({ name: '', types: [], description: '', capabilities: [] });
       loadProviders();
     } catch (error: any) {
-      addToast({ type: 'error', title: '添加失败', message: error.message || '无法添加模型' });
+      const errorMsg = error?.response?.data?.error || error?.message || '无法添加模型';
+      addToast({ type: 'error', title: '添加失败', message: errorMsg });
     } finally {
       setSaving(false);
     }
@@ -231,7 +232,8 @@ export default function AIProvidersPage() {
       setModelFormData({ name: '', types: [], description: '', capabilities: [] });
       loadProviders();
     } catch (error: any) {
-      addToast({ type: 'error', title: '更新失败', message: error.message || '无法更新模型' });
+      const errorMsg = error?.response?.data?.error || error?.message || '无法更新模型';
+      addToast({ type: 'error', title: '更新失败', message: errorMsg });
     } finally {
       setSaving(false);
     }

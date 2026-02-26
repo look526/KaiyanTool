@@ -116,6 +116,17 @@ export class ApiClient {
     return this.delete(`/ai-providers/${id}`)
   }
 
+  async createAIProviderModel(providerId: string, data: any) {
+    return this.post<any>(`/ai-providers/${providerId}/models`, data)
+  }
+
+  async updateAIProviderModel(providerId: string, modelId: string, data: any) {
+    return this.put<any>(`/ai-providers/${providerId}/models/${modelId}`, data)
+  }
+
+  async deleteAIProviderModel(providerId: string, modelId: string) {
+    return this.delete(`/ai-providers/${providerId}/models/${modelId}`)
+  }
   // Document endpoints
   async getDocuments() {
     return this.get<any[]>('/documents')
