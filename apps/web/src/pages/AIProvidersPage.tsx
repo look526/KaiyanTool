@@ -118,9 +118,10 @@ export default function AIProvidersPage() {
       setLoading(true);
       const data = await apiClient.getAIProviders();
       setProviders(data.providers as any);
-    } catch (error) {
+    } catch (error: any) {
       console.error('加载 AI 提供商失败:', error);
-      addToast({ type: 'error', title: '加载失败', message: '无法加载 AI 提供商列表' });
+      const errorMsg = error?.response?.data?.error || error?.message || '无法加载 AI 提供商列表';
+      addToast({ type: 'error', title: '加载失败', message: errorMsg });
     } finally {
       setLoading(false);
     }
@@ -144,7 +145,8 @@ export default function AIProvidersPage() {
       resetForm();
       loadProviders();
     } catch (error: any) {
-      addToast({ type: 'error', title: '添加失败', message: error.message || '无法添加 AI 提供商' });
+      const errorMsg = error?.response?.data?.error || error?.message || '无法添加 AI 提供商';
+      addToast({ type: 'error', title: '添加失败', message: errorMsg });
     } finally {
       setSaving(false);
     }
