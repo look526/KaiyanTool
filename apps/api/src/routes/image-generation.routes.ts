@@ -16,7 +16,8 @@ router.post('/generate', async (req, res) => {
       style: req.body.style,
       characterRefImageId: req.body.characterRefImageId,
       sceneRefImageId: req.body.sceneRefImageId,
-      projectId: req.body.projectId
+      projectId: req.body.projectId,
+      model: req.body.model,
     });
     res.json(result);
   } catch (error) {

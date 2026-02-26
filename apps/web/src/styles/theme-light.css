@@ -8,6 +8,7 @@
   --bg-deep: #e2e8f0;
   --bg-sunken: #f1f5f9;
   --bg-hover: rgba(0, 0, 0, 0.03);
+  --bg-active: rgba(0, 0, 0, 0.06);
   --bg-card: rgba(255, 255, 255, 0.9);
   --bg-header: rgba(255, 255, 255, 0.9);
   --bg-sidebar: linear-gradient(180deg, rgba(248, 250, 252, 0.98) 0%, rgba(241, 245, 249, 0.98) 100%);

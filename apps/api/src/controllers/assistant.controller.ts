@@ -80,6 +80,7 @@ export const chat = async (req: AuthRequest, res: Response) => {
     });
 
     for (const dbProvider of dbProviders) {
+      logger.info('Processing provider from DB', { providerId: dbProvider.id, type: dbProvider.type, hasApiKey: !!dbProvider.apiKey, hasBaseUrl: !!dbProvider.baseUrl, baseUrl: dbProvider.baseUrl });
       if (!providerManager.getProvider(dbProvider.id)) {
         try {
           providerManager.addProvider({
@@ -285,6 +286,7 @@ export const getProviders = async (req: AuthRequest, res: Response) => {
         models: p.models.map(m => ({
           id: m.id,
           name: m.name,
+          types: m.types,
           isAssistantDefault: m.isAssistantDefault
         }))
       }))

@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
-  ArrowLeft,
   Shield,
   Lock,
   Eye,
@@ -106,27 +104,6 @@ export default function SecuritySettingsPage() {
           flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <Link to="/settings" style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              textDecoration: 'none',
-              color: 'var(--text-muted)',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-              e.currentTarget.style.color = 'var(--text-primary)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = 'var(--text-muted)';
-            }}
-            >
-              <ArrowLeft style={{ width: '16px', height: '16px' }} />
-            </Link>
             <div>
               <h1 style={{
                 fontSize: '20px',

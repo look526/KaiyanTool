@@ -27,6 +27,7 @@ import {
   Clock,
   Users,
   ChevronRight,
+  BookOpen,
 } from 'lucide-react';
 import { Button } from '../components/ui/button-new';
 import MonacoEditor from '../components/MonacoEditor';
@@ -34,6 +35,9 @@ import { ModelSelector } from '../components/ui';
 import { apiClient } from '../lib/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../components/ui/Toast';
+import { ContentProvider, useContent, ContentMode } from '../contexts/ContentContext';
+import ContentTabs from '../components/ContentTabs';
+import ChapterList from '../components/ChapterList';
 
 interface Scene {
   id: number;
@@ -80,20 +84,37 @@ const SCRIPT_TEMPLATES = [
   },
 ];
 
-export default function ScriptEditorPage() {
+function ScriptEditorContent() {
   const { projectId } = useParams<{ projectId: string }>();
   const projectIdStr = projectId || '';
   const { theme } = useTheme();
+  const {
+    mode,
+    setMode,
+    scriptContent,
+    setScriptContent,
+    scriptTitle,
+    setScriptTitle,
+    novelContent,
+    setNovelContent,
+    novelTitle,
+    setNovelTitle,
+    selectedChapterId,
+    setSelectedChapterId,
+    lastSaved,
+    setLastSaved,
+    autoSaveEnabled,
+    setAutoSaveEnabled,
+    isSaving,
+    setIsSaving,
+    saveToLocalStorage,
+    loadFromLocalStorage,
+  } = useContent();
 
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
   const [parsedScenes, setParsedScenes] = useState<Scene[]>([]);
   const [characters, setCharacters] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
-  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isContinuing, setIsContinuing] = useState(false);
   const [isRewriting, setIsRewriting] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -114,50 +135,65 @@ export default function ScriptEditorPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [showAIPanel, setShowAIPanel] = useState(true);
+  const [novelId, setNovelId] = useState<string | null>(null);
   const { addToast } = useToast();
 
-  const loadFromLocalStorage = useCallback(() => {
-    const saved = localStorage.getItem(`script-${projectIdStr}`);
-    if (saved) {
-      try {
-        const data = JSON.parse(saved);
-        setTitle(data.title || '');
-        setContent(data.content || '');
-        setLastSaved(new Date(data.timestamp));
-      } catch (err) {
-        console.error('加载本地存储失败:', err);
-      }
-    }
-  }, [projectIdStr]);
-
-  const saveToLocalStorage = useCallback(() => {
-    localStorage.setItem(`script-${projectIdStr}`, JSON.stringify({
-      title,
-      content,
-      timestamp: Date.now(),
-    }));
-    setLastSaved(new Date());
-  }, [projectIdStr, title, content]);
+  const title = mode === 'script' ? scriptTitle : novelTitle;
+  const setTitle = mode === 'script' ? setScriptTitle : setNovelTitle;
+  const content = mode === 'script' ? scriptContent : novelContent;
+  const setContent = mode === 'script' ? setScriptContent : setNovelContent;
 
   useEffect(() => {
-    loadFromLocalStorage();
-  }, [loadFromLocalStorage]);
+    loadFromLocalStorage(mode);
+  }, [mode, loadFromLocalStorage]);
 
   useEffect(() => {
     if (!autoSaveEnabled) return;
     const timer = setTimeout(() => {
       if (title || content) {
-        saveToLocalStorage();
+        saveToLocalStorage(mode);
       }
     }, 3000);
     return () => clearTimeout(timer);
-  }, [title, content, autoSaveEnabled, saveToLocalStorage]);
+  }, [title, content, autoSaveEnabled, mode, saveToLocalStorage]);
+
+  const handleModeChange = (newMode: ContentMode) => {
+    setMode(newMode);
+  };
+
+  const handleChapterSelect = (chapter: any) => {
+    setSelectedChapterId(chapter.id);
+    setTitle(chapter.title);
+    setContent(chapter.content);
+  };
+
+  const handleChapterDelete = async (chapterId: string) => {
+    if (!confirm('确定删除此章节？')) return;
+    try {
+      await apiClient.deleteChapter(chapterId);
+      if (selectedChapterId === chapterId) {
+        setSelectedChapterId(null);
+        setTitle(novelTitle);
+        setContent(novelContent);
+      }
+      addToast({ type: 'success', title: '删除成功' });
+    } catch (error) {
+      console.error('删除章节失败:', error);
+      addToast({ type: 'error', title: '删除失败' });
+    }
+  };
+
+  const handleNovelSelect = (novelTitle: string, novelContent: string) => {
+    setSelectedChapterId(null);
+    setTitle(novelTitle);
+    setContent(novelContent);
+  };
 
   const parseScript = async () => {
     if (!content.trim()) return;
     try {
       setLoading(true);
-      const result = await apiClient.parseScript(content);
+      const result = await apiClient.parseScript(content, selectedModel);
       setParsedScenes(result.scenes);
       setCharacters(result.characters);
       setEditorMode('preview');
@@ -232,7 +268,7 @@ export default function ScriptEditorPage() {
     }
     try {
       setIsContinuing(true);
-      const result = await apiClient.continueScript(content);
+      const result = await apiClient.continueScript(content, selectedModel);
       setContent(result.content);
       saveToLocalStorage();
     } catch (error) {
@@ -251,7 +287,7 @@ export default function ScriptEditorPage() {
     }
     try {
       setIsRewriting(true);
-      const result = await apiClient.rewriteScript(content);
+      const result = await apiClient.rewriteScript(content, selectedModel);
       setContent(result.content);
       saveToLocalStorage();
     } catch (error) {
@@ -270,7 +306,7 @@ export default function ScriptEditorPage() {
     }
     try {
       setIsOptimizing(true);
-      const result = await apiClient.rewriteScript(content);
+      const result = await apiClient.rewriteScript(content, selectedModel);
       setContent(result.content);
       saveToLocalStorage();
       addToast({ type: 'success', title: '优化完成', message: '剧本已优化' });
@@ -372,9 +408,9 @@ export default function ScriptEditorPage() {
   };
 
   const aiTools = [
-    { id: 'continue', label: 'AI续写', icon: Sparkles, color: '#007AFF', handler: handleContinueScript, loading: isContinuing, disabled: isContinuing || isRewriting || isOptimizing || !content.trim() },
-    { id: 'rewrite', label: 'AI改写', icon: Wand2, color: '#10b981', handler: handleRewriteScript, loading: isRewriting, disabled: isContinuing || isRewriting || isOptimizing || !content.trim() },
-    { id: 'optimize', label: 'AI优化', icon: Zap, color: '#f59e0b', handler: handleOptimizeScript, loading: isOptimizing, disabled: isContinuing || isRewriting || isOptimizing || !content.trim() },
+    { id: 'continue', label: 'AI续写', icon: Sparkles, color: '#007AFF', handler: handleContinueScript, loading: isContinuing, disabled: isContinuing || isRewriting || isOptimizing || !content.trim() || !selectedModel },
+    { id: 'rewrite', label: 'AI改写', icon: Wand2, color: '#10b981', handler: handleRewriteScript, loading: isRewriting, disabled: isContinuing || isRewriting || isOptimizing || !content.trim() || !selectedModel },
+    { id: 'optimize', label: 'AI优化', icon: Zap, color: '#f59e0b', handler: handleOptimizeScript, loading: isOptimizing, disabled: isContinuing || isRewriting || isOptimizing || !content.trim() || !selectedModel },
     { id: 'parse', label: '场景解析', icon: MapPin, color: '#ec4899', handler: handleParseScenes, loading: isParsingScenes, disabled: isParsingScenes || !content.trim() },
   ];
 
@@ -412,27 +448,27 @@ export default function ScriptEditorPage() {
               height: '36px',
               borderRadius: '10px',
               textDecoration: 'none',
-              color: 'rgba(255,255,255,0.6)',
+              color: 'var(--text-muted)',
               transition: 'all 0.2s ease',
-              backgroundColor: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              backgroundColor: 'var(--bg-hover)',
+              border: '1px solid var(--border-primary)',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
-              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.background = 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)';
+              e.currentTarget.style.color = '#fff';
               e.currentTarget.style.transform = 'translateX(-2px)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
-              e.currentTarget.style.color = 'rgba(255,255,255,0.6)';
+              e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+              e.currentTarget.style.color = 'var(--text-muted)';
               e.currentTarget.style.transform = 'translateX(0)';
             }}
           >
             <ArrowLeft style={{ width: '18px', height: '18px' }} />
           </Link>
           <div>
-            <h1 style={{ fontSize: '16px', fontWeight: '600', color: 'white', margin: 0 }}>剧本编辑器</h1>
-            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>{title || '未命名剧本'}</p>
+            <h1 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>剧本编辑器</h1>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>{title || '未命名剧本'}</p>
           </div>
         </div>
 
@@ -445,9 +481,9 @@ export default function ScriptEditorPage() {
               gap: '6px',
               padding: '8px 12px',
               borderRadius: '10px',
-              border: '1px solid rgba(255,255,255,0.1)',
-              background: autoSaveEnabled ? 'rgba(0, 122, 255, 0.2)' : 'rgba(255,255,255,0.05)',
-              color: autoSaveEnabled ? '#007AFF' : 'rgba(255,255,255,0.6)',
+              border: '1px solid var(--border-primary)',
+              background: autoSaveEnabled ? 'rgba(99, 102, 241, 0.15)' : 'var(--bg-hover)',
+              color: autoSaveEnabled ? '#6366f1' : 'var(--text-secondary)',
               fontSize: '13px',
               fontWeight: '500',
               cursor: 'pointer',
@@ -467,9 +503,9 @@ export default function ScriptEditorPage() {
                 gap: '6px',
                 padding: '8px 12px',
                 borderRadius: '10px',
-                border: '1px solid rgba(255,255,255,0.1)',
-                background: 'rgba(255,255,255,0.05)',
-                color: 'rgba(255,255,255,0.8)',
+                border: '1px solid var(--border-primary)',
+                background: 'var(--bg-hover)',
+                color: 'var(--text-primary)',
                 fontSize: '13px',
                 fontWeight: '500',
                 cursor: 'pointer',
@@ -486,11 +522,11 @@ export default function ScriptEditorPage() {
                 top: '100%',
                 right: 0,
                 marginTop: '8px',
-                background: 'rgba(30, 41, 59, 0.95)',
+                background: 'var(--bg-card)',
                 backdropFilter: 'blur(20px)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                border: '1px solid var(--border-primary)',
                 borderRadius: '14px',
-                boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
                 minWidth: '200px',
                 zIndex: 100,
                 overflow: 'hidden',
@@ -502,15 +538,15 @@ export default function ScriptEditorPage() {
                     style={{
                       padding: '14px 18px',
                       cursor: 'pointer',
-                      borderBottom: idx < SCRIPT_TEMPLATES.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-                      color: 'white',
+                      borderBottom: idx < SCRIPT_TEMPLATES.length - 1 ? '1px solid var(--border-primary)' : 'none',
+                      color: 'var(--text-primary)',
                       fontSize: '14px',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '10px',
                       transition: 'background-color 0.2s ease',
                     }} 
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }} 
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)'; }} 
                     onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                   >
                     <span style={{ fontSize: '18px' }}>{tmpl.icon}</span>
@@ -530,19 +566,19 @@ export default function ScriptEditorPage() {
               width: '36px',
               height: '36px',
               borderRadius: '10px',
-              border: '1px solid rgba(255,255,255,0.1)',
-              background: 'rgba(255,255,255,0.05)',
-              color: 'rgba(255,255,255,0.6)',
+              border: '1px solid var(--border-primary)',
+              background: 'var(--bg-hover)',
+              color: 'var(--text-muted)',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
-              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.background = 'var(--bg-input)';
+              e.currentTarget.style.color = 'var(--text-primary)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
-              e.currentTarget.style.color = 'rgba(255,255,255,0.6)';
+              e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+              e.currentTarget.style.color = 'var(--text-muted)';
             }}
           >
             <Upload style={{ width: '16px', height: '16px' }} />
@@ -557,34 +593,50 @@ export default function ScriptEditorPage() {
               width: '36px',
               height: '36px',
               borderRadius: '10px',
-              border: '1px solid rgba(255,255,255,0.1)',
-              background: 'rgba(255,255,255,0.05)',
-              color: 'rgba(255,255,255,0.6)',
+              border: '1px solid var(--border-primary)',
+              background: 'var(--bg-hover)',
+              color: 'var(--text-muted)',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
-              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.background = 'var(--bg-input)';
+              e.currentTarget.style.color = 'var(--text-primary)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
-              e.currentTarget.style.color = 'rgba(255,255,255,0.6)';
+              e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+              e.currentTarget.style.color = 'var(--text-muted)';
             }}
           >
             <FileDown style={{ width: '16px', height: '16px' }} />
           </button>
 
-          <Button 
-            variant="primary" 
-            size="sm" 
-            onClick={handleSave} 
-            disabled={saving || !title || !content} 
-            loading={saving} 
-            icon={saving ? null : <Save size={16} />}
+          <button
+            onClick={handleSave}
+            disabled={isSaving || !title || !content}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 16px',
+              borderRadius: '10px',
+              border: 'none',
+              background: isSaving || !title || !content ? 'var(--bg-hover)' : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              color: isSaving || !title || !content ? 'var(--text-muted)' : '#fff',
+              fontSize: '13px',
+              fontWeight: '500',
+              cursor: isSaving || !title || !content ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: isSaving || !title || !content ? 'none' : '0 4px 14px rgba(99, 102, 241, 0.3)',
+            }}
           >
-            {saving ? '保存中...' : '保存'}
-          </Button>
+            {isSaving ? (
+              <Loader2 style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite' }} />
+            ) : (
+              <Save style={{ width: '14px', height: '14px' }} />
+            )}
+            {isSaving ? '保存中...' : '保存'}
+          </button>
         </div>
       </header>
 
@@ -595,9 +647,9 @@ export default function ScriptEditorPage() {
               height: 'calc(100vh - 112px)',
               borderRadius: '16px',
               overflow: 'hidden',
-              border: '1px solid rgba(255,255,255,0.1)',
-              background: 'rgba(15, 23, 42, 0.6)',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.2)',
+              border: '1px solid var(--border-primary)',
+              background: 'var(--bg-card)',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
             }}>
               <MonacoEditor 
                 height="100%" 
@@ -617,7 +669,7 @@ export default function ScriptEditorPage() {
               alignItems: 'center',
               justifyContent: 'space-between',
               fontSize: '11px',
-              color: 'rgba(255,255,255,0.4)',
+              color: 'var(--text-muted)',
               fontFamily: 'monospace',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -635,7 +687,7 @@ export default function ScriptEditorPage() {
                   width: '6px', 
                   height: '6px', 
                   borderRadius: '50%', 
-                  backgroundColor: autoSaveEnabled ? '#10b981' : 'rgba(255,255,255,0.3)',
+                  backgroundColor: autoSaveEnabled ? '#10b981' : 'var(--text-muted)',
                   boxShadow: autoSaveEnabled ? '0 0 8px rgba(16, 185, 129, 0.5)' : 'none',
                 }} />
                 <span>{lastSaved ? `已保存 ${lastSaved.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}` : '准备就绪'}</span>
@@ -651,18 +703,18 @@ export default function ScriptEditorPage() {
               maxWidth: '900px', 
               margin: '0 auto', 
               borderRadius: '20px', 
-              background: 'rgba(30, 41, 59, 0.6)', 
-              border: '1px solid rgba(255,255,255,0.1)', 
+              background: 'var(--bg-card)', 
+              border: '1px solid var(--border-primary)', 
               backdropFilter: 'blur(20px)',
             }}>
-              <div style={{ marginBottom: '28px', paddingBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ marginBottom: '28px', paddingBottom: '24px', borderBottom: '1px solid var(--border-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                  <h2 style={{ fontSize: '18px', fontWeight: '600', color: 'white', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <h2 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{
                       width: '32px',
                       height: '32px',
                       borderRadius: '10px',
-                      background: 'linear-gradient(135deg, #007AFF 0%, #0056CC 100%)',
+                      background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -671,37 +723,56 @@ export default function ScriptEditorPage() {
                     </div>
                     剧本统计
                   </h2>
-                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>剧本解析结果概览</p>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>剧本解析结果概览</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => setEditorMode('edit')} icon={<FileCode style={{ width: '14px', height: '14px' }} />}>编辑</Button>
+                <button
+                  onClick={() => setEditorMode('edit')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-primary)',
+                    background: 'var(--bg-hover)',
+                    color: 'var(--text-primary)',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <FileCode style={{ width: '14px', height: '14px' }} />
+                  编辑
+                </button>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '28px' }}>
                 <div style={{ 
                   padding: '20px', 
-                  background: 'rgba(255,255,255,0.03)', 
+                  background: 'var(--bg-hover)', 
                   borderRadius: '16px', 
                   textAlign: 'center',
-                  border: '1px solid rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border-primary)',
                 }}>
-                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>场景数量</div>
-                  <div style={{ fontSize: '36px', fontWeight: '700', color: 'white' }}>{parsedScenes.length}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>场景数量</div>
+                  <div style={{ fontSize: '36px', fontWeight: '700', color: 'var(--text-primary)' }}>{parsedScenes.length}</div>
                 </div>
                 <div style={{ 
                   padding: '20px', 
-                  background: 'rgba(255,255,255,0.03)', 
+                  background: 'var(--bg-hover)', 
                   borderRadius: '16px', 
                   textAlign: 'center',
-                  border: '1px solid rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border-primary)',
                 }}>
-                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>角色数量</div>
-                  <div style={{ fontSize: '36px', fontWeight: '700', color: 'white' }}>{characters.length}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>角色数量</div>
+                  <div style={{ fontSize: '36px', fontWeight: '700', color: 'var(--text-primary)' }}>{characters.length}</div>
                 </div>
               </div>
 
               {characters.length > 0 && (
-                <div style={{ marginBottom: '28px', paddingBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                  <h2 style={{ fontSize: '16px', fontWeight: '600', color: 'white', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ marginBottom: '28px', paddingBottom: '24px', borderBottom: '1px solid var(--border-primary)' }}>
+                  <h2 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{
                       width: '28px',
                       height: '28px',
@@ -721,18 +792,18 @@ export default function ScriptEditorPage() {
                         key={char} 
                         style={{
                           padding: '8px 16px',
-                          background: 'rgba(0, 122, 255, 0.15)',
-                          border: '1px solid rgba(0, 122, 255, 0.3)',
+                          background: 'rgba(99, 102, 241, 0.1)',
+                          border: '1px solid rgba(99, 102, 241, 0.3)',
                           borderRadius: '20px',
                           fontSize: '13px',
                           fontWeight: '500',
-                          color: '#60a5fa',
+                          color: '#6366f1',
                           transition: 'all 0.2s ease',
                           cursor: 'pointer',
                         }} 
                         onMouseEnter={(e) => { 
                           e.currentTarget.style.transform = 'translateY(-2px)'; 
-                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 122, 255, 0.3)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
                         }} 
                         onMouseLeave={(e) => { 
                           e.currentTarget.style.transform = 'translateY(0)'; 
@@ -746,7 +817,7 @@ export default function ScriptEditorPage() {
                 </div>
               )}
 
-              <h2 style={{ fontSize: '16px', fontWeight: '600', color: 'white', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <h2 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{
                   width: '28px',
                   height: '28px',
@@ -767,54 +838,78 @@ export default function ScriptEditorPage() {
                   style={{
                     marginBottom: '16px',
                     padding: '20px',
-                    background: 'rgba(255,255,255,0.03)',
+                    background: 'var(--bg-hover)',
                     borderRadius: '16px',
-                    border: '1px solid rgba(255,255,255,0.05)',
+                    border: '1px solid var(--border-primary)',
                     transition: 'all 0.3s ease',
                     cursor: 'pointer',
                   }} 
                   onMouseEnter={(e) => { 
                     e.currentTarget.style.transform = 'translateY(-2px)'; 
-                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)'; 
-                    e.currentTarget.style.borderColor = 'rgba(0, 122, 255, 0.3)'; 
+                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.1)'; 
+                    e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.3)'; 
                   }} 
                   onMouseLeave={(e) => { 
                     e.currentTarget.style.transform = 'translateY(0)'; 
                     e.currentTarget.style.boxShadow = 'none'; 
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)'; 
+                    e.currentTarget.style.borderColor = 'var(--border-primary)'; 
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
                     <span style={{ 
                       padding: '4px 10px', 
-                      background: 'linear-gradient(135deg, #007AFF 0%, #0056CC 100%)', 
+                      background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', 
                       borderRadius: '8px', 
                       fontSize: '11px', 
                       fontWeight: '600', 
                       color: 'white' 
                     }}>场景 {scene.id}</span>
-                    <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'white', margin: 0, flex: 1 }}>{scene.description}</h3>
+                    <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', margin: 0, flex: 1 }}>{scene.description}</h3>
                   </div>
-                  {scene.action && <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', fontStyle: 'italic', marginBottom: '12px', lineHeight: '1.6' }}>({scene.action})</p>}
+                  {scene.action && <p style={{ fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: '12px', lineHeight: '1.6' }}>({scene.action})</p>}
                   {scene.dialogue && scene.dialogue.map((d, i) => (
                     <div key={i} style={{ marginBottom: '12px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                        <span style={{ padding: '4px 10px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', fontSize: '11px', fontWeight: '600', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.1)' }}>{d.character}</span>
+                        <span style={{ padding: '4px 10px', background: 'var(--bg-input)', borderRadius: '8px', fontSize: '11px', fontWeight: '600', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)' }}>{d.character}</span>
                       </div>
-                      <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', margin: '0 0 8px 16px', lineHeight: '1.6' }}>
+                      <p style={{ fontSize: '13px', color: 'var(--text-primary)', margin: '0 0 8px 16px', lineHeight: '1.6' }}>
                         {d.lines.map((line: string, j: number) => (<span key={j}>{line}<br /></span>))}
                       </p>
-                      {d.action && <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', margin: '0 0 8px 16px', lineHeight: '1.6' }}>({d.action})</p>}
+                      {d.action && <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', margin: '0 0 8px 16px', lineHeight: '1.6' }}>({d.action})</p>}
                     </div>
                   ))}
                 </div>
               ))}
 
               {parsedScenes.length === 0 && content && (
-                <div style={{ textAlign: 'center', padding: '48px', color: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '2px dashed rgba(255,255,255,0.1)' }}>
+                <div style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)', background: 'var(--bg-hover)', borderRadius: '16px', border: '2px dashed var(--border-primary)' }}>
                   <FileText style={{ width: '48px', height: '48px', marginBottom: '16px', opacity: 0.5 }} />
                   <p style={{ fontSize: '14px', marginBottom: '16px' }}>点击"解析"按钮查看剧本预览</p>
-                  <Button size="sm" onClick={parseScript} disabled={loading} loading={loading} icon={loading ? null : <Sparkles style={{ width: '16px', height: '16px' }} />}>{loading ? '解析中...' : '解析剧本'}</Button>
+                  <button
+                    onClick={parseScript}
+                    disabled={loading}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '10px 18px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                      color: '#fff',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      opacity: loading ? 0.7 : 1,
+                    }}
+                  >
+                    {loading ? (
+                      <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                    ) : (
+                      <Sparkles style={{ width: '16px', height: '16px' }} />
+                    )}
+                    {loading ? '解析中...' : '解析剧本'}
+                  </button>
                 </div>
               )}
             </div>
@@ -842,11 +937,11 @@ export default function ScriptEditorPage() {
             width: '32px',
             height: '32px',
             borderRadius: '10px 0 0 10px',
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: '1px solid var(--border-primary)',
             borderRight: 'none',
-            background: 'rgba(30, 41, 59, 0.9)',
+            background: 'var(--bg-card)',
             backdropFilter: 'blur(20px)',
-            color: 'rgba(255,255,255,0.6)',
+            color: 'var(--text-muted)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -854,12 +949,12 @@ export default function ScriptEditorPage() {
             transition: 'all 0.2s ease',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(0, 122, 255, 0.2)';
-            e.currentTarget.style.color = '#007AFF';
+            e.currentTarget.style.background = 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)';
+            e.currentTarget.style.color = '#fff';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(30, 41, 59, 0.9)';
-            e.currentTarget.style.color = 'rgba(255,255,255,0.6)';
+            e.currentTarget.style.background = 'var(--bg-card)';
+            e.currentTarget.style.color = 'var(--text-muted)';
           }}
         >
           <ChevronRight style={{ width: '16px', height: '16px', transform: showAIPanel ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease' }} />
@@ -870,31 +965,39 @@ export default function ScriptEditorPage() {
           flexDirection: 'column',
           gap: '12px',
           padding: '20px',
-          background: 'rgba(30, 41, 59, 0.9)',
+          background: 'var(--bg-card)',
           backdropFilter: 'blur(20px)',
           borderRadius: '16px',
-          border: '1px solid rgba(255,255,255,0.1)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          border: '1px solid var(--border-primary)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
         }}>
           <div style={{ textAlign: 'center', marginBottom: '8px' }}>
             <div style={{ 
-              width: '40px',
-              height: '40px',
+              width: '44px',
+              height: '44px',
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, #007AFF 0%, #0056CC 100%)',
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              margin: '0 auto 10px',
-              boxShadow: '0 4px 14px rgba(0, 122, 255, 0.3)',
+              margin: '0 auto 12px',
+              boxShadow: '0 4px 14px rgba(99, 102, 241, 0.3)',
             }}>
-              <Sparkles style={{ width: '20px', height: '20px', color: 'white' }} />
+              <Sparkles style={{ width: '22px', height: '22px', color: 'white' }} />
             </div>
-            <div style={{ fontSize: '14px', fontWeight: '600', color: 'white', marginBottom: '4px' }}>AI 剧本助手</div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>提升创作效率</div>
+            <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>AI 剧本助手</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>智能创作辅助工具</div>
           </div>
 
-          {aiTools.map((tool) => (
+          {aiTools.map((tool) => {
+            const toolColors: Record<string, string> = {
+              '#007AFF': '#3b82f6',
+              '#10b981': '#10b981',
+              '#f59e0b': '#f59e0b',
+              '#ec4899': '#ec4899',
+            }
+            const color = toolColors[tool.color] || tool.color
+            return (
             <button
               key={tool.id}
               onClick={tool.handler}
@@ -905,28 +1008,29 @@ export default function ScriptEditorPage() {
                 gap: '10px',
                 padding: '12px 14px',
                 borderRadius: '12px',
-                border: '1px solid rgba(255,255,255,0.1)',
-                background: 'rgba(255,255,255,0.03)',
-                color: tool.disabled ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.8)',
+                border: `1px solid ${tool.disabled ? 'var(--border-primary)' : `${color}30`}`,
+                background: `${color}08`,
+                color: tool.disabled ? 'var(--text-muted)' : color,
                 fontSize: '13px',
                 fontWeight: '500',
                 cursor: tool.disabled ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s ease',
                 width: '100%',
                 textAlign: 'left',
+                opacity: tool.disabled ? 0.6 : 1,
               }}
               onMouseEnter={(e) => {
                 if (!tool.disabled) {
-                  e.currentTarget.style.background = `rgba(${tool.color === '#007AFF' ? '0, 122, 255' : tool.color === '#10b981' ? '16, 185, 129' : tool.color === '#f59e0b' ? '245, 158, 11' : '236, 72, 153'}, 0.15)`;
-                  e.currentTarget.style.borderColor = `${tool.color}40`;
-                  e.currentTarget.style.color = tool.color;
+                  e.currentTarget.style.background = `${color}15`
+                  e.currentTarget.style.borderColor = `${color}50`
+                  e.currentTarget.style.transform = 'translateX(4px)'
                 }
               }}
               onMouseLeave={(e) => {
                 if (!tool.disabled) {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
-                  e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
+                  e.currentTarget.style.background = `${color}08`
+                  e.currentTarget.style.borderColor = `${color}30`
+                  e.currentTarget.style.transform = 'translateX(0)'
                 }
               }}
             >
@@ -937,16 +1041,16 @@ export default function ScriptEditorPage() {
               )}
               {tool.loading ? `${tool.label}中...` : tool.label}
             </button>
-          ))}
+          )})}
 
-          <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '4px 0' }} />
+          <div style={{ height: '1px', background: 'var(--border-primary)', margin: '4px 0' }} />
 
           <div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginBottom: '8px' }}>选择AI模型</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: '500' }}>选择AI模型</div>
             <ModelSelector contentType="script" value={selectedModel} onChange={setSelectedModel} placeholder="选择模型" showLastUsed={true} showDefault={true} />
           </div>
 
-          <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '4px 0' }} />
+          <div style={{ height: '1px', background: 'var(--border-primary)', margin: '4px 0' }} />
 
           <button
             onClick={parseScript}
@@ -957,28 +1061,27 @@ export default function ScriptEditorPage() {
               gap: '10px',
               padding: '12px 14px',
               borderRadius: '12px',
-              border: '1px solid rgba(255,255,255,0.1)',
-              background: 'rgba(255,255,255,0.03)',
-              color: (loading || !content) ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.8)',
+              border: '1px solid var(--border-primary)',
+              background: 'var(--bg-hover)',
+              color: (loading || !content) ? 'var(--text-muted)' : '#8b5cf6',
               fontSize: '13px',
               fontWeight: '500',
               cursor: (loading || !content) ? 'not-allowed' : 'pointer',
               transition: 'all 0.2s ease',
               width: '100%',
               textAlign: 'left',
+              opacity: (loading || !content) ? 0.6 : 1,
             }}
             onMouseEnter={(e) => {
               if (!loading && content) {
-                e.currentTarget.style.background = 'rgba(139, 92, 246, 0.15)';
-                e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.4)';
-                e.currentTarget.style.color = '#a78bfa';
+                e.currentTarget.style.background = 'rgba(139, 92, 246, 0.1)'
+                e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.3)'
               }
             }}
             onMouseLeave={(e) => {
               if (!loading && content) {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
-                e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
+                e.currentTarget.style.background = 'var(--bg-hover)'
+                e.currentTarget.style.borderColor = 'var(--border-primary)'
               }
             }}
           >
@@ -998,9 +1101,9 @@ export default function ScriptEditorPage() {
               gap: '10px',
               padding: '12px 14px',
               borderRadius: '12px',
-              border: '1px solid rgba(255,255,255,0.1)',
-              background: 'rgba(255,255,255,0.03)',
-              color: 'rgba(255,255,255,0.8)',
+              border: '1px solid var(--border-primary)',
+              background: 'var(--bg-hover)',
+              color: 'var(--text-primary)',
               fontSize: '13px',
               fontWeight: '500',
               cursor: 'pointer',
@@ -1009,12 +1112,12 @@ export default function ScriptEditorPage() {
               textAlign: 'left',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+              e.currentTarget.style.background = 'var(--bg-input)'
+              e.currentTarget.style.borderColor = 'var(--text-muted)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+              e.currentTarget.style.background = 'var(--bg-hover)'
+              e.currentTarget.style.borderColor = 'var(--border-primary)'
             }}
           >
             {editorMode === 'edit' ? <Eye style={{ width: '16px', height: '16px' }} /> : <FileEdit style={{ width: '16px', height: '16px' }} />}
@@ -1029,9 +1132,9 @@ export default function ScriptEditorPage() {
               gap: '10px',
               padding: '12px 14px',
               borderRadius: '12px',
-              border: '1px solid rgba(255,255,255,0.1)',
-              background: 'rgba(255,255,255,0.03)',
-              color: 'rgba(255,255,255,0.8)',
+              border: '1px solid var(--border-primary)',
+              background: 'var(--bg-hover)',
+              color: 'var(--text-primary)',
               fontSize: '13px',
               fontWeight: '500',
               cursor: 'pointer',
@@ -1040,12 +1143,12 @@ export default function ScriptEditorPage() {
               textAlign: 'left',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+              e.currentTarget.style.background = 'var(--bg-input)'
+              e.currentTarget.style.borderColor = 'var(--text-muted)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+              e.currentTarget.style.background = 'var(--bg-hover)'
+              e.currentTarget.style.borderColor = 'var(--border-primary)'
             }}
           >
             {isFullscreen ? <Minimize2 style={{ width: '16px', height: '16px' }} /> : <Maximize2 style={{ width: '16px', height: '16px' }} />}
@@ -1058,7 +1161,7 @@ export default function ScriptEditorPage() {
         <div style={{ 
           position: 'fixed', 
           inset: 0, 
-          backgroundColor: 'rgba(0, 0, 0, 0.7)', 
+          backgroundColor: 'rgba(0, 0, 0, 0.5)', 
           backdropFilter: 'blur(8px)',
           display: 'flex', 
           alignItems: 'center', 
@@ -1067,7 +1170,7 @@ export default function ScriptEditorPage() {
           padding: '20px',
         }} onClick={() => setShowSceneOptimizer(false)}>
           <div style={{
-            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%)',
+            background: 'var(--bg-card)',
             borderRadius: '24px',
             maxWidth: '900px',
             width: '100%',
@@ -1075,17 +1178,16 @@ export default function ScriptEditorPage() {
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
-            boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            animation: 'modalIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            boxShadow: '0 25px 50px rgba(0,0,0,0.2)',
+            border: '1px solid var(--border-primary)',
           }} onClick={(e) => e.stopPropagation()}>
             <div style={{ 
               padding: '24px', 
-              borderBottom: '1px solid rgba(255,255,255,0.1)', 
+              borderBottom: '1px solid var(--border-primary)', 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'space-between',
-              background: 'rgba(255,255,255,0.02)',
+              background: 'var(--bg-hover)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                 <div style={{
@@ -1101,8 +1203,8 @@ export default function ScriptEditorPage() {
                   <MapPin style={{ width: '22px', height: '22px', color: 'white' }} />
                 </div>
                 <div>
-                  <h2 style={{ fontSize: '18px', fontWeight: '600', color: 'white', margin: '0 0 4px 0' }}>场景优化器</h2>
-                  <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>解析到 {parsedScenesForOptimization.length} 个场景，选择优化方向后生成建议</p>
+                  <h2 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', margin: '0 0 4px 0' }}>场景优化器</h2>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>解析到 {parsedScenesForOptimization.length} 个场景，选择优化方向后生成建议</p>
                 </div>
               </div>
               <button
@@ -1111,9 +1213,9 @@ export default function ScriptEditorPage() {
                   width: '36px',
                   height: '36px',
                   borderRadius: '10px',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  background: 'rgba(255,255,255,0.05)',
-                  color: 'rgba(255,255,255,0.6)',
+                  border: '1px solid var(--border-primary)',
+                  background: 'var(--bg-hover)',
+                  color: 'var(--text-muted)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -1121,14 +1223,14 @@ export default function ScriptEditorPage() {
                   transition: 'all 0.2s ease',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
                   e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
                   e.currentTarget.style.color = '#ef4444';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
-                  e.currentTarget.style.color = 'rgba(255,255,255,0.6)';
+                  e.currentTarget.style.background = 'var(--bg-hover)';
+                  e.currentTarget.style.borderColor = 'var(--border-primary)';
+                  e.currentTarget.style.color = 'var(--text-muted)';
                 }}
               >
                 <X style={{ width: '18px', height: '18px' }} />
@@ -1140,44 +1242,44 @@ export default function ScriptEditorPage() {
                 <div 
                   key={scene.id} 
                   style={{ 
-                    background: 'rgba(255,255,255,0.03)', 
+                    background: 'var(--bg-hover)', 
                     borderRadius: '16px', 
                     padding: '20px', 
                     marginBottom: '16px', 
-                    border: '1px solid rgba(255,255,255,0.05)',
+                    border: '1px solid var(--border-primary)',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span style={{ 
                         padding: '4px 12px', 
-                        background: 'linear-gradient(135deg, #007AFF 0%, #0056CC 100%)', 
+                        background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', 
                         color: 'white', 
                         borderRadius: '8px', 
                         fontSize: '12px', 
                         fontWeight: '600',
-                        boxShadow: '0 2px 8px rgba(0, 122, 255, 0.3)',
+                        boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
                       }}>场景 {scene.id}</span>
-                      <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>{scene.location} · {scene.time}</span>
+                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{scene.location} · {scene.time}</span>
                     </div>
                   </div>
 
                   <div style={{ 
                     padding: '14px', 
-                    background: 'rgba(255,255,255,0.02)', 
+                    background: 'var(--bg-input)', 
                     borderRadius: '12px', 
                     marginBottom: '16px', 
                     fontSize: '13px', 
-                    color: 'rgba(255,255,255,0.7)', 
+                    color: 'var(--text-secondary)', 
                     lineHeight: '1.7', 
                     whiteSpace: 'pre-wrap',
-                    border: '1px solid rgba(255,255,255,0.05)',
+                    border: '1px solid var(--border-primary)',
                   }}>
                     {scene.content}
                   </div>
 
                   <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: 'rgba(255,255,255,0.5)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>优化方向 (可选)</label>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>优化方向 (可选)</label>
                     <div style={{ display: 'flex', gap: '10px' }}>
                       <input 
                         type="text" 
@@ -1188,32 +1290,48 @@ export default function ScriptEditorPage() {
                           flex: 1,
                           padding: '12px 16px',
                           borderRadius: '12px',
-                          border: '1px solid rgba(255,255,255,0.1)',
-                          background: 'rgba(255,255,255,0.03)',
-                          color: 'white',
+                          border: '1px solid var(--border-primary)',
+                          background: 'var(--bg-input)',
+                          color: 'var(--text-primary)',
                           fontSize: '13px',
                           outline: 'none',
                           transition: 'all 0.2s ease',
                         }} 
                         onFocus={(e) => { 
-                          e.currentTarget.style.borderColor = 'rgba(0, 122, 255, 0.5)'; 
-                          e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0, 122, 255, 0.1)'; 
+                          e.currentTarget.style.borderColor = '#6366f1'; 
+                          e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)'; 
                         }} 
                         onBlur={(e) => { 
-                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; 
+                          e.currentTarget.style.borderColor = 'var(--border-primary)'; 
                           e.currentTarget.style.boxShadow = 'none'; 
                         }} 
                       />
-                      <Button 
-                        variant="primary" 
-                        size="sm" 
-                        onClick={() => handleOptimizeScene(scene.id, scene.userDirection || '')} 
-                        disabled={scene.isOptimizing} 
-                        loading={scene.isOptimizing} 
-                        icon={scene.isOptimizing ? null : <Sparkles style={{ width: '16px', height: '16px' }} />}
+                      <button
+                        onClick={() => handleOptimizeScene(scene.id, scene.userDirection || '')}
+                        disabled={scene.isOptimizing}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '10px 18px',
+                          borderRadius: '10px',
+                          border: 'none',
+                          background: scene.isOptimizing ? 'var(--bg-hover)' : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                          color: scene.isOptimizing ? 'var(--text-muted)' : '#fff',
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          cursor: scene.isOptimizing ? 'not-allowed' : 'pointer',
+                          opacity: scene.isOptimizing ? 0.7 : 1,
+                          transition: 'all 0.2s ease',
+                        }}
                       >
+                        {scene.isOptimizing ? (
+                          <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                        ) : (
+                          <Sparkles style={{ width: '16px', height: '16px' }} />
+                        )}
                         生成建议
-                      </Button>
+                      </button>
                     </div>
                   </div>
 
@@ -1278,5 +1396,15 @@ export default function ScriptEditorPage() {
         `}
       </style>
     </div>
+  );
+}
+
+export default function ScriptEditorPage() {
+  const { projectId } = useParams<{ projectId: string }>();
+
+  return (
+    <ContentProvider projectId={projectId || ''}>
+      <ScriptEditorContent />
+    </ContentProvider>
   );
 }

@@ -161,7 +161,7 @@ export const getScript = async (req: Request, res: Response) => {
 
 export const continueScript = async (req: Request, res: Response) => {
   try {
-    const { content, context } = req.body;
+    const { content, context, model } = req.body;
 
     if (!content || typeof content !== 'string') {
       return res.status(400).json({ error: '剧本内容不能为空' });
@@ -176,7 +176,22 @@ export const continueScript = async (req: Request, res: Response) => {
       return res.status(400).json({ error: '没有可用的 AI 提供商' });
     }
 
-    const provider = aiProviders[0];
+    let provider = aiProviders[0];
+    let modelName: string | undefined;
+
+    if (model) {
+      console.log('[DEBUG] Searching for model:', model);
+      for (const p of aiProviders) {
+        console.log('[DEBUG] Checking provider:', p.id, 'models:', p.models?.map(m => ({ id: m.id, name: m.name })));
+        const foundModel = p.models?.find(m => m.id === model || m.name === model);
+        if (foundModel) {
+          provider = p;
+          modelName = foundModel.name;
+          console.log('[DEBUG] Found model:', foundModel);
+          break;
+        }
+      }
+    }
 
     try {
       providerManager.addProvider({
@@ -186,11 +201,12 @@ export const continueScript = async (req: Request, res: Response) => {
         apiKey: provider.apiKey,
         baseUrl: provider.baseUrl || undefined,
       });
-
+      console.log('[DEBUG] Provider added:', { id: provider.id, type: provider.type, baseUrl: provider.baseUrl, modelName });
       const aiProvider = providerManager.getProvider(provider.id);
       if (!aiProvider) {
         throw new Error('AI 提供商初始化失败');
       }
+      console.log('[DEBUG] Calling AI with model:', modelName);
 
       const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
         {
@@ -203,11 +219,11 @@ export const continueScript = async (req: Request, res: Response) => {
         }
       ];
 
-      const result = await aiProvider.chat(messages);
+      const result = await aiProvider.chat(messages, modelName ? { model: modelName } : undefined);
       
       let continuedContent = result.content;
       if (!continuedContent) {
-        continuedContent = content + '\n\n（AI 续写暂不可用，请稍后重试）';
+        throw new Error('AI返回内容为空');
       }
 
       res.json({
@@ -216,9 +232,8 @@ export const continueScript = async (req: Request, res: Response) => {
       });
     } catch (aiError) {
       console.error('AI 调用失败:', aiError);
-      res.json({
-        success: true,
-        content: content + '\n\n（AI 服务暂时不可用，请检查 AI 提供商配置）'
+      res.status(500).json({ 
+        error: aiError instanceof Error ? aiError.message : 'AI调用失败，请检查账户余额或稍后重试' 
       });
     }
   } catch (error) {
@@ -228,8 +243,10 @@ export const continueScript = async (req: Request, res: Response) => {
 };
 
 export const rewriteScript = async (req: Request, res: Response) => {
+  console.log('[DEBUG rewrite] Request received');
   try {
-    const { content, instruction } = req.body;
+    const { content, instruction, model } = req.body;
+    console.log('[DEBUG rewrite] Request body:', { contentLength: content?.length, instruction, model });
 
     if (!content || typeof content !== 'string') {
       return res.status(400).json({ error: '剧本内容不能为空' });
@@ -244,7 +261,19 @@ export const rewriteScript = async (req: Request, res: Response) => {
       return res.status(400).json({ error: '没有可用的 AI 提供商' });
     }
 
-    const provider = aiProviders[0];
+    let provider = aiProviders[0];
+    let modelName: string | undefined;
+
+    if (model) {
+      for (const p of aiProviders) {
+        const foundModel = p.models?.find(m => m.id === model || m.name === model);
+        if (foundModel) {
+          provider = p;
+          modelName = foundModel.name;
+          break;
+        }
+      }
+    }
 
     try {
       providerManager.addProvider({
@@ -259,6 +288,7 @@ export const rewriteScript = async (req: Request, res: Response) => {
       if (!aiProvider) {
         throw new Error('AI 提供商初始化失败');
       }
+      console.log('[DEBUG rewrite] Calling AI with model:', modelName);
 
       const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
         {
@@ -271,11 +301,11 @@ export const rewriteScript = async (req: Request, res: Response) => {
         }
       ];
 
-      const result = await aiProvider.chat(messages);
+      const result = await aiProvider.chat(messages, modelName ? { model: modelName } : undefined);
       
       let rewrittenContent = result.content;
       if (!rewrittenContent) {
-        rewrittenContent = content;
+        throw new Error('AI返回内容为空');
       }
 
       res.json({
@@ -284,9 +314,8 @@ export const rewriteScript = async (req: Request, res: Response) => {
       });
     } catch (aiError) {
       console.error('AI 调用失败:', aiError);
-      res.json({
-        success: true,
-        content: content
+      res.status(500).json({ 
+        error: aiError instanceof Error ? aiError.message : 'AI调用失败，请检查账户余额或稍后重试' 
       });
     }
   } catch (error) {

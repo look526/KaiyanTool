@@ -17,6 +17,7 @@ const ScriptEditorPage = lazy(() => import('./pages/ScriptEditorPage'))
 const ScriptViewerPage = lazy(() => import('./pages/ScriptViewerPage'))
 const NovelEditorPage = lazy(() => import('./pages/NovelEditorPage'))
 const NovelsPage = lazy(() => import('./pages/NovelsPage'))
+const UnifiedEditorPage = lazy(() => import('./pages/UnifiedEditorPage'))
 const StorylinePage = lazy(() => import('./pages/StorylinePage'))
 const OutlinePage = lazy(() => import('./pages/OutlinePage'))
 const CharactersPage = lazy(() => import('./pages/CharactersPage'))
@@ -112,6 +113,9 @@ function App() {
                   <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                     <Route path="/help" element={<HelpPage />} />
                     <Route path="/projects" element={<ProjectsPage />} />
+                    <Route path="/assets" element={<AssetsPage />} />
+                    <Route path="/image-generation" element={<ImageGenerationPage />} />
+                    <Route path="/video-generation" element={<VideoGenerationPage />} />
                     <Route path="/analytics" element={<AnalyticsPage />} />
                     <Route path="/team" element={<TeamPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
@@ -127,6 +131,7 @@ function App() {
                   </Route>
 
                   <Route element={<ProtectedRoute><ProjectLayout /></ProtectedRoute>}>
+                    <Route path="/projects/:projectId/editor" element={<UnifiedEditorPage />} />
                     <Route path="/projects/:projectId/script" element={<ScriptEditorPage />} />
                     <Route path="/projects/:projectId/scripts/:scriptId" element={<ScriptViewerPage />} />
                     <Route path="/projects/:projectId/scripts/:scriptId/edit" element={<ScriptEditorPage />} />
@@ -139,10 +144,7 @@ function App() {
                     <Route path="/projects/:id/members" element={<ProjectMembersPage />} />
                     <Route path="/projects/:id/shots" element={<ShotsPage />} />
                     <Route path="/projects/:id/items" element={<ItemsPageSimple />} />
-                    <Route path="/projects/:id/assets" element={<AssetsPage />} />
                     <Route path="/projects/:id/video-merge" element={<VideoMergePage />} />
-                    <Route path="/projects/:id/image-generation" element={<ImageGenerationPage />} />
-                    <Route path="/projects/:id/video-generation" element={<VideoGenerationPage />} />
                   </Route>
                   <Route path="/shots/:id/panels" element={<ProtectedRoute><PanelsPage /></ProtectedRoute>} />
                 </Routes>

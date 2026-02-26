@@ -11,7 +11,8 @@ const ImageGenerationSchema = z.object({
   style: z.string().optional(),
   characterRefImageId: z.string().optional(),
   sceneRefImageId: z.string().optional(),
-  projectId: z.string()
+  projectId: z.string(),
+  model: z.string().optional()
 });
 
 export async function generateImage(input: z.infer<typeof ImageGenerationSchema>) {
@@ -29,7 +30,12 @@ export async function generateImage(input: z.infer<typeof ImageGenerationSchema>
   });
 
   try {
-    const provider = aiProviderService as any;
+    let provider: any;
+    if (validated.model) {
+      provider = aiProviderService.getProvider(validated.model) || aiProviderService;
+    } else {
+      provider = aiProviderService as any;
+    }
     const result = await provider.generateImage({
       prompt: enhancedPrompt,
       negativePrompt: validated.negativePrompt,

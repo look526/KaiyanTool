@@ -26,7 +26,7 @@ export class ProviderManager {
         provider = new GoogleProvider(config.apiKey)
         break
       case 'zhipu':
-        provider = new ZhipuProvider(config.apiKey)
+        provider = new ZhipuProvider(config.apiKey, config.baseUrl)
         break
       case 'antsk':
         provider = new AntSKProvider(config.apiKey, config.baseUrl)

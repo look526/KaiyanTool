@@ -12,7 +12,10 @@ import {
   Moon,
   Cpu,
   BarChart3,
-  Home
+  Home,
+  Image,
+  Sparkles,
+  Video
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -26,6 +29,21 @@ const navItems = [
     title: '我的项目',
     icon: FolderKanban,
     href: '/projects',
+  },
+  {
+    title: '素材库',
+    icon: Image,
+    href: '/assets',
+  },
+  {
+    title: 'AI 图像',
+    icon: Sparkles,
+    href: '/image-generation',
+  },
+  {
+    title: 'AI 视频',
+    icon: Video,
+    href: '/video-generation',
   },
   {
     title: '数据分析',

@@ -273,7 +273,7 @@ export default function CharactersPage() {
         justifyContent: 'center',
         background: 'var(--bg-page)',
       }}>
-        <Loader2 style={{ width: '48px', height: '48px', animation: 'spin 1s linear infinite', color: 'var(--accent-green)' }} />
+        <Loader2 style={{ width: '48px', height: '48px', animation: 'spin 1s linear infinite', color: 'var(--success)' }} />
       </div>
     );
   }
@@ -331,7 +331,7 @@ export default function CharactersPage() {
                       transition: 'all 0.2s ease',
                     }}
                     onFocus={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--accent-green)';
+                      e.currentTarget.style.borderColor = '#10b981';
                       e.currentTarget.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.1)';
                     }}
                     onBlur={(e) => {
@@ -447,7 +447,7 @@ export default function CharactersPage() {
               backdropFilter: 'blur(20px)',
               textAlign: 'center',
             }}>
-              <div style={{ fontSize: '36px', fontWeight: '700', color: 'var(--accent-blue)', marginBottom: '4px' }}>
+              <div style={{ fontSize: '36px', fontWeight: '700', color: 'var(--info)', marginBottom: '4px' }}>
                 {characters.reduce((sum, c) => sum + (c._count?.shots || 0), 0)}
               </div>
               <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>总出镜次数</div>
@@ -612,7 +612,7 @@ export default function CharactersPage() {
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.background = 'var(--bg-hover)';
-                            e.currentTarget.style.color = 'var(--accent-blue)';
+                            e.currentTarget.style.color = '#3b82f6';
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.background = 'transparent';

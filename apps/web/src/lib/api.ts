@@ -123,6 +123,7 @@ export interface ApiClientInterface {
   createChapter(novelId: string, data: { title?: string; content?: string; order?: number }): Promise<any>;
   updateChapter(chapterId: string, data: { title?: string; content?: string; order?: number }): Promise<any>;
   deleteChapter(chapterId: string): Promise<{ success: boolean }>;
+  adaptToScript(novelAnalysis: any, options?: any): Promise<any>;
   getPanels(shotId: string): Promise<any[]>;
   createPanel(shotId: string, data: { prompt: string; imageUrl?: string; position?: number }): Promise<any>;
   updatePanel(panelId: string, data: { prompt?: string; imageUrl?: string; position?: number }): Promise<any>;
@@ -155,6 +156,10 @@ export interface ApiClientInterface {
   deleteNineGridPanel(shotId: string, panelId: string): Promise<{ message: string }>;
   generateNineGridPanels(shotId: string, data?: { providerId?: string; model?: string }): Promise<{ total: number; successful: number; failed: number }>;
   reorderNineGridPanels(shotId: string, panelIds: string[]): Promise<{ message: string }>;
+  get<T = any>(url: string): Promise<T>;
+  post<T = any>(url: string, data?: any): Promise<T>;
+  put<T = any>(url: string, data?: any): Promise<T>;
+  delete<T = any>(url: string): Promise<T>;
 }
 
 // 重新导出类型以保持向后兼容性

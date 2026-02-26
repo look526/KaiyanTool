@@ -155,15 +155,11 @@ export default function ProjectDetailPage() {
   const isOwner = project.ownerId === user?.id;
 
   const quickActions = [
-    { to: `/projects/${project.id}/script`, icon: FileText, label: '输入剧本', desc: '上传或编写剧本内容', gradient: 'var(--gradient-primary)', shadow: 'var(--accent-shadow)' },
+    { to: `/projects/${project.id}/editor`, icon: FileText, label: '内容创作', desc: '剧本和小说统一编辑', gradient: 'var(--gradient-primary)', shadow: 'var(--accent-shadow)' },
     { to: `/projects/${project.id}/characters`, icon: Image, label: '管理角色', desc: '创建和管理角色形象', gradient: 'var(--gradient-secondary)', shadow: 'var(--success-shadow)' },
     { to: `/projects/${project.id}/members`, icon: Users, label: '管理成员', desc: '管理项目成员和权限', gradient: 'var(--gradient-accent)', shadow: 'var(--warning-shadow)' },
     { to: `/projects/${project.id}/scenes`, icon: MapPin, label: '管理场景', desc: '创建和管理拍摄场景', gradient: 'var(--gradient-pink)', shadow: 'var(--error-shadow)' },
     { to: `/projects/${project.id}/shots`, icon: FolderKanban, label: '分镜管理', desc: '查看和编辑镜头列表', gradient: 'var(--gradient-teal)', shadow: 'var(--info-shadow)' },
-    { to: `/projects/${project.id}/assets`, icon: Image, label: '素材库', desc: '管理项目图片和视频素材', gradient: 'var(--gradient-purple)', shadow: 'var(--accent-shadow)' },
-    { to: `/projects/${project.id}/image-generation`, icon: Sparkles, label: 'AI 图像', desc: 'AI 生成项目图片素材', gradient: 'var(--gradient-pink)', shadow: 'var(--error-shadow)' },
-    { to: `/projects/${project.id}/video-generation`, icon: Video, label: 'AI 视频', desc: 'AI 生成项目视频素材', gradient: 'var(--gradient-teal)', shadow: 'var(--info-shadow)' },
-    { to: `/projects/${project.id}/novels`, icon: BookOpen, label: '输入小说', desc: '上传或编写小说内容', gradient: 'var(--gradient-purple)', shadow: 'var(--accent-shadow)' },
   ];
 
   return (

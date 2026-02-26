@@ -8,6 +8,7 @@
   --bg-deep: #0f172a;
   --bg-sunken: #020617;
   --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-active: rgba(255, 255, 255, 0.08);
   --bg-card: rgba(30, 41, 59, 0.6);
   --bg-header: rgba(30, 41, 59, 0.8);
   --bg-sidebar: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 41, 59, 0.98) 100%);
@@ -115,4 +116,17 @@
 body[data-theme="dark"] {
   background-color: var(--bg-base);
   color: var(--text-primary);
+}
+
+/* Select dropdown options in dark mode */
+body[data-theme="dark"] select option {
+  background-color: #1e293b;
+  color: #ffffff;
+}
+
+body[data-theme="dark"] select option:hover,
+body[data-theme="dark"] select option:focus,
+body[data-theme="dark"] select option:checked {
+  background-color: #334155;
+  color: #ffffff;
 }

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
 import { apiClient } from '../lib/api';
+import { ModelSelector } from '../components/ui';
+import { useParams } from 'react-router-dom';
 import {
   Image as ImageIcon,
   Loader2,
@@ -64,11 +65,12 @@ interface ReferenceImage {
 }
 
 export function ImageGenerationPage() {
-  const { id } = useParams<{ id: string }>();
+  const { projectId } = useParams<{ projectId: string }>();
   const [prompt, setPrompt] = useState('');
   const [negativePrompt, setNegativePrompt] = useState('');
   const [style, setStyle] = useState('cinematic');
   const [size, setSize] = useState('1024x576');
+  const [selectedModel, setSelectedModel] = useState<string>('');
   const [generating, setGenerating] = useState(false);
   const [results, setResults] = useState<GeneratedItem[]>([]);
   const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
@@ -77,7 +79,7 @@ export function ImageGenerationPage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const handleGenerate = async () => {
-    if (!prompt.trim() || !id || generating) return;
+    if (!prompt.trim() || generating) return;
 
     const [width, height] = size.split('x').map(Number);
     setGenerating(true);
@@ -89,7 +91,8 @@ export function ImageGenerationPage() {
         width,
         height,
         style,
-        projectId: id
+        projectId: projectId,
+        model: selectedModel,
       });
 
       const newItem: GeneratedItem = {
@@ -385,6 +388,11 @@ export function ImageGenerationPage() {
                     </div>
                   </div>
                 )}
+
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: '500' }}>选择AI模型</div>
+                  <ModelSelector contentType="image" value={selectedModel} onChange={setSelectedModel} placeholder="选择模型" showLastUsed={true} showDefault={true} />
+                </div>
 
                 <button
                   onClick={handleGenerate}

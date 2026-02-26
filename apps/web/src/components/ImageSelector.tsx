@@ -589,7 +589,7 @@ export function ImageSelector({
         >
           <div
             style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              backgroundColor: 'var(--bg-surface)',
               backdropFilter: 'blur(12px)',
               WebkitBackdropFilter: 'blur(12px)',
               borderRadius: '16px',
@@ -600,7 +600,7 @@ export function ImageSelector({
               display: 'flex',
               flexDirection: 'column',
               boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
+              border: '1px solid var(--border-primary)',
               animation: 'scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             }}
             onClick={(e) => e.stopPropagation()}

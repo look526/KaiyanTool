@@ -85,8 +85,8 @@ const hoverStyles: Record<string, React.CSSProperties> = {
   },
   outline: {
     background: 'var(--bg-hover)',
-    borderColor: 'var(--color-primary)',
-    color: 'var(--color-primary)',
+    borderColor: 'var(--accent)',
+    color: 'var(--accent)',
     transform: 'translateY(-1px)',
   },
   ghost: {
@@ -261,7 +261,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         onMouseDown={() => !disabled && !loading && setIsActive(true)}
         onMouseUp={() => setIsActive(false)}
         onFocus={(e) => {
-          e.currentTarget.style.boxShadow = `0 0 0 3px ${variant === 'danger' ? 'rgba(255, 59, 48, 0.3)' : 'rgba(0, 122, 255, 0.3)'}`;
+          e.currentTarget.style.boxShadow = `0 0 0 3px ${variant === 'danger' ? 'var(--error-shadow)' : 'var(--accent-shadow)'}`;
         }}
         onBlur={(e) => {
           e.currentTarget.style.boxShadow = mergedStyle.boxShadow as string;

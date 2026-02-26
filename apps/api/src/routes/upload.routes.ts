@@ -26,6 +26,133 @@ router.post('/images/character', upload.single('file'), uploadController.uploadC
 router.post('/images/scene', upload.single('file'), uploadController.uploadSceneImage.bind(uploadController))
 router.delete('/images/:filename', uploadController.deleteImage.bind(uploadController))
 
+router.get('/assets', async (req, res) => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized' })
+      return
+    }
+
+    const { type, search } = req.query
+    const { prisma } = await import('../lib/prisma')
+    
+    const userProjects = await prisma.project.findMany({
+      where: {
+        OR: [
+          { ownerId: req.userId },
+          { members: { some: { userId: req.userId } } },
+        ],
+      },
+      select: { id: true },
+    })
+
+    const projectIds = userProjects.map(p => p.id)
+
+    const assets = await prisma.asset.findMany({
+      where: { projectId: { in: projectIds } },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    const characters = await prisma.character.findMany({
+      where: { projectId: { in: projectIds } },
+      select: { id: true, name: true, referenceImages: true, projectId: true },
+    })
+
+    const scenes = await prisma.scene.findMany({
+      where: { projectId: { in: projectIds } },
+      select: { id: true, title: true, referenceImages: true, projectId: true },
+    })
+
+    const characterImages = characters.flatMap(char => 
+      (char.referenceImages || []).map((url, idx) => ({
+        id: `char-${char.id}-${idx}`,
+        type: 'character',
+        url,
+        name: `${char.name} - 参考图 ${idx + 1}`,
+        projectId: char.projectId,
+        metadata: { characterId: char.id, characterName: char.name },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }))
+    )
+
+    const sceneImages = scenes.flatMap(scene => 
+      (scene.referenceImages || []).map((url, idx) => ({
+        id: `scene-${scene.id}-${idx}`,
+        type: 'scene',
+        url,
+        name: `${scene.title} - 参考图 ${idx + 1}`,
+        projectId: scene.projectId,
+        metadata: { sceneId: scene.id, sceneTitle: scene.title },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }))
+    )
+
+    let allAssets = [...assets, ...characterImages, ...sceneImages]
+
+    if (type && type !== 'all') {
+      if (type === 'image') {
+        allAssets = allAssets.filter(a => 
+          a.type === 'image' || a.type === 'character' || a.type === 'scene'
+        )
+      } else {
+        allAssets = allAssets.filter(a => a.type === type)
+      }
+    }
+
+    if (search) {
+      const searchLower = (search as string).toLowerCase()
+      allAssets = allAssets.filter(a => 
+        a.name.toLowerCase().includes(searchLower)
+      )
+    }
+
+    allAssets.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+    res.json(allAssets)
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+router.post('/assets', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized' })
+      return
+    }
+
+    const file = req.file
+    if (!file) {
+      res.status(400).json({ error: 'No file uploaded' })
+      return
+    }
+
+    const { prisma } = await import('../lib/prisma')
+    const { uploadToStorage } = await import('../lib/storage')
+    
+    const filename = `assets/${req.userId}/${Date.now()}-${file.originalname}`
+    const url = await uploadToStorage(file.buffer, filename, file.mimetype)
+
+    const asset = await prisma.asset.create({
+      data: {
+        name: file.originalname,
+        type: file.mimetype.startsWith('image/') ? 'image' : 
+              file.mimetype.startsWith('video/') ? 'video' : 
+              file.mimetype.startsWith('audio/') ? 'audio' : 'document',
+        url,
+        projectId: null,
+        userId: req.userId,
+      },
+    })
+
+    res.json(asset)
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 router.get('/projects/:projectId/assets', async (req, res) => {
   try {
     if (!req.userId) {

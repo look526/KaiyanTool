@@ -1,83 +1,85 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
 import { apiClient } from '../lib/api';
-import { BentoGrid, BentoCardMedium, BentoCardSmall } from '../components/bento';
-import { QuickPrompts, ReferenceImageUploader, ResultGallery, ResultCard, BatchActionBar, DEFAULT_ACTIONS, type GeneratedItem, type ReferenceImage } from '../components/bento';
-import { Video, Loader2, Play, Clock, CheckCircle, XCircle, RefreshCw, Settings, Sparkles, Download } from 'lucide-react';
+import {
+  Video,
+  Loader2,
+  Play,
+  Clock,
+  CheckCircle,
+  XCircle,
+  RefreshCw,
+  Settings,
+  Sparkles,
+  Download,
+  ChevronDown,
+  ChevronUp,
+  X,
+  Upload,
+  Film,
+  Palette,
+  Timer,
+  Trash2,
+  Share2,
+  Copy,
+  ZoomIn,
+} from 'lucide-react';
 
 const DURATION_OPTIONS = [
-  { value: '4', label: '4秒' },
-  { value: '8', label: '8秒' },
-  { value: '16', label: '16秒' },
+  { value: '4', label: '4秒', description: '快速预览' },
+  { value: '8', label: '8秒', description: '标准时长' },
+  { value: '16', label: '16秒', description: '完整展示' },
 ];
 
 const STYLE_PRESETS = [
-  { value: 'cinematic', label: '电影风格' },
-  { value: 'anime', label: '动漫风格' },
-  { value: 'realistic', label: '写实风格' },
-  { value: 'documentary', label: '纪录片风格' },
+  { value: 'cinematic', label: '电影风格', color: '#3b82f6', description: '电影质感，戏剧性光影' },
+  { value: 'anime', label: '动漫风格', color: '#ec4899', description: '日系动漫，清新明亮' },
+  { value: 'realistic', label: '写实风格', color: '#10b981', description: '真实感强，细节丰富' },
+  { value: 'documentary', label: '纪录片风格', color: '#f59e0b', description: '纪实风格，自然真实' },
 ];
 
-const VIDEO_QUICK_PROMPTS = [
-  {
-    id: '1',
-    label: '无人机航拍',
-    icon: '🚁',
-    prompt: 'Aerial drone shot, cinematic camera movement, scenic landscape, golden hour lighting',
-    tags: ['航拍', '风景']
-  },
-  {
-    id: '2',
-    label: '人物特写',
-    icon: '👤',
-    prompt: 'Close-up shot of character, emotional expression, shallow depth of field',
-    tags: ['特写', '人物']
-  },
-  {
-    id: '3',
-    label: '动态场景',
-    icon: '🎬',
-    prompt: 'Dynamic scene with fast movement, action sequence, professional cinematography',
-    tags: ['动态', '动作']
-  },
-  {
-    id: '4',
-    label: '自然风景',
-    icon: '🌄',
-    prompt: 'Nature landscape, peaceful scene, sunrise lighting, wildlife',
-    tags: ['自然', '风景']
-  },
-  {
-    id: '5',
-    label: '城市夜景',
-    icon: '🌃',
-    prompt: 'City night scene, neon lights, urban atmosphere, cinematic lighting',
-    tags: ['城市', '夜景']
-  },
-  {
-    id: '6',
-    label: '慢动作',
-    icon: '🎥',
-    prompt: 'Slow motion shot, dramatic effect, high frame rate, smooth movement',
-    tags: ['慢动作', '特效']
-  }
+const QUICK_PROMPTS = [
+  { label: '无人机航拍', prompt: 'Aerial drone shot, cinematic camera movement, scenic landscape, golden hour lighting', icon: '🚁' },
+  { label: '人物特写', prompt: 'Close-up shot of character, emotional expression, shallow depth of field', icon: '👤' },
+  { label: '动态场景', prompt: 'Dynamic scene with fast movement, action sequence, professional cinematography', icon: '🎬' },
+  { label: '自然风景', prompt: 'Nature landscape, peaceful scene, sunrise lighting, wildlife', icon: '🌄' },
+  { label: '城市夜景', prompt: 'City night scene, neon lights, urban atmosphere, cinematic lighting', icon: '🌃' },
+  { label: '慢动作', prompt: 'Slow motion shot, dramatic effect, high frame rate, smooth movement', icon: '🎥' },
 ];
+
+interface VideoTask {
+  id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  params?: {
+    prompt?: string;
+    url?: string;
+  };
+  progress?: number;
+  duration?: number;
+  createdAt: string;
+}
+
+interface ReferenceImage {
+  id: string;
+  file: File;
+  preview: string;
+  strength: number;
+}
 
 export function VideoGenerationPage() {
-  const { id } = useParams<{ id: string }>();
   const [prompt, setPrompt] = useState('');
   const [duration, setDuration] = useState('4');
   const [style, setStyle] = useState('cinematic');
   const [generating, setGenerating] = useState(false);
-  const [queue, setQueue] = useState<any[]>([]);
+  const [queue, setQueue] = useState<VideoTask[]>([]);
   const [loadingQueue, setLoadingQueue] = useState(true);
   const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [hoveredTask, setHoveredTask] = useState<string | null>(null);
+  const [previewVideo, setPreviewVideo] = useState<string | null>(null);
 
   const loadQueue = async () => {
-    if (!id) return;
     try {
-      const data = await apiClient.getProjectVideoQueue(id);
+      const data = await apiClient.get('/video-generation/queue');
       setQueue(data);
     } catch (error) {
       console.error('Failed to load queue:', error);
@@ -90,17 +92,13 @@ export function VideoGenerationPage() {
     loadQueue();
     const interval = setInterval(loadQueue, 5000);
     return () => clearInterval(interval);
-  }, [id]);
+  }, []);
 
   const handleGenerate = async () => {
-    if (!prompt.trim() || !id) return;
-
+    if (!prompt.trim()) return;
     setGenerating(true);
-
     try {
-      await apiClient.generateVideoFromPrompt(id, {
-        prompt,
-      });
+      await apiClient.post('/video-generation/generate', { prompt, duration, style });
       await loadQueue();
     } catch (error) {
       console.error('Failed to generate video:', error);
@@ -109,36 +107,28 @@ export function VideoGenerationPage() {
     }
   };
 
-  const handleDownload = useCallback(async (item: GeneratedItem) => {
-    try {
-      const link = document.createElement('a');
-      link.href = item.url;
-      link.download = `generated-video-${item.id}.mp4`;
-      link.click();
-    } catch (error) {
-      console.error('Download failed:', error);
-    }
+  const handleDownload = useCallback((task: VideoTask) => {
+    if (!task.params?.url) return;
+    const link = document.createElement('a');
+    link.href = task.params.url;
+    link.download = `video-${task.id}.mp4`;
+    link.click();
   }, []);
 
-  const handleFavorite = useCallback((item: GeneratedItem) => {
-    setQueue(prev => prev.map(q => 
-      q.id === item.id ? { ...q, isFavorite: !q.isFavorite } : q
-    ));
-  }, []);
-
-  const handleShare = useCallback(async (item: GeneratedItem) => {
+  const handleShare = useCallback(async (task: VideoTask) => {
+    if (!task.params?.url) return;
     if (navigator.share) {
       try {
         await navigator.share({
           title: '开演AI - 视频生成',
-          text: item.prompt,
-          url: item.url
+          text: task.params?.prompt || '',
+          url: task.params.url
         });
       } catch (error) {
         console.error('Share failed:', error);
       }
     } else {
-      navigator.clipboard.writeText(item.url);
+      navigator.clipboard.writeText(task.params.url);
     }
   }, []);
 
@@ -152,247 +142,690 @@ export function VideoGenerationPage() {
     setReferenceImages(prev => [...prev, ...newImages]);
   }, []);
 
-  const handleRemoveReference = useCallback((id: string) => {
-    setReferenceImages(prev => prev.filter(img => img.id !== id));
+  const handleRemoveReference = useCallback((refId: string) => {
+    setReferenceImages(prev => prev.filter(img => img.id !== refId));
   }, []);
 
-  const handleStrengthChange = useCallback((id: string, strength: number) => {
+  const handleStrengthChange = useCallback((refId: string, strength: number) => {
     setReferenceImages(prev => prev.map(img => 
-      img.id === id ? { ...img, strength } : img
+      img.id === refId ? { ...img, strength } : img
     ));
   }, []);
 
-  const handleQuickPrompt = useCallback((selectedPrompt: string) => {
+  const handleQuickPrompt = useCallback((quickPrompt: string) => {
     setPrompt(prev => {
-      if (prev.trim() === '') {
-        return selectedPrompt;
-      }
-      return `${prev}, ${selectedPrompt}`;
+      if (prev.trim() === '') return quickPrompt;
+      return `${prev}, ${quickPrompt}`;
     });
   }, []);
 
-  const getStatusIcon = (status: string) => {
+  const getStatusConfig = (status: string) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
+        return { icon: CheckCircle, color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.15)', label: '已完成' };
       case 'failed':
-        return <XCircle className="w-5 h-5 text-red-500" />;
+        return { icon: XCircle, color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.15)', label: '失败' };
       case 'processing':
-        return <Loader2 className="w-5 h-5 animate-spin text-blue-500" />;
+        return { icon: Loader2, color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.15)', label: '生成中' };
       default:
-        return <Clock className="w-5 h-5 text-gray-400" />;
+        return { icon: Clock, color: '#64748b', bgColor: 'rgba(100, 116, 139, 0.15)', label: '等待中' };
     }
   };
 
-  const handleBatchActions = DEFAULT_ACTIONS.map(action => ({
-    ...action,
-    handler: async () => {
-      console.log(`Batch action: ${action.id}`);
-    }
-  }));
+  const selectedStyleInfo = STYLE_PRESETS.find(s => s.value === style) || STYLE_PRESETS[0];
+  const selectedDurationInfo = DURATION_OPTIONS.find(d => d.value === duration) || DURATION_OPTIONS[0];
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg">
-          <Video className="w-6 h-6 text-white" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">视频生成</h1>
-          <p className="text-sm text-gray-500">使用 AI 创造精彩视频</p>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-page)' }}>
+      <div style={{
+        background: 'var(--bg-header)',
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid var(--border-primary)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
+      }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '20px 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{
+              padding: '12px',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)',
+              boxShadow: '0 4px 14px rgba(59, 130, 246, 0.3)',
+            }}>
+              <Video style={{ width: '24px', height: '24px', color: 'white' }} />
+            </div>
+            <div>
+              <h1 style={{ fontSize: '22px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>视频生成</h1>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>使用 AI 创造精彩视频</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      <BentoGrid columns={{ default: 1, lg: 3 }} gap="lg">
-        <div className="lg:col-span-1 space-y-4">
-          <BentoCardMedium>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">
-                  视频描述 <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="描述你想要的视频内容..."
-                  className="min-h-[120px] w-full p-3 border border-gray-200 dark:border-gray-700 rounded-[14px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white dark:bg-gray-800 transition-all duration-200"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  建议使用英文描述，可获得更好的生成效果
-                </p>
-              </div>
-
-              <button
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="h-10 px-4 flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200 cursor-pointer"
-              >
-                <Settings className="w-4 h-4" />
-                {showAdvanced ? '收起高级设置' : '展开高级设置'}
-              </button>
-
-              {showAdvanced && (
-                <div className="grid grid-cols-2 gap-3 pt-2">
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">时长</label>
-                    <select
-                      value={duration}
-                      onChange={(e) => setDuration(e.target.value)}
-                      className="h-10 w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-[14px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 transition-all duration-200 cursor-pointer"
-                    >
-                      {DURATION_OPTIONS.map(opt => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-900 dark:text-white">风格</label>
-                    <select
-                      value={style}
-                      onChange={(e) => setStyle(e.target.value)}
-                      className="h-10 w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-[14px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 transition-all duration-200 cursor-pointer"
-                    >
-                      {STYLE_PRESETS.map(preset => (
-                        <option key={preset.value} value={preset.value}>
-                          {preset.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '24px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{
+              background: 'var(--bg-card)',
+              borderRadius: '20px',
+              border: '1px solid var(--border-primary)',
+              overflow: 'hidden',
+            }}>
+              <div style={{ padding: '24px' }}>
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+                    视频描述 <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <textarea
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    placeholder="描述你想要的视频内容（英文效果更好）..."
+                    style={{
+                      width: '100%',
+                      minHeight: '120px',
+                      padding: '14px',
+                      borderRadius: '12px',
+                      border: '1px solid var(--border-primary)',
+                      background: 'var(--bg-input)',
+                      color: 'var(--text-primary)',
+                      fontSize: '14px',
+                      lineHeight: '1.6',
+                      resize: 'vertical',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      fontFamily: 'inherit',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = '#3b82f6';
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-primary)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '8px 0 0 0' }}>
+                    建议使用英文描述，可获得更好的生成效果
+                  </p>
                 </div>
-              )}
 
-              <button
-                onClick={handleGenerate}
-                disabled={!prompt.trim() || generating}
-                className="h-11 px-6 w-full flex items-center justify-center gap-2 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-cyan-500 rounded-[14px] shadow-[0_2px_4px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(59,130,246,0.25)] hover:-translate-y-px active:shadow-[0_1px_2px_rgba(0,0,0,0.08)] active:translate-y-0 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-[0_2px_4px_rgba(0,0,0,0.08)] disabled:hover:translate-y-0"
-              >
-                {generating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    生成中...
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-4 h-4" />
-                    生成视频
-                  </>
-                )}
-              </button>
-            </div>
-          </BentoCardMedium>
+                <button
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  style={{
+                    width: '100%',
+                    height: '44px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: 'var(--text-secondary)',
+                    background: 'var(--bg-hover)',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    marginBottom: '20px',
+                  }}
+                >
+                  <Settings style={{ width: '16px', height: '16px' }} />
+                  {showAdvanced ? '收起高级设置' : '展开高级设置'}
+                  {showAdvanced ? <ChevronUp style={{ width: '16px', height: '16px' }} /> : <ChevronDown style={{ width: '16px', height: '16px' }} />}
+                </button>
 
-          <QuickPrompts 
-            prompts={VIDEO_QUICK_PROMPTS}
-            onSelect={handleQuickPrompt}
-            maxDisplay={6}
-          />
-
-          <ReferenceImageUploader
-            images={referenceImages}
-            onUpload={handleUploadReference}
-            onRemove={handleRemoveReference}
-            onStrengthChange={handleStrengthChange}
-            maxImages={2}
-          />
-        </div>
-
-        <div className="lg:col-span-2 space-y-4">
-          <BentoCardMedium>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-lg">生成队列</h3>
-              <button
-                onClick={loadQueue}
-                className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 cursor-pointer"
-                title="刷新"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
-            </div>
-
-            {loadingQueue ? (
-              <div className="flex items-center justify-center py-16">
-                <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-              </div>
-            ) : queue.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-                <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
-                  <Video className="w-8 h-8" />
-                </div>
-                <p className="text-lg font-medium mb-2">暂无生成任务</p>
-                <p className="text-sm">输入描述并点击生成按钮开始创作</p>
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                {queue.map((task) => (
-                  <div
-                    key={task.id}
-                    className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-1">
-                        {getStatusIcon(task.status)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium mb-1 line-clamp-2">
-                          {task.params?.prompt || '视频生成任务'}
-                        </p>
-                        <div className="flex items-center gap-3 text-xs text-gray-500">
-                          <span>
-                            {new Date(task.createdAt).toLocaleString('zh-CN')}
-                          </span>
-                          {task.duration && (
-                            <span>· {task.duration}秒</span>
-                          )}
-                        </div>
-                        {task.status === 'processing' && (
-                          <div className="mt-3">
-                            <div className="flex items-center justify-between text-xs mb-1">
-                              <span className="text-gray-500">生成进度</span>
-                              <span className="text-blue-500">{task.progress || 0}%</span>
+                {showAdvanced && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+                        <Timer style={{ width: '14px', height: '14px', marginRight: '6px', display: 'inline', verticalAlign: 'middle' }} />
+                        时长
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                        {DURATION_OPTIONS.map((opt) => {
+                          const isSelected = duration === opt.value;
+                          return (
+                            <div
+                              key={opt.value}
+                              onClick={() => setDuration(opt.value)}
+                              style={{
+                                padding: '12px',
+                                borderRadius: '12px',
+                                border: `2px solid ${isSelected ? '#3b82f6' : 'var(--border-primary)'}`,
+                                background: isSelected ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-hover)',
+                                cursor: 'pointer',
+                                textAlign: 'center',
+                                transition: 'all 0.2s ease',
+                              }}
+                            >
+                              <div style={{ fontSize: '15px', fontWeight: '600', color: isSelected ? '#3b82f6' : 'var(--text-primary)', marginBottom: '2px' }}>
+                                {opt.label}
+                              </div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                {opt.description}
+                              </div>
                             </div>
-                            <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-blue-500 transition-all duration-300"
-                                style={{ width: `${task.progress || 0}%` }}
-                              />
-                            </div>
-                          </div>
-                        )}
+                          );
+                        })}
                       </div>
-                      {task.status === 'completed' && task.params?.url && (
-                        <button
-                          onClick={() => {
-                            const item: GeneratedItem = {
-                              id: task.id,
-                              url: task.params.url,
-                              prompt: task.params?.prompt || ''
-                            };
-                            handleDownload(item);
-                          }}
-                          className="p-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors"
-                          title="下载"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                      )}
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+                        <Palette style={{ width: '14px', height: '14px', marginRight: '6px', display: 'inline', verticalAlign: 'middle' }} />
+                        风格
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                        {STYLE_PRESETS.map((preset) => {
+                          const isSelected = style === preset.value;
+                          return (
+                            <div
+                              key={preset.value}
+                              onClick={() => setStyle(preset.value)}
+                              style={{
+                                padding: '12px',
+                                borderRadius: '12px',
+                                border: `2px solid ${isSelected ? preset.color : 'var(--border-primary)'}`,
+                                background: isSelected ? `${preset.color}15` : 'var(--bg-hover)',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                              }}
+                            >
+                              <div style={{ fontSize: '13px', fontWeight: '600', color: isSelected ? preset.color : 'var(--text-primary)', marginBottom: '2px' }}>
+                                {preset.label}
+                              </div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                {preset.description}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
+                )}
+
+                <button
+                  onClick={handleGenerate}
+                  disabled={!prompt.trim() || generating}
+                  style={{
+                    width: '100%',
+                    height: '52px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '10px',
+                    fontSize: '15px',
+                    fontWeight: '600',
+                    color: 'white',
+                    background: generating ? '#6b7280' : 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)',
+                    border: 'none',
+                    borderRadius: '14px',
+                    cursor: generating ? 'not-allowed' : 'pointer',
+                    boxShadow: generating ? 'none' : '0 4px 14px rgba(59, 130, 246, 0.3)',
+                    transition: 'all 0.2s ease',
+                    opacity: !prompt.trim() ? 0.7 : 1,
+                  }}
+                >
+                  {generating ? (
+                    <>
+                      <Loader2 style={{ width: '20px', height: '20px', animation: 'spin 1s linear infinite' }} />
+                      生成中...
+                    </>
+                  ) : (
+                    <>
+                      <Play style={{ width: '20px', height: '20px' }} />
+                      生成视频
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div style={{
+              background: 'var(--bg-card)',
+              borderRadius: '20px',
+              border: '1px solid var(--border-primary)',
+              padding: '20px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                <Film style={{ width: '18px', height: '18px', color: '#3b82f6' }} />
+                <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>快捷提示词</span>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {QUICK_PROMPTS.map((qp, idx) => (
+                  <span
+                    key={idx}
+                    onClick={() => handleQuickPrompt(qp.prompt)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '10px',
+                      background: 'var(--bg-hover)',
+                      border: '1px solid var(--border-primary)',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <span>{qp.icon}</span>
+                    {qp.label}
+                  </span>
                 ))}
               </div>
-            )}
-          </BentoCardMedium>
-        </div>
-      </BentoGrid>
+            </div>
 
-      <BatchActionBar
-        selectedCount={0}
-        actions={handleBatchActions}
-        onClearSelection={() => {}}
-        position="bottom"
-      />
+            <div style={{
+              background: 'var(--bg-card)',
+              borderRadius: '20px',
+              border: '1px solid var(--border-primary)',
+              padding: '20px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Upload style={{ width: '18px', height: '18px', color: '#3b82f6' }} />
+                  <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>参考图片</span>
+                </div>
+                <label style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  color: 'white',
+                  cursor: 'pointer',
+                }}>
+                  上传
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => e.target.files && handleUploadReference(Array.from(e.target.files))}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
+
+              {referenceImages.length === 0 ? (
+                <div style={{
+                  padding: '32px',
+                  textAlign: 'center',
+                  borderRadius: '12px',
+                  border: '2px dashed var(--border-primary)',
+                  background: 'var(--bg-hover)',
+                }}>
+                  <Upload style={{ width: '32px', height: '32px', color: 'var(--text-muted)', marginBottom: '10px' }} />
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>拖拽或点击上传参考图片</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {referenceImages.map((ref) => (
+                    <div key={ref.id} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '12px',
+                      borderRadius: '12px',
+                      background: 'var(--bg-hover)',
+                      border: '1px solid var(--border-primary)',
+                    }}>
+                      <img
+                        src={ref.preview}
+                        alt="Reference"
+                        style={{
+                          width: '48px',
+                          height: '48px',
+                          borderRadius: '8px',
+                          objectFit: 'cover',
+                        }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>
+                          参考强度: {ref.strength}%
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={ref.strength}
+                          onChange={(e) => handleStrengthChange(ref.id, Number(e.target.value))}
+                          style={{ width: '100%', accentColor: '#3b82f6' }}
+                        />
+                      </div>
+                      <button
+                        onClick={() => handleRemoveReference(ref.id)}
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <X style={{ width: '16px', height: '16px' }} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: '20px',
+            border: '1px solid var(--border-primary)',
+            minHeight: '600px',
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+            <div style={{
+              padding: '20px 24px',
+              borderBottom: '1px solid var(--border-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Video style={{ width: '18px', height: '18px', color: '#3b82f6' }} />
+                <span style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)' }}>生成队列</span>
+                <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>({queue.length})</span>
+              </div>
+              <button
+                onClick={loadQueue}
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-primary)',
+                  background: 'transparent',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <RefreshCw style={{ width: '16px', height: '16px' }} />
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
+              {loadingQueue ? (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100%',
+                  minHeight: '400px',
+                }}>
+                  <Loader2 style={{ width: '48px', height: '48px', animation: 'spin 1s linear infinite', color: '#3b82f6' }} />
+                  <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '16px' }}>加载中...</p>
+                </div>
+              ) : queue.length === 0 ? (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100%',
+                  minHeight: '400px',
+                }}>
+                  <div style={{
+                    width: '80px',
+                    height: '80px',
+                    borderRadius: '24px',
+                    background: 'var(--bg-hover)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '24px',
+                  }}>
+                    <Video style={{ width: '40px', height: '40px', color: 'var(--text-muted)' }} />
+                  </div>
+                  <p style={{ fontSize: '16px', fontWeight: '500', color: 'var(--text-primary)', marginBottom: '8px' }}>
+                    暂无生成任务
+                  </p>
+                  <p style={{ fontSize: '14px', color: 'var(--text-muted)', textAlign: 'center', maxWidth: '300px' }}>
+                    在左侧输入视频描述，点击生成按钮开始创作
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {queue.map((task) => {
+                    const statusConfig = getStatusConfig(task.status);
+                    const StatusIcon = statusConfig.icon;
+                    const isHovered = hoveredTask === task.id;
+
+                    return (
+                      <div
+                        key={task.id}
+                        style={{
+                          padding: '20px',
+                          borderRadius: '16px',
+                          border: '1px solid var(--border-primary)',
+                          background: 'var(--bg-hover)',
+                          transition: 'all 0.2s ease',
+                          transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
+                          boxShadow: isHovered ? '0 8px 24px rgba(0,0,0,0.1)' : 'none',
+                        }}
+                        onMouseEnter={() => setHoveredTask(task.id)}
+                        onMouseLeave={() => setHoveredTask(null)}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+                          <div style={{
+                            width: '48px',
+                            height: '48px',
+                            borderRadius: '14px',
+                            background: statusConfig.bgColor,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}>
+                            <StatusIcon style={{
+                              width: '24px',
+                              height: '24px',
+                              color: statusConfig.color,
+                              animation: task.status === 'processing' ? 'spin 1s linear infinite' : 'none',
+                            }} />
+                          </div>
+
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                              <span style={{
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                background: statusConfig.bgColor,
+                                color: statusConfig.color,
+                                fontSize: '12px',
+                                fontWeight: '600',
+                              }}>
+                                {statusConfig.label}
+                              </span>
+                              {task.duration && (
+                                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                  {task.duration}秒
+                                </span>
+                              )}
+                            </div>
+                            <p style={{
+                              fontSize: '14px',
+                              color: 'var(--text-primary)',
+                              lineHeight: '1.5',
+                              margin: '0 0 8px 0',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                            }}>
+                              {task.params?.prompt || '视频生成任务'}
+                            </p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                              <span>
+                                {new Date(task.createdAt).toLocaleString('zh-CN')}
+                              </span>
+                            </div>
+
+                            {task.status === 'processing' && (
+                              <div style={{ marginTop: '16px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>生成进度</span>
+                                  <span style={{ fontSize: '12px', fontWeight: '600', color: '#3b82f6' }}>{task.progress || 0}%</span>
+                                </div>
+                                <div style={{
+                                  height: '6px',
+                                  background: 'var(--bg-card)',
+                                  borderRadius: '3px',
+                                  overflow: 'hidden',
+                                }}>
+                                  <div style={{
+                                    height: '100%',
+                                    width: `${task.progress || 0}%`,
+                                    background: 'linear-gradient(90deg, #3b82f6 0%, #06b6d4 100%)',
+                                    borderRadius: '3px',
+                                    transition: 'width 0.3s ease',
+                                  }} />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {task.status === 'completed' && task.params?.url && (
+                            <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                              <button
+                                onClick={() => setPreviewVideo(task.params?.url || null)}
+                                style={{
+                                  width: '40px',
+                                  height: '40px',
+                                  borderRadius: '10px',
+                                  border: 'none',
+                                  background: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)',
+                                  color: 'white',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                                }}
+                              >
+                                <Play style={{ width: '18px', height: '18px' }} />
+                              </button>
+                              <button
+                                onClick={() => handleDownload(task)}
+                                style={{
+                                  width: '40px',
+                                  height: '40px',
+                                  borderRadius: '10px',
+                                  border: '1px solid var(--border-primary)',
+                                  background: 'transparent',
+                                  color: 'var(--text-muted)',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <Download style={{ width: '18px', height: '18px' }} />
+                              </button>
+                              <button
+                                onClick={() => handleShare(task)}
+                                style={{
+                                  width: '40px',
+                                  height: '40px',
+                                  borderRadius: '10px',
+                                  border: '1px solid var(--border-primary)',
+                                  background: 'transparent',
+                                  color: 'var(--text-muted)',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <Share2 style={{ width: '18px', height: '18px' }} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {previewVideo && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.9)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '24px',
+          }}
+          onClick={() => setPreviewVideo(null)}
+        >
+          <button
+            onClick={() => setPreviewVideo(null)}
+            style={{
+              position: 'absolute',
+              top: '24px',
+              right: '24px',
+              width: '48px',
+              height: '48px',
+              borderRadius: '12px',
+              border: 'none',
+              background: 'rgba(255,255,255,0.1)',
+              color: 'white',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <X style={{ width: '24px', height: '24px' }} />
+          </button>
+          <video
+            src={previewVideo}
+            controls
+            autoPlay
+            style={{
+              maxWidth: '100%',
+              maxHeight: '100%',
+              borderRadius: '16px',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
