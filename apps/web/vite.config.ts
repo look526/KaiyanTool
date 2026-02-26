@@ -14,7 +14,9 @@ export default defineConfig({
     }
   },
   server: {
+    host: '0.0.0.0',
     port: 3000,
+    allowedHosts: ['kaiyan.online', 'www.kaiyan.online', '.kaiyan.online'],
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
