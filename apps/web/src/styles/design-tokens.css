@@ -1,0 +1,374 @@
+/* ==========================================================================
+   开演AI - Design System Tokens
+   Style: Bento Grid (Apple-inspired modular cards)
+   ========================================================================== */
+
+:root {
+  /* ========================================
+     Primary Colors - Apple Blue
+     ======================================== */
+  --color-primary: #007AFF;
+  --color-primary-hover: #0056CC;
+  --color-primary-active: #0044A3;
+  --color-primary-light: rgba(0, 122, 255, 0.1);
+  --color-primary-50: #EFF6FF;
+  --color-primary-100: #DBEAFE;
+  --color-primary-200: #BFDBFE;
+  --color-primary-300: #93C5FD;
+  --color-primary-400: #60A5FA;
+  --color-primary-500: #007AFF;
+  --color-primary-600: #0056CC;
+  --color-primary-700: #0044A3;
+  --color-primary-800: #003380;
+  --color-primary-900: #002266;
+
+  /* ========================================
+     Secondary Colors
+     ======================================== */
+  --color-secondary: #5856D6;
+  --color-secondary-hover: #4644AB;
+  --color-secondary-light: rgba(88, 86, 214, 0.1);
+
+  /* ========================================
+     Accent Colors - For Bento Cards
+     ======================================== */
+  --color-accent-purple: #AF52DE;
+  --color-accent-purple-dark: #8B3DB3;
+  --color-accent-pink: #FF2D55;
+  --color-accent-pink-dark: #D92349;
+  --color-accent-orange: #FF9500;
+  --color-accent-orange-dark: #CC7700;
+  --color-accent-green: #34C759;
+  --color-accent-green-dark: #2AA147;
+  --color-accent-teal: #5AC8FA;
+  --color-accent-teal-dark: #4AA0C8;
+  --color-accent-indigo: #5856D6;
+  --color-accent-indigo-dark: #4644AB;
+
+  /* ========================================
+     Semantic Colors
+     ======================================== */
+  --success: #34C759;
+  --success-hover: #2AA147;
+  --success-light: rgba(52, 199, 89, 0.1);
+  --success-bg: rgba(52, 199, 89, 0.15);
+  --success-text: #1E7A34;
+
+  --warning: #FF9500;
+  --warning-hover: #CC7700;
+  --warning-light: rgba(255, 149, 0, 0.1);
+  --warning-bg: rgba(255, 149, 0, 0.15);
+  --warning-text: #B36B00;
+
+  --error: #FF3B30;
+  --error-hover: #D63027;
+  --error-light: rgba(255, 59, 48, 0.1);
+  --error-bg: rgba(255, 59, 48, 0.15);
+  --error-text: #C42B22;
+
+  --info: #007AFF;
+  --info-hover: #0056CC;
+  --info-light: rgba(0, 122, 255, 0.1);
+  --info-bg: rgba(0, 122, 255, 0.15);
+  --info-text: #0056CC;
+
+  /* ========================================
+     Typography
+     ======================================== */
+  --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', Consolas, 'Liberation Mono', Menlo, monospace;
+
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 30px;
+  --font-size-4xl: 36px;
+  --font-size-5xl: 48px;
+
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  --letter-spacing-tight: -0.025em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.025em;
+
+  /* ========================================
+     Spacing (4px Grid)
+     ======================================== */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* ========================================
+     Border Radius
+     ======================================== */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-3xl: 32px;
+  --radius-full: 9999px;
+
+  /* ========================================
+     Shadows
+     ======================================== */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.25);
+
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  --shadow-button: 0 2px 4px rgba(0, 0, 0, 0.08);
+  --shadow-button-hover: 0 4px 12px rgba(0, 122, 255, 0.25);
+
+  --glow-primary: 0 4px 20px rgba(0, 122, 255, 0.3);
+  --glow-success: 0 4px 20px rgba(52, 199, 89, 0.3);
+  --glow-error: 0 4px 20px rgba(255, 59, 48, 0.3);
+
+  /* ========================================
+     Transitions
+     ======================================== */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  /* ========================================
+     Z-Index Scale
+     ======================================== */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+  --z-toast: 1080;
+
+  /* ========================================
+     Bento Grid
+     ======================================== */
+  --bento-gap: 16px;
+  --bento-gap-lg: 24px;
+  --bento-min-width: 180px;
+  --bento-min-width-lg: 240px;
+}
+
+/* ========================================
+   Light Theme (Default)
+   ======================================== */
+:root,
+[data-theme='light'] {
+  --bg-primary: #F5F5F7;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary: #E8E8ED;
+  --bg-elevated: #FFFFFF;
+  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-active: rgba(0, 0, 0, 0.08);
+  --bg-overlay: rgba(0, 0, 0, 0.5);
+
+  --text-primary: #1D1D1F;
+  --text-secondary: #424245;
+  --text-tertiary: #86868B;
+  --text-muted: #AEAEB2;
+  --text-inverse: #FFFFFF;
+
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-primary: rgba(0, 0, 0, 0.1);
+  --border-secondary: rgba(0, 0, 0, 0.15);
+  --border-focus: var(--color-primary);
+
+  --bento-bg: #FFFFFF;
+  --bento-border: rgba(0, 0, 0, 0.06);
+
+  --card-bg: rgba(255, 255, 255, 0.9);
+  --card-bg-solid: #FFFFFF;
+  --card-border: rgba(0, 0, 0, 0.06);
+
+  --input-bg: #FFFFFF;
+  --input-border: rgba(0, 0, 0, 0.1);
+  --input-focus-border: var(--color-primary);
+  --input-placeholder: #86868B;
+
+  --sidebar-bg: #F5F5F7;
+  --sidebar-hover: rgba(0, 0, 0, 0.04);
+  --sidebar-active: rgba(0, 0, 0, 0.08);
+}
+
+/* ========================================
+   Dark Theme
+   ======================================== */
+[data-theme='dark'] {
+  --bg-primary: #000000;
+  --bg-secondary: #1C1C1E;
+  --bg-tertiary: #2C2C2E;
+  --bg-elevated: #2C2C2E;
+  --bg-hover: rgba(255, 255, 255, 0.06);
+  --bg-active: rgba(255, 255, 255, 0.1);
+  --bg-overlay: rgba(0, 0, 0, 0.7);
+
+  --text-primary: #F5F5F7;
+  --text-secondary: #A1A1A6;
+  --text-tertiary: #8E8E93;
+  --text-muted: #636366;
+  --text-inverse: #1D1D1F;
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-primary: rgba(255, 255, 255, 0.12);
+  --border-secondary: rgba(255, 255, 255, 0.18);
+  --border-focus: var(--color-primary);
+
+  --bento-bg: #1C1C1E;
+  --bento-border: rgba(255, 255, 255, 0.08);
+
+  --card-bg: rgba(28, 28, 30, 0.9);
+  --card-bg-solid: #1C1C1E;
+  --card-border: rgba(255, 255, 255, 0.08);
+
+  --input-bg: #1C1C1E;
+  --input-border: rgba(255, 255, 255, 0.12);
+  --input-focus-border: var(--color-primary);
+  --input-placeholder: #636366;
+
+  --sidebar-bg: #1C1C1E;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-active: rgba(255, 255, 255, 0.1);
+}
+
+/* ========================================
+   Animations
+   ======================================== */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ========================================
+   Utility Classes
+   ======================================== */
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s var(--ease-out) forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s var(--ease-out) forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s var(--ease-out) forwards;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.3s var(--ease-out) forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s var(--ease-out) forwards;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.stagger-1 { animation-delay: 0ms; }
+.stagger-2 { animation-delay: 50ms; }
+.stagger-3 { animation-delay: 100ms; }
+.stagger-4 { animation-delay: 150ms; }
+.stagger-5 { animation-delay: 200ms; }
+.stagger-6 { animation-delay: 250ms; }
+.stagger-7 { animation-delay: 300ms; }
+.stagger-8 { animation-delay: 350ms; }
+.stagger-9 { animation-delay: 400ms; }
+.stagger-10 { animation-delay: 450ms; }
