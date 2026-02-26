@@ -57,6 +57,8 @@ export interface ApiClientInterface {
   deleteAIProvider(id: string): Promise<{ message: string }>;
   testAIProvider(id: string): Promise<{ success: boolean; message: string }>;
   testAIProviderModel(modelId: string): Promise<{ success: boolean; message: string; model: any; testResult?: any }>;
+  setAssistantDefaultModel(modelId: string): Promise<{ message: string }>;
+  unsetAssistantDefaultModel(modelId: string): Promise<{ message: string }>;
   createAIProviderModel(providerId: string, data: any): Promise<any>;
   updateAIProviderModel(providerId: string, modelId: string, data: any): Promise<any>;
   deleteAIProviderModel(providerId: string, modelId: string): Promise<{ message: string }>;
@@ -95,6 +97,21 @@ export interface ApiClientInterface {
   uploadSceneImage(file: File): Promise<{ url: string; filename: string }>;
   generateShotsFromScript(projectId: string, scriptContent: string, visualStyle?: string): Promise<{ success: boolean; count: number; shots: any[] }>;
   optimizeShotPrompt(shotId: string, referenceImages: string[]): Promise<{ success: boolean; startPrompt: string; endPrompt: string; shot: any }>;
+  optimizeScene(data: { sceneContent: string; location: string; time: string; direction?: string }): Promise<{ suggestion: string; optimized: string }>;
+  generateImage(data: { prompt: string; negativePrompt?: string; width: number; height: number; style: string; projectId: string }): Promise<{ asset: { url: string } }>;
+  batchGenerateImages(data: { prompt: string; count: number; referenceImageUrl?: string; providerId?: string }): Promise<{ assets: Array<{ url: string; filename: string }> }>;
+  getProjectAssets(projectId: string, type?: string, search?: string): Promise<any[]>;
+  polishPrompt(prompt: string, type?: string, style?: string): Promise<{ polished: string }>;
+  expandPrompt(prompt: string, type?: string): Promise<{ expanded: string }>;
+  translatePrompt(prompt: string, targetLanguage: string): Promise<{ translated: string }>;
+  generateNegativePrompt(prompt: string, type?: string): Promise<{ negative: string }>;
+  superResolution(imageId: string, scale: number): Promise<{ url: string }>;
+  upscaleImage(imageId: string, scale: number): Promise<{ url: string }>;
+  inpainting(imageId: string, maskPrompt: string): Promise<{ url: string }>;
+  removeBackground(imageId: string): Promise<{ url: string }>;
+  faceEnhancement(imageId: string, strength?: number): Promise<{ url: string }>;
+  colorCorrection(imageId: string, data: { brightness?: number; contrast?: number; saturation?: number }): Promise<{ url: string }>;
+  styleTransfer(imageId: string, style?: string, strength?: number): Promise<{ url: string }>;
   getNovels(projectId: string): Promise<{ novels: any[] }>;
   getNovelById(novelId: string): Promise<any>;
   createNovel(projectId: string, data: { title?: string; description?: string }): Promise<any>;
@@ -114,10 +131,12 @@ export interface ApiClientInterface {
   exportNineGrid(shotId: string): Promise<Blob>;
   getShot(shotId: string): Promise<any>;
   getProjectVideos(projectId: string): Promise<any[]>;
+  getProjectVideoQueue(projectId: string): Promise<any[]>;
   deleteVideo(videoId: string): Promise<{ message: string }>;
   createVideoMergeTask(projectId: string, videoIds: string[]): Promise<any>;
   getMergeTaskStatus(taskId: string): Promise<any>;
   getVideoStatus(shotId: string): Promise<any>;
+  generateVideoFromPrompt(projectId: string, data: { prompt: string; providerId?: string; model?: string }): Promise<any>;
   continueScript(content: string, context?: string): Promise<{ success: boolean; content: string }>;
   rewriteScript(content: string, instruction?: string): Promise<{ success: boolean; content: string }>;
   createWardrobe(characterId: string, data: { name: string; description?: string; images?: string[] }): Promise<any>;
@@ -161,3 +180,4 @@ export type {
 
 // 导出新的 API 客户端实例，保持向后兼容性
 export const apiClient: ApiClientInterface = newApiClient;
+export { setAuthErrorHandler } from './api-client';
