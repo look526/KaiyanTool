@@ -1,5 +1,5 @@
 // 从新的 API 客户端导入
-import { apiClient as newApiClient } from './api-client';
+import { apiClient as newApiClient, setAuthErrorHandler as originalSetAuthErrorHandler } from './api-client';
 import type {
   User,
   Project,
@@ -22,6 +22,9 @@ import type {
   Shot,
   NineGridPanel
 } from '@ai-content-platform/shared';
+
+// 重新导出 setAuthErrorHandler
+export const setAuthErrorHandler = originalSetAuthErrorHandler;
 
 // 定义 API 客户端接口
 export interface ApiClientInterface {
@@ -180,4 +183,3 @@ export type {
 
 // 导出新的 API 客户端实例，保持向后兼容性
 export const apiClient: ApiClientInterface = newApiClient;
-export { setAuthErrorHandler } from './api-client';
