@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiClient, User } from '../lib/api';
-import { setAuthErrorHandler } from '../lib/api-client';
+import { apiClient, User, setAuthErrorHandler } from '../lib/api';
 
 const ENABLE_AUTH = true;
 
@@ -52,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: 'mock@example.com',
         avatarUrl: null,
         bio: null,
+        role: 'user',
         plan: 'free',
         storageUsed: BigInt(0),
         storageLimit: BigInt(1073741824),
