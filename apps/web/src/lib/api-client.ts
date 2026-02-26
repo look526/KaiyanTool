@@ -233,14 +233,14 @@ export class ApiClient {
     if (type && type !== 'all') params.append('type', type)
     if (search) params.append('search', search)
     const query = params.toString() ? `?${params.toString()}` : ''
-    return this.get<any[]>(`/assets${query}`)
+    return this.get<any[]>(`/upload/assets${query}`)
   }
 
   async uploadAssetGlobal(file: File) {
     const formData = new FormData()
     formData.append('file', file)
     
-    const response = await fetch(`${this.baseUrl}/assets`, {
+    const response = await fetch(`${this.baseUrl}/upload/assets`, {
       method: 'POST',
       body: formData,
       credentials: 'include',

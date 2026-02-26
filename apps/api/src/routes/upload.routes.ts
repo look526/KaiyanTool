@@ -60,7 +60,7 @@ router.get('/assets', async (req, res) => {
 
     const scenes = await prisma.scene.findMany({
       where: { projectId: { in: projectIds } },
-      select: { id: true, title: true, referenceImages: true, projectId: true },
+      select: { id: true, location: true, referenceImages: true, projectId: true },
     })
 
     const characterImages = characters.flatMap(char => 
@@ -81,9 +81,9 @@ router.get('/assets', async (req, res) => {
         id: `scene-${scene.id}-${idx}`,
         type: 'scene',
         url,
-        name: `${scene.title} - 参考图 ${idx + 1}`,
+        name: `${scene.location} - 参考图 ${idx + 1}`,
         projectId: scene.projectId,
-        metadata: { sceneId: scene.id, sceneTitle: scene.title },
+        metadata: { sceneId: scene.id, sceneLocation: scene.location },
         createdAt: new Date(),
         updatedAt: new Date(),
       }))
@@ -192,7 +192,7 @@ router.get('/projects/:projectId/assets', async (req, res) => {
 
     const scenes = await prisma.scene.findMany({
       where: { projectId },
-      select: { id: true, title: true, referenceImages: true },
+      select: { id: true, location: true, referenceImages: true },
     })
 
     const characterImages = characters.flatMap(char => 
@@ -213,9 +213,9 @@ router.get('/projects/:projectId/assets', async (req, res) => {
         id: `scene-${scene.id}-${idx}`,
         type: 'scene',
         url,
-        name: `${scene.title} - 参考图 ${idx + 1}`,
+        name: `${scene.location} - 参考图 ${idx + 1}`,
         projectId,
-        metadata: { sceneId: scene.id, sceneTitle: scene.title },
+        metadata: { sceneId: scene.id, sceneLocation: scene.location },
         createdAt: new Date(),
         updatedAt: new Date(),
       }))

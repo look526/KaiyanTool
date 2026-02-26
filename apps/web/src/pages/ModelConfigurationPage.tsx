@@ -486,7 +486,7 @@ export default function ModelConfigurationPage() {
                 <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>总模型数</div>
               </div>
               <div style={{ fontSize: '32px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                {usageStats.modelCount}
+                {usageStats?.modelCount || 0}
               </div>
             </div>
             <div style={{
@@ -520,10 +520,10 @@ export default function ModelConfigurationPage() {
                 <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>已配置默认模型</div>
               </div>
               <div style={{ fontSize: '32px', fontWeight: '700', background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                {Object.keys(usageStats.defaultModels).length}/8
+                {usageStats?.defaultModels ? Object.keys(usageStats.defaultModels).length : 0}/8
               </div>
             </div>
-            {Object.entries(usageStats.modelsByType).slice(0, 2).map(([type, count]) => {
+            {usageStats?.modelsByType && Object.entries(usageStats.modelsByType).slice(0, 2).map(([type, count]) => {
               const color = contentTypeColors[type] || '#6366f1'
               return (
                 <div key={type} style={{
@@ -1120,7 +1120,7 @@ export default function ModelConfigurationPage() {
                     总模型数
                   </div>
                   <div style={{ fontSize: '30px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                    {usageStats.modelCount}
+                    {usageStats?.modelCount || 0}
                   </div>
                 </div>
                 <div style={{

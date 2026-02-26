@@ -6,6 +6,19 @@ const router = Router();
 
 router.use(authMiddleware);
 
+router.get('/usage', async (req, res) => {
+  try {
+    const userId = (req as any).userId;
+    if (!userId) {
+      return res.status(401).json({ error: '未授权' });
+    }
+    const analytics = await analyticsService.getUserAnalytics(userId);
+    res.json(analytics);
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to get usage analytics' });
+  }
+});
+
 router.get('/project/:projectId', async (req, res) => {
   try {
     const analytics = await analyticsService.getProjectAnalytics(req.params.projectId);
