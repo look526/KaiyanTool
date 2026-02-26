@@ -4,7 +4,7 @@ import cookieParser from 'cookie-parser'
 import dotenv from 'dotenv'
 import path from 'path'
 
-dotenv.config()
+dotenv.config({path: ".env"})
 
 import { config, validateConfig } from './config'
 
