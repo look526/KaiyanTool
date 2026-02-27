@@ -1,201 +1,307 @@
-# 开演AI
+<div align="center">
 
-> 基于AI的内容创作平台，支持剧本、小说、分镜、图像生成和视频制作。
+<img src="https://img.shields.io/badge/KaiyanAI-8b5cf6?style=for-the-badge&logo=movie&logoColor=white" alt="KaiyanAI Logo" height="60">
 
-## 功能特性
+# 🎬 开演AI | KaiyanAI
 
-- 📝 **剧本创作** - Monaco编辑器 + AI结构化解析
-- 📖 **小说创作** - 章节管理 + 富文本编辑
-- 👥 **角色管理** - 角色档案 + 图像上传
-- 🎬 **场景管理** - 场景设置 + 参考图
-- 🎥 **分镜系统** - AI自动生成 + 手动编辑
-- 🎨 **图像生成** - 多AI提供商（OpenAI/Google/智普/AntSK）
-- 🎬 **视频生成** - 关键帧生成视频
-- 🖼️ **九宫格** - 3x3面板布局 + 拖拽排序
-- 📤 **导出功能** - 项目导出（JSON）、视频导出（多格式）
-- 👥 **协作功能** - 项目成员 + RBAC权限
+### **AI-Powered Content Creation Platform for Filmmakers**
 
-## 技术栈
+**专为影视创作者打造的AI内容创作平台**
 
-### 后端
-- **Node.js** 24.12.0 + Express 4.18.0
-- **PostgreSQL** 16 + Prisma ORM
-- **Redis** - 缓存 + 任务队列（Bull）
-- **Winston** - 结构化日志
-- **Sentry** - 错误监控
+*From Script to Screen, Powered by AI*
 
-### 前端
-- **React** 18.3.1 + TypeScript
-- **Vite** 6.2.0 - 开发服务器
-- **Tailwind CSS** 4.1.18 - UI样式
-- **Monaco Editor** - 代码编辑器
+[![GitHub stars](https://img.shields.io/github/stars/your-org/kaiyan-tool?style=social)](https://github.com/your-org/kaiyan-tool/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/your-org/kaiyan-tool?style=social)](https://github.com/your-org/kaiyan-tool/network/members)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/Node.js-24+-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-## 快速开始
+**[🚀 Live Demo](#)** · **[📖 Documentation](./docs)** · **[🐛 Report Bug](https://github.com/your-org/kaiyan-tool/issues)** · **[✨ Request Feature](https://github.com/your-org/kaiyan-tool/issues)**
 
-### 环境要求
+---
 
-- Node.js 24+
-- Docker & Docker Compose
-- PostgreSQL 16
-- Redis 7+
+</div>
 
-### 安装部署
+## 🌟 Why KaiyanAI? | 为什么选择开演AI?
+
+<table>
+<tr>
+<td width="50%">
+
+### English
+
+**KaiyanAI** revolutionizes content creation by integrating the entire filmmaking workflow into one powerful platform. From scriptwriting to video production, our AI-powered tools help creators bring their stories to life faster than ever.
+
+**Key Highlights:**
+- 🎯 **All-in-One Solution** - Script, storyboard, images, and video in one place
+- 🤖 **AI-Powered** - Smart parsing, generation, and optimization
+- ⚡ **Lightning Fast** - Generate storyboards in seconds, not hours
+- 🎨 **Professional Quality** - Cinema-grade output for your projects
+
+</td>
+<td width="50%">
+
+### 中文
+
+**开演AI** 将影视创作全流程整合到一个强大的平台中。从剧本创作到视频制作，我们的AI工具帮助创作者更快地将故事变为现实。
+
+**核心优势：**
+- 🎯 **一站式解决方案** - 剧本、分镜、图像、视频一站式完成
+- 🤖 **AI驱动** - 智能解析、生成和优化
+- ⚡ **极速创作** - 秒级生成分镜，告别繁琐工作
+- 🎨 **专业品质** - 电影级输出质量
+
+</td>
+</tr>
+</table>
+
+---
+
+## ✨ Features | 功能特性
+
+<table>
+<tr>
+<td width="33%" valign="top">
+
+### 📝 Script Writing
+### 剧本创作
+
+![Script](https://img.shields.io/badge/Feature-Script-blue)
+
+- Monaco Editor with syntax highlighting
+- AI-powered scene parsing
+- Smart character detection
+- Template library
+
+**Monaco编辑器**
+- AI场景解析
+- 角色智能识别
+- 丰富模板库
+
+</td>
+<td width="33%" valign="top">
+
+### 🎬 Shot Panel
+### 分镜系统
+
+![Shot](https://img.shields.io/badge/Feature-Shot-green)
+
+- Auto-generate from script
+- 9-grid visual layout
+- Drag & drop reorder
+- AI prompt optimization
+
+**一键生成分镜**
+- 九宫格可视化
+- 拖拽排序
+- 提示词优化
+
+</td>
+<td width="33%" valign="top">
+
+### 🎨 Image & Video
+### 图像与视频
+
+![Media](https://img.shields.io/badge/Feature-Media-purple)
+
+- Multi-AI provider support
+- Batch image generation
+- Video from keyframes
+- Multi-format export
+
+**多AI提供商**
+- 批量图像生成
+- 关键帧生成视频
+- 多格式导出
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🎥 Demo | 演示
+
+<div align="center">
+
+| Dashboard | Script Editor | Shot Panel |
+|:---------:|:-------------:|:----------:|
+| ![Dashboard](./docs/screenshots/dashboard.png) | ![Script Editor](./docs/screenshots/script-editor.png) | ![Shot Panel](./docs/screenshots/shot-panel.png) |
+| *主界面* | *剧本编辑器* | *分镜面板* |
+
+| Character Management | Image Generation | Video Export |
+|:-------------------:|:----------------:|:------------:|
+| ![Characters](./docs/screenshots/characters.png) | ![Image Gen](./docs/screenshots/image-gen.png) | ![Video Export](./docs/screenshots/video-export.png) |
+| *角色管理* | *图像生成* | *视频导出* |
+
+</div>
+
+---
+
+## 🚀 Quick Start | 快速开始
+
+### Prerequisites | 环境要求
 
 ```bash
-# 克隆仓库
+Node.js >= 24.0.0    # JavaScript runtime
+Docker & Compose     # Containerization
+PostgreSQL 16        # Database
+Redis 7+             # Cache & Queue
+```
+
+### Installation | 安装
+
+```bash
+# Clone the repository | 克隆仓库
 git clone https://github.com/your-org/kaiyan-tool.git
 cd kaiyan-tool
 
-# 复制环境变量
+# Setup environment | 配置环境
 cp .env.example .env
-# 编辑.env文件，设置必要的环境变量
+# Edit .env with your settings | 编辑.env配置
 
-# 启动服务（Docker）
+# Start with Docker | Docker启动
 docker-compose up -d --build
 
-# 访问应用
+# Access the app | 访问应用
 # Web: http://localhost:3000
 # API: http://localhost:3001
-# API文档: http://localhost:3001/api-docs
 ```
 
-### 本地开发
+### Development | 本地开发
 
 ```bash
-# 安装依赖
+# Install dependencies | 安装依赖
 npm install
 
-# 启动PostgreSQL + Redis
-docker-compose up postgres redis
+# Start databases | 启动数据库
+docker-compose up postgres redis -d
 
-# 运行数据库迁移
+# Run migrations | 运行迁移
 cd apps/api && npx prisma migrate dev
 
-# 启动API服务
+# Start API (Terminal 1) | 启动API
 cd apps/api && npm run dev
 
-# 启动Web服务（新终端）
+# Start Web (Terminal 2) | 启动前端
 cd apps/web && npm run dev
 ```
 
-## 项目结构
+---
+
+## 🏗️ Architecture | 技术架构
+
+<div align="center">
+
+| Layer | Technology |
+|:-----:|:----------:|
+| **Frontend** | React 18 · TypeScript · Vite · Monaco Editor |
+| **Backend** | Node.js 24 · Express · TypeScript |
+| **Database** | PostgreSQL 16 · Prisma ORM |
+| **Cache** | Redis 7 · Bull Queue |
+| **AI** | OpenAI · Google AI · 智谱AI · AntSK |
+| **Deploy** | Docker · Docker Compose |
+
+</div>
 
 ```
-开演AI/
-├── apps/
-│   ├── api/              # 后端API
-│   │   ├── src/
-│   │   │   ├── controllers/
-│   │   │   ├── services/
-│   │   │   ├── agents/
-│   │   │   ├── middleware/
-│   │   │   ├── routes/
-│   │   │   └── lib/
-│   │   └── prisma/
-│   └── web/              # 前端应用
-│       ├── src/
-│       │   ├── pages/
-│       │   ├── components/
-│       │   ├── lib/
-│       │   └── hooks/
-│       └── public/
-├── docs/                 # 文档
-│   ├── architecture.md   # 系统架构
-│   ├── data-model.md    # 数据模型
-│   └── deployment.md    # 部署指南
-├── openspec/             # OpenSpec配置
-└── docker-compose.yml     # Docker编排
+kaiyan-tool/
+├── 📂 apps/
+│   ├── 🔌 api/          # Backend API service
+│   │   ├── controllers/ # Request handlers
+│   │   ├── services/    # Business logic
+│   │   ├── agents/      # AI agents
+│   │   └── prisma/      # Database schema
+│   │
+│   └── 🌐 web/          # Frontend application
+│       ├── pages/       # Page components
+│       ├── components/  # UI components
+│       └── hooks/       # Custom hooks
+│
+├── 📚 docs/             # Documentation
+└── 🐳 docker-compose.yml
 ```
 
-## API文档
+---
 
-访问 [http://localhost:3001/api-docs](http://localhost:3001/api-docs) 查看完整的API文档（Swagger UI）。
+## 🤝 Contributing | 贡献指南
 
-## 核心API端点
+We love contributions! Whether it's bug reports, feature requests, or code contributions.
 
-### 认证
-- `POST /api/auth/register` - 用户注册
-- `POST /api/auth/login` - 用户登录
-- `POST /api/auth/logout` - 用户登出
+我们欢迎所有形式的贡献！无论是问题反馈、功能建议还是代码贡献。
 
-### 项目
-- `GET /api/projects` - 获取项目列表
-- `POST /api/projects` - 创建项目
-- `GET /api/projects/:id` - 获取项目详情
-- `PATCH /api/projects/:id` - 更新项目
-- `DELETE /api/projects/:id` - 删除项目
+<a href="https://github.com/your-org/kaiyan-tool/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=your-org/kaiyan-tool" />
+</a>
 
-### 剧本
-- `GET /api/projects/:projectId/scripts` - 获取剧本列表
-- `POST /api/projects/:projectId/scripts` - 创建剧本
-- `POST /api/scripts/:id/parse` - 解析剧本
+### Ways to Contribute | 贡献方式
 
-### 分镜
-- `GET /api/projects/:projectId/shots` - 获取镜头列表
-- `POST /api/projects/:projectId/shots/generate` - AI生成分镜
-- `POST /api/shots/:id/generate-image` - 生成起始/结束图像
-- `PATCH /api/shots/reorder` - 重新排序镜头
-
-### 图像生成
-- `POST /api/shots/:id/generate-image` - 生成图像
-- `POST /api/shots/:id/optimize-prompt` - 优化提示词
-
-### 视频生成
-- `POST /api/shots/:id/generate-video` - 生成视频
-- `GET /api/shots/:id/video-status` - 获取视频状态
-- `GET /api/projects/:projectId/videos` - 获取项目视频列表
-
-### 视频导出
-- `GET /api/videos/:id/export?format=mp4&resolution=1080p` - 导出视频
-- `GET /api/projects/:projectId/videos/export` - 导出项目所有视频
-
-## 开发指南
-
-### 运行测试
+- 🐛 **Report Bugs** - Submit issues for any bugs you find
+- 💡 **Suggest Features** - Share your ideas for new features
+- 🔧 **Submit PRs** - Contribute code improvements
+- 📖 **Improve Docs** - Help make our documentation better
 
 ```bash
-# API测试
-cd apps/api && npm test
+# Create a feature branch
+git checkout -b feature/amazing-feature
 
-# Web测试
-cd apps/web && npm test
+# Commit your changes
+git commit -m "✨ Add amazing feature"
+
+# Push to the branch
+git push origin feature/amazing-feature
+
+# Open a Pull Request
 ```
 
-### 代码规范
+---
 
-- 使用TypeScript进行类型检查
-- 遵循ESLint规则
-- 使用Prettier格式化代码
+## 📊 Roadmap | 发展路线
 
-```bash
-# 代码检查
-npm run lint
+- [x] Script editor with AI parsing
+- [x] Character management system
+- [x] AI-powered shot generation
+- [x] Multi-provider image generation
+- [x] Video export functionality
+- [ ] Real-time collaboration
+- [ ] Mobile app support
+- [ ] Cloud deployment templates
+- [ ] Plugin system
 
-# 代码格式化
-npm run format
-```
+---
 
-### 数据库迁移
+## 📄 License | 许可证
 
-```bash
-# 创建新迁移
-cd apps/api && npx prisma migrate dev --name feature_name
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
-# 应用迁移
-cd apps/api && npx prisma migrate deploy
+本项目采用 **MIT 许可证** - 详情请查看 [LICENSE](LICENSE) 文件。
 
-# 重置数据库（开发环境）
-cd apps/api && npx prisma migrate reset
-```
+---
 
-## 部署
+## 🙏 Acknowledgments | 致谢
 
-详细的部署指南请参考 [docs/deployment.md](./docs/deployment.md)。
+- [OpenAI](https://openai.com/) - GPT & DALL-E APIs
+- [Google AI](https://ai.google/) - Imagen API
+- [智谱AI](https://www.zhipuai.cn/) - CogView API
+- All our amazing contributors ⭐
 
-## 许可证
+---
 
-MIT License
+<div align="center">
 
-## 贡献
+## ⭐ Star History
 
-欢迎提交Issue和Pull Request！
+[![Star History Chart](https://api.star-history.com/svg?repos=your-org/kaiyan-tool&type=Date)](https://star-history.com/#your-org/kaiyan-tool&Date)
+
+---
+
+### 🌟 If you find this project helpful, please consider giving it a star!
+
+### 🌟 如果这个项目对你有帮助，请给我们一个星标！
+
+**Made with ❤️ by KaiyanAI Team**
+
+[⬆ Back to Top](#-开演ai--kaiyanai)
+
+</div>
