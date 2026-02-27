@@ -28,6 +28,8 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/button-new';
 import MonacoEditor from '../components/MonacoEditor';
+import { SceneOptimizer } from '../components/SceneOptimizer';
+import { PromptOptimizer } from '../components/ai/PromptOptimizer';
 import { ModelSelector } from '../components/ui';
 import { apiClient } from '../lib/api';
 import { useTheme } from '../contexts/ThemeContext';
@@ -111,7 +113,17 @@ function UnifiedEditorContent() {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isParsingScenes, setIsParsingScenes] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
-  const [showSceneOptimizer, setShowSceneOptimizer] = useState(false);
+  const [useAIParsing, setUseAIParsing] = useState(true);
+  const [showSceneOptimizerModal, setShowSceneOptimizerModal] = useState(false);
+  const [showPromptOptimizerModal, setShowPromptOptimizerModal] = useState(false);
+  const [availableScenes, setAvailableScenes] = useState<Array<{
+    id: number;
+    original: string;
+    location: string;
+    time: string;
+    content: string;
+    heading: string;
+  }>>([]);
   const [showDownloadDialog, setShowDownloadDialog] = useState(false);
   const [showNovelToScriptDialog, setShowNovelToScriptDialog] = useState(false);
   const [novelFile, setNovelFile] = useState<File | null>(null);
@@ -250,9 +262,20 @@ function UnifiedEditorContent() {
     }
     try {
       setIsContinuing(true);
-      const result = await apiClient.continueScript(content, selectedModel);
-      setContent(result.content);
+      const result = await apiClient.processContentWithFile(content, 'continue', selectedModel);
+      
+      if (result.fileUrl) {
+        const fileResponse = await fetch(result.fileUrl);
+        const fileContent = await fileResponse.text();
+        setContent(fileContent);
+        addToast({ type: 'success', title: 'AI续写完成', message: '文件已自动下载并填入编辑器' });
+      } else if (result.content) {
+        setContent(result.content);
+      }
       saveToLocalStorage(mode);
+      if (result.truncated) {
+        addToast({ type: 'info', title: '内容已截断', message: '内容较长，可再次点击"AI续写"继续生成剩余部分。' });
+      }
     } catch (error) {
       console.error('AI续写失败:', error);
       addToast({ type: 'error', title: 'AI续写失败', message: '请稍后重试。' });
@@ -269,9 +292,20 @@ function UnifiedEditorContent() {
     }
     try {
       setIsRewriting(true);
-      const result = await apiClient.rewriteScript(content, selectedModel);
-      setContent(result.content);
+      const result = await apiClient.processContentWithFile(content, 'rewrite', selectedModel);
+      
+      if (result.fileUrl) {
+        const fileResponse = await fetch(result.fileUrl);
+        const fileContent = await fileResponse.text();
+        setContent(fileContent);
+        addToast({ type: 'success', title: 'AI改写完成', message: '文件已自动下载并填入编辑器' });
+      } else if (result.content) {
+        setContent(result.content);
+      }
       saveToLocalStorage(mode);
+      if (result.truncated) {
+        addToast({ type: 'info', title: '内容已截断', message: '内容较长，可再次点击"AI改写"继续生成剩余部分。' });
+      }
     } catch (error: any) {
       console.error('AI改写失败:', error);
       const errorMsg = error?.response?.data?.error || error?.message || '请稍后重试';
@@ -303,10 +337,28 @@ function UnifiedEditorContent() {
   };
 
   const handleParseScenes = async () => {
-    if (!content.trim() || isParsingScenes) return;
+    console.log('[场景解析] 开始处理', { contentLength: content.length, contentTrimmed: content.trim(), isParsingScenes, useAIParsing });
+    
+    if (!content.trim() || isParsingScenes) {
+      if (!content.trim()) {
+        addToast({ type: 'warning', title: '内容为空', message: '请先在编辑器中输入剧本内容' });
+      }
+      return;
+    }
+    
     try {
+      console.log('[场景解析] 开始发送API请求，使用AI:', useAIParsing, '模型:', selectedModel);
       setIsParsingScenes(true);
-      const result = await apiClient.parseScript(content);
+
+      let result;
+      if (useAIParsing) {
+        result = await apiClient.parseScriptWithAI(content, selectedModel);
+      } else {
+        result = await apiClient.parseScript(content);
+      }
+      
+      console.log('[场景解析] API返回结果:', result);
+      
       if (result.scenes && result.scenes.length > 0) {
         const scenesWithContent = result.scenes.map((scene: any, index: number) => ({
           id: index + 1,
@@ -319,14 +371,24 @@ function UnifiedEditorContent() {
           userDirection: '',
           isOptimizing: false,
         }));
+        const availableScenesWithHeading = result.scenes.map((scene: any, index: number) => ({
+          id: index + 1,
+          original: scene.original || scene.content || '',
+          location: scene.location || `场景${index + 1}`,
+          time: scene.time || '白天',
+          content: scene.content || scene.description || '',
+          heading: scene.heading || `场景 ${index + 1}`,
+        }));
         setParsedScenesForOptimization(scenesWithContent);
-        setShowSceneOptimizer(true);
+        setAvailableScenes(availableScenesWithHeading);
+        addToast({ type: 'success', title: '解析成功', message: `成功解析 ${scenesWithContent.length} 个场景` });
       } else {
-        addToast({ type: 'info', title: '未检测到场景', message: '请确保剧本格式正确，包含场景标记' });
+        setAvailableScenes([]);
+        addToast({ type: 'info', title: '未检测到场景', message: '请确保剧本格式正确，包含场景标记，如"场景1 - 室内，白天"' });
       }
     } catch (error) {
-      console.error('场景解析失败:', error);
-      addToast({ type: 'error', title: '场景解析失败', message: '请稍后重试。' });
+      console.error('[场景解析] 失败:', error);
+      addToast({ type: 'error', title: '场景解析失败', message: error instanceof Error ? error.message : '请稍后重试' });
     } finally {
       setIsParsingScenes(false);
     }
@@ -396,51 +458,6 @@ function UnifiedEditorContent() {
     reader.readAsText(file);
   };
 
-  const handleOptimizeScene = async (sceneId: number, direction: string) => {
-    const sceneIndex = parsedScenesForOptimization.findIndex(s => s.id === sceneId);
-    if (sceneIndex === -1) return;
-    const scene = parsedScenesForOptimization[sceneIndex];
-    setParsedScenesForOptimization(prev => prev.map(s => s.id === sceneId ? { ...s, isOptimizing: true } : s));
-    try {
-      const result = await apiClient.optimizeScene({
-        sceneContent: scene.content,
-        location: scene.location,
-        time: scene.time,
-        direction: direction || '增强场景描述，使画面感更强',
-      });
-      setParsedScenesForOptimization(prev => prev.map(s => s.id === sceneId ? { ...s, suggestion: result.suggestion || result.optimized, optimized: result.optimized || result.suggestion, isOptimizing: false } : s));
-    } catch (error) {
-      console.error('场景优化失败:', error);
-      addToast({ type: 'error', title: '场景优化失败', message: '请稍后重试。' });
-      setParsedScenesForOptimization(prev => prev.map(s => s.id === sceneId ? { ...s, isOptimizing: false } : s));
-    }
-  };
-
-  const handleApplySceneOptimization = (sceneId: number) => {
-    const scene = parsedScenesForOptimization.find(s => s.id === sceneId);
-    if (!scene || !scene.optimized) return;
-    const sceneRegex = new RegExp(`(场景\\s*${sceneId}[\\s\\-：:]*[^\\n]*(?:\\n[^场景]*)*)`, 'gi');
-    const newContent = content.replace(sceneRegex, scene.optimized);
-    setContent(newContent);
-    saveToLocalStorage(mode);
-    setParsedScenesForOptimization(prev => prev.map(s => s.id === sceneId ? { ...s, original: s.optimized || s.original || '', optimized: '', suggestion: '' } : s));
-    addToast({ type: 'success', title: '已应用优化', message: `场景 ${sceneId} 已更新` });
-  };
-
-  const handleApplyAllOptimizations = () => {
-    let newContent = content;
-    parsedScenesForOptimization.forEach(scene => {
-      if (scene.optimized) {
-        const sceneRegex = new RegExp(`(场景\\s*${scene.id}[\\s\\-：:]*[^\\n]*(?:\\n[^场景]*)*)`, 'gi');
-        newContent = newContent.replace(sceneRegex, scene.optimized);
-      }
-    });
-    setContent(newContent);
-    saveToLocalStorage(mode);
-    setShowSceneOptimizer(false);
-    addToast({ type: 'success', title: '全部应用成功', message: '所有场景优化已应用到剧本' });
-  };
-
   const editorOptions = {
     fontSize: 15,
     fontFamily: "'Fira Code', 'Consolas', monospace",
@@ -459,7 +476,9 @@ function UnifiedEditorContent() {
     { id: 'continue', label: 'AI续写', icon: Sparkles, color: '#007AFF', handler: handleContinueScript, loading: isContinuing, disabled: isContinuing || isRewriting || isOptimizing || isConverting || !content.trim() || !selectedModel },
     { id: 'rewrite', label: 'AI改写', icon: Wand2, color: '#10b981', handler: handleRewriteScript, loading: isRewriting, disabled: isContinuing || isRewriting || isOptimizing || isConverting || !content.trim() || !selectedModel },
     { id: 'optimize', label: 'AI优化', icon: Zap, color: '#f59e0b', handler: handleOptimizeScript, loading: isOptimizing, disabled: isContinuing || isRewriting || isOptimizing || isConverting || !content.trim() || !selectedModel },
+    { id: 'prompt-optimize', label: 'Prompt优化', icon: FileCode, color: '#06b6d4', handler: () => setShowPromptOptimizerModal(true), loading: false, disabled: false },
     { id: 'parse', label: '场景解析', icon: MapPin, color: '#ec4899', handler: handleParseScenes, loading: isParsingScenes, disabled: isParsingScenes || isConverting || !content.trim() },
+    { id: 'scene-optimizer', label: '场景优化', icon: FileEdit, color: '#6366f1', handler: () => setShowSceneOptimizerModal(true), loading: false, disabled: availableScenes.length === 0 },
     { id: 'novelToScript', label: '小说转剧本', icon: FileText, color: '#8b5cf6', handler: () => { if (!selectedModel) { addToast({ type: 'warning', title: '请选择模型', message: '请先选择一个 AI 模型来转换内容。' }); return; } setShowNovelToScriptDialog(true); }, loading: isConverting, disabled: isContinuing || isRewriting || isOptimizing || isParsingScenes || isConverting || !selectedModel },
   ];
 
@@ -989,56 +1008,141 @@ function UnifiedEditorContent() {
               '#10b981': '#10b981',
               '#f59e0b': '#f59e0b',
               '#ec4899': '#ec4899',
+              '#06b6d4': '#06b6d4',
+              '#6366f1': '#6366f1',
+              '#8b5cf6': '#8b5cf6',
             }
             const color = toolColors[tool.color] || tool.color
             return (
-            <button
-              key={tool.id}
-              onClick={tool.handler}
-              disabled={tool.disabled || tool.loading}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                padding: '12px 14px',
-                borderRadius: '12px',
-                border: `1px solid ${tool.disabled ? 'var(--border-primary)' : `${color}30`}`,
-                background: `${color}08`,
-                color: tool.disabled ? 'var(--text-muted)' : color,
-                fontSize: '13px',
-                fontWeight: '500',
-                cursor: tool.disabled ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s ease',
-                width: '100%',
-                textAlign: 'left',
-                opacity: tool.disabled ? 0.6 : 1,
-              }}
-              onMouseEnter={(e) => {
-                if (!tool.disabled) {
-                  e.currentTarget.style.background = `${color}15`
-                  e.currentTarget.style.borderColor = `${color}50`
-                  e.currentTarget.style.transform = 'translateX(4px)'
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!tool.disabled) {
-                  e.currentTarget.style.background = `${color}08`
-                  e.currentTarget.style.borderColor = `${color}30`
-                  e.currentTarget.style.transform = 'translateX(0)'
-                }
-              }}
-            >
-              {tool.loading ? (
-                <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-              ) : (
-                <tool.icon style={{ width: '16px', height: '16px' }} />
-              )}
-              {tool.loading ? `${tool.label}中...` : tool.label}
-            </button>
+              <div key={tool.id}>
+                <button
+                  onClick={tool.handler}
+                  disabled={tool.disabled || tool.loading}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '12px 14px',
+                    borderRadius: '12px',
+                    border: `1px solid ${tool.disabled ? 'var(--border-primary)' : `${color}30`}`,
+                    background: `${color}08`,
+                    color: tool.disabled ? 'var(--text-muted)' : color,
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    cursor: tool.disabled ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s ease',
+                    width: '100%',
+                    textAlign: 'left',
+                    opacity: tool.disabled ? 0.6 : 1,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!tool.disabled) {
+                      e.currentTarget.style.background = `${color}15`
+                      e.currentTarget.style.borderColor = `${color}50`
+                      e.currentTarget.style.transform = 'translateX(4px)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!tool.disabled) {
+                      e.currentTarget.style.background = `${color}08`
+                      e.currentTarget.style.borderColor = `${color}30`
+                      e.currentTarget.style.transform = 'translateX(0)'
+                    }
+                  }}
+                >
+                  {tool.loading ? (
+                    <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                  ) : (
+                    <tool.icon style={{ width: '16px', height: '16px' }} />
+                  )}
+                  {tool.loading ? `${tool.label}中...` : tool.label}
+                </button>
+
+                {tool.id === 'parse' && mode === 'script' && (
+                  <div style={{ 
+                    marginTop: '8px',
+                    padding: '10px', 
+                    borderRadius: '10px', 
+                    background: 'var(--bg-hover)' 
+                  }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between',
+                      marginBottom: '6px' 
+                    }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: '500' }}>
+                        场景解析模式
+                      </span>
+                      <span style={{ 
+                        fontSize: '10px', 
+                        color: useAIParsing ? '#10b981' : '#f59e0b',
+                        fontWeight: '600',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        background: useAIParsing ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)'
+                      }}>
+                        {useAIParsing ? 'AI智能' : '快速正则'}
+                      </span>
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: '8px', 
+                      background: 'var(--bg-input)', 
+                      borderRadius: '6px', 
+                      padding: '3px' 
+                    }}>
+                      <button
+                        onClick={() => setUseAIParsing(true)}
+                        style={{
+                          flex: 1,
+                          padding: '6px 8px',
+                          borderRadius: '5px',
+                          border: 'none',
+                          background: useAIParsing ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' : 'transparent',
+                          color: useAIParsing ? '#fff' : 'var(--text-muted)',
+                          fontSize: '11px',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        AI智能解析
+                      </button>
+                      <button
+                        onClick={() => setUseAIParsing(false)}
+                        style={{
+                          flex: 1,
+                          padding: '6px 8px',
+                          borderRadius: '5px',
+                          border: 'none',
+                          background: !useAIParsing ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' : 'transparent',
+                          color: !useAIParsing ? '#fff' : 'var(--text-muted)',
+                          fontSize: '11px',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        快速正则
+                      </button>
+                    </div>
+                    <div style={{ 
+                      fontSize: '10px', 
+                      color: 'var(--text-muted)', 
+                      marginTop: '6px',
+                      lineHeight: '1.4'
+                    }}>
+                      {useAIParsing 
+                        ? '使用AI深度理解上下文，适合复杂剧本'
+                        : '快速解析，适合标准格式剧本'}
+                    </div>
+                  </div>
+                )}
+              </div>
           )})}
 
           <div style={{ height: '1px', background: 'var(--border-primary)', margin: '4px 0' }} />
-
           <div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: '500' }}>选择AI模型</div>
             <ModelSelector 
@@ -1162,7 +1266,7 @@ function UnifiedEditorContent() {
         </div>
       </div>
 
-      {showSceneOptimizer && (
+      {showDownloadDialog && (
         <div style={{ 
           position: 'fixed', 
           inset: 0, 
@@ -1173,11 +1277,11 @@ function UnifiedEditorContent() {
           justifyContent: 'center', 
           zIndex: 1000,
           padding: '20px',
-        }} onClick={() => setShowSceneOptimizer(false)}>
+        }} onClick={() => setShowDownloadDialog(false)}>
           <div style={{
             background: 'var(--bg-elevated)',
             borderRadius: '20px',
-            maxWidth: '900px',
+            maxWidth: '600px',
             width: '100%',
             maxHeight: '85vh',
             overflow: 'hidden',
@@ -1195,26 +1299,9 @@ function UnifiedEditorContent() {
               justifyContent: 'space-between',
               background: 'var(--bg-surface)',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <div style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 4px 14px rgba(236, 72, 153, 0.3)',
-                }}>
-                  <MapPin style={{ width: '22px', height: '22px', color: 'white' }} />
-                </div>
-                <div>
-                  <h2 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', margin: '0 0 4px 0' }}>场景优化器</h2>
-                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>解析到 {parsedScenesForOptimization.length} 个场景，选择优化方向后生成建议</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowSceneOptimizer(false)}
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)' }}>转换结果</h2>
+              <button 
+                onClick={() => setShowDownloadDialog(false)}
                 style={{
                   width: '36px',
                   height: '36px',
@@ -1485,6 +1572,61 @@ function UnifiedEditorContent() {
                   下载文件
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <SceneOptimizer
+        isOpen={showSceneOptimizerModal}
+        onClose={() => setShowSceneOptimizerModal(false)}
+        scenes={availableScenes}
+        onApplyOptimization={(sceneId, optimizedContent) => {
+          const sceneIndex = availableScenes.findIndex(s => s.id === sceneId);
+          if (sceneIndex === -1) return;
+          const scene = availableScenes[sceneIndex];
+
+          const sceneRegex = new RegExp(`(\\*{0,2}场景\\s*${sceneId}[\\s\\-：:]*[^\\n]*(?:\\n[^场景]*)*)`, 'gi');
+          const newContent = content.replace(sceneRegex, optimizedContent);
+          setContent(newContent);
+          addToast({ type: 'success', title: '场景已优化', message: `场景 ${sceneId} 优化内容已应用` });
+        }}
+      />
+
+      {showPromptOptimizerModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px',
+        }} onClick={() => setShowPromptOptimizerModal(false)}>
+          <div style={{
+            backgroundColor: 'var(--bg-primary)',
+            borderRadius: '12px',
+            maxWidth: '900px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflow: 'auto',
+          }} onClick={e => e.stopPropagation()}>
+            <PromptOptimizer
+              initialPrompt=""
+              onOptimize={async (prompt: string) => {
+                const result = await apiClient.optimizePrompt(prompt, selectedModel);
+                return result.optimized;
+              }}
+              onSave={(prompt, name, category) => {
+                addToast({ type: 'success', title: '模板已保存', message: `模板 "${name}" 已保存到 ${category}` });
+              }}
+            />
+            <div style={{ padding: '16px', borderTop: '1px solid var(--border-color)' }}>
+              <Button variant="outline" onClick={() => setShowPromptOptimizerModal(false)}>
+                关闭
+              </Button>
             </div>
           </div>
         </div>

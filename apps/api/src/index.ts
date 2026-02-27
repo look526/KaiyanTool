@@ -39,12 +39,15 @@ import auditRoutes from './routes/audit.routes'
 import documentRoutes from './routes/document.routes'
 import analyticsRoutes from './routes/analytics.routes'
 import agentStreamRoutes from './routes/agent-stream.routes'
+import agentRoutes from './routes/agent.routes'
 import promptTemplateRoutes from './routes/prompt-template.routes'
+import promptRoutes from './routes/prompt.routes'
 import projectSettingsRoutes from './routes/project-settings.routes'
 import chatHistoryRoutes from './routes/chat-history.routes'
 import itemRoutes from './routes/item.routes'
 import assistantRoutes from './routes/assistant.routes'
 import imageGenerationRoutes from './routes/image-generation.routes'
+import contentProcessRoutes from './routes/content-process.routes'
 import logger, { requestLogger } from './lib/logger'
 import { initSentry, sentryRequestHandler, sentryErrorHandler, sentryTracingHandler } from './lib/sentry'
 import { getMetrics } from './lib/metrics'
@@ -132,12 +135,16 @@ app.use('/api/export', exportRoutes)
 app.use('/api/audit', auditRoutes)
 app.use('/api/analytics', analyticsRoutes)
 app.use('/api/agent-stream', agentStreamRoutes)
+app.use('/api/agent', agentRoutes)
 app.use('/api/prompt-templates', promptTemplateRoutes)
+app.use('/api/prompt', promptRoutes)
 app.use('/api/project-settings', projectSettingsRoutes)
 app.use('/api/chat-history', chatHistoryRoutes)
 app.use('/api', itemRoutes)
 app.use('/api/assistant', assistantRoutes)
 app.use('/api/image-generation', imageGenerationRoutes)
+app.use('/api/content', contentProcessRoutes)
+app.use('/temp', express.static(path.join(process.cwd(), 'temp')))
 
 app.use(sentryErrorHandler)
 app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {

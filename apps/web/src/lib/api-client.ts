@@ -157,8 +157,63 @@ export class ApiClient {
     return this.post<any>('/script/continue', { content, model })
   }
 
+  async processContentWithFile(content: string, mode: 'continue' | 'rewrite' | 'optimize', model?: string) {
+    const response = await fetch(`${this.baseUrl}/content/process-file`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ content, mode, model }),
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = errorText || 'Request failed';
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.error || errorMessage;
+      } catch {}
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  }
+
+  async optimizePrompt(prompt: string, model?: string, type: string = 'image') {
+    console.log('[api-client] optimizePrompt 调用', { promptLength: prompt.length, model, type })
+    try {
+      const result = await this.post<any>('/prompt/optimize', { prompt, model, type })
+      console.log('[api-client] optimizePrompt 成功', result)
+      return result
+    } catch (error) {
+      console.error('[api-client] optimizePrompt 失败', error)
+      throw error
+    }
+  }
+
   async parseScript(content: string, model?: string) {
-    return this.post<any>('/script/parse', { content, model })
+    console.log('[api-client] parseScript 调用', { contentLength: content.length, model })
+    try {
+      const result = await this.post<any>('/script/parse', { content, model })
+      console.log('[api-client] parseScript 成功', result)
+      return result
+    } catch (error) {
+      console.error('[api-client] parseScript 失败', error)
+      throw error
+    }
+  }
+
+  async parseScriptWithAI(content: string, model?: string) {
+    console.log('[api-client] parseScriptWithAI 调用', { contentLength: content.length, model })
+    try {
+      const result = await this.post<any>('/script/parse-ai', { content, model })
+      console.log('[api-client] parseScriptWithAI 成功', result)
+      return result
+    } catch (error) {
+      console.error('[api-client] parseScriptWithAI 失败', error)
+      throw error
+    }
   }
 
   async saveScript(projectId: string, title: string, content: string) {
@@ -305,8 +360,12 @@ export class ApiClient {
     return this.delete(`/assets/${id}`)
   }
 
-  async getProjectAssets(projectId: string) {
-    return this.get<any[]>(`/projects/${projectId}/assets`)
+  async getProjectAssets(projectId: string, type?: string, search?: string) {
+    const params = new URLSearchParams()
+    if (type) params.append('type', type)
+    if (search) params.append('search', search)
+    const queryString = params.toString()
+    return this.get<any[]>(`/projects/${projectId}/assets${queryString ? `?${queryString}` : ''}`)
   }
 
   async uploadProjectAsset(projectId: string, file: File, type: string) {
@@ -388,6 +447,10 @@ export class ApiClient {
     return this.post<any>('/novel/generate-outline', { content })
   }
 
+  async generateOutline(data: { storylineId: string; title: string; genre: string; targetDuration: number; style: string; additionalNotes?: string }) {
+    return this.post<any>('/novel/generate-outline', data)
+  }
+
   async getMigrations() {
     return this.get<any[]>('/migration')
   }
@@ -439,7 +502,7 @@ export class ApiClient {
     return this.post<any>(`/projects/${projectId}/members`, { userId, role })
   }
 
-  async generateImage(data: { prompt: string; negativePrompt?: string; width: number; height: number; style: string; projectId?: string; model?: string }) {
+  async generateImage(data: { prompt: string; negativePrompt?: string; width: number; height: number; style: string; projectId?: string | undefined; model?: string }) {
     return this.post<any>('/image/generate', data)
   }
 
@@ -495,7 +558,8 @@ export class ApiClient {
   }
 
   async getConfigurationHistory(params?: any) {
-    return this.get<any>('/model-preferences/history', params)
+    const queryString = params ? `?${new URLSearchParams(params).toString()}` : '';
+    return this.get<any>(`/model-preferences/history${queryString}`);
   }
 
   async getItems(projectId: string) {
@@ -532,10 +596,6 @@ export class ApiClient {
 
   async deleteDocumentById(id: string) {
     return this.delete(`/documents/${id}`)
-  }
-
-  async createNovel(projectId: string, data: any) {
-    return this.post<any>(`/projects/${projectId}/novels`, data)
   }
 
   async saveStoryline(projectId: string, storyline: any) {

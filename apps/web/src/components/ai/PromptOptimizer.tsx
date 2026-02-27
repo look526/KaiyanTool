@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Star, Copy, Save, X, Tag, Clock } from 'lucide-react';
+import { Search, Star, Copy, Save, X, Tag, Clock, Sparkles, Loader2 } from 'lucide-react';
 
 interface PromptTemplate {
   id: string;
@@ -62,6 +62,14 @@ export function PromptOptimizer({ initialPrompt = '', onOptimize, onSave }: Prom
   const [saveName, setSaveName] = useState('');
   const [saveCategory, setSaveCategory] = useState('未分类');
 
+  const [optimizeHover, setOptimizeHover] = useState(false);
+  const [saveHover, setSaveHover] = useState(false);
+  const [copyHover, setCopyHover] = useState(false);
+  const [templateHovered, setTemplateHovered] = useState<string | null>(null);
+  const [categoryHover, setCategoryHover] = useState<string | null>(null);
+  const [useButtonHover, setUseButtonHover] = useState<string | null>(null);
+  const [favoriteHover, setFavoriteHover] = useState<string | null>(null);
+
   const categories = ['全部', '人物', '场景', '风格', '特效', '其他'];
 
   const handleOptimize = async () => {
@@ -108,63 +116,179 @@ export function PromptOptimizer({ initialPrompt = '', onOptimize, onSave }: Prom
     setSaveCategory('未分类');
   };
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(optimizedPrompt);
+  };
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <h3 className="font-semibold flex items-center gap-2">
-          <Tag className="w-5 h-5 text-blue-500" />
+    <div style={{
+      background: 'var(--bg-surface)',
+      borderRadius: '20px',
+      border: '1px solid var(--border-primary)',
+      overflow: 'hidden',
+    }}>
+      <div style={{
+        padding: '16px 20px',
+        borderBottom: '1px solid var(--border-primary)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+      }}>
+        <Tag style={{ width: '20px', height: '20px', color: 'var(--accent)' }} />
+        <h3 style={{
+          fontSize: '17px',
+          fontWeight: '600',
+          color: 'var(--text-primary)',
+          margin: 0,
+        }}>
           提示词优化器
         </h3>
       </div>
 
-      <div className="flex">
-        <div className="w-1/2 p-4 border-r border-gray-200 dark:border-gray-700">
-          <div className="space-y-4">
+      <div style={{ display: 'flex' }}>
+        <div style={{
+          width: '50%',
+          padding: '20px',
+          borderRight: '1px solid var(--border-primary)',
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <label className="block text-sm font-medium mb-2">原始提示词</label>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: 'var(--text-primary)',
+                marginBottom: '8px',
+              }}>原始提示词</label>
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="输入你的原始提示词..."
-                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 min-h-[120px] resize-none"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-primary)',
+                  background: 'var(--bg-input)',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  minHeight: '120px',
+                  resize: 'none',
+                  outline: 'none',
+                  transition: 'border-color 0.2s ease',
+                }}
               />
             </div>
 
             <button
               onClick={handleOptimize}
               disabled={isOptimizing || !prompt.trim()}
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+              onMouseEnter={() => setOptimizeHover(true)}
+              onMouseLeave={() => setOptimizeHover(false)}
+              style={{
+                width: '100%',
+                padding: '14px 20px',
+                borderRadius: '12px',
+                border: 'none',
+                background: isOptimizing || !prompt.trim() 
+                  ? 'var(--bg-secondary)' 
+                  : optimizeHover 
+                    ? 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' 
+                    : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                color: isOptimizing || !prompt.trim() ? 'var(--text-muted)' : '#fff',
+                fontSize: '15px',
+                fontWeight: '500',
+                cursor: isOptimizing || !prompt.trim() ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease',
+                transform: optimizeHover && !isOptimizing ? 'translateY(-1px)' : 'translateY(0)',
+                boxShadow: optimizeHover && !isOptimizing ? '0 8px 24px rgba(99, 102, 241, 0.4)' : '0 4px 14px rgba(99, 102, 241, 0.3)',
+              }}
             >
               {isOptimizing ? (
-                <>优化中...</>
+                <>
+                  <Loader2 style={{ width: '18px', height: '18px', animation: 'spin 1s linear infinite' }} />
+                  优化中...
+                </>
               ) : (
-                <>AI 优化</>
+                <>
+                  <Sparkles style={{ width: '18px', height: '18px' }} />
+                  AI 优化
+                </>
               )}
             </button>
 
             {optimizedPrompt && (
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium">优化后提示词</label>
-                  <div className="flex gap-2">
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '8px',
+                }}>
+                  <label style={{
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: 'var(--text-primary)',
+                  }}>优化后提示词</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
                     <button
-                      onClick={() => navigator.clipboard.writeText(optimizedPrompt)}
-                      className="p-1 text-gray-400 hover:text-blue-500"
+                      onClick={handleCopy}
+                      onMouseEnter={() => setCopyHover(true)}
+                      onMouseLeave={() => setCopyHover(false)}
                       title="复制"
+                      style={{
+                        padding: '6px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: 'transparent',
+                        color: copyHover ? 'var(--accent)' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s ease',
+                      }}
                     >
-                      <Copy className="w-4 h-4" />
+                      <Copy style={{ width: '16px', height: '16px' }} />
                     </button>
                     <button
                       onClick={() => setShowSaveDialog(true)}
-                      className="p-1 text-gray-400 hover:text-green-500"
+                      onMouseEnter={() => setSaveHover(true)}
+                      onMouseLeave={() => setSaveHover(false)}
                       title="保存到模板"
+                      style={{
+                        padding: '6px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: 'transparent',
+                        color: saveHover ? '#10b981' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s ease',
+                      }}
                     >
-                      <Save className="w-4 h-4" />
+                      <Save style={{ width: '16px', height: '16px' }} />
                     </button>
                   </div>
                 </div>
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p className="text-sm text-blue-700 dark:text-blue-300 whitespace-pre-wrap">
+                <div style={{
+                  padding: '16px',
+                  borderRadius: '12px',
+                  background: 'rgba(99, 102, 241, 0.1)',
+                  border: '1px solid rgba(99, 102, 241, 0.2)',
+                }}>
+                  <p style={{
+                    fontSize: '14px',
+                    color: 'var(--accent)',
+                    whiteSpace: 'pre-wrap',
+                    margin: 0,
+                  }}>
                     {optimizedPrompt}
                   </p>
                 </div>
@@ -173,72 +297,184 @@ export function PromptOptimizer({ initialPrompt = '', onOptimize, onSave }: Prom
           </div>
         </div>
 
-        <div className="w-1/2 p-4">
-          <div className="mb-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Search className="w-4 h-4 text-gray-400" />
+        <div style={{
+          width: '50%',
+          padding: '20px',
+        }}>
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '12px',
+            }}>
+              <Search style={{ width: '16px', height: '16px', color: 'var(--text-muted)' }} />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="搜索提示词模板..."
-                className="flex-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm"
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-primary)',
+                  background: 'var(--bg-input)',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  outline: 'none',
+                }}
               />
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat === '全部' ? null : cat)}
-                  className={`px-3 py-1 rounded-full text-sm whitespace-nowrap transition-colors ${
-                    selectedCategory === cat || (cat === '全部' && !selectedCategory)
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              overflowX: 'auto',
+              paddingBottom: '8px',
+            }}>
+              {categories.map(cat => {
+                const isActive = selectedCategory === cat || (cat === '全部' && !selectedCategory);
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat === '全部' ? null : cat)}
+                    onMouseEnter={() => setCategoryHover(cat)}
+                    onMouseLeave={() => setCategoryHover(null)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '20px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      whiteSpace: 'nowrap',
+                      border: 'none',
+                      background: isActive 
+                        ? 'var(--accent)' 
+                        : categoryHover === cat 
+                          ? 'var(--bg-hover)' 
+                          : 'var(--bg-secondary)',
+                      color: isActive ? '#fff' : 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          <div className="space-y-2 max-h-80 overflow-y-auto">
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            maxHeight: '320px',
+            overflowY: 'auto',
+          }}>
             {filteredTemplates.map(template => (
               <div
                 key={template.id}
-                className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                onMouseEnter={() => setTemplateHovered(template.id)}
+                onMouseLeave={() => setTemplateHovered(null)}
+                style={{
+                  padding: '12px',
+                  borderRadius: '12px',
+                  background: templateHovered === template.id ? 'var(--bg-hover)' : 'var(--bg-secondary)',
+                  border: '1px solid var(--border-secondary)',
+                  transition: 'all 0.2s ease',
+                }}
               >
-                <div className="flex items-start justify-between mb-1">
-                  <div className="flex items-center gap-2">
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  marginBottom: '4px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <button
                       onClick={() => toggleFavorite(template.id)}
-                      className={template.isFavorite ? 'text-yellow-500' : 'text-gray-300'}
+                      onMouseEnter={() => setFavoriteHover(template.id)}
+                      onMouseLeave={() => setFavoriteHover(null)}
+                      style={{
+                        padding: 0,
+                        border: 'none',
+                        background: 'transparent',
+                        color: template.isFavorite || favoriteHover === template.id ? '#f59e0b' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        transition: 'all 0.2s ease',
+                      }}
                     >
-                      <Star className="w-4 h-4" />
+                      <Star style={{ width: '14px', height: '14px', fill: template.isFavorite ? '#f59e0b' : 'none' }} />
                     </button>
-                    <span className="font-medium text-sm">{template.name}</span>
-                    <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded">
+                    <span style={{
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      color: 'var(--text-primary)',
+                    }}>{template.name}</span>
+                    <span style={{
+                      fontSize: '11px',
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      background: 'rgba(99, 102, 241, 0.15)',
+                      color: 'var(--accent)',
+                    }}>
                       {template.category}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}>
+                      <Clock style={{ width: '12px', height: '12px' }} />
                       {template.usageCount}次
                     </span>
                     <button
                       onClick={() => useTemplate(template)}
-                      className="px-2 py-0.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                      onMouseEnter={() => setUseButtonHover(template.id)}
+                      onMouseLeave={() => setUseButtonHover(null)}
+                      style={{
+                        padding: '4px 10px',
+                        fontSize: '12px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: useButtonHover === template.id 
+                          ? 'var(--accent)' 
+                          : 'var(--bg-primary)',
+                        color: useButtonHover === template.id ? '#fff' : 'var(--text-secondary)',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
                     >
                       使用
                     </button>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 line-clamp-2">{template.content}</p>
-                <div className="flex gap-1 mt-2">
+                <p style={{
+                  fontSize: '12px',
+                  color: 'var(--text-muted)',
+                  margin: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                }}>{template.content}</p>
+                <div style={{ display: 'flex', gap: '4px', marginTop: '8px' }}>
                   {template.tags.map(tag => (
-                    <span key={tag} className="text-xs px-1.5 py-0.5 bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded">
+                    <span key={tag} style={{
+                      fontSize: '11px',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      background: 'var(--bg-hover)',
+                      color: 'var(--text-secondary)',
+                    }}>
                       {tag}
                     </span>
                   ))}
@@ -250,31 +486,96 @@ export function PromptOptimizer({ initialPrompt = '', onOptimize, onSave }: Prom
       </div>
 
       {showSaveDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-96">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="font-semibold">保存到模板库</h4>
-              <button onClick={() => setShowSaveDialog(false)}>
-                <X className="w-5 h-5 text-gray-400" />
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 100,
+        }} onClick={() => setShowSaveDialog(false)}>
+          <div style={{
+            background: 'var(--bg-surface)',
+            borderRadius: '20px',
+            padding: '24px',
+            width: '380px',
+            border: '1px solid var(--border-primary)',
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '16px',
+            }}>
+              <h4 style={{
+                fontSize: '16px',
+                fontWeight: '600',
+                color: 'var(--text-primary)',
+                margin: 0,
+              }}>保存到模板库</h4>
+              <button
+                onClick={() => setShowSaveDialog(false)}
+                style={{
+                  padding: '4px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: 'transparent',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                }}
+              >
+                <X style={{ width: '18px', height: '18px' }} />
               </button>
             </div>
-            <div className="space-y-4">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label className="block text-sm mb-1">模板名称</label>
+                <label style={{
+                  display: 'block',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  color: 'var(--text-primary)',
+                  marginBottom: '6px',
+                }}>模板名称</label>
                 <input
                   type="text"
                   value={saveName}
                   onChange={(e) => setSaveName(e.target.value)}
                   placeholder="输入模板名称..."
-                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg"
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-primary)',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                    outline: 'none',
+                  }}
                 />
               </div>
               <div>
-                <label className="block text-sm mb-1">分类</label>
+                <label style={{
+                  display: 'block',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  color: 'var(--text-primary)',
+                  marginBottom: '6px',
+                }}>分类</label>
                 <select
                   value={saveCategory}
                   onChange={(e) => setSaveCategory(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg"
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-primary)',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                    outline: 'none',
+                  }}
                 >
                   {categories.slice(1).map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
@@ -284,7 +585,20 @@ export function PromptOptimizer({ initialPrompt = '', onOptimize, onSave }: Prom
               <button
                 onClick={handleSave}
                 disabled={!saveName.trim()}
-                className="w-full py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: !saveName.trim() 
+                    ? 'var(--bg-secondary)' 
+                    : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                  color: !saveName.trim() ? 'var(--text-muted)' : '#fff',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: !saveName.trim() ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
               >
                 保存
               </button>
@@ -292,6 +606,13 @@ export function PromptOptimizer({ initialPrompt = '', onOptimize, onSave }: Prom
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma';
-import { aiProviderService } from '../services/ai/provider.service';
+import { providerManager } from '../services/ai/provider.manager';
 import { emitProgress, emitStreamChunk, emitTaskComplete, emitTaskError as _emitTaskError } from '../lib/websocket';
+import { MULTI_AGENT_PROMPTS } from '../prompts/agents';
 
 export interface AgentMessage {
   role: 'system' | 'user' | 'assistant';
@@ -40,7 +41,7 @@ export abstract class BaseAgent {
     this.context = context;
   }
 
-  async run(input: string): Promise<string> {
+  async run(input: string, providerId: string): Promise<string> {
     const messages: AgentMessage[] = [
       { role: 'system', content: this.config.systemPrompt },
       ...this.context.conversationHistory,
@@ -53,11 +54,17 @@ export abstract class BaseAgent {
     while (iteration < maxIterations) {
       iteration++;
 
-      const response = await aiProviderService.chat(
-        'default',
-        messages,
-        this.config.tools ? this.formatTools(this.config.tools) : undefined
-      );
+      const chatOptions: any = {};
+      if (this.config.tools) {
+        chatOptions.tools = this.formatTools(this.config.tools);
+      }
+      
+      const provider = providerManager.getProvider(providerId);
+      if (!provider) {
+        throw new Error(`Provider not found: ${providerId}`);
+      }
+      
+      const response = await provider.chat(messages, chatOptions);
 
       const assistantMessage = response.content;
       messages.push({ role: 'assistant', content: assistantMessage });
@@ -192,35 +199,7 @@ export class StoryAgent extends BaseAgent {
       {
         name: '故事师',
         role: 'story',
-        systemPrompt: `你是一个专业的故事师AI助手。你的专长是：
-1. 分析小说原文，提取核心故事线
-2. 识别主要角色和关键事件
-3. 构建故事的起承转合结构
-4. 确保故事逻辑连贯
-
-你需要使用提供的工具来获取章节内容和大纲，然后生成结构化的故事线。
-
-返回格式：
-{
-  "title": "故事标题",
-  "summary": "故事概要",
-  "episodes": [
-    {
-      "episodeIndex": 1,
-      "title": "第X集标题",
-      "summary": "本集概要",
-      "keyEvents": ["事件1", "事件2"],
-      "emotionalArc": "情绪曲线描述"
-    }
-  ],
-  "characters": [
-    {
-      "name": "角色名",
-      "role": "主角/配角",
-      "description": "角色描述"
-    }
-  ]
-}`,
+        systemPrompt: MULTI_AGENT_PROMPTS.storyAgent.systemPrompt,
         tools,
         maxIterations: 15,
       },
@@ -296,46 +275,7 @@ export class OutlineAgent extends BaseAgent {
       {
         name: '大纲师',
         role: 'outline',
-        systemPrompt: `你是一个专业的大纲师AI助手。你的专长是：
-1. 根据故事线生成详细的剧集大纲
-2. 设计每集的核心矛盾和情感曲线
-3. 规划视觉重点和经典台词
-4. 提取场景、角色、道具需求
-
-你需要使用提供的工具来获取故事线和角色信息，然后生成详细的大纲。
-
-返回格式：
-{
-  "episodes": [
-    {
-      "episodeIndex": 1,
-      "title": "第X集标题",
-      "chapterRange": [1, 5],
-      "coreConflict": "核心矛盾描述",
-      "outline": "剧情主干",
-      "openingHook": "开场镜头设计",
-      "keyEvents": {
-        "起": "开场事件",
-        "承": "发展事件",
-        "转": "转折事件",
-        "合": "结局事件"
-      },
-      "emotionalCurve": "情绪曲线",
-      "visualHighlights": ["视觉重点1", "视觉重点2"],
-      "endingHook": "结尾悬念",
-      "classicQuotes": ["经典台词1", "经典台词2"],
-      "scenes": [
-        { "name": "场景名", "description": "场景描述" }
-      ],
-      "characters": [
-        { "name": "角色名", "role": "本集作用" }
-      ],
-      "props": [
-        { "name": "道具名", "description": "道具描述" }
-      ]
-    }
-  ]
-}`,
+        systemPrompt: MULTI_AGENT_PROMPTS.outlineAgent.systemPrompt,
         tools,
         maxIterations: 20,
       },
@@ -411,38 +351,7 @@ export class DirectorAgent extends BaseAgent {
       {
         name: '导演',
         role: 'director',
-        systemPrompt: `你是一个专业的导演AI助手。你的专长是：
-1. 审核故事线和大纲的合理性
-2. 提出修改建议和优化方案
-3. 确保整体风格一致性
-4. 平衡商业性和艺术性
-
-你需要：
-1. 审查故事线是否逻辑连贯
-2. 检查大纲是否节奏合理
-3. 提出具体的修改建议
-4. 确认最终版本
-
-返回格式：
-{
-  "review": {
-    "storyline": {
-      "score": 8,
-      "issues": ["问题1", "问题2"],
-      "suggestions": ["建议1", "建议2"]
-    },
-    "outline": {
-      "score": 7,
-      "issues": ["问题1"],
-      "suggestions": ["建议1"]
-    }
-  },
-  "approved": false,
-  "finalAdjustments": {
-    "storyline": { /* 调整内容 */ },
-    "outline": { /* 调整内容 */ }
-  }
-}`,
+        systemPrompt: MULTI_AGENT_PROMPTS.directorAgent.systemPrompt,
         tools,
         maxIterations: 25,
       },
@@ -511,42 +420,7 @@ export class StoryboardAgent extends BaseAgent {
       {
         name: '分镜师',
         role: 'storyboard',
-        systemPrompt: `你是一个专业的分镜师AI助手。你的专长是：
-1. 将大纲转化为详细的分镜脚本
-2. 设计镜头语言和运镜方式
-3. 编写视觉提示词
-4. 规划时长和节奏
-
-你需要使用提供的工具来获取大纲、角色和场景信息，然后生成分镜。
-
-返回格式：
-{
-  "shots": [
-    {
-      "sequence": 1,
-      "type": "wide/medium/closeup",
-      "description": "镜头描述",
-      "prompt": "AI图像生成提示词",
-      "negativePrompt": "负面提示词",
-      "duration": 3,
-      "camera": {
-        "movement": "推/拉/摇/移/跟/固定",
-        "angle": "水平/俯视/仰视",
-        "distance": "远景/全景/中景/近景/特写"
-      },
-      "dialogue": "台词",
-      "action": "动作描述",
-      "notes": "备注"
-    }
-  ],
-  "totalDuration": 120,
-  "styleGuide": {
-    "visualStyle": "视觉风格",
-    "colorPalette": ["主色调"],
-    "lighting": "光线风格",
-    "mood": "整体氛围"
-  }
-}`,
+        systemPrompt: MULTI_AGENT_PROMPTS.storyboardAgent.systemPrompt,
         tools,
         maxIterations: 30,
       },
@@ -558,6 +432,7 @@ export class StoryboardAgent extends BaseAgent {
 export class MultiAgentOrchestrator {
   private context: AgentContext;
   private agents: Map<string, BaseAgent> = new Map();
+  private providerId: string;
 
   constructor(projectId: string, taskId: string, userId: string) {
     this.context = {
@@ -572,9 +447,35 @@ export class MultiAgentOrchestrator {
     this.agents.set('outline', OutlineAgent.create(this.context));
     this.agents.set('director', DirectorAgent.create(this.context));
     this.agents.set('storyboard', StoryboardAgent.create(this.context));
+    
+    this.providerId = '';
+  }
+
+  async initialize(): Promise<void> {
+    const aiProviders = await prisma.aIProvider.findMany({
+      where: { enabled: true },
+      include: { models: true },
+    });
+
+    if (aiProviders.length === 0) {
+      throw new Error('没有可用的 AI 提供商');
+    }
+
+    const provider = aiProviders[0];
+    this.providerId = provider.id;
+
+    providerManager.addProvider({
+      id: provider.id,
+      name: provider.name,
+      type: provider.type,
+      apiKey: provider.apiKey,
+      baseUrl: provider.baseUrl || undefined,
+    });
   }
 
   async runWorkflow(workflow: string[]): Promise<any> {
+    await this.initialize();
+    
     const results: Record<string, any> = {};
 
     for (let i = 0; i < workflow.length; i++) {
@@ -593,7 +494,7 @@ export class MultiAgentOrchestrator {
       );
 
       const input = this.prepareAgentInput(agentName, results);
-      const result = await agent.run(input);
+      const result = await agent.run(input, this.providerId);
       results[agentName] = this.parseResult(result);
     }
 
@@ -629,10 +530,12 @@ export class MultiAgentOrchestrator {
   }
 
   async chat(agentName: string, message: string): Promise<string> {
+    await this.initialize();
+    
     const agent = this.agents.get(agentName);
     if (!agent) {
       throw new Error(`Unknown agent: ${agentName}`);
     }
-    return agent.run(message);
+    return agent.run(message, this.providerId);
   }
 }
