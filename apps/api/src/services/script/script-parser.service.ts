@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma'
 import { aiProviderService } from '../ai/provider.service'
 import logger from '../../lib/logger'
+import { largeTextProcessingService, ProcessResult } from '../large-text'
 
 export interface ScriptCharacter {
   id: string
@@ -100,6 +101,41 @@ export class ScriptParserService {
     return this.parseWithRegex(scriptContent)
   }
 
+  async parseScriptWithLargeText(
+    userId: string,
+    scriptContent: string,
+    options: {
+      useCache?: boolean
+      onProgress?: (progress: number, message: string) => void
+    } = {}
+  ): Promise<ParsedScript> {
+    try {
+      const result: ProcessResult = await largeTextProcessingService.processLargeText(
+        userId,
+        scriptContent,
+        {
+          useCache: options.useCache,
+          onProgress: options.onProgress
+        }
+      )
+
+      return {
+        title: result.title,
+        scenes: result.scenes,
+        characters: result.characters,
+        metadata: {
+          totalScenes: result.metadata.totalScenes,
+          totalCharacters: result.metadata.totalCharacters,
+          totalDialogues: result.metadata.totalDialogues,
+          estimatedDuration: result.metadata.estimatedDuration
+        }
+      }
+    } catch (error) {
+      logger.error('大文本解析失败', { userId, error })
+      throw error
+    }
+  }
+
   private buildParsingPrompt(scriptContent: string): string {
     return `请解析以下剧本内容，提取结构化信息：
 
@@ -193,7 +229,7 @@ ${scriptContent}
       const trimmedLine = line.trim()
       if (!trimmedLine) continue
 
-      const sceneMatch = trimmedLine.match(/^(场景\d+|场景\s*\d+|Scene\s*\d+)\s*[-：:]\s*(.+)/i)
+      const sceneMatch = trimmedLine.match(/^\*{0,2}(场景\d+|场景\s*\d+|Scene\s*\d+)\s*[-：:]\s*(.+)/i)
       const bracketSceneMatch = trimmedLine.match(/^\[场景(\d+)\]\s*(.+)/i)
       const intExtMatch = trimmedLine.match(/^(内|外)\.?景\s*(.+)$/i)
 

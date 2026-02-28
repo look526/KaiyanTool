@@ -1,4 +1,5 @@
 import { aiProviderService } from '../services/ai/provider.service';
+import { SCRIPT_ANALYSIS_AGENT, VISUAL_PROMPT_GENERATOR } from '../prompts/agents';
 
 export interface SceneInfo {
   id: string;
@@ -48,52 +49,11 @@ export class ScriptAnalysisAgent {
   ): Promise<ScriptStructure> {
     const { targetDuration = 180 } = options;
 
-    const systemPrompt = `你是一个专业的剧本分析AI助手。你的任务是：
-1. 分析剧本内容，提取结构化信息
-2. 识别场景、角色、时间、气氛
-3. 生成专业的视觉化提示词
-4. 根据目标时长规划镜头数量
+    const systemPrompt = SCRIPT_ANALYSIS_AGENT.systemPrompt;
 
-请严格按照JSON格式返回分析结果。`;
-
-    const userPrompt = `请分析以下剧本内容，目标是生成${targetDuration}秒的短片：
-
-${scriptContent}
-
-请返回以下JSON结构：
-{
-  "title": "剧本标题",
-  "summary": "剧情概要",
-  "estimatedDuration": 预估时长（秒）,
-  "estimatedShots": 预估镜头数,
-  "characters": [
-    {
-      "name": "角色名",
-      "description": "外貌描述",
-      "personality": "性格特点"
-    }
-  ],
-  "scenes": [
-    {
-      "id": "场景1",
-      "sequence": 1,
-      "time": "时间（日/夜/晨/昏）",
-      "atmosphere": "气氛（紧张/温馨/悬疑等）",
-      "location": "场景地点",
-      "description": "场景描述",
-      "characters": ["角色名列表"],
-      "shots": [
-        {
-          "sequence": 1,
-          "type": "镜头类型（全景/中景/近景/特写）",
-          "description": "镜头描述",
-          "action": "动作描述",
-          "dialogue": "台词"
-        }
-      ]
-    }
-  ]
-}`;
+    const userPrompt = SCRIPT_ANALYSIS_AGENT.userPromptTemplate
+      .replace('{{targetDuration}}', String(targetDuration))
+      .replace('{{scriptContent}}', scriptContent);
 
     try {
       const response = await aiProviderService.chat(
@@ -167,38 +127,14 @@ ${scriptContent}
       characterImages?: string[];
     }
   ): Promise<string> {
-    const systemPrompt = `你是一个专业的视觉提示词生成专家，擅长将文字描述转化为Midjourney、Stable Diffusion等AI绘图工具的精准提示词。`;
+    const systemPrompt = VISUAL_PROMPT_GENERATOR.systemPrompt;
 
-    const userPrompt = `根据以下场景描述，生成专业级的AI绘图提示词：
-
-场景：${sceneDescription}
-角色：${characters.join(', ')}
-${context?.sceneImage ? '参考场景图像已提供' : ''}
-${context?.characterImages ? `角色参考图像已提供${context.characterImages.length}张` : ''}
-
-请生成包含以下要素的提示词：
-1. 主体描述（角色、动作、表情）
-2. 环境背景（场景、光线、氛围）
-3. 画面构图（视角、距离、镜头类型）
-4. 风格要求（艺术风格、年代、情绪）
-5. 技术参数（宽高比、质量、版本）
-
-格式要求：
-- 主要提示词在前，用逗号分隔
-- 权重用括号表示，如 (beautiful eyes:1.3)
-- 负面提示词单独列出
-- 包含英文翻译
-
-请用JSON格式返回：
-{
-  "mainPrompt": "主提示词（英文）",
-  "negativePrompt": "负面提示词（英文）",
-  "aspectRatio": "16:9",
-  "style": "电影风格",
-  "camera": "35mm镜头",
-  "lighting": "自然光",
-  "mood": "温馨"
-}`;
+    const userPrompt = VISUAL_PROMPT_GENERATOR.userPromptTemplate
+      .replace('{{sceneDescription}}', sceneDescription)
+      .replace('{{characters}}', characters.join(', '))
+      .replace('{{sceneImage}}', context?.sceneImage ? 'true' : '')
+      .replace('{{characterImages}}', context?.characterImages ? 'true' : '')
+      .replace('{{characterImageCount}}', String(context?.characterImages?.length || 0));
 
     try {
       const response = await aiProviderService.chat(

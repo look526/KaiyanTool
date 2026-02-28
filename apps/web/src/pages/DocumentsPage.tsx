@@ -87,7 +87,7 @@ const DocumentsPage: React.FC = () => {
       setLoading(true);
       setError(null);
       const data = await apiClient.getDocuments();
-      setDocuments(data.documents || []);
+      setDocuments(data || []);
     } catch (err) {
       setError('加载文档失败');
       console.error('Error fetching documents:', err);

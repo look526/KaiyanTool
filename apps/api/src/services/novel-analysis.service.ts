@@ -1,5 +1,6 @@
 import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
+import { NOVEL_ANALYSIS_PROMPTS } from '../prompts/services';
 
 interface NovelInput {
   title: string;
@@ -62,81 +63,15 @@ export class NovelAnalysisService {
   async analyzeNovel(input: NovelInput): Promise<NovelAnalysis> {
     const content = input.content.substring(0, 50000);
 
-    const systemPrompt = `你是一个专业的文学分析AI助手。你的专长是深度分析小说文本，提取：
-1. 核心要素（标题、作者、类型、风格）
-2. 主题分析
-3. 角色详细档案
-4. 场景和地点
-5. 章节结构和摘要
-6. 情节架构
-7. 基调情感分析
-8. 影视改编建议
+    const systemPrompt = NOVEL_ANALYSIS_PROMPTS.systemPrompt;
 
-请输出结构化的JSON格式分析结果。`;
-
-    const userPrompt = `请深度分析以下小说：
-
-**基本信息**
-- 标题：${input.title}
-- 作者：${input.author}
-- 类型：${input.genre || '未知'}
-- 风格参考：${input.style || '无'}
-
-**小说内容**
-${content}
-${input.content.length > 50000 ? '\n...（内容已截断）' : ''}
-
-请返回JSON格式的完整分析：
-{
-  "title": "最终确定的标题",
-  "author": "作者名",
-  "genre": "类型",
-  "style": "写作风格描述",
-  "themes": ["主题1", "主题2", "主题3"],
-  "setting": {
-    "timePeriod": "时代背景",
-    "locations": ["地点1", "地点2"],
-    "atmosphere": "整体氛围"
-  },
-  "characters": [
-    {
-      "name": "角色名",
-      "role": "protagonist/antagonist/supporting/minor",
-      "description": "角色描述",
-      "personality": ["性格特点1", "性格特点2"],
-      "arc": "角色成长弧线",
-      "relationships": [{"name": "相关角色", "type": "关系类型"}]
-    }
-  ],
-  "chapters": [
-    {
-      "id": "ch_1",
-      "number": 1,
-      "title": "章节标题",
-      "summary": "章节摘要（100字内）",
-      "wordCount": 字数,
-      "characters": ["出场角色"],
-      "locations": ["场景地点"],
-      "events": ["主要事件"],
-      "tone": "本章节基调和情感",
-      "keyDialogues": ["关键台词"]
-    }
-  ],
-  "plotStructure": {
-    "introduction": "开篇介绍",
-    "risingAction": ["铺垫事件1", "铺垫事件2", "铺垫事件3"],
-    "climax": "高潮情节",
-    "fallingAction": ["收尾事件1", "收尾事件2"],
-    "resolution": "结局"
-  },
-  "toneAnalysis": {
-    "overall": "整体基调和情感",
-    "breakdown": [
-      {"chapter": "章节1", "tone": "章节基调"}
-    ]
-  },
-  "suggestedAdaptationLength": 建议改编时长（分钟）
-}`;
+    const userPrompt = NOVEL_ANALYSIS_PROMPTS.userPromptTemplate
+      .replace('{{title}}', input.title)
+      .replace('{{author}}', input.author)
+      .replace('{{genre}}', input.genre || '未知')
+      .replace('{{style}}', input.style || '无')
+      .replace('{{content}}', content)
+      .replace('{{isTruncated}}', input.content.length > 50000 ? 'true' : '');
 
     try {
       const response = await aiProviderService.chat(
@@ -157,25 +92,8 @@ ${input.content.length > 50000 ? '\n...（内容已截断）' : ''}
   }
 
   async extractChapters(content: string): Promise<Chapter[]> {
-    const prompt = `请从以下小说文本中识别和提取章节结构：
-
-${content.substring(0, 30000)}
-
-请返回JSON格式的章节列表：
-{
-  "chapters": [
-    {
-      "number": 1,
-      "title": "章节标题（如果原文没有则生成）",
-      "summary": "本章节内容摘要（50字内）",
-      "wordCount": 本章字数,
-      "characters": ["本章主要角色"],
-      "locations": ["本章场景"],
-      "events": ["本章主要事件"],
-      "tone": "本章情感基调"
-    }
-  ]
-}`;
+    const prompt = NOVEL_ANALYSIS_PROMPTS.extractChaptersPrompt
+      .replace('{{content}}', content.substring(0, 30000));
 
     try {
       const response = await aiProviderService.chat(
@@ -193,23 +111,8 @@ ${content.substring(0, 30000)}
   }
 
   async identifyCharacters(content: string): Promise<NovelAnalysis['characters']> {
-    const prompt = `请从以下小说文本中识别和提取所有角色信息：
-
-${content.substring(0, 30000)}
-
-请返回JSON格式的角色列表：
-{
-  "characters": [
-    {
-      "name": "角色名",
-      "role": "protagonist/antagonist/supporting/minor",
-      "description": "角色描述（首次出场描述）",
-      "personality": ["性格特点1", "性格特点2"],
-      "arc": "角色成长弧线（如果可以推断）",
-      "relationships": [{"name": "相关角色", "type": "关系描述"}]
-    }
-  ]
-}`;
+    const prompt = NOVEL_ANALYSIS_PROMPTS.identifyCharactersPrompt
+      .replace('{{content}}', content.substring(0, 30000));
 
     try {
       const response = await aiProviderService.chat(
@@ -238,25 +141,9 @@ ${content.substring(0, 30000)}
     dialogue: string[];
     visualPrompt: string;
   }>> {
-    const prompt = `请将以下小说章节转化为场景描述：
-
-章节 ${chapterNumber} 内容：
-${chapterContent.substring(0, 10000)}
-
-请返回JSON格式的场景拆分：
-{
-  "scenes": [
-    {
-      "sceneNumber": 1,
-      "location": "场景地点（内/外）",
-      "time": "时间（日/夜/晨/昏）",
-      "characters": ["出场角色"],
-      "description": "场景视觉描述（适合AI生成图像）",
-      "dialogue": ["本场景的关键台词"],
-      "visualPrompt": "Midjourney/SD格式的视觉提示词"
-    }
-  ]
-}`;
+    const prompt = NOVEL_ANALYSIS_PROMPTS.generateScenesPrompt
+      .replace('{{chapterNumber}}', String(chapterNumber))
+      .replace('{{chapterContent}}', chapterContent.substring(0, 10000));
 
     try {
       const response = await aiProviderService.chat(
@@ -298,39 +185,11 @@ ${chapterContent.substring(0, 10000)}
     totalScenes: number;
     estimatedDuration: number;
   }> {
-    const prompt = `请将以下小说分析改编为剧本格式：
-
-**小说分析**
-${JSON.stringify(novelAnalysis, null, 2)}
-
-**改编选项**
-- 目标时长：${options?.targetLength || 30} 分钟
-- 重点章节：${options?.focusChapters?.join(', ') || '全部'}
-- 改编风格：${options?.style || '忠实原著'}
-
-请返回JSON格式的剧本改编：
-{
-  "title": "改编后的剧本标题",
-  "logline": "一句话故事概要",
-  "acts": [
-    {
-      "number": 1,
-      "title": "第一幕标题",
-      "chapters": [1, 2, 3],
-      "summary": "本幕概述",
-      "scenes": [
-        {
-          "number": 1,
-          "description": "场景描述",
-          "dialogue": ["台词1", "台词2"],
-          "visualNotes": "视觉提示"
-        }
-      ]
-    }
-  ],
-  "totalScenes": 总场景数,
-  "estimatedDuration": 预估时长（分钟）
-}`;
+    const prompt = NOVEL_ANALYSIS_PROMPTS.adaptToScriptPrompt
+      .replace('{{novelAnalysis}}', JSON.stringify(novelAnalysis, null, 2))
+      .replace('{{targetLength}}', String(options?.targetLength || 30))
+      .replace('{{focusChapters}}', options?.focusChapters?.join(', ') || '全部')
+      .replace('{{style}}', options?.style || '忠实原著');
 
     try {
       const response = await aiProviderService.chat(

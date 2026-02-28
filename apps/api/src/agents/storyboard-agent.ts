@@ -1,41 +1,7 @@
 import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
 import logger from '../lib/logger';
-
-const STYLE_TEMPLATES = {
-  cinematic: { 
-    name: 'Cinematic', 
-    prompt: 'cinematic lighting, film grain, anamorphic lens flares',
-    keywords: ['cinematic', 'film', 'drama'],
-    qualityModifiers: ['high quality', 'detailed', 'professional'],
-    lighting: ['cinematic lighting', 'natural light', 'dramatic shadows'],
-    negative: ['amateur', 'low quality', 'blurry']
-  },
-  anime: { 
-    name: 'Anime', 
-    prompt: 'anime style, cel shading, vibrant colors',
-    keywords: ['anime', 'manga', 'cartoon'],
-    qualityModifiers: ['clean lines', 'vibrant colors', 'detailed'],
-    lighting: ['bright', 'vibrant', 'colorful'],
-    negative: ['realistic', 'photorealistic', '3d']
-  },
-  realistic: { 
-    name: 'Realistic', 
-    prompt: 'photorealistic, detailed textures, natural lighting',
-    keywords: ['realistic', 'photorealistic', 'natural'],
-    qualityModifiers: ['high detail', 'realistic textures', 'lifelike'],
-    lighting: ['natural lighting', 'soft shadows', 'realistic'],
-    negative: ['cartoon', 'anime', 'stylized']
-  },
-  stylized: { 
-    name: 'Stylized', 
-    prompt: 'stylized, artistic, creative composition',
-    keywords: ['stylized', 'artistic', 'creative'],
-    qualityModifiers: ['artistic', 'unique', 'expressive'],
-    lighting: ['artistic lighting', 'dramatic', 'moody'],
-    negative: ['generic', 'plain', 'boring']
-  },
-};
+import { STORYBOARD_STYLE_TEMPLATES, STORYBOARD_AGENT } from '../prompts/agents';
 
 interface StoryboardInput {
   outlineId: string;
@@ -104,80 +70,19 @@ export class StoryboardAgent {
       throw new Error('Outline ID is required');
     }
 
-    const styleInfo = STYLE_TEMPLATES[input.shotStyle || 'cinematic'] || STYLE_TEMPLATES.cinematic;
+    const styleInfo = STORYBOARD_STYLE_TEMPLATES[input.shotStyle || 'cinematic'] || STORYBOARD_STYLE_TEMPLATES.cinematic;
 
-    const systemPrompt = `你是一个专业的分镜师AI助手。你的专长是将剧本/大纲转化为专业分镜，包含：
-1. 详细的镜头描述
-2. 专业的视觉提示词（Midjourney/SD/Flux Kontext格式）
-3. 运镜设计
-4. 时长规划
-5. 视觉风格指南
+    const systemPrompt = STORYBOARD_AGENT.systemPrompt
+      .replace('{{styleKeywords}}', styleInfo.keywords.join(', '))
+      .replace('{{qualityModifiers}}', styleInfo.qualityModifiers.join(', '))
+      .replace('{{lighting}}', styleInfo.lighting.join(', '))
+      .replace('{{negative}}', styleInfo.negative.join(', '));
 
-**当前使用的风格模板：**
-- 风格关键词：${styleInfo.keywords.join(', ')}
-- 质量修饰词：${styleInfo.qualityModifiers.join(', ')}
-- 光线设置：${styleInfo.lighting.join(', ')}
-- 负面提示词：${styleInfo.negative.join(', ')}
-
-**提示词构建规则：**
-提示词格式应该是：[基础描述] + [风格关键词] + [质量修饰词] + [光线] + [负面提示词]
-
-例如：
-正面提示词：A cinematic shot of a character walking through a forest, ${styleInfo.keywords.join(', ')}, ${styleInfo.qualityModifiers.join(', ')}, ${styleInfo.lighting.join(', ')}
-负面提示词：${styleInfo.negative.join(', ')}
-
-你的产出将被用于AI视频生成，所以提示词需要精确、可执行。`;
-
-    const userPrompt = `请将以下大纲转化为详细分镜：
-
-**大纲信息**
-${JSON.stringify(outline, null, 2)}
-
-**分镜需求**
-- 风格：${input.shotStyle || 'cinematic'}
-- 宽高比：${input.targetAspectRatio || '16:9'}
-- 视觉风格：${input.style || '电影质感'}
-
-请返回JSON格式分镜：
-{
-  "title": "分镜标题",
-  "shots": [
-    {
-      "id": "shot_1",
-      "sequence": 1,
-      "type": "wide",
-      "description": "镜头详细描述",
-      "visualPrompt": "Midjourney格式的视觉提示词",
-      "negativePrompt": "负面提示词",
-      "duration": 3,
-      "dialogue": "可选的台词",
-      "action": "动作描述",
-      "camera": {
-        "movement": "推/拉/摇/移/跟/固定",
-        "angle": "水平/俯视/仰视",
-        "distance": "远景/全景/中景/近景/特写"
-      },
-      "notes": "额外备注"
-    }
-  ],
-  "totalDuration": 总时长（秒）,
-  "totalShots": 镜头总数,
-  "sceneBreakdown": [
-    {
-      "sceneId": "scene_1",
-      "sceneNumber": 1,
-      "title": "场景标题",
-      "shots": ["shot_1", "shot_2"],
-      "duration": 场景总时长
-    }
-  ],
-  "styleGuide": {
-    "visualStyle": "整体视觉风格描述",
-    "colorPalette": ["主色调1", "主色调2", "主色调3"],
-    "lighting": "光线风格",
-    "mood": "整体氛围"
-  }
-}`;
+    const userPrompt = STORYBOARD_AGENT.userPromptTemplate
+      .replace('{{outline}}', JSON.stringify(outline, null, 2))
+      .replace('{{shotStyle}}', input.shotStyle || 'cinematic')
+      .replace('{{targetAspectRatio}}', input.targetAspectRatio || '16:9')
+      .replace('{{style}}', input.style || '电影质感');
 
     try {
       const response = await aiProviderService.chat(

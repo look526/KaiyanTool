@@ -56,6 +56,22 @@ class ShotGenerationController {
         data: { startImageUrl: response.url },
       })
 
+      await prisma.asset.create({
+        data: {
+          type: 'image',
+          url: response.url,
+          projectId: shot.projectId,
+          metadata: {
+            name: `起始帧 - ${shot.actionSummary.substring(0, 30)}...`,
+            prompt,
+            revisedPrompt: response.revisedPrompt,
+            shotId: id,
+            frameType: 'start',
+            type: 'shot-frame'
+          },
+        },
+      })
+
       res.json({
         imageUrl: response.url,
         revisedPrompt: response.revisedPrompt,
@@ -119,6 +135,22 @@ class ShotGenerationController {
         data: { endImageUrl: response.url },
       })
 
+      await prisma.asset.create({
+        data: {
+          type: 'image',
+          url: response.url,
+          projectId: shot.projectId,
+          metadata: {
+            name: `结束帧 - ${shot.actionSummary.substring(0, 30)}...`,
+            prompt,
+            revisedPrompt: response.revisedPrompt,
+            shotId: id,
+            frameType: 'end',
+            type: 'shot-frame'
+          },
+        },
+      })
+
       res.json({
         imageUrl: response.url,
         revisedPrompt: response.revisedPrompt,
@@ -168,15 +200,18 @@ class ShotGenerationController {
         return
       }
 
+      const startPrompt = shot.startPrompt || this.buildImagePrompt(shot, 'start', style)
+      const endPrompt = shot.endPrompt || this.buildImagePrompt(shot, 'end', style)
+      
       const [startResponse, endResponse] = await Promise.all([
         aiProviderService.createImage(providerId, {
-          prompt: shot.startPrompt || this.buildImagePrompt(shot, 'start', style),
+          prompt: startPrompt,
           size: shot.aspectRatio === '16:9' ? '1920x1080' : shot.aspectRatio === '4:3' ? '1536x1024' : '1024x1792',
           quality: quality || 'standard',
           style: 'vivid',
         }),
         aiProviderService.createImage(providerId, {
-          prompt: shot.endPrompt || this.buildImagePrompt(shot, 'end', style),
+          prompt: endPrompt,
           size: shot.aspectRatio === '16:9' ? '1920x1080' : shot.aspectRatio === '4:3' ? '1536x1024' : '1024x1792',
           quality: quality || 'standard',
           style: 'vivid',
@@ -190,6 +225,39 @@ class ShotGenerationController {
           endImageUrl: endResponse.url,
         },
       })
+
+      await Promise.all([
+        prisma.asset.create({
+          data: {
+            type: 'image',
+            url: startResponse.url,
+            projectId: shot.projectId,
+            metadata: {
+              name: `起始帧 - ${shot.actionSummary.substring(0, 30)}...`,
+              prompt: startPrompt,
+              revisedPrompt: startResponse.revisedPrompt,
+              shotId: id,
+              frameType: 'start',
+              type: 'shot-frame'
+            },
+          },
+        }),
+        prisma.asset.create({
+          data: {
+            type: 'image',
+            url: endResponse.url,
+            projectId: shot.projectId,
+            metadata: {
+              name: `结束帧 - ${shot.actionSummary.substring(0, 30)}...`,
+              prompt: endPrompt,
+              revisedPrompt: endResponse.revisedPrompt,
+              shotId: id,
+              frameType: 'end',
+              type: 'shot-frame'
+            },
+          },
+        })
+      ])
 
       res.json({
         startImage: startResponse.url,

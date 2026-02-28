@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma';
 import { emitProgress, emitStreamChunk, emitTaskComplete, emitTaskError } from '../lib/websocket';
 import logger from '../lib/logger';
 import { AIChatMessage } from '../types/ai.types';
+import { AGENT_STREAM_PROMPTS } from '../prompts/routes';
 
 const router = Router();
 
@@ -116,35 +117,7 @@ async function runOutlineAgentStream(context: StreamContext, userMessage: string
   try {
     emitProgress(projectId, taskId, 0, '开始生成大纲...');
 
-    const systemPrompt = `你是一个专业的剧本大纲师AI助手。你的任务是：
-1. 分析用户提供的小说或故事内容
-2. 提取主要角色、场景和关键事件
-3. 生成结构化的剧集大纲
-4. 确保故事逻辑连贯、节奏合理
-
-你可以使用以下工具：
-- getChapter: 获取小说章节内容
-- saveStoryline: 保存故事线
-- saveOutline: 保存大纲
-- getCharacters: 获取角色列表
-- generateAssets: 从大纲提取生成角色/场景/道具
-
-返回格式要求：
-{
-  "episodes": [
-    {
-      "episodeIndex": 1,
-      "title": "第X集标题",
-      "chapterRange": [1, 5],
-      "coreConflict": "核心矛盾",
-      "outline": "剧情主干",
-      "keyEvents": { "起": "", "承": "", "转": "", "合": "" },
-      "scenes": [],
-      "characters": [],
-      "props": []
-    }
-  ]
-}`;
+    const systemPrompt = AGENT_STREAM_PROMPTS.outlineAgentStream.systemPrompt;
 
     const messages: AIChatMessage[] = [
       { role: 'system', content: systemPrompt },
@@ -223,30 +196,7 @@ async function runStoryboardAgentStream(context: StreamContext, outlineId: strin
       outline = outlineDoc?.content;
     }
 
-    const systemPrompt = `你是一个专业的分镜师AI助手。你的任务是：
-1. 根据大纲内容设计镜头
-2. 编写视觉提示词（Midjourney/SD格式）
-3. 设计运镜和时长
-4. 确保视觉连贯性
-
-返回格式要求：
-{
-  "shots": [
-    {
-      "sequence": 1,
-      "type": "wide/medium/closeup",
-      "description": "镜头描述",
-      "prompt": "AI图像生成提示词",
-      "negativePrompt": "负面提示词",
-      "duration": 3,
-      "camera": { "movement": "", "angle": "", "distance": "" },
-      "dialogue": "",
-      "action": ""
-    }
-  ],
-  "totalDuration": 120,
-  "styleGuide": { "visualStyle": "", "colorPalette": [], "lighting": "", "mood": "" }
-}`;
+    const systemPrompt = AGENT_STREAM_PROMPTS.storyboardAgentStream.systemPrompt;
 
     const messages: AIChatMessage[] = [
       { role: 'system', content: systemPrompt },

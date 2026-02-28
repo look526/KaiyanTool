@@ -91,7 +91,7 @@ export function ImageGenerationPage() {
         width,
         height,
         style,
-        projectId: projectId,
+        projectId: projectId || undefined,
         model: selectedModel,
       });
 

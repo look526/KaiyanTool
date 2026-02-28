@@ -38,6 +38,7 @@ import { useToast } from '../components/ui/Toast';
 import { ContentProvider, useContent, ContentMode } from '../contexts/ContentContext';
 import ContentTabs from '../components/ContentTabs';
 import ChapterList from '../components/ChapterList';
+import { SceneOptimizer } from '../components/SceneOptimizer';
 
 interface Scene {
   id: number;
@@ -120,6 +121,16 @@ function ScriptEditorContent() {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isParsingScenes, setIsParsingScenes] = useState(false);
   const [showSceneOptimizer, setShowSceneOptimizer] = useState(false);
+  const [useAIParsing, setUseAIParsing] = useState(true);
+  const [showSceneOptimizerModal, setShowSceneOptimizerModal] = useState(false);
+  const [availableScenes, setAvailableScenes] = useState<Array<{
+    id: number;
+    original: string;
+    location: string;
+    time: string;
+    content: string;
+    heading: string;
+  }>>([]);
   const [parsedScenesForOptimization, setParsedScenesForOptimization] = useState<Array<{
     id: number;
     original: string;
@@ -208,15 +219,15 @@ function ScriptEditorContent() {
   const handleSave = async () => {
     if (!title.trim() || !content.trim()) return;
     try {
-      setSaving(true);
+      setIsSaving(true);
       await apiClient.saveScript(projectIdStr, title, content);
       addToast({ type: 'success', title: '保存成功' });
-      saveToLocalStorage();
+      saveToLocalStorage(mode);
     } catch (error) {
       console.error('保存失败:', error);
       addToast({ type: 'error', title: '保存失败', message: '请稍后重试。' });
     } finally {
-      setSaving(false);
+      setIsSaving(false);
     }
   };
 
@@ -270,7 +281,7 @@ function ScriptEditorContent() {
       setIsContinuing(true);
       const result = await apiClient.continueScript(content, selectedModel);
       setContent(result.content);
-      saveToLocalStorage();
+      saveToLocalStorage(mode);
     } catch (error) {
       console.error('AI续写失败:', error);
       addToast({ type: 'error', title: 'AI续写失败', message: '请稍后重试。' });
@@ -289,7 +300,7 @@ function ScriptEditorContent() {
       setIsRewriting(true);
       const result = await apiClient.rewriteScript(content, selectedModel);
       setContent(result.content);
-      saveToLocalStorage();
+      saveToLocalStorage(mode);
     } catch (error) {
       console.error('AI改写失败:', error);
       addToast({ type: 'error', title: 'AI改写失败', message: '请稍后重试。' });
@@ -308,7 +319,7 @@ function ScriptEditorContent() {
       setIsOptimizing(true);
       const result = await apiClient.rewriteScript(content, selectedModel);
       setContent(result.content);
-      saveToLocalStorage();
+      saveToLocalStorage(mode);
       addToast({ type: 'success', title: '优化完成', message: '剧本已优化' });
     } catch (error) {
       console.error('AI优化失败:', error);
@@ -319,10 +330,28 @@ function ScriptEditorContent() {
   };
 
   const handleParseScenes = async () => {
-    if (!content.trim() || isParsingScenes) return;
+    console.log('[场景解析] 开始处理', { contentLength: content.length, contentTrimmed: content.trim(), isParsingScenes, useAIParsing });
+    
+    if (!content.trim() || isParsingScenes) {
+      if (!content.trim()) {
+        addToast({ type: 'warning', title: '内容为空', message: '请先在编辑器中输入剧本内容' });
+      }
+      return;
+    }
+    
     try {
+      console.log('[场景解析] 开始发送API请求，使用AI:', useAIParsing);
       setIsParsingScenes(true);
-      const result = await apiClient.parseScript(content);
+      
+      let result;
+      if (useAIParsing) {
+        result = await apiClient.parseScriptWithAI(content);
+      } else {
+        result = await apiClient.parseScript(content);
+      }
+      
+      console.log('[场景解析] API返回结果:', result);
+      
       if (result.scenes && result.scenes.length > 0) {
         const scenesWithContent = result.scenes.map((scene: any, index: number) => ({
           id: index + 1,
@@ -337,12 +366,13 @@ function ScriptEditorContent() {
         }));
         setParsedScenesForOptimization(scenesWithContent);
         setShowSceneOptimizer(true);
+        addToast({ type: 'success', title: '解析成功', message: `成功解析 ${scenesWithContent.length} 个场景` });
       } else {
-        addToast({ type: 'info', title: '未检测到场景', message: '请确保剧本格式正确，包含场景标记' });
+        addToast({ type: 'info', title: '未检测到场景', message: '请确保剧本格式正确，包含场景标记，如"场景1 - 室内，白天"' });
       }
     } catch (error) {
-      console.error('场景解析失败:', error);
-      addToast({ type: 'error', title: '场景解析失败', message: '请稍后重试。' });
+      console.error('[场景解析] 失败:', error);
+      addToast({ type: 'error', title: '场景解析失败', message: error instanceof Error ? error.message : '请稍后重试' });
     } finally {
       setIsParsingScenes(false);
     }
@@ -374,7 +404,7 @@ function ScriptEditorContent() {
     const sceneRegex = new RegExp(`(场景\\s*${sceneId}[\\s\\-：:]*[^\\n]*(?:\\n[^场景]*)*)`, 'gi');
     const newContent = content.replace(sceneRegex, scene.optimized);
     setContent(newContent);
-    saveToLocalStorage();
+    saveToLocalStorage(mode);
     setParsedScenesForOptimization(prev => prev.map(s => s.id === sceneId ? { ...s, original: s.optimized || s.original || '', optimized: '', suggestion: '' } : s));
     addToast({ type: 'success', title: '已应用优化', message: `场景 ${sceneId} 已更新` });
   };
@@ -388,7 +418,7 @@ function ScriptEditorContent() {
       }
     });
     setContent(newContent);
-    saveToLocalStorage();
+    saveToLocalStorage(mode);
     setShowSceneOptimizer(false);
     addToast({ type: 'success', title: '全部应用成功', message: '所有场景优化已应用到剧本' });
   };
@@ -412,6 +442,7 @@ function ScriptEditorContent() {
     { id: 'rewrite', label: 'AI改写', icon: Wand2, color: '#10b981', handler: handleRewriteScript, loading: isRewriting, disabled: isContinuing || isRewriting || isOptimizing || !content.trim() || !selectedModel },
     { id: 'optimize', label: 'AI优化', icon: Zap, color: '#f59e0b', handler: handleOptimizeScript, loading: isOptimizing, disabled: isContinuing || isRewriting || isOptimizing || !content.trim() || !selectedModel },
     { id: 'parse', label: '场景解析', icon: MapPin, color: '#ec4899', handler: handleParseScenes, loading: isParsingScenes, disabled: isParsingScenes || !content.trim() },
+    { id: 'scene-optimizer', label: '场景优化', icon: FileEdit, color: '#8b5cf6', handler: () => setShowSceneOptimizerModal(true), loading: false, disabled: false },
   ];
 
   return (
@@ -989,6 +1020,86 @@ function ScriptEditorContent() {
             <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>智能创作辅助工具</div>
           </div>
 
+          <div style={{ 
+            padding: '10px', 
+            borderRadius: '10px', 
+            background: 'var(--bg-hover)', 
+            marginBottom: '12px' 
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              marginBottom: '6px' 
+            }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: '500' }}>
+                场景解析模式
+              </span>
+              <span style={{ 
+                fontSize: '10px', 
+                color: useAIParsing ? '#10b981' : '#f59e0b',
+                fontWeight: '600',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                background: useAIParsing ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)'
+              }}>
+                {useAIParsing ? 'AI智能' : '快速正则'}
+              </span>
+            </div>
+            <div style={{ 
+              display: 'flex', 
+              gap: '8px', 
+              background: 'var(--bg-input)', 
+              borderRadius: '6px', 
+              padding: '3px' 
+            }}>
+              <button
+                onClick={() => setUseAIParsing(true)}
+                style={{
+                  flex: 1,
+                  padding: '6px 8px',
+                  borderRadius: '5px',
+                  border: 'none',
+                  background: useAIParsing ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' : 'transparent',
+                  color: useAIParsing ? '#fff' : 'var(--text-muted)',
+                  fontSize: '11px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                AI智能解析
+              </button>
+              <button
+                onClick={() => setUseAIParsing(false)}
+                style={{
+                  flex: 1,
+                  padding: '6px 8px',
+                  borderRadius: '5px',
+                  border: 'none',
+                  background: !useAIParsing ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' : 'transparent',
+                  color: !useAIParsing ? '#fff' : 'var(--text-muted)',
+                  fontSize: '11px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                快速正则
+              </button>
+            </div>
+            <div style={{ 
+              fontSize: '10px', 
+              color: 'var(--text-muted)', 
+              marginTop: '6px',
+              lineHeight: '1.4'
+            }}>
+              {useAIParsing 
+                ? '使用AI深度理解上下文，适合复杂剧本'
+                : '快速解析，适合标准格式剧本'}
+            </div>
+          </div>
+
           {aiTools.map((tool) => {
             const toolColors: Record<string, string> = {
               '#007AFF': '#3b82f6',
@@ -1376,6 +1487,22 @@ function ScriptEditorContent() {
           </div>
         </div>
       )}
+
+      <SceneOptimizer
+        isOpen={showSceneOptimizerModal}
+        onClose={() => setShowSceneOptimizerModal(false)}
+        scenes={availableScenes}
+        onApplyOptimization={(sceneId, optimizedContent) => {
+          const sceneIndex = availableScenes.findIndex(s => s.id === sceneId);
+          if (sceneIndex === -1) return;
+          const scene = availableScenes[sceneIndex];
+          
+          const sceneRegex = new RegExp(`(\\*{0,2}场景\\s*${sceneId}[\\s\\-：:]*[^\\n]*(?:\\n[^场景]*)*)`, 'gi');
+          const newContent = content.replace(sceneRegex, optimizedContent);
+          setContent(newContent);
+          addToast({ type: 'success', title: '场景已优化', message: `场景 ${sceneId} 优化内容已应用` });
+        }}
+      />
 
       <style>
         {`

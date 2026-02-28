@@ -1,6 +1,7 @@
 import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
 import logger from '../lib/logger';
+import { DIRECTOR_AGENT } from '../prompts/agents';
 
 interface ScriptScene {
   id: number;
@@ -128,7 +129,7 @@ export class DirectorAgent {
     const response = await aiProviderService.chat(provider.id, [
       {
         role: 'system',
-        content: '你是一位专业的电影导演，擅长将剧本分解为详细的分镜镜头。请根据场景描述和对话，生成分镜方案。',
+        content: DIRECTOR_AGENT.shotGenerationSystem,
       },
       {
         role: 'user',
@@ -159,33 +160,10 @@ export class DirectorAgent {
       .map(d => `${d.character}: ${d.lines.join(' ')}`)
       .join('\n');
 
-    return `请为以下场景生成分镜方案：
-
-场景描述: ${scene.description}
-
-对话：
-${dialogueText}
-
-${visualStyle ? `视觉风格: ${visualStyle}\n` : ''}
-
-请生成 3-5 个分镜镜头，每个镜头包含：
-1. 镜头类型（特写、中景、全景、推镜头、拉镜头、摇镜头等）
-2. 动作描述（简短描述镜头中的主要动作）
-3. 镜头运动（如需要）
-4. 起始帧提示词（用于AI生成起始画面的提示词）
-5. 结束帧提示词（用于AI生成结束画面的提示词）
-
-请以JSON格式返回，格式如下：
-[
-  {
-    "cameraType": "特写",
-    "actionSummary": "主角表情特写",
-    "cameraMovement": "推镜头",
-    "startPrompt": "详细描述起始画面",
-    "endPrompt": "详细描述结束画面",
-    "duration": 5
-  }
-]`;
+    return DIRECTOR_AGENT.shotGenerationPrompt
+      .replace('{{sceneDescription}}', scene.description)
+      .replace('{{dialogue}}', dialogueText)
+      .replace('{{visualStyle}}', visualStyle || '');
   }
 
   private parseShotResponse(content: string): Array<{
@@ -237,7 +215,7 @@ ${visualStyle ? `视觉风格: ${visualStyle}\n` : ''}
     const response = await aiProviderService.chat(provider.id, [
       {
         role: 'system',
-        content: '你是一位专业的电影导演，擅长优化分镜镜头的提示词，使其更适合 AI 图像生成。',
+        content: DIRECTOR_AGENT.optimizationSystem,
       },
       {
         role: 'user',
@@ -250,26 +228,14 @@ ${visualStyle ? `视觉风格: ${visualStyle}\n` : ''}
   }
 
   private buildOptimizationPrompt(shot: any, referenceImages: string[]): string {
-    return `请优化以下分镜镜头的提示词，使其更适合 AI 图像生成：
-
-镜头信息：
-- 动作摘要: ${shot.actionSummary || '无'}
-- 镜头运动: ${shot.cameraMovement || '无'}
-- 场景: ${shot.scene?.location || '无'}
-- 角色: ${shot.character?.name || '无'}
-- 参考图片数量: ${referenceImages.length}
-
-当前提示词：
-- 起始帧: ${shot.startPrompt || '无'}
-- 结束帧: ${shot.endPrompt || '无'}
-
-请根据参考图片（如果有）和镜头信息，优化提示词，使其更详细、更具体，包含视觉风格、光线、构图等要素。
-
-请以JSON格式返回，格式如下：
-{
-  "startPrompt": "优化后的起始帧提示词",
-  "endPrompt": "优化后的结束帧提示词"
-}`;
+    return DIRECTOR_AGENT.optimizationPrompt
+      .replace('{{actionSummary}}', shot.actionSummary || '无')
+      .replace('{{cameraMovement}}', shot.cameraMovement || '无')
+      .replace('{{sceneLocation}}', shot.scene?.location || '无')
+      .replace('{{characterName}}', shot.character?.name || '无')
+      .replace('{{referenceImageCount}}', String(referenceImages.length))
+      .replace('{{startPrompt}}', shot.startPrompt || '无')
+      .replace('{{endPrompt}}', shot.endPrompt || '无');
   }
 
   private parseOptimizationResponse(content: string): { startPrompt: string; endPrompt: string } {
@@ -325,7 +291,7 @@ ${visualStyle ? `视觉风格: ${visualStyle}\n` : ''}
       const response = await aiProviderService.chat(provider.id, [
         {
           role: 'system',
-          content: '你是一位专业的编剧和导演，擅长根据故事大纲生成详细的剧本。请根据提供的信息，生成一个结构完整、对话自然的剧本。',
+          content: DIRECTOR_AGENT.scriptGenerationSystem,
         },
         {
           role: 'user',
@@ -362,41 +328,11 @@ ${visualStyle ? `视觉风格: ${visualStyle}\n` : ''}
       .map(s => `${s.name}: ${s.description} (氛围: ${s.atmosphere})`)
       .join('\n');
 
-    return `请根据以下信息生成一个详细的剧本：
-
-故事大纲:
-${storyOutline}
-
-类型:
-${genre}
-
-角色:
-${charactersText}
-
-场景:
-${settingsText}
-
-请生成一个结构完整的剧本，包含：
-1. 场景描述
-2. 角色对话
-3. 动作描述
-4. 情绪氛围
-
-剧本格式示例：
-
-[场景1] 咖啡厅
-时间：下午
-氛围：温馨
-
-张三：你好，最近怎么样？
-李四：还不错，就是工作有点忙。
-张三：我理解，慢慢来。
-
-李四端起咖啡，看向窗外。
-
-李四：你说，我们这样的生活，什么时候才能改变？
-
-张三：会好起来的，我相信。`;
+    return DIRECTOR_AGENT.scriptGenerationPrompt
+      .replace('{{storyOutline}}', storyOutline)
+      .replace('{{genre}}', genre)
+      .replace('{{characters}}', charactersText)
+      .replace('{{settings}}', settingsText);
   }
 }
 

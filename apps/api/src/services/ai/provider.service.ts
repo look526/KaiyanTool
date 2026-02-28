@@ -46,7 +46,8 @@ class AIProviderService {
   async chat(
     providerId: string,
     messages: AIChatMessage[],
-    model?: string
+    model?: string,
+    _tools?: any
   ): Promise<AIResponse> {
     const provider = this.getProvider(providerId)
     if (!provider) {

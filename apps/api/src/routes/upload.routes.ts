@@ -53,6 +53,12 @@ router.get('/assets', async (req, res) => {
       orderBy: { createdAt: 'desc' },
     })
 
+    const assetsWithName = assets.map(asset => ({
+      ...asset,
+      name: (asset.metadata as any)?.name || '未命名素材',
+      thumbnailUrl: (asset.metadata as any)?.thumbnailUrl || asset.url
+    }))
+
     const characters = await prisma.character.findMany({
       where: { projectId: { in: projectIds } },
       select: { id: true, name: true, referenceImages: true, projectId: true },
@@ -68,6 +74,7 @@ router.get('/assets', async (req, res) => {
         id: `char-${char.id}-${idx}`,
         type: 'character',
         url,
+        thumbnailUrl: url,
         name: `${char.name} - 参考图 ${idx + 1}`,
         projectId: char.projectId,
         metadata: { characterId: char.id, characterName: char.name },
@@ -81,6 +88,7 @@ router.get('/assets', async (req, res) => {
         id: `scene-${scene.id}-${idx}`,
         type: 'scene',
         url,
+        thumbnailUrl: url,
         name: `${scene.location} - 参考图 ${idx + 1}`,
         projectId: scene.projectId,
         metadata: { sceneId: scene.id, sceneLocation: scene.location },
@@ -89,7 +97,7 @@ router.get('/assets', async (req, res) => {
       }))
     )
 
-    let allAssets = [...assets, ...characterImages, ...sceneImages]
+    let allAssets = [...assetsWithName, ...characterImages, ...sceneImages]
 
     if (type && type !== 'all') {
       if (type === 'image') {
@@ -137,13 +145,17 @@ router.post('/assets', upload.single('file'), async (req, res) => {
 
     const asset = await prisma.asset.create({
       data: {
-        name: file.originalname,
         type: file.mimetype.startsWith('image/') ? 'image' : 
               file.mimetype.startsWith('video/') ? 'video' : 
               file.mimetype.startsWith('audio/') ? 'audio' : 'document',
         url,
-        projectId: null,
-        userId: req.userId,
+        projectId: req.body.projectId || '00000000-0000-0000-0000-000000000000',
+        metadata: {
+          originalName: file.originalname,
+          size: file.size,
+          mimetype: file.mimetype,
+          userId: req.userId,
+        },
       },
     })
 
@@ -185,6 +197,12 @@ router.get('/projects/:projectId/assets', async (req, res) => {
       orderBy: { createdAt: 'desc' },
     })
 
+    const assetsWithName = assets.map(asset => ({
+      ...asset,
+      name: (asset.metadata as any)?.name || '未命名素材',
+      thumbnailUrl: (asset.metadata as any)?.thumbnailUrl || asset.url
+    }))
+
     const characters = await prisma.character.findMany({
       where: { projectId },
       select: { id: true, name: true, referenceImages: true },
@@ -200,6 +218,7 @@ router.get('/projects/:projectId/assets', async (req, res) => {
         id: `char-${char.id}-${idx}`,
         type: 'character',
         url,
+        thumbnailUrl: url,
         name: `${char.name} - 参考图 ${idx + 1}`,
         projectId,
         metadata: { characterId: char.id, characterName: char.name },
@@ -213,6 +232,7 @@ router.get('/projects/:projectId/assets', async (req, res) => {
         id: `scene-${scene.id}-${idx}`,
         type: 'scene',
         url,
+        thumbnailUrl: url,
         name: `${scene.location} - 参考图 ${idx + 1}`,
         projectId,
         metadata: { sceneId: scene.id, sceneLocation: scene.location },
@@ -221,7 +241,7 @@ router.get('/projects/:projectId/assets', async (req, res) => {
       }))
     )
 
-    let allAssets = [...assets, ...characterImages, ...sceneImages]
+    let allAssets = [...assetsWithName, ...characterImages, ...sceneImages]
 
     if (type && type !== 'all') {
       if (type === 'image') {

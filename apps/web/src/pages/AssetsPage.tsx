@@ -478,9 +478,9 @@ function AssetsPage() {
                     justifyContent: 'center',
                     overflow: 'hidden',
                   }}>
-                    {asset.type === 'image' && asset.thumbnailUrl ? (
+                    {(asset.type === 'image' || asset.type === 'character' || asset.type === 'scene') ? (
                       <img
-                        src={asset.thumbnailUrl || asset.url}
+                        src={(asset as any).thumbnailUrl || asset.url}
                         alt={asset.name}
                         style={{
                           width: '100%',

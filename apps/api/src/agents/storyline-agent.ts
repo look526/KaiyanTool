@@ -1,6 +1,7 @@
 import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
 import logger from '../lib/logger';
+import { STORYLINE_AGENT } from '../prompts/agents';
 
 interface StoryInput {
   title: string;
@@ -36,61 +37,16 @@ export class StorylineAgent {
   constructor() {}
 
   async generateStoryline(input: StoryInput): Promise<StorylineOutput> {
-    const systemPrompt = `你是一个专业的故事创作AI助手。你的专长是将创意转化为完整的故事线，包括：
-1. 故事核心（标题、Logline、Synopsis）
-2. 主题提炼
-3. 三幕结构设计
-4. 关键情节点（Story Beats）
-5. 角色弧线设计
-6. 风格建议
-7. 时长估算
+    const systemPrompt = STORYLINE_AGENT.systemPrompt;
 
-请始终以专业编剧的视角创作，产出可执行的故事蓝图。`;
-
-    const userPrompt = `请为以下故事创意生成完整的故事线：
-
-**基本信息**
-- 标题：《${input.title}》
-- 类型：${input.genre}
-- 目标观众：${input.targetAudience || '大众'}
-- 基调：${input.tone || '平衡'}
-${input.style ? `- 风格参考：${input.style}` : ''}
-- 目标时长：${input.targetDuration || 15} 分钟
-
-**故事概述**
-${input.description}
-
-请返回JSON格式的故事线：
-{
-  "title": "最终确定的标题",
-  "logline": "一句话概括故事核心冲突",
-  "synopsis": "200字内的故事梗概",
-  "themes": ["主题1", "主题2"],
-  "structure": {
-    "act1": {
-      "title": "第一幕标题",
-      "beats": ["情节点1", "情节点2", "情节点3"]
-    },
-    "act2": {
-      "title": "第二幕标题",
-      "beats": ["情节点1", "情节点2", "情节点3", "情节点4"]
-    },
-    "act3": {
-      "title": "第三幕标题",
-      "beats": ["情节点1", "情节点2"]
-    }
-  },
-  "characters": [
-    {
-      "name": "主角名",
-      "role": "主角/配角",
-      "arc": "角色成长弧线",
-      "description": "角色描述"
-    }
-  ],
-  "suggestedDuration": 建议时长（分钟）,
-  "suggestedStyle": "视觉风格建议"
-}`;
+    const userPrompt = STORYLINE_AGENT.userPromptTemplate
+      .replace('{{title}}', input.title)
+      .replace('{{genre}}', input.genre)
+      .replace('{{targetAudience}}', input.targetAudience || '大众')
+      .replace('{{tone}}', input.tone || '平衡')
+      .replace('{{style}}', input.style || '')
+      .replace('{{targetDuration}}', String(input.targetDuration || 15))
+      .replace('{{description}}', input.description);
 
     try {
       const response = await aiProviderService.chat(
@@ -124,7 +80,7 @@ ${input.description}
 
     const content = existingStoryline.content as any;
 
-    const systemPrompt = `你是一个专业的故事编辑助手。根据用户反馈优化故事线。`;
+    const systemPrompt = STORYLINE_AGENT.refinePrompt;
 
     const userPrompt = `请根据以下反馈优化故事线：
 

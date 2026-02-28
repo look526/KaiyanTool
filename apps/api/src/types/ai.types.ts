@@ -32,6 +32,7 @@ export interface AIRequest {
 
 export interface AIResponse {
   content: string
+  truncated?: boolean
   model: string
   usage?: {
     promptTokens: number

@@ -11,7 +11,7 @@ export class AntSKProvider extends AIProvider {
       model: options.model || 'gpt-4',
       messages,
       temperature: options.temperature ?? 0.7,
-      max_tokens: options.maxTokens ?? 2000,
+      max_tokens: options.maxTokens ?? 4000,
       top_p: options.topP ?? 1,
     }
 
@@ -23,8 +23,20 @@ export class AntSKProvider extends AIProvider {
       body: JSON.stringify(requestBody),
     })
 
+    if (!response.choices || response.choices.length === 0) {
+      throw new Error('No response choices returned from AntSK API')
+    }
+
+    const messageContent = response.choices[0].message?.content
+    if (!messageContent) {
+      throw new Error('AI返回内容为空')
+    }
+
+    const finishReason = response.choices[0].finish_reason
+
     return {
-      content: response.choices[0].message.content,
+      content: messageContent,
+      truncated: finishReason === 'length',
       model: response.model,
       usage: {
         promptTokens: response.usage.prompt_tokens,

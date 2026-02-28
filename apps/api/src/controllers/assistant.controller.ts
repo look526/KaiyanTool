@@ -4,6 +4,7 @@ import { providerManager } from '../services/ai/provider.manager';
 import { AIChatMessage } from '../types/ai.types';
 import { prisma } from '../lib/prisma';
 import logger from '../lib/logger';
+import { ASSISTANT_PROMPTS } from '../prompts/services';
 
 interface ChatRequest {
   message: string;
@@ -19,31 +20,13 @@ interface ChatRequest {
 
 const DEFAULT_MODEL = 'gpt-3.5-turbo';
 const MAX_MESSAGE_LENGTH = 10000;
-const SYSTEM_PROMPT = `你是一个专业的AI创作助手，帮助用户在开演AI平台上进行创作。
-
-用户当前上下文：
-{{context}}
-
-你的职责：
-1. 理解用户意图，提供精准帮助
-2. 基于上下文提供个性化建议
-3. 推荐适合的功能和工具
-4. 解决用户遇到的问题
-5. 激发用户的创作灵感
-
-回答要求：
-- 简洁明了，避免冗长
-- 提供可操作的建议
-- 当涉及具体操作时，给出步骤
-- 不确定时主动询问
-- 使用中文回答`;
 
 function buildSystemPrompt(context?: ChatRequest['context']): string {
   const contextInfo = context 
     ? `- 页面：${context.page || '未知'}\n- 项目ID：${context.projectId || '无'}`
     : '无';
   
-  return SYSTEM_PROMPT.replace('{{context}}', contextInfo);
+  return ASSISTANT_PROMPTS.systemPrompt.replace('{{context}}', contextInfo);
 }
 
 function validateMessage(message: string): { valid: boolean; error?: string } {

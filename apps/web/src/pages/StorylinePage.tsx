@@ -114,7 +114,7 @@ const StorylinePage: React.FC = () => {
     setStep('generating');
 
     try {
-      const result = await apiClient.generateStoryline(formData);
+      const result = await apiClient.generateStorylineFromForm(formData);
       setStoryline(result);
       setStep('result');
       addToast({

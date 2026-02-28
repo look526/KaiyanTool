@@ -252,9 +252,9 @@ export default function AnalyticsPage() {
       setLoading(true);
       try {
         const [userData, platformData, modelData] = await Promise.all([
-          apiClient.getUserAnalytics(),
-          isAdmin ? apiClient.getPlatformAnalytics() : null,
-          apiClient.getUsageStats(),
+          apiClient.getAnalytics('user'),
+          isAdmin ? apiClient.getAnalytics('platform') : null,
+          apiClient.getAnalytics('usage'),
         ]);
         setUserAnalytics(userData);
         if (platformData) {

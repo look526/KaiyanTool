@@ -74,7 +74,7 @@ export default function ModelConfigurationPage() {
       setUsageStats(stats)
 
       const providers = await apiClient.getAIProviders()
-      const models = providers.providers.flatMap(p => p.models || []) as AIProviderModel[]
+      const models = (providers || []).flatMap((p: any) => p.models || []) as AIProviderModel[]
       setAllModels(models)
     } catch (err: any) {
       setError(err.message || '加载配置失败')
@@ -95,7 +95,10 @@ export default function ModelConfigurationPage() {
     try {
       setSaving(true)
       setError(null)
-      await apiClient.setDefaultModels(configurations)
+      await apiClient.setDefaultModels(Object.entries(configurations).map(([contentType, modelId]) => ({
+        contentType,
+        modelId
+      })))
       setSuccess('配置保存成功')
       setTimeout(() => setSuccess(null), uiConfig.successMessageDuration)
       await loadConfiguration()
@@ -157,7 +160,7 @@ export default function ModelConfigurationPage() {
   const handleBatchTestByType = async (contentType: ContentType) => {
     try {
       const providers = await apiClient.getAIProviders()
-      const models = providers.providers.flatMap(p => p.models?.filter(m => m.types?.includes(contentType)) || [])
+      const models = (providers || []).flatMap((p: any) => p.models?.filter((m: any) => m.types?.includes(contentType)) || [])
       
       if (models.length === 0) {
         addToast?.({ type: 'warning', title: '无可用模型', message: `${CONTENT_TYPES.find(ct => ct.contentType === contentType)?.label}没有可用的模型` })

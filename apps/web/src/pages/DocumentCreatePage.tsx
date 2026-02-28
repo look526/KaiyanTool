@@ -125,7 +125,7 @@ const DocumentCreatePage: React.FC = () => {
       setLoading(true);
       setError(null);
       const response = await apiClient.getProjects();
-      setProjects(response.projects || []);
+      setProjects(response || []);
     } catch (err) {
       setError('Failed to load projects');
       console.error('Error fetching projects:', err);

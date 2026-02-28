@@ -16,7 +16,7 @@ export class GoogleProvider extends AIProvider {
       })),
       generationConfig: {
         temperature: options.temperature ?? 0.7,
-        maxOutputTokens: options.maxTokens ?? 2000,
+        maxOutputTokens: options.maxTokens ?? 4000,
         topP: options.topP ?? 1,
       },
     }
@@ -31,8 +31,16 @@ export class GoogleProvider extends AIProvider {
       throw new Error('No response candidates returned from Google AI API')
     }
 
+    const messageContent = response.candidates[0].content?.parts?.[0]?.text
+    if (!messageContent) {
+      throw new Error('AI返回内容为空')
+    }
+
+    const finishReason = response.candidates[0].finishReason
+
     return {
-      content: response.candidates[0].content.parts[0].text,
+      content: messageContent,
+      truncated: finishReason === 'MAX_TOKENS',
       model,
       usage: {
         promptTokens: response.usageMetadata?.promptTokenCount ?? 0,

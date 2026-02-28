@@ -12,7 +12,7 @@ export class OpenAIProvider extends AIProvider {
       model: options.model || 'gpt-4',
       messages,
       temperature: options.temperature ?? 0.7,
-      max_tokens: options.maxTokens ?? 2000,
+      max_tokens: options.maxTokens ?? 4000,
       top_p: options.topP ?? 1,
       frequency_penalty: options.frequencyPenalty ?? 0,
       presence_penalty: options.presencePenalty ?? 0,
@@ -30,8 +30,16 @@ export class OpenAIProvider extends AIProvider {
       throw new Error('No response choices returned from OpenAI API')
     }
 
+    const messageContent = response.choices[0].message?.content
+    if (!messageContent) {
+      throw new Error('AI返回内容为空')
+    }
+
+    const finishReason = response.choices[0].finish_reason
+
     return {
-      content: response.choices[0].message.content,
+      content: messageContent,
+      truncated: finishReason === 'length',
       model: response.model,
       usage: {
         promptTokens: response.usage?.prompt_tokens ?? 0,

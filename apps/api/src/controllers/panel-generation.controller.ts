@@ -62,6 +62,22 @@ class PanelGenerationController {
         data: { imageUrl: response.url },
       })
 
+      await prisma.asset.create({
+        data: {
+          type: 'image',
+          url: response.url,
+          projectId: panel.shot.projectId,
+          metadata: {
+            name: `九宫格 - 第 ${panel.position} 格`,
+            prompt,
+            revisedPrompt: response.revisedPrompt,
+            panelId: id,
+            shotId: panel.shotId,
+            type: 'nine-grid-panel'
+          },
+        },
+      })
+
       res.json({
         imageUrl: response.url,
         revisedPrompt: response.revisedPrompt,
@@ -128,19 +144,34 @@ class PanelGenerationController {
           size: '1024x1024',
           quality: 'standard',
           style: 'vivid',
-        })
+        }).then(response => ({ response, panel, prompt }))
       })
 
       const results = await Promise.all(generatePromises)
 
-      const updatePromises = results.map((result: any, index: number) =>
+      const updateAndAssetPromises = results.map(({ response, panel, prompt }) => [
         prisma.nineGridPanel.update({
-          where: { id: panels[index].id },
-          data: { imageUrl: result.url },
+          where: { id: panel.id },
+          data: { imageUrl: response.url },
+        }),
+        prisma.asset.create({
+          data: {
+            type: 'image',
+            url: response.url,
+            projectId: shot.projectId,
+            metadata: {
+              name: `九宫格 - 第 ${panel.position} 格`,
+              prompt,
+              revisedPrompt: response.revisedPrompt,
+              panelId: panel.id,
+              shotId: shot.id,
+              type: 'nine-grid-panel'
+            },
+          },
         })
-      )
+      ]).flat()
 
-      await Promise.all(updatePromises)
+      await Promise.all(updateAndAssetPromises)
 
       const updatedPanels = await prisma.nineGridPanel.findMany({
         where: { shotId },

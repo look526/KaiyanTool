@@ -13,12 +13,14 @@ export class ZhipuProvider extends AIProvider {
 
   async chat(messages: AIChatMessage[], options: Partial<AIRequest> = {}): Promise<AIResponse> {
     const requestBody = {
-      model: options.model || 'glm-4',
+      model: options.model || 'glm-4.7',
       messages,
       temperature: options.temperature ?? 0.7,
       top_p: options.topP ?? 1,
-      max_tokens: options.maxTokens ?? 2000,
+      max_tokens: options.maxTokens ?? 4000,
     }
+
+    console.log('[DEBUG Zhipu] Request:', { model: requestBody.model, max_tokens: requestBody.max_tokens, messagesCount: messages.length });
 
     const response = await this.request('/chat/completions', {
       method: 'POST',
@@ -28,12 +30,32 @@ export class ZhipuProvider extends AIProvider {
       body: JSON.stringify(requestBody),
     })
 
+    console.log('[DEBUG Zhipu] Response:', JSON.stringify(response).substring(0, 500));
+
     if (!response.choices || response.choices.length === 0) {
       throw new Error('No response choices returned from Zhipu AI API')
     }
 
+    const message = response.choices[0]
+    const messageContent = message?.message?.content || message?.message?.reasoning_content
+    
+    if (!messageContent) {
+      logger.warn('Zhipu AI returned empty content', { response })
+      throw new Error('AI返回内容为空，请检查API响应格式')
+    }
+    
+    console.log('[DEBUG Zhipu] Content length:', messageContent?.length);
+    
+    if (message?.message?.reasoning_content && !message?.message?.content) {
+      console.warn('[DEBUG Zhipu] Warning: Using reasoning_content instead of final content. AI should return final JSON result, not reasoning process.');
+      throw new Error('AI返回的是推理过程而不是最终结果，请调整Prompt要求只返回JSON');
+    }
+
+    const finishReason = response.choices[0].finish_reason
+
     return {
-      content: response.choices[0].message.content,
+      content: messageContent,
+      truncated: finishReason === 'length',
       model: response.model,
       usage: {
         promptTokens: response.usage?.prompt_tokens ?? 0,

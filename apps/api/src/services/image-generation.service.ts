@@ -48,6 +48,7 @@ export async function generateImage(input: z.infer<typeof ImageGenerationSchema>
         type: 'image',
         url: result.url,
         metadata: {
+          name: `图片生成 - ${enhancedPrompt.substring(0, 30)}...`,
           width: validated.width,
           height: validated.height,
           taskId: task.id,
