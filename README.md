@@ -292,7 +292,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## ⭐ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=your-org/kaiyan-tool&type=Date)](https://star-history.com/#xiashao/KaiyanTool&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=xiashao/KaiyanTool&type=Date)](https://star-history.com/#xiashao/KaiyanTool&Date)
 
 ---
 
