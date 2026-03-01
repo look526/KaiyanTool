@@ -1,0 +1,62 @@
+export const ASSET_CATEGORIES = {
+  CHARACTER: 'character',
+  ITEM: 'item',
+  SCENE: 'scene',
+  PROP: 'prop',
+  EFFECT: 'effect',
+  BACKGROUND: 'background',
+  GENERAL: 'general',
+} as const;
+
+export type AssetCategory = typeof ASSET_CATEGORIES[keyof typeof ASSET_CATEGORIES];
+
+export const ASSET_SOURCES = {
+  UPLOAD: 'upload',
+  CHARACTER_GENERATION: 'character_generation',
+  ITEM_GENERATION: 'item_generation',
+  SCENE_GENERATION: 'scene_generation',
+  AI_GENERATION: 'ai_generation',
+  WARDROBE: 'wardrobe',
+  SHOT_GENERATION: 'shot_generation',
+} as const;
+
+export type AssetSource = typeof ASSET_SOURCES[keyof typeof ASSET_SOURCES];
+
+export const ASSET_CATEGORY_LABELS: Record<AssetCategory, string> = {
+  [ASSET_CATEGORIES.CHARACTER]: '角色图片',
+  [ASSET_CATEGORIES.ITEM]: '物品图片',
+  [ASSET_CATEGORIES.SCENE]: '场景图片',
+  [ASSET_CATEGORIES.PROP]: '道具图片',
+  [ASSET_CATEGORIES.EFFECT]: '特效图片',
+  [ASSET_CATEGORIES.BACKGROUND]: '背景图片',
+  [ASSET_CATEGORIES.GENERAL]: '通用素材',
+};
+
+export const ASSET_SOURCE_LABELS: Record<AssetSource, string> = {
+  [ASSET_SOURCES.UPLOAD]: '本地上传',
+  [ASSET_SOURCES.CHARACTER_GENERATION]: '生成角色',
+  [ASSET_SOURCES.ITEM_GENERATION]: '生成物品',
+  [ASSET_SOURCES.SCENE_GENERATION]: '生成场景',
+  [ASSET_SOURCES.AI_GENERATION]: 'AI生成',
+  [ASSET_SOURCES.WARDROBE]: '服装变体',
+  [ASSET_SOURCES.SHOT_GENERATION]: '镜头生成',
+};
+
+export const CATEGORY_FILTER_OPTIONS: Array<{ value: AssetCategory; label: string }> = [
+  { value: ASSET_CATEGORIES.CHARACTER, label: ASSET_CATEGORY_LABELS[ASSET_CATEGORIES.CHARACTER] },
+  { value: ASSET_CATEGORIES.ITEM, label: ASSET_CATEGORY_LABELS[ASSET_CATEGORIES.ITEM] },
+  { value: ASSET_CATEGORIES.SCENE, label: ASSET_CATEGORY_LABELS[ASSET_CATEGORIES.SCENE] },
+  { value: ASSET_CATEGORIES.PROP, label: ASSET_CATEGORY_LABELS[ASSET_CATEGORIES.PROP] },
+  { value: ASSET_CATEGORIES.EFFECT, label: ASSET_CATEGORY_LABELS[ASSET_CATEGORIES.EFFECT] },
+  { value: ASSET_CATEGORIES.BACKGROUND, label: ASSET_CATEGORY_LABELS[ASSET_CATEGORIES.BACKGROUND] },
+  { value: ASSET_CATEGORIES.GENERAL, label: ASSET_CATEGORY_LABELS[ASSET_CATEGORIES.GENERAL] },
+];
+
+export const TYPE_TO_CATEGORY_MAP: Record<string, AssetCategory> = {
+  character: ASSET_CATEGORIES.CHARACTER,
+  scene: ASSET_CATEGORIES.SCENE,
+  item: ASSET_CATEGORIES.ITEM,
+  prop: ASSET_CATEGORIES.PROP,
+  effect: ASSET_CATEGORIES.EFFECT,
+  background: ASSET_CATEGORIES.BACKGROUND,
+};

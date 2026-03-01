@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from 'express'
+import express, { Request, Response } from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import dotenv from 'dotenv'
@@ -45,14 +45,18 @@ import promptRoutes from './routes/prompt.routes'
 import projectSettingsRoutes from './routes/project-settings.routes'
 import chatHistoryRoutes from './routes/chat-history.routes'
 import itemRoutes from './routes/item.routes'
+import healthRoutes from './routes/health.routes'
 import assistantRoutes from './routes/assistant.routes'
+import adminRoutes from './routes/admin'
 import imageGenerationRoutes from './routes/image-generation.routes'
+import imageEnhancementRoutes from './routes/image-enhancement.routes'
 import contentProcessRoutes from './routes/content-process.routes'
 import logger, { requestLogger } from './lib/logger'
 import { initSentry, sentryRequestHandler, sentryErrorHandler, sentryTracingHandler } from './lib/sentry'
 import { getMetrics } from './lib/metrics'
 import { metricsMiddleware } from './middleware/metrics.middleware'
 import { setupOpenTelemetry } from './config/opentelemetry'
+import { errorMiddleware, notFoundHandler } from './middleware/error.middleware'
 
 setupOpenTelemetry()
 
@@ -78,9 +82,7 @@ app.use(sentryTracingHandler)
 app.use(requestLogger)
 app.use(metricsMiddleware)
 
-app.get('/health', (_req: Request, res: Response) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() })
-})
+app.use('/api/health', healthRoutes)
 
 app.get('/api/metrics', cors({
   origin: config.cors.origins,
@@ -142,21 +144,15 @@ app.use('/api/project-settings', projectSettingsRoutes)
 app.use('/api/chat-history', chatHistoryRoutes)
 app.use('/api', itemRoutes)
 app.use('/api/assistant', assistantRoutes)
+app.use('/api/admin', adminRoutes)
 app.use('/api/image-generation', imageGenerationRoutes)
+app.use('/api/image-enhancement', imageEnhancementRoutes)
 app.use('/api/content', contentProcessRoutes)
 app.use('/temp', express.static(path.join(process.cwd(), 'temp')))
 
 app.use(sentryErrorHandler)
-app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
-  logger.error({
-    message: err.message,
-    stack: err.stack,
-    url: req.url,
-    method: req.method,
-    userId: (req as any).userId || 'anonymous'
-  })
-  res.status(500).json({ error: 'Something went wrong!' })
-})
+app.use(notFoundHandler)
+app.use(errorMiddleware)
 
 app.listen(PORT, '0.0.0.0', () => {
   logger.info(`Server is running on port ${PORT}`)

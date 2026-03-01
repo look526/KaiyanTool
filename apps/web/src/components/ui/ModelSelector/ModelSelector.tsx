@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { ChevronDown, Search, Star, Clock, AlertCircle, Loader2, Zap, Settings, Check } from 'lucide-react'
-import { apiClient } from '../../../lib/api-client'
+import { apiClient } from '../../../lib/api'
 import { cacheUtils } from '../../../lib/modelCache'
 
 export type ContentType = 'text' | 'image' | 'video' | 'audio' | 'script' | 'novel' | 'storyline' | 'outline'
@@ -84,15 +84,24 @@ export function ModelSelector({
       
       const providers = await apiClient.getAIProviders()
       
+      console.log('[ModelSelector] All providers:', providers)
+      console.log('[ModelSelector] ContentType:', contentType)
+      
       const enabledProviders = providers.providers.filter(p => p.enabled)
       
+      console.log('[ModelSelector] Enabled providers:', enabledProviders)
+      
       const allModels = enabledProviders
-        .flatMap(provider => 
-          (provider.models || []).filter(m => {
+        .flatMap(provider => {
+          console.log('[ModelSelector] Provider models:', provider.id, provider.type, provider.models)
+          return (provider.models || []).filter(m => {
             const hasScript = m.types?.includes(contentType)
+            console.log('[ModelSelector] Model filter:', m.name, m.types, 'includes', contentType, '=', hasScript)
             return hasScript
           })
-        )
+        })
+      
+      console.log('[ModelSelector] Filtered models for', contentType, ':', allModels)
       
       const modelsByType: Record<string, typeof models> = {}
       providers.providers
@@ -208,10 +217,12 @@ export function ModelSelector({
 
   const handleSetDefault = async (modelId: string) => {
     try {
-      await apiClient.setDefaultModels({
+      const configurations = Object.entries({
         ...defaultModels,
         [contentType]: modelId
-      })
+      }).map(([type, modelId]) => ({ type, modelId }));
+      
+      await apiClient.setDefaultModels(configurations);
       setDefaultModels(prev => ({ ...prev, [contentType]: modelId }))
     } catch (error) {
       console.error('Failed to set default model:', error)

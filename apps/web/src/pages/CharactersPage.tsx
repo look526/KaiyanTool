@@ -663,25 +663,6 @@ export default function CharactersPage() {
                       {character.appearance}
                     </p>
 
-                    {character.referenceImages && character.referenceImages.length > 1 && (
-                      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto' }}>
-                        {character.referenceImages.slice(1, 4).map((img, idx) => (
-                          <img
-                            key={idx}
-                            src={img}
-                            alt={`参考图 ${idx + 1}`}
-                            style={{
-                              width: '48px',
-                              height: '48px',
-                              borderRadius: '10px',
-                              objectFit: 'cover',
-                              flexShrink: 0,
-                            }}
-                          />
-                        ))}
-                      </div>
-                    )}
-
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -1202,12 +1183,12 @@ export default function CharactersPage() {
                 >
                   <User style={{ width: '32px', height: '32px', margin: '0 auto 12px', color: 'var(--text-muted)' }} />
                   <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '0 0 4px 0' }}>点击上传参考图片</p>
-                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>支持 JPG、PNG、WebP 格式</p>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>支持 JPG、PNG、WebP、GIF 格式</p>
                 </div>
                 <input
                   id="wardrobe-image-input"
                   type="file"
-                  accept="image/jpeg,image/png,image/webp"
+                  accept="image/*"
                   style={{ display: 'none' }}
                   onChange={async (e) => {
                     const file = e.target.files?.[0];

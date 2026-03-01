@@ -30,8 +30,8 @@ import {
 interface Project {
   id: string;
   name: string;
-  type: string;
-  status: string;
+  type?: string;
+  status?: string;
 }
 
 const DOCUMENT_TYPES: Record<string, { icon: React.ElementType; color: string; bgColor: string; label: string; description: string }> = {

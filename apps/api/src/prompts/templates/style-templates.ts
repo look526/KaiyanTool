@@ -31,10 +31,10 @@ export const STYLE_TEMPLATES: Record<string, PromptStyle> = {
   },
   cinematic: {
     name: '电影质感',
-    keywords: ['cinematic', 'movie quality', 'professional lighting', 'dramatic composition'],
-    qualityModifiers: ['masterpiece', 'best quality', 'extremely detailed CG', 'perfect lighting', '8k wallpaper', 'cinema4d', 'octane render'],
-    lighting: ['cinematic lighting', 'dramatic shadows', 'professional color grading'],
-    negative: ['nsfw', 'lowres', 'bad anatomy', 'bad hands', 'text', 'watermark', 'artist name']
+    keywords: ['cinematic', 'movie quality', 'professional lighting', 'dramatic composition', 'hyper realistic', 'portrait photography'],
+    qualityModifiers: ['masterpiece', 'best quality', 'extremely detailed CG', 'perfect lighting', '8k wallpaper', 'cinema4d', 'octane render', 'realistic skin texture', 'detailed pores', 'skin details', ' subsurface scattering', 'high detail face', 'detailed eyes'],
+    lighting: ['cinematic lighting', 'dramatic shadows', 'professional color grading', 'natural light', 'soft light', 'rim lighting'],
+    negative: ['nsfw', 'lowres', 'bad anatomy', 'bad hands', 'text', 'watermark', 'artist name', 'cartoon', 'anime', 'deformed', 'blurry']
   },
   three_view_character: {
     name: '三视图角色设计',

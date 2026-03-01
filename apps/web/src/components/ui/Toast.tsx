@@ -21,23 +21,23 @@ const toastIcons: Record<ToastType, React.ReactNode> = {
 
 const toastColors: Record<ToastType, { bg: string; color: string; border: string }> = {
   success: {
-    bg: 'rgba(52, 199, 89, 0.1)',
-    color: 'var(--color-success)',
+    bg: 'rgba(52, 199, 89, 0.15)',
+    color: '#34C759',
     border: 'rgba(52, 199, 89, 0.3)',
   },
   error: {
-    bg: 'rgba(255, 59, 48, 0.1)',
-    color: 'var(--color-error)',
+    bg: 'rgba(255, 59, 48, 0.15)',
+    color: '#FF3B30',
     border: 'rgba(255, 59, 48, 0.3)',
   },
   warning: {
-    bg: 'rgba(255, 149, 0, 0.1)',
-    color: 'var(--color-warning)',
+    bg: 'rgba(255, 149, 0, 0.15)',
+    color: '#FF9500',
     border: 'rgba(255, 149, 0, 0.3)',
   },
   info: {
-    bg: 'rgba(0, 122, 255, 0.1)',
-    color: 'var(--color-info)',
+    bg: 'rgba(0, 122, 255, 0.15)',
+    color: '#007AFF',
     border: 'rgba(0, 122, 255, 0.3)',
   },
 };
@@ -59,23 +59,23 @@ export function Toast({ id, type, title, message, duration = 5000, onClose }: To
       style={{
         display: 'flex',
         alignItems: 'flex-start',
-        gap: 'var(--spacing-3)',
-        padding: 'var(--spacing-4)',
-        backgroundColor: 'var(--bg-elevated)',
-        borderRadius: 'var(--radius-xl)',
-        boxShadow: 'var(--shadow-lg)',
-        border: `1px solid var(--border-primary)`,
+        gap: '12px',
+        padding: '16px',
+        backgroundColor: '#FFFFFF',
+        borderRadius: '12px',
+        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
+        border: '1px solid #E5E5EA',
         borderLeftWidth: '4px',
         borderLeftColor: colors.color,
         minWidth: '320px',
         maxWidth: '420px',
-        animation: 'slideInRight 0.3s var(--ease-out) forwards',
+        animation: 'slideInRight 0.3s ease-out forwards',
       }}
     >
       <div
         style={{
-          padding: 'var(--spacing-2)',
-          borderRadius: 'var(--radius-md)',
+          padding: '8px',
+          borderRadius: '8px',
           backgroundColor: colors.bg,
           color: colors.color,
         }}
@@ -85,9 +85,9 @@ export function Toast({ id, type, title, message, duration = 5000, onClose }: To
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
-            fontSize: 'var(--font-size-sm)',
+            fontSize: '14px',
             fontWeight: 600,
-            color: 'var(--text-primary)',
+            color: '#1C1C1E',
           }}
         >
           {title}
@@ -95,9 +95,9 @@ export function Toast({ id, type, title, message, duration = 5000, onClose }: To
         {message && (
           <div
             style={{
-              fontSize: 'var(--font-size-sm)',
-              color: 'var(--text-secondary)',
-              marginTop: 'var(--spacing-1)',
+              fontSize: '14px',
+              color: '#8E8E93',
+              marginTop: '4px',
             }}
           >
             {message}
@@ -107,25 +107,37 @@ export function Toast({ id, type, title, message, duration = 5000, onClose }: To
       <button
         onClick={() => onClose(id)}
         style={{
-          padding: 'var(--spacing-1)',
-          borderRadius: 'var(--radius-sm)',
+          padding: '4px',
+          borderRadius: '6px',
           border: 'none',
           background: 'transparent',
-          color: 'var(--text-tertiary)',
+          color: '#8E8E93',
           cursor: 'pointer',
           transition: 'all 0.2s ease',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'var(--bg-secondary)';
-          e.currentTarget.style.color = 'var(--text-primary)';
+          (e.currentTarget as HTMLElement).style.background = '#F2F2F7';
+          (e.currentTarget as HTMLElement).style.color = '#1C1C1E';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'transparent';
-          e.currentTarget.style.color = 'var(--text-tertiary)';
+          (e.currentTarget as HTMLElement).style.background = 'transparent';
+          (e.currentTarget as HTMLElement).style.color = '#8E8E93';
         }}
       >
         <X size={16} />
       </button>
+      <style>{`
+        @keyframes slideInRight {
+          from {
+            opacity: 0;
+            transform: translateX(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }
@@ -139,23 +151,23 @@ export interface ToastContainerProps {
 export function ToastContainer({
   toasts,
   onClose,
-  position = 'top-right',
+  position = 'bottom-right',
 }: ToastContainerProps) {
   const positionStyles: Record<string, React.CSSProperties> = {
-    'top-right': { top: 'var(--spacing-4)', right: 'var(--spacing-4)' },
-    'top-left': { top: 'var(--spacing-4)', left: 'var(--spacing-4)' },
-    'bottom-right': { bottom: 'var(--spacing-4)', right: 'var(--spacing-4)' },
-    'bottom-left': { bottom: 'var(--spacing-4)', left: 'var(--spacing-4)' },
+    'top-right': { top: '20px', right: '20px' },
+    'top-left': { top: '20px', left: '20px' },
+    'bottom-right': { bottom: '20px', right: '20px' },
+    'bottom-left': { bottom: '20px', left: '20px' },
   };
 
   return (
     <div
       style={{
         position: 'fixed',
-        zIndex: 'var(--z-toast)',
+        zIndex: 9999,
         display: 'flex',
         flexDirection: 'column',
-        gap: 'var(--spacing-3)',
+        gap: '12px',
         ...positionStyles[position],
       }}
     >
@@ -187,7 +199,7 @@ export interface ToastProviderProps {
   position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
 }
 
-export function ToastProvider({ children, position = 'top-right' }: ToastProviderProps) {
+export function ToastProvider({ children, position = 'bottom-right' }: ToastProviderProps) {
   const [toasts, setToasts] = React.useState<Array<Omit<ToastProps, 'onClose'>>>([]);
 
   const addToast = React.useCallback((toast: Omit<ToastProps, 'id' | 'onClose'>) => {

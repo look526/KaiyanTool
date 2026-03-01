@@ -95,7 +95,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/*"
         onChange={handleFileSelect}
         style={{ display: 'none' }}
         disabled={disabled || uploading}

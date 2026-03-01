@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Search, X, Check, Sparkles, RotateCcw, ArrowRight, Filter } from 'lucide-react';
+import { X, Check, Sparkles, RotateCcw, ArrowRight, ChevronDown } from 'lucide-react';
 
 interface Scene {
   id: number;
-  original: string;
-  location: string;
-  time: string;
-  content: string;
   heading: string;
+  content: string;
+  originalContent: string;
 }
 
 interface OptimizationDirection {
@@ -20,8 +18,8 @@ interface OptimizationDirection {
 interface SceneOptimizerProps {
   isOpen: boolean;
   onClose: () => void;
-  scenes: Scene[];
-  onApplyOptimization: (sceneId: number, optimizedContent: string) => void;
+  scriptContent: string;
+  onApplyOptimization: (optimizedContent: string) => void;
 }
 
 const OPTIMIZATION_DIRECTIONS: OptimizationDirection[] = [
@@ -33,60 +31,92 @@ const OPTIMIZATION_DIRECTIONS: OptimizationDirection[] = [
   { id: 'emotional', label: '情感深化', description: '增加情感层次', icon: '❤️' },
 ];
 
-export function SceneOptimizer({ isOpen, onClose, scenes, onApplyOptimization }: SceneOptimizerProps) {
-  const [step, setStep] = useState<'select' | 'configure' | 'processing' | 'result'>('select');
-  const [selectedScenes, setSelectedScenes] = useState<Set<number>>(new Set());
+export function SceneOptimizer({ isOpen, onClose, scriptContent, onApplyOptimization }: SceneOptimizerProps) {
+  const [step, setStep] = useState<'list' | 'configure' | 'processing' | 'result'>('list');
+  const [scenes, setScenes] = useState<Scene[]>([]);
+  const [selectedSceneIds, setSelectedSceneIds] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
   const [selectedDirections, setSelectedDirections] = useState<string[]>([]);
   const [customPrompt, setCustomPrompt] = useState('');
-  const [selectedModel, setSelectedModel] = useState('');
 
-  const [optimizationResult, setOptimizationResult] = useState<{ sceneId: number; original: string; optimized: string } | null>(null);
+  const [optimizationResult, setOptimizationResult] = useState<Record<number, string> | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizationProgress, setOptimizationProgress] = useState(0);
+  const [expandedScenes, setExpandedScenes] = useState<Set<number>>(new Set());
 
-  const filteredScenes = scenes.filter(scene => {
-    const query = searchQuery.toLowerCase();
-    return scene.location.toLowerCase().includes(query) ||
-           scene.content.toLowerCase().includes(query) ||
-           scene.heading.toLowerCase().includes(query);
-  });
-
-  const totalPages = Math.ceil(filteredScenes.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentScenes = filteredScenes.slice(startIndex, endIndex);
+  useEffect(() => {
+    if (isOpen && scriptContent) {
+      parseScriptIntoScenes(scriptContent);
+    }
+  }, [isOpen, scriptContent]);
 
   useEffect(() => {
     if (!isOpen) {
-      setStep('select');
-      setSelectedScenes(new Set());
+      setStep('list');
+      setSelectedSceneIds(new Set());
       setSearchQuery('');
       setCurrentPage(1);
       setSelectedDirections([]);
       setCustomPrompt('');
       setOptimizationResult(null);
+      setExpandedScenes(new Set());
     }
   }, [isOpen]);
 
+  const parseScriptIntoScenes = (content: string) => {
+    const sceneRegex = /(?:^|\n)\s*场景\s*(\d+)\s*[:：\-]?\s*([^\n]*)/g;
+    const matches = Array.from(content.matchAll(sceneRegex));
+    
+    if (matches.length === 0) {
+      setScenes([{
+        id: 1,
+        heading: '整篇剧本',
+        content: content,
+        originalContent: content,
+      }]);
+      return;
+    }
+
+    const parsedScenes: Scene[] = [];
+    for (let i = 0; i < matches.length; i++) {
+      const match = matches[i];
+      const sceneNumber = parseInt(match[1]);
+      const sceneHeading = match[2].trim() || `场景 ${sceneNumber}`;
+      
+      const startIdx = match.index!;
+      const endIdx = i < matches.length - 1 ? matches[i + 1].index! : content.length;
+      
+      const sceneContent = content.slice(startIdx, endIdx).trim();
+      
+      parsedScenes.push({
+        id: sceneNumber,
+        heading: sceneHeading,
+        content: sceneContent,
+        originalContent: sceneContent,
+      });
+    }
+
+    setScenes(parsedScenes);
+  };
+
   const handleSceneToggle = (sceneId: number) => {
-    const newSelected = new Set(selectedScenes);
+    const newSelected = new Set(selectedSceneIds);
     if (newSelected.has(sceneId)) {
       newSelected.delete(sceneId);
     } else {
       newSelected.add(sceneId);
     }
-    setSelectedScenes(newSelected);
+    setSelectedSceneIds(newSelected);
   };
 
   const handleSelectAll = () => {
-    if (selectedScenes.size === currentScenes.length) {
-      setSelectedScenes(new Set());
+    if (selectedSceneIds.size === currentScenes.length) {
+      setSelectedSceneIds(new Set());
     } else {
-      setSelectedScenes(new Set(currentScenes.map(s => s.id)));
+      setSelectedSceneIds(new Set(currentScenes.map(s => s.id)));
     }
   };
 
@@ -97,8 +127,29 @@ export function SceneOptimizer({ isOpen, onClose, scenes, onApplyOptimization }:
     setSelectedDirections(newSelected);
   };
 
+  const handleSceneExpand = (sceneId: number) => {
+    const newExpanded = new Set(expandedScenes);
+    if (newExpanded.has(sceneId)) {
+      newExpanded.delete(sceneId);
+    } else {
+      newExpanded.add(sceneId);
+    }
+    setExpandedScenes(newExpanded);
+  };
+
+  const filteredScenes = scenes.filter(scene => {
+    const query = searchQuery.toLowerCase();
+    return scene.heading.toLowerCase().includes(query) ||
+           scene.content.toLowerCase().includes(query);
+  });
+
+  const totalPages = Math.ceil(filteredScenes.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentScenes = filteredScenes.slice(startIndex, endIndex);
+
   const handleContinueToConfigure = () => {
-    if (selectedScenes.size === 0) return;
+    if (selectedSceneIds.size === 0) return;
     setStep('configure');
   };
 
@@ -112,107 +163,71 @@ export function SceneOptimizer({ isOpen, onClose, scenes, onApplyOptimization }:
     setIsOptimizing(true);
     setOptimizationProgress(0);
 
-    const sceneIds = Array.from(selectedScenes);
-    
-    for (let i = 0; i < sceneIds.length; i++) {
-      const sceneId = sceneIds[i];
-      const scene = scenes.find(s => s.id === sceneId);
-      if (!scene) continue;
+    try {
+      const results: Record<number, string> = {};
+      let processedCount = 0;
+      const totalToProcess = selectedSceneIds.size;
 
-      setOptimizationProgress(Math.round(((i + 1) / sceneIds.length * 100)));
+      for (const sceneId of selectedSceneIds) {
+        const scene = scenes.find(s => s.id === sceneId);
+        if (!scene) continue;
 
-      try {
-        const optimizedContent = await optimizeScene(scene, selectedDirections, customPrompt);
-        
-        setOptimizationResult({
-          sceneId,
-          original: scene.content,
-          optimized: optimizedContent
+        const directionText = selectedDirections.length > 0
+          ? OPTIMIZATION_DIRECTIONS
+              .filter(d => selectedDirections.includes(d.id))
+              .map(d => `${d.label}（${d.description}）`)
+              .join('、')
+          : '';
+
+        const prompt = customPrompt.trim()
+          ? customPrompt.trim()
+          : `请按照以下方向优化以下场景内容：${directionText}\n\n场景内容：\n${scene.content}`;
+
+        const response = await fetch('/api/optimize-scene', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sceneContent: scene.content, prompt }),
         });
-        
-        setStep('result');
-        break;
-      } catch (error) {
-        console.error('优化场景失败:', error);
-        alert(`优化场景 ${sceneId} 失败: ${error instanceof Error ? error.message : '未知错误'}`);
+
+        if (!response.ok) throw new Error('优化失败');
+
+        const data = await response.json();
+        results[sceneId] = data.optimizedContent;
+
+        processedCount++;
+        setOptimizationProgress(Math.round((processedCount / totalToProcess) * 100));
+      }
+
+      setOptimizationResult(results);
+      setStep('result');
+    } catch (error) {
+      console.error('场景优化失败:', error);
+      alert('场景优化失败，请重试');
+      setStep('list');
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  const handleApplyAll = () => {
+    if (!optimizationResult) return;
+
+    let optimizedContent = scriptContent;
+    for (const [sceneId, optimized] of Object.entries(optimizationResult)) {
+      const scene = scenes.find(s => s.id === parseInt(sceneId));
+      if (scene) {
+        optimizedContent = optimizedContent.replace(scene.originalContent, optimized);
       }
     }
 
-    setIsOptimizing(false);
+    onApplyOptimization(optimizedContent);
+    onClose();
   };
 
-  const optimizeScene = async (scene: Scene, directions: string[], customPrompt: string): Promise<string> => {
-    const directionLabels = directions
-      .map(d => OPTIMIZATION_DIRECTIONS.find(opt => opt.id === d)?.label)
-      .filter(Boolean)
-      .join('、');
-
-    const prompt = `请优化以下剧本场景内容：
-
-【场景信息】
-场景标题：${scene.heading}
-地点：${scene.location}
-时间：${scene.time}
-
-【优化方向】
-${directionLabels ? `预设方向：${directionLabels}` : ''}
-${customPrompt ? `自定义要求：${customPrompt}` : ''}
-
-【原始场景内容】
-${scene.content}
-
-【优化要求】
-1. 保持原有剧情和人物设定不变
-2. 根据优化方向进行针对性改进
-3. 保持剧本格式规范
-4. 确保内容连贯自然
-
-请直接输出优化后的场景内容，不需要任何额外说明。`;
-
-    const response = await fetch('/api/ai/optimize', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompt,
-        model: selectedModel || undefined,
-      }),
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      throw new Error('优化请求失败');
-    }
-
-    const result = await response.json();
-    return result.content || scene.content;
-  };
-
-  const handleContinueOptimization = () => {
-    setStep('configure');
-    setOptimizationProgress(0);
-  };
-
-  const handleApplyOptimization = () => {
-    if (optimizationResult) {
-      onApplyOptimization(optimizationResult.sceneId, optimizationResult.optimized);
-      setOptimizationResult(null);
-      
-      const remainingScenes = selectedScenes;
-      if (remainingScenes.size > 1) {
-        const newSelected = new Set(remainingScenes);
-        newSelected.delete(optimizationResult.sceneId);
-        setSelectedScenes(newSelected);
-        if (newSelected.size > 0) {
-          setStep('configure');
-        } else {
-          onClose();
-        }
-      } else {
-        onClose();
-      }
-    }
+  const handleResetScene = (sceneId: number) => {
+    const newResults = { ...optimizationResult };
+    delete newResults[sceneId];
+    setOptimizationResult(newResults);
   };
 
   if (!isOpen) return null;
@@ -220,76 +235,83 @@ ${scene.content}
   return (
     <div style={{
       position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0, 0, 0, 0.7)',
+      inset: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backdropFilter: 'blur(4px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 1000,
-      backdropFilter: 'blur(4px)',
-    }}>
-      <div style={{
-        background: 'var(--bg-card)',
-        borderRadius: '16px',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-        maxWidth: '900px',
-        width: '90%',
-        maxHeight: '90vh',
-        display: 'flex',
-        flexDirection: 'column',
-        border: '1px solid var(--border-primary)',
-      }}>
-        {step === 'select' && (
-          <>
-            <div style={{
-              padding: '24px',
-              borderBottom: '1px solid var(--border-primary)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                  选择要优化的场景
-                </h2>
-                <p style={{ margin: '6px 0 0 0', fontSize: '14px', color: 'var(--text-muted)' }}>
-                  共 {scenes.length} 个场景，已选择 {selectedScenes.size} 个
-                </p>
-              </div>
-              <button
-                onClick={onClose}
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: 'var(--bg-hover)',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <X style={{ width: '20px', height: '20px' }} />
-              </button>
-            </div>
+      padding: '20px',
+    }} onClick={onClose}>
+      <div
+        style={{
+          backgroundColor: 'var(--bg-primary)',
+          borderRadius: '12px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          width: '100%',
+          maxWidth: '900px',
+          maxHeight: '90vh',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '20px 24px',
+          borderBottom: '1px solid var(--border-color)',
+        }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)' }}>
+              {step === 'list' && '场景优化'}
+              {step === 'configure' && '配置优化参数'}
+              {step === 'processing' && '正在优化...'}
+              {step === 'result' && '优化结果'}
+            </h2>
+            <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+              {step === 'list' && `共 ${scenes.length} 个场景，已选择 ${selectedSceneIds.size} 个`}
+              {step === 'configure' && '选择优化方向或输入自定义提示词'}
+              {step === 'processing' && '正在使用AI优化场景内容...'}
+              {step === 'result' && '查看并应用优化结果'}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '8px',
+              borderRadius: '8px',
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+              transition: 'background 0.2s',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >
+            <X size={20} />
+          </button>
+        </div>
 
-            <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-primary)' }}>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <div style={{ flex: 1, position: 'relative' }}>
-                  <Search style={{
-                    position: 'absolute',
-                    left: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: '18px',
-                    height: '18px',
-                    color: 'var(--text-muted)',
-                  }} />
+        <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '24px',
+        }}>
+          {step === 'list' && (
+            <>
+              <div style={{
+                display: 'flex',
+                gap: '12px',
+                marginBottom: '16px',
+              }}>
+                <div style={{
+                  flex: 1,
+                  position: 'relative',
+                }}>
                   <input
                     type="text"
                     placeholder="搜索场景..."
@@ -297,12 +319,12 @@ ${scene.content}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '10px 12px 10px 42px',
+                      padding: '10px 12px',
+                      fontSize: '14px',
+                      border: '1px solid var(--border-color)',
                       borderRadius: '8px',
-                      border: '1px solid var(--border-primary)',
                       background: 'var(--bg-input)',
                       color: 'var(--text-primary)',
-                      fontSize: '14px',
                       outline: 'none',
                     }}
                   />
@@ -312,570 +334,524 @@ ${scene.content}
                   style={{
                     padding: '10px 16px',
                     borderRadius: '8px',
-                    border: '1px solid var(--border-primary)',
-                    background: selectedScenes.size === currentScenes.length ? 'var(--bg-primary)' : 'var(--bg-hover)',
-                    color: selectedScenes.size === currentScenes.length ? '#fff' : 'var(--text-primary)',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer',
                     fontSize: '14px',
                     fontWeight: '500',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
                   }}
                 >
-                  {selectedScenes.size === currentScenes.length ? '取消全选' : '全选'}
+                  {selectedSceneIds.size === currentScenes.length ? '取消全选' : '全选'}
                 </button>
               </div>
-            </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px' }}>
-              {currentScenes.length === 0 ? (
-                <div style={{
-                  textAlign: 'center',
-                  padding: '40px',
-                  color: 'var(--text-muted)',
-                  fontSize: '14px',
-                }}>
-                  没有找到匹配的场景
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {currentScenes.map((scene) => (
-                    <div
-                      key={scene.id}
-                      onClick={() => handleSceneToggle(scene.id)}
-                      style={{
-                        padding: '16px',
-                        borderRadius: '12px',
-                        border: `2px solid ${selectedScenes.has(scene.id) ? '#6366f1' : 'var(--border-primary)'}`,
-                        background: selectedScenes.has(scene.id) ? 'rgba(99, 102, 241, 0.05)' : 'var(--bg-hover)',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!selectedScenes.has(scene.id)) {
-                          e.currentTarget.style.borderColor = '#6366f1';
-                          e.currentTarget.style.transform = 'translateX(4px)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!selectedScenes.has(scene.id)) {
-                          e.currentTarget.style.borderColor = 'var(--border-primary)';
-                          e.currentTarget.style.transform = 'translateX(0)';
-                        }
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+              }}>
+                {currentScenes.map((scene) => (
+                  <div
+                    key={scene.id}
+                    style={{
+                      border: selectedSceneIds.has(scene.id) ? '2px solid #10b981' : '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      padding: '16px',
+                      background: selectedSceneIds.has(scene.id) ? 'rgba(16, 185, 129, 0.05)' : 'var(--bg-secondary)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    onClick={() => handleSceneToggle(scene.id)}
+                  >
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '12px',
+                    }}>
+                      <div style={{ marginTop: '2px' }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedSceneIds.has(scene.id)}
+                          onChange={() => handleSceneToggle(scene.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            width: '18px',
+                            height: '18px',
+                            cursor: 'pointer',
+                          }}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
                         <div style={{
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '6px',
-                          border: `2px solid ${selectedScenes.has(scene.id) ? '#6366f1' : 'var(--border-primary)'}`,
-                          background: selectedScenes.has(scene.id) ? '#6366f1' : 'transparent',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
+                          justifyContent: 'space-between',
+                          marginBottom: '8px',
                         }}>
-                          {selectedScenes.has(scene.id) && <Check style={{ width: '16px', height: '16px', color: '#fff' }} />}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                            <span style={{
-                              fontSize: '15px',
-                              fontWeight: '600',
-                              color: 'var(--text-primary)',
-                            }}>
-                              {scene.heading}
-                            </span>
-                            <span style={{
-                              fontSize: '12px',
-                              padding: '2px 8px',
-                              borderRadius: '4px',
-                              background: 'var(--bg-input)',
-                              color: 'var(--text-muted)',
-                            }}>
-                              {scene.time}
-                            </span>
-                          </div>
-                          <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                            📍 {scene.location}
-                          </div>
-                          <div style={{
-                            fontSize: '13px',
+                          <h3 style={{
+                            margin: 0,
+                            fontSize: '15px',
+                            fontWeight: '600',
                             color: 'var(--text-primary)',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
                           }}>
-                            {scene.content.slice(0, 150)}...
-                          </div>
+                            {scene.heading}
+                          </h3>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSceneExpand(scene.id);
+                            }}
+                            style={{
+                              padding: '4px',
+                              border: 'none',
+                              background: 'transparent',
+                              cursor: 'pointer',
+                              color: 'var(--text-muted)',
+                            }}
+                          >
+                            <ChevronDown
+                              size={16}
+                              style={{
+                                transform: expandedScenes.has(scene.id) ? 'rotate(180deg)' : 'rotate(0deg)',
+                                transition: 'transform 0.2s',
+                              }}
+                            />
+                          </button>
                         </div>
+                        {expandedScenes.has(scene.id) && (
+                          <p style={{
+                            margin: 0,
+                            fontSize: '13px',
+                            color: 'var(--text-secondary)',
+                            lineHeight: '1.6',
+                            whiteSpace: 'pre-wrap',
+                            maxHeight: '300px',
+                            overflowY: 'auto',
+                            background: 'var(--bg-input)',
+                            padding: '12px',
+                            borderRadius: '6px',
+                          }}>
+                            {scene.content}
+                          </p>
+                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div style={{
-              padding: '16px 24px',
-              borderTop: '1px solid var(--border-primary)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                第 {currentPage} / {totalPages} 页
+                  </div>
+                ))}
               </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-primary)',
-                    background: currentPage === 1 ? 'var(--bg-hover)' : 'var(--bg-card)',
-                    color: 'var(--text-muted)',
-                    fontSize: '14px',
-                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                    opacity: currentPage === 1 ? 0.5 : 1,
-                  }}
-                >
-                  上一页
-                </button>
-                <button
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-primary)',
-                    background: currentPage === totalPages ? 'var(--bg-hover)' : 'var(--bg-card)',
-                    color: 'var(--text-muted)',
-                    fontSize: '14px',
-                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                    opacity: currentPage === totalPages ? 0.5 : 1,
-                  }}
-                >
-                  下一页
-                </button>
-              </div>
-            </div>
 
-            <div style={{
-              padding: '16px 24px',
-              borderTop: '1px solid var(--border-primary)',
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '12px',
-            }}>
-              <button
-                onClick={onClose}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-primary)',
-                  background: 'var(--bg-hover)',
-                  color: 'var(--text-primary)',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                }}
-              >
-                取消
-              </button>
-              <button
-                onClick={handleContinueToConfigure}
-                disabled={selectedScenes.size === 0}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: selectedScenes.size === 0 ? 'var(--bg-hover)' : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                  color: '#fff',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: selectedScenes.size === 0 ? 'not-allowed' : 'pointer',
-                  opacity: selectedScenes.size === 0 ? 0.5 : 1,
-                }}
-              >
-                下一步 ({selectedScenes.size})
-              </button>
-            </div>
-          </>
-        )}
-
-        {step === 'configure' && (
-          <>
-            <div style={{
-              padding: '24px',
-              borderBottom: '1px solid var(--border-primary)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                  配置优化选项
-                </h2>
-                <p style={{ margin: '6px 0 0 0', fontSize: '14px', color: 'var(--text-muted)' }}>
-                  已选择 {selectedScenes.size} 个场景进行优化
-                </p>
-              </div>
-              <button
-                onClick={onClose}
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: 'var(--bg-hover)',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
+              {totalPages > 1 && (
+                <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                }}
-              >
-                <X style={{ width: '20px', height: '20px' }} />
-              </button>
-            </div>
+                  gap: '12px',
+                  marginTop: '16px',
+                }}>
+                  <button
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-input)',
+                      color: currentPage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+                      cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                      fontSize: '13px',
+                    }}
+                  >
+                    上一页
+                  </button>
+                  <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
+                    {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-input)',
+                      color: currentPage === totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
+                      cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                      fontSize: '13px',
+                    }}
+                  >
+                    下一页
+                  </button>
+                </div>
+              )}
+            </>
+          )}
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-              <div style={{ marginBottom: '24px' }}>
-                <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)' }}>
+          {step === 'configure' && (
+            <>
+              <div style={{ marginBottom: '20px' }}>
+                <h3 style={{
+                  margin: '0 0 12px 0',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: 'var(--text-primary)',
+                }}>
                   选择优化方向
                 </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                  gap: '12px',
+                }}>
                   {OPTIMIZATION_DIRECTIONS.map((direction) => (
-                    <button
+                    <div
                       key={direction.id}
                       onClick={() => handleDirectionToggle(direction.id)}
                       style={{
                         padding: '16px',
-                        borderRadius: '12px',
-                        border: `2px solid ${selectedDirections.includes(direction.id) ? '#6366f1' : 'var(--border-primary)'}`,
-                        background: selectedDirections.includes(direction.id) ? 'rgba(99, 102, 241, 0.05)' : 'var(--bg-hover)',
+                        borderRadius: '8px',
+                        border: selectedDirections.includes(direction.id) ? '2px solid #10b981' : '1px solid var(--border-color)',
+                        background: selectedDirections.includes(direction.id) ? 'rgba(16, 185, 129, 0.05)' : 'var(--bg-secondary)',
                         cursor: 'pointer',
-                        textAlign: 'left',
-                        transition: 'all 0.2s ease',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!selectedDirections.includes(direction.id)) {
-                          e.currentTarget.style.borderColor = '#6366f1';
-                          e.currentTarget.style.transform = 'translateY(-2px)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!selectedDirections.includes(direction.id)) {
-                          e.currentTarget.style.borderColor = 'var(--border-primary)';
-                          e.currentTarget.style.transform = 'translateY(0)';
-                        }
+                        transition: 'all 0.2s',
                       }}
                     >
                       <div style={{ fontSize: '24px', marginBottom: '8px' }}>
                         {direction.icon}
                       </div>
-                      <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                      <h4 style={{
+                        margin: '0 0 4px 0',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: 'var(--text-primary)',
+                      }}>
                         {direction.label}
-                      </div>
-                      <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                      </h4>
+                      <p style={{
+                        margin: 0,
+                        fontSize: '12px',
+                        color: 'var(--text-muted)',
+                      }}>
                         {direction.description}
-                      </div>
-                      {selectedDirections.includes(direction.id) && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '8px',
-                          right: '8px',
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          background: '#6366f1',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}>
-                          <Check style={{ width: '14px', height: '14px', color: '#fff' }} />
-                        </div>
-                      )}
-                    </button>
+                      </p>
+                    </div>
                   ))}
                 </div>
               </div>
 
               <div>
-                <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                  自定义优化提示
+                <h3 style={{
+                  margin: '0 0 12px 0',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: 'var(--text-primary)',
+                }}>
+                  自定义提示词（可选）
                 </h3>
                 <textarea
                   value={customPrompt}
                   onChange={(e) => setCustomPrompt(e.target.value)}
-                  placeholder="输入自定义的优化要求，例如：增加更多环境细节描写、强化角色互动、调整对话节奏等..."
+                  placeholder="输入自定义的优化提示词，例如：让对话更加幽默风趣，增加角色之间的互动..."
+                  rows={6}
                   style={{
                     width: '100%',
-                    minHeight: '120px',
                     padding: '12px',
+                    fontSize: '14px',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '8px',
-                    border: '1px solid var(--border-primary)',
                     background: 'var(--bg-input)',
                     color: 'var(--text-primary)',
-                    fontSize: '14px',
                     resize: 'vertical',
                     outline: 'none',
+                    fontFamily: 'inherit',
                   }}
                 />
-                <div style={{ marginTop: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                  可以同时使用预设优化方向和自定义提示词，两者会结合生效
-                </div>
               </div>
-            </div>
+            </>
+          )}
 
+          {step === 'processing' && (
             <div style={{
-              padding: '16px 24px',
-              borderTop: '1px solid var(--border-primary)',
               display: 'flex',
-              justifyContent: 'space-between',
+              flexDirection: 'column',
               alignItems: 'center',
-            }}>
-              <button
-                onClick={() => setStep('select')}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-primary)',
-                  background: 'var(--bg-hover)',
-                  color: 'var(--text-primary)',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <ArrowRight style={{ width: '16px', height: '16px', transform: 'rotate(180deg)' }} />
-                返回选择
-              </button>
-              <button
-                onClick={handleStartOptimization}
-                disabled={isOptimizing || (selectedDirections.length === 0 && !customPrompt.trim())}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: isOptimizing || (selectedDirections.length === 0 && !customPrompt.trim()) 
-                    ? 'var(--bg-hover)' 
-                    : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                  color: '#fff',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: isOptimizing || (selectedDirections.length === 0 && !customPrompt.trim()) 
-                    ? 'not-allowed' 
-                    : 'pointer',
-                  opacity: isOptimizing || (selectedDirections.length === 0 && !customPrompt.trim()) ? 0.5 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <Sparkles style={{ width: '16px', height: '16px' }} />
-                {isOptimizing ? '优化中...' : '开始优化'}
-              </button>
-            </div>
-          </>
-        )}
-
-        {step === 'processing' && (
-          <div style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '48px',
-          }}>
-            <div style={{
-              width: '80px',
-              height: '80px',
-              borderRadius: '50%',
-              border: '4px solid var(--border-primary)',
-              borderTopColor: '#6366f1',
-              animation: 'spin 1s linear infinite',
-              marginBottom: '24px',
-            }} />
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)' }}>
-              正在优化场景...
-            </h3>
-            <div style={{
-              width: '300px',
-              height: '8px',
-              borderRadius: '4px',
-              background: 'var(--bg-input)',
-              overflow: 'hidden',
-              marginBottom: '12px',
+              justifyContent: 'center',
+              padding: '40px',
             }}>
               <div style={{
-                width: `${optimizationProgress}%`,
-                height: '100%',
-                background: 'linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%)',
-                transition: 'width 0.3s ease',
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                border: '4px solid #e5e7eb',
+                borderTopColor: '#10b981',
+                animation: 'spin 1s linear infinite',
               }} />
+              <p style={{
+                marginTop: '24px',
+                fontSize: '16px',
+                fontWeight: '600',
+                color: 'var(--text-primary)',
+              }}>
+                正在优化场景...
+              </p>
+              <p style={{
+                marginTop: '8px',
+                fontSize: '14px',
+                color: 'var(--text-muted)',
+              }}>
+                进度: {optimizationProgress}%
+              </p>
             </div>
-            <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-              进度: {optimizationProgress}%
+          )}
+
+          {step === 'result' && optimizationResult && (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}>
+              {Array.from(selectedSceneIds).map((sceneId) => {
+                const scene = scenes.find(s => s.id === sceneId);
+                if (!scene) return null;
+                const optimized = optimizationResult[sceneId];
+                return (
+                  <div key={sceneId} style={{
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                  }}>
+                    <div style={{
+                      padding: '12px 16px',
+                      background: 'var(--bg-secondary)',
+                      borderBottom: '1px solid var(--border-color)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}>
+                      <h3 style={{
+                        margin: 0,
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: 'var(--text-primary)',
+                      }}>
+                        {scene.heading}
+                      </h3>
+                      <button
+                        onClick={() => handleResetScene(sceneId)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          border: '1px solid var(--border-color)',
+                          background: 'var(--bg-input)',
+                          color: 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        <RotateCcw size={14} />
+                        重置
+                      </button>
+                    </div>
+                    <div style={{
+                      padding: '16px',
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '16px',
+                    }}>
+                      <div>
+                        <h4 style={{
+                          margin: '0 0 8px 0',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          color: 'var(--text-muted)',
+                        }}>
+                          原文
+                        </h4>
+                        <p style={{
+                          margin: 0,
+                          fontSize: '13px',
+                          color: 'var(--text-secondary)',
+                          lineHeight: '1.6',
+                          whiteSpace: 'pre-wrap',
+                        }}>
+                          {scene.originalContent}
+                        </p>
+                      </div>
+                      <div>
+                        <h4 style={{
+                          margin: '0 0 8px 0',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          color: 'var(--text-primary)',
+                        }}>
+                          优化后
+                        </h4>
+                        <p style={{
+                          margin: 0,
+                          fontSize: '13px',
+                          color: 'var(--text-primary)',
+                          lineHeight: '1.6',
+                          whiteSpace: 'pre-wrap',
+                          background: 'rgba(16, 185, 129, 0.05)',
+                          padding: '12px',
+                          borderRadius: '6px',
+                        }}>
+                          {optimized}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+          )}
+        </div>
+
+        {step === 'list' && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '12px',
+            padding: '16px 24px',
+            borderTop: '1px solid var(--border-color)',
+          }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '10px 20px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-input)',
+                color: 'var(--text-primary)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+              }}
+            >
+              取消
+            </button>
+            <button
+              onClick={handleContinueToConfigure}
+              disabled={selectedSceneIds.size === 0}
+              style={{
+                padding: '10px 20px',
+                borderRadius: '8px',
+                border: 'none',
+                background: selectedSceneIds.size > 0 ? '#10b981' : '#d1d5db',
+                color: 'white',
+                cursor: selectedSceneIds.size > 0 ? 'pointer' : 'not-allowed',
+                fontSize: '14px',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              继续
+              <ArrowRight size={16} />
+            </button>
           </div>
         )}
 
-        {step === 'result' && optimizationResult && (
-          <>
-            <div style={{
-              padding: '24px',
-              borderBottom: '1px solid var(--border-primary)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                  优化结果
-                </h2>
-                <p style={{ margin: '6px 0 0 0', fontSize: '14px', color: 'var(--text-muted)' }}>
-                  场景 {optimizationResult.sceneId} 优化完成
-                </p>
-              </div>
-              <button
-                onClick={onClose}
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: 'var(--bg-hover)',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <X style={{ width: '20px', height: '20px' }} />
-              </button>
-            </div>
-
-            <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-              <div style={{ marginBottom: '24px' }}>
-                <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: 'var(--text-muted)' }}>
-                  原始内容
-                </h3>
-                <div style={{
-                  padding: '16px',
-                  borderRadius: '8px',
-                  background: 'var(--bg-hover)',
-                  border: '1px solid var(--border-primary)',
-                  fontSize: '14px',
-                  lineHeight: '1.6',
-                  color: 'var(--text-primary)',
-                  whiteSpace: 'pre-wrap',
-                }}>
-                  {optimizationResult.original}
-                </div>
-              </div>
-
-              <div>
-                <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600', color: '#10b981' }}>
-                  优化后内容
-                </h3>
-                <div style={{
-                  padding: '16px',
-                  borderRadius: '8px',
-                  background: 'rgba(16, 185, 129, 0.05)',
-                  border: '2px solid #10b981',
-                  fontSize: '14px',
-                  lineHeight: '1.6',
-                  color: 'var(--text-primary)',
-                  whiteSpace: 'pre-wrap',
-                }}>
-                  {optimizationResult.optimized}
-                </div>
-              </div>
-            </div>
-
-            <div style={{
-              padding: '16px 24px',
-              borderTop: '1px solid var(--border-primary)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
-              <button
-                onClick={handleContinueOptimization}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-primary)',
-                  background: 'var(--bg-hover)',
-                  color: 'var(--text-primary)',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <RotateCcw style={{ width: '16px', height: '16px' }} />
-                继续优化
-              </button>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button
-                  onClick={onClose}
-                  style={{
-                    padding: '10px 20px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-primary)',
-                    background: 'var(--bg-hover)',
-                    color: 'var(--text-primary)',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                  }}
-                >
-                  取消
-                </button>
-                <button
-                  onClick={handleApplyOptimization}
-                  style={{
-                    padding: '10px 20px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                    color: '#fff',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}
-                >
-                  <Check style={{ width: '16px', height: '16px' }} />
-                  应用
-                </button>
-              </div>
-            </div>
-          </>
+        {step === 'configure' && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '12px',
+            padding: '16px 24px',
+            borderTop: '1px solid var(--border-color)',
+          }}>
+            <button
+              onClick={() => setStep('list')}
+              style={{
+                padding: '10px 20px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-input)',
+                color: 'var(--text-primary)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+              }}
+            >
+              返回
+            </button>
+            <button
+              onClick={handleStartOptimization}
+              style={{
+                padding: '10px 20px',
+                borderRadius: '8px',
+                border: 'none',
+                background: '#10b981',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <Sparkles size={16} />
+              开始优化
+            </button>
+          </div>
         )}
-      </div>
 
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+        {step === 'result' && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '12px',
+            padding: '16px 24px',
+            borderTop: '1px solid var(--border-color)',
+          }}>
+            <button
+              onClick={() => setStep('list')}
+              style={{
+                padding: '10px 20px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-input)',
+                color: 'var(--text-primary)',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+              }}
+            >
+              返回重新选择
+            </button>
+            <button
+              onClick={handleApplyAll}
+              style={{
+                padding: '10px 20px',
+                borderRadius: '8px',
+                border: 'none',
+                background: '#10b981',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <Check size={16} />
+              应用所有优化
+            </button>
+          </div>
+        )}
+
+        <style>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
     </div>
   );
 }

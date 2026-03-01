@@ -167,6 +167,11 @@ class RenderQueueService {
       prompt: task.params.prompt,
       width: task.params.width,
       height: task.params.height,
+      size: task.params.size,
+      resolution: task.params.resolution,
+      n: task.params.n || 1,
+      image_urls: task.params.image_urls,
+      style: task.params.style,
       projectId: task.projectId
     });
   }

@@ -107,6 +107,8 @@ export class ScriptParserService {
     options: {
       useCache?: boolean
       onProgress?: (progress: number, message: string) => void
+      model?: string
+      providerId?: string
     } = {}
   ): Promise<ParsedScript> {
     try {
@@ -115,7 +117,9 @@ export class ScriptParserService {
         scriptContent,
         {
           useCache: options.useCache,
-          onProgress: options.onProgress
+          onProgress: options.onProgress,
+          model: options.model,
+          providerId: options.providerId
         }
       )
 

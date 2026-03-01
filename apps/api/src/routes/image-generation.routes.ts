@@ -13,11 +13,16 @@ router.post('/generate', async (req, res) => {
       negativePrompt: req.body.negativePrompt,
       width: req.body.width,
       height: req.body.height,
+      size: req.body.size,
+      resolution: req.body.resolution,
+      n: req.body.n || 1,
+      image_urls: req.body.image_urls,
       style: req.body.style,
       characterRefImageId: req.body.characterRefImageId,
       sceneRefImageId: req.body.sceneRefImageId,
       projectId: req.body.projectId,
       model: req.body.model,
+      threeView: req.body.threeView,
     });
     res.json(result);
   } catch (error) {

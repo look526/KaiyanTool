@@ -1,10 +1,11 @@
-import { IntelligentSegmenter, TextSegment } from './intelligent-segmenter'
+import { IntelligentSegmenter } from './intelligent-segmenter'
 import { ParallelProcessor } from './parallel-processor'
 import { AIProcessor } from './ai-processor'
-import { ResultMerger, MergedResult } from './result-merger'
+import { ResultMerger } from './result-merger'
 import { prisma } from '../../lib/prisma'
 import logger from '../../lib/logger'
 import { providerManager } from '../ai/provider.manager'
+import { AIProviderHelper } from '../ai/provider-helper.service'
 
 export interface LargeTextProcessOptions {
   useCache?: boolean
@@ -14,6 +15,8 @@ export interface LargeTextProcessOptions {
   contextWindowTokens?: number
   temperature?: number
   maxTokens?: number
+  model?: string
+  providerId?: string
 }
 
 export interface ProcessResult {
@@ -112,30 +115,50 @@ export class LargeTextProcessingService {
       logger.info(`[大文本处理] 分段完成，共 ${segments.length} 个片段`)
 
       progressTracker.update(15, '查找AI提供商...')
-      const provider = await prisma.aIProvider.findFirst({
-        where: { userId, enabled: true },
-      })
-
-      if (!provider) {
-        throw new Error('未找到启用的 AI 提供商')
+      
+      let providerDb;
+      let providerIdForSegment: string;
+      
+      if (options.providerId) {
+        console.log('[DEBUG large-text] Using provided providerId:', options.providerId);
+        providerDb = await prisma.aIProvider.findUnique({
+          where: { id: options.providerId },
+        });
+        if (!providerDb) {
+          throw new Error('指定的 AI 提供商不存在')
+        }
+        providerIdForSegment = options.providerId;
+      } else {
+        console.log('[DEBUG large-text] options.model:', options.model);
+        const providerSelection = await AIProviderHelper.getProviderForUser(userId, options.model);
+        console.log('[DEBUG large-text] providerSelection:', providerSelection.providerId, providerSelection.providerType);
+        providerDb = await prisma.aIProvider.findUnique({
+          where: { id: providerSelection.providerId },
+        });
+        if (!providerDb) {
+          throw new Error('未找到启用的 AI 提供商')
+        }
+        providerIdForSegment = providerDb.id;
       }
 
-      if (!providerManager.getProvider(provider.id)) {
-        console.log(`[大文本处理] 注册AI提供商: ${provider.id} (${provider.name})`)
+      if (!providerManager.getProvider(providerDb.id)) {
+        console.log(`[大文本处理] 注册AI提供商: ${providerDb.id} (${providerDb.name})`)
         providerManager.addProvider({
-          id: provider.id,
-          name: provider.name,
-          type: provider.type,
-          apiKey: provider.apiKey,
-          baseUrl: provider.baseUrl,
+          id: providerDb.id,
+          name: providerDb.name,
+          type: providerDb.type,
+          apiKey: providerDb.apiKey,
+          baseUrl: providerDb.baseUrl || undefined,
         });
       }
 
       progressTracker.update(20, '开始并行处理...')
+      console.log('[DEBUG large-text] providerIdForSegment:', providerIdForSegment);
       const segmentResults = await this.processor.processSegments(
         segments,
         async (segment) => {
-          return await this.aiProcessor.processSegment(segment, provider.id)
+          console.log('[DEBUG large-text] Calling processSegment with providerId:', providerIdForSegment);
+          return await this.aiProcessor.processSegment(segment, providerIdForSegment, options.model)
         }
       )
       logger.info(`[大文本处理] 并行处理完成`)

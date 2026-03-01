@@ -7,504 +7,797 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id            String    @id @default(uuid()) @db.Uuid
-  email         String    @unique
-  passwordHash  String    @map("password_hash")
-  name          String?
-  avatarUrl     String?   @map("avatar_url")
-  bio           String?
-  plan          String    @default("free")
-  role          String    @default("user") @map("role")
-  storageUsed   BigInt     @default(0) @map("storage_used")
-  storageLimit  BigInt     @default(1073741824) @map("storage_limit")
-  createdAt     DateTime   @default(now()) @map("created_at")
-  updatedAt     DateTime   @updatedAt @map("updated_at")
-  lastLoginAt   DateTime?  @map("last_login_at")
-  
-  projects      Project[]  @relation("ProjectOwner")
-  members       ProjectMember[]
-  sessions      Session[]
-  aiProviders   AIProvider[]
-  preferences   UserPreferences?
-  modelParameters ModelParameters[]
-  promptTemplates PromptTemplate[]
-  chatSessions  ChatSession[]
-  
-  @@index([email])
+model AIProvider {
+  id              String            @id @db.Uuid
+  user_id         String            @db.Uuid
+  type            String
+  api_key         String
+  base_url        String?
+  enabled         Boolean           @default(true)
+  created_at      DateTime          @default(now())
+  updated_at      DateTime
+  User            User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  AIProviderModel AIProviderModel[]
+
+  @@index([user_id])
 }
 
-model Session {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  token     String   @unique
-  expiresAt DateTime @map("expires_at")
-  createdAt DateTime @default(now()) @map("created_at")
+model AIProviderModel {
+  id                   String     @id @db.Uuid
+  ai_provider_id       String     @db.Uuid
+  name                 String
+  description          String?
+  capabilities         String[]
+  created_at           DateTime   @default(now())
+  updated_at           DateTime
+  types                String[]
+  is_assistant_default Boolean    @default(false)
+  AIProvider           AIProvider @relation(fields: [ai_provider_id], references: [id], onDelete: Cascade)
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([token])
+  @@index([ai_provider_id])
 }
 
-model Project {
-  id          String           @id @default(uuid()) @db.Uuid
-  ownerId    String           @map("owner_id") @db.Uuid
-  name        String
+model AgentTask {
+  id            String     @id @db.Uuid
+  project_id    String     @db.Uuid
+  content_id    String?    @db.Uuid
+  agent_type    AgentType
+  input         Json
+  output        Json?
+  ai_model      String?
+  status        TaskStatus @default(pending)
+  error_message String?
+  created_at    DateTime   @default(now())
+  started_at    DateTime?
+  completed_at  DateTime?
+  Content       Content?   @relation(fields: [content_id], references: [id])
+  Project       Project    @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@index([content_id])
+  @@index([project_id])
+  @@index([status])
+}
+
+model AlertRecord {
+  id              String    @id @db.Uuid
+  rule_id         String    @db.Uuid
+  severity        String
+  message         String
+  channels        String[]  @default([])
+  acknowledged    Boolean   @default(false)
+  acknowledged_at DateTime?
+  created_at      DateTime  @default(now())
+
+  @@index([created_at])
+  @@index([rule_id])
+  @@index([severity])
+}
+
+model AlertRule {
+  id         String   @id @db.Uuid
+  name       String
+  metric     String
+  condition  String
+  threshold  Float
+  severity   String
+  enabled    Boolean  @default(true)
+  channels   String[] @default([])
+  created_at DateTime @default(now())
+  updated_at DateTime
+
+  @@index([enabled])
+  @@index([metric])
+}
+
+model Asset {
+  id         String   @id @db.Uuid
+  type       String
+  url        String
+  project_id String   @db.Uuid
+  metadata   Json?    @default("{}")
+  created_at DateTime @default(now())
+  updated_at DateTime
+  category   String?  @default("general")
+  source     String?  @default("upload")
+
+  @@index([category])
+  @@index([project_id])
+  @@index([source])
+  @@index([type])
+}
+
+model AuditLog {
+  id            String   @id @db.Uuid
+  user_id       String?  @db.Uuid
+  action        String
+  resource      String
+  resource_id   String?
+  metadata      Json?
+  ip_address    String?
+  user_agent    String?
+  success       Boolean  @default(true)
+  error_message String?
+  created_at    DateTime @default(now())
+
+  @@index([action])
+  @@index([created_at])
+  @@index([resource_id])
+  @@index([resource])
+  @@index([user_id])
+}
+
+model Backup {
+  id          String   @id @db.Uuid
+  project_id  String   @db.Uuid
+  backup_id   String   @unique
   description String?
-  type        ProjectType      @default(script)
-  status      String           @default("draft")
-  settings    Json             @default("{}")
-  thumbnailUrl String?          @map("thumbnail_url")
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
+  size        BigInt?
+  created_by  String   @db.Uuid
+  created_at  DateTime @default(now())
 
-  owner       User             @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members     ProjectMember[]
-  contents    Content[]
-  storylines  Storyline[]
-  outlines    Outline[]
-  characters  Character[]
-  scenes      Scene[]
-  shots       Shot[]
-  agentTasks  AgentTask[]
-  videos      Video[]
-  videoMergeTasks VideoMergeTask[]
-  scripts     Script[]
-  novels      Novel[]
-  documents   Document[]
-  promptTemplates PromptTemplate[]
-  chatSessions ChatSession[]
+  @@index([created_at])
+  @@index([project_id])
 }
 
-model ProjectMember {
-  projectId String @map("project_id") @db.Uuid
-  userId    String @map("user_id") @db.Uuid
-  role      MemberRole @default(viewer)
-  joinedAt  DateTime @default(now()) @map("joined_at")
+model BackupSchedule {
+  id             String    @id @db.Uuid
+  project_id     String    @db.Uuid
+  frequency      String
+  time           String
+  include_assets Boolean   @default(true)
+  retention_days Int       @default(30)
+  enabled        Boolean   @default(true)
+  last_run       DateTime?
+  next_run       DateTime?
+  created_by     String    @db.Uuid
+  created_at     DateTime  @default(now())
+  updated_at     DateTime
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([projectId, userId])
+  @@index([enabled])
+  @@index([project_id])
 }
 
-model Content {
-  id             String      @id @default(uuid()) @db.Uuid
-  projectId      String      @map("project_id") @db.Uuid
-  type           ContentType
-  rawText        String      @map("raw_text")
-  structuredData Json?       @map("structured_data")
-  createdAt      DateTime    @default(now()) @map("created_at")
-  updatedAt      DateTime    @updatedAt @map("updated_at")
+model Chapter {
+  id       String @id @db.Uuid
+  novel_id String @db.Uuid
+  title    String
+  content  String
+  order    Int    @default(0)
+  Novel    Novel  @relation(fields: [novel_id], references: [id], onDelete: Cascade)
 
-  project        Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  outlines      Outline[]
-  agentTasks    AgentTask[]
-  storylines    Storyline[] @relation("ContentStoryline")
-}
-
-model Storyline {
-  id          String   @id @default(uuid()) @db.Uuid
-  projectId   String   @map("project_id") @db.Uuid
-  contentId   String?  @map("content_id") @db.Uuid
-  story       String   @map("story")
-  aiModel     String?  @map("ai_model")
-  agentTaskId String?  @map("agent_task_id") @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  content     Content? @relation("ContentStoryline", fields: [contentId], references: [id], onDelete: SetNull)
-  outlines    Outline[]
-
-  @@index([projectId])
-  @@index([contentId])
-}
-
-model Outline {
-  id           String     @id @default(uuid()) @db.Uuid
-  projectId    String     @map("project_id") @db.Uuid
-  contentId    String?    @map("content_id") @db.Uuid
-  storylineId  String?    @map("storyline_id") @db.Uuid
-  episodes     Json       @default("[]")
-  agentTaskId  String?    @map("agent_task_id") @db.Uuid
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
-
-  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  content     Content?   @relation(fields: [contentId], references: [id], onDelete: SetNull)
-  storyline   Storyline? @relation(fields: [storylineId], references: [id], onDelete: SetNull)
-
-  @@index([projectId])
-  @@index([contentId])
-  @@index([storylineId])
+  @@index([novel_id])
+  @@index([order])
 }
 
 model Character {
-  id               String   @id @default(uuid()) @db.Uuid
-  projectId        String   @map("project_id") @db.Uuid
+  id               String     @id @db.Uuid
+  project_id       String     @db.Uuid
   name             String
   age              Int?
   gender           String?
   appearance       String
-  referenceImages  String[] @default([]) @map("reference_images")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  reference_images String[]   @default([])
+  created_at       DateTime   @default(now())
+  updated_at       DateTime
+  Project          Project    @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  Shot             Shot[]
+  Wardrobe         Wardrobe[]
 
-  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  wardrobes Wardrobe[]
-  shots     Shot[]
-
-  @@index([projectId])
-}
-
-model Wardrobe {
-  id            String   @id @default(uuid()) @db.Uuid
-  characterId   String   @map("character_id") @db.Uuid
-  name          String
-  description   String?
-  referenceImage String?  @map("reference_image")
-  createdAt     DateTime @default(now()) @map("created_at")
-
-  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
-
-  @@index([characterId])
-}
-
-model Scene {
-  id               String   @id @default(uuid()) @db.Uuid
-  projectId        String   @map("project_id") @db.Uuid
-  scriptId         String?  @map("script_id") @db.Uuid
-  location         String
-  time             String
-  atmosphere       String?
-  referenceImages  String[] @default([]) @map("reference_images")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  script    Script?  @relation(fields: [scriptId], references: [id], onDelete: SetNull)
-  shots     Shot[]
-
-  @@index([projectId])
-  @@index([scriptId])
-}
-
-model Shot {
-  id              String          @id @default(uuid()) @db.Uuid
-  projectId       String          @map("project_id") @db.Uuid
-  sceneId         String?         @map("scene_id") @db.Uuid
-  characterId    String?         @map("character_id") @db.Uuid
-  chapterNumber   Int?            @map("chapter_number")
-  episodeNumber   Int?            @map("episode_number")
-  segmentId       Int?            @map("segment_id")
-  cellId          Int?            @map("cell_id")
-  actionSummary   String          @map("action_summary")
-  cameraMovement String?         @map("camera_movement")
-  startPrompt   String?         @map("start_prompt")
-  endPrompt     String?         @map("end_prompt")
-  startImageUrl String?         @map("start_image_url")
-  endImageUrl   String?         @map("end_image_url")
-  videoUrl       String?         @map("video_url")
-  duration       Int             @default(8)
-  aspectRatio   String          @default("16:9") @map("aspect_ratio")
-  visualStyle   String?         @map("visual_style")
-  createdAt      DateTime         @default(now()) @map("created_at")
-  updatedAt      DateTime         @updatedAt @map("updated_at")
-
-  project       Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  scene         Scene?          @relation(fields: [sceneId], references: [id], onDelete: SetNull)
-  character     Character?      @relation(fields: [characterId], references: [id], onDelete: SetNull)
-  panels        NineGridPanel[]
-  video         Video?
-
-  @@index([projectId])
-  @@index([sceneId])
-  @@index([characterId])
-}
-
-model NineGridPanel {
-  id        String   @id @default(uuid()) @db.Uuid
-  shotId    String   @map("shot_id") @db.Uuid
-  position  Int
-  prompt    String
-  imageUrl  String?  @map("image_url")
-  createdAt DateTime @default(now()) @map("created_at")
-
-  shot Shot @relation(fields: [shotId], references: [id], onDelete: Cascade)
-
-  @@index([shotId])
-  @@index([shotId, position])
-}
-
-model AgentTask {
-  id           String     @id @default(uuid()) @db.Uuid
-  projectId    String     @map("project_id") @db.Uuid
-  contentId    String?    @map("content_id") @db.Uuid
-  agentType    AgentType  @map("agent_type")
-  input        Json
-  output       Json?
-  aiModel      String?    @map("ai_model")
-  status       TaskStatus @default(pending)
-  errorMessage String?    @map("error_message")
-  createdAt    DateTime   @default(now()) @map("created_at")
-  startedAt    DateTime?  @map("started_at")
-  completedAt  DateTime?  @map("completed_at")
-
-  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  content     Content?    @relation(fields: [contentId], references: [id], onDelete: SetNull)
-
-  @@index([projectId])
-  @@index([status])
-  @@index([contentId])
-}
-
-model Video {
-  id          String   @id @default(uuid()) @db.Uuid
-  projectId   String   @map("project_id") @db.Uuid
-  shotId      String?  @unique @map("shot_id") @db.Uuid
-  url         String
-  duration    Int
-  width       Int?
-  height      Int?
-  format      String?
-  fileSize    BigInt?  @map("file_size")
-  status      String   @default("processing")
-  aiModel     String?  @map("ai_model")
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  shot    Shot?   @relation(fields: [shotId], references: [id], onDelete: SetNull)
-
-  @@index([projectId])
-  @@index([shotId])
-}
-
-model PromptTemplate {
-  id           String   @id @default(uuid()) @db.Uuid
-  userId       String?  @map("user_id") @db.Uuid
-  projectId    String?  @map("project_id") @db.Uuid
-  code         String   @unique
-  name         String
-  type         String   @default("general")
-  category     String?
-  defaultValue String   @map("default_value")
-  customValue  String?  @map("custom_value")
-  parentCode   String?  @map("parent_code")
-  description  String?
-  variables    Json     @default("[]")
-  isActive     Boolean  @default(true) @map("is_active")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  user    User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([projectId])
-  @@index([type])
-  @@index([category])
+  @@index([project_id])
 }
 
 model ChatSession {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  projectId String?  @map("project_id") @db.Uuid
-  title     String?
-  messages  Json     @default("[]")
-  metadata  Json?    @default("{}")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id         String   @id @db.Uuid
+  user_id    String   @db.Uuid
+  project_id String?  @db.Uuid
+  title      String?
+  created_at DateTime @default(now())
+  updated_at DateTime
+  messages   Json     @default("[]")
+  metadata   Json?    @default("{}")
+  Project    Project? @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  User       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  user    User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([projectId])
-}
-
-model UserPreferences {
-  id              String   @id @default(uuid()) @db.Uuid
-  userId          String   @unique @map("user_id") @db.Uuid
-  defaultModels   Json     @default("{}") @map("default_models")
-  lastUsedModels  Json     @default("{}") @map("last_used_models")
-  modelParameters Json     @default("{}") @map("model_parameters")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model ModelParameters {
-  id          String      @id @default(uuid()) @db.Uuid
-  userId      String      @map("user_id") @db.Uuid
-  contentType ContentType @map("content_type")
-  parameters  Json        @default("{}")
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, contentType])
-  @@index([userId, contentType])
+  @@index([project_id])
+  @@index([user_id])
 }
 
 model ConfigurationHistory {
-  id              String   @id @default(uuid()) @db.Uuid
-  userId          String   @map("user_id") @db.Uuid
-  changeType      String   @map("change_type")
-  changeDetails   Json     @map("change_details")
-  previousValue   Json?    @map("previous_value")
-  newValue        Json     @map("new_value")
-  createdAt       DateTime @default(now()) @map("created_at")
+  id             String   @id @db.Uuid
+  user_id        String   @db.Uuid
+  change_type    String
+  change_details Json
+  previous_value Json?
+  new_value      Json
+  created_at     DateTime @default(now())
 
-  @@index([userId])
-  @@index([userId, createdAt])
+  @@index([user_id, created_at])
+  @@index([user_id])
 }
 
-model VideoMergeTask {
-  id          String   @id @default(uuid()) @db.Uuid
-  projectId   String   @map("project_id") @db.Uuid
-  videoIds   String[] @map("video_ids")
-  outputUrl   String?  @map("output_url")
-  status      String   @default("pending")
-  errorMessage String?  @map("error_message")
-  createdAt    DateTime @default(now()) @map("created_at")
-  completedAt  DateTime?  @map("completed_at")
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@index([projectId])
-}
-
-model AIProvider {
-  id        String      @id @default(uuid()) @db.Uuid
-  userId    String      @map("user_id") @db.Uuid
-  type      String
-  apiKey    String      @map("api_key")
-  baseUrl   String?     @map("base_url")
-  enabled   Boolean     @default(true)
-  models    AIProviderModel[]
-  createdAt DateTime     @default(now()) @map("created_at")
-  updatedAt DateTime     @updatedAt @map("updated_at")
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model AIProviderModel {
-  id          String   @id @default(uuid()) @db.Uuid
-  providerId  String   @map("ai_provider_id") @db.Uuid
-  name        String
-  types       String[]
-  description String?
-  capabilities String[]
-  isAssistantDefault Boolean @default(false) @map("is_assistant_default")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  provider   AIProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
-
-  @@index([providerId])
-}
-
-model AuditLog {
-  id          String   @id @default(uuid()) @db.Uuid
-  userId      String?  @map("user_id") @db.Uuid
-  action      String
-  resource    String
-  resourceId  String?  @map("resource_id")
-  metadata    Json?
-  ipAddress   String?  @map("ip_address")
-  userAgent   String?  @map("user_agent")
-  success     Boolean  @default(true)
-  errorMessage String?  @map("error_message")
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  @@index([userId])
-  @@index([resource])
-  @@index([resourceId])
-  @@index([createdAt])
-  @@index([action])
-}
-
-model Script {
-  id        String   @id @default(uuid()) @db.Uuid
-  projectId String   @map("project_id") @db.Uuid
-  title     String
-  content   String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  scenes  Scene[]
-
-  @@index([projectId])
-}
-
-model Novel {
-  id        String   @id @default(uuid()) @db.Uuid
-  projectId String   @map("project_id") @db.Uuid
-  title     String
-  content   String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  chapters Chapter[]
-
-  @@index([projectId])
-}
-
-model Chapter {
-  id        String   @id @default(uuid()) @db.Uuid
-  novelId   String   @map("novel_id") @db.Uuid
-  title     String
-  content   String
-  order     Int       @default(0)
-
-  novel   Novel @relation(fields: [novelId], references: [id], onDelete: Cascade)
-
-  @@index([novelId])
-  @@index([order])
+model Content {
+  id              String      @id @db.Uuid
+  project_id      String      @db.Uuid
+  type            ContentType
+  raw_text        String
+  structured_data Json?
+  created_at      DateTime    @default(now())
+  updated_at      DateTime
+  AgentTask       AgentTask[]
+  Project         Project     @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  Outline         Outline[]
+  Storyline       Storyline[]
 }
 
 model Document {
-  id          String   @id @default(uuid()) @db.Uuid
-  projectId   String   @map("project_id") @db.Uuid
-  title       String
-  content     String
-  type        String   @default("general")
-  status      String   @default("draft")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id         String   @id @db.Uuid
+  project_id String   @db.Uuid
+  title      String
+  content    String
+  type       String   @default("general")
+  status     String   @default("draft")
+  created_at DateTime @default(now())
+  updated_at DateTime
+  Project    Project  @relation(fields: [project_id], references: [id], onDelete: Cascade)
 
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@index([projectId])
+  @@index([project_id])
+  @@index([status])
   @@index([type])
+}
+
+model Metrics {
+  id        String   @id @db.Uuid
+  name      String
+  value     Float
+  unit      String?
+  timestamp DateTime @default(now())
+
+  @@index([name])
+  @@index([timestamp])
+}
+
+model MigrationLog {
+  id        String   @id @db.Uuid
+  source    String
+  user_id   String   @db.Uuid
+  result    Json
+  timestamp DateTime @default(now())
+  status    String   @default("pending")
+
+  @@index([source])
+  @@index([timestamp])
+  @@index([user_id])
+}
+
+model ModelParameters {
+  id           String      @id @db.Uuid
+  user_id      String      @db.Uuid
+  content_type ContentType
+  parameters   Json        @default("{}")
+  created_at   DateTime    @default(now())
+  updated_at   DateTime
+  User         User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, content_type])
+  @@index([user_id, content_type])
+}
+
+model NineGridPanel {
+  id         String   @id @db.Uuid
+  shot_id    String   @db.Uuid
+  position   Int
+  prompt     String
+  image_url  String?
+  created_at DateTime @default(now())
+  Shot       Shot     @relation(fields: [shot_id], references: [id], onDelete: Cascade)
+
+  @@index([shot_id])
+  @@index([shot_id, position])
+}
+
+model Novel {
+  id         String    @id @db.Uuid
+  project_id String    @db.Uuid
+  title      String
+  content    String
+  created_at DateTime  @default(now())
+  updated_at DateTime
+  Chapter    Chapter[]
+  Project    Project   @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id])
+}
+
+model Outline {
+  id            String     @id @db.Uuid
+  project_id    String     @db.Uuid
+  content_id    String?    @db.Uuid
+  storyline_id  String?    @db.Uuid
+  episodes      Json       @default("[]")
+  agent_task_id String?    @db.Uuid
+  created_at    DateTime   @default(now())
+  updated_at    DateTime
+  Content       Content?   @relation(fields: [content_id], references: [id])
+  Project       Project    @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  Storyline     Storyline? @relation(fields: [storyline_id], references: [id])
+
+  @@index([content_id])
+  @@index([project_id])
+  @@index([storyline_id])
+}
+
+model Plugin {
+  id            String   @id @db.Uuid
+  name          String   @unique
+  version       String
+  description   String?
+  entry_point   String
+  permissions   String[] @default([])
+  settings      Json?    @default("{}")
+  manifest      Json
+  is_public     Boolean  @default(false)
+  status        String   @default("pending")
+  installations Int      @default(0)
+  created_by    String   @db.Uuid
+  created_at    DateTime @default(now())
+  updated_at    DateTime
+
+  @@index([is_public])
   @@index([status])
 }
 
-enum ProjectType {
-  script
-  novel
-  mixed
+model Project {
+  id             String           @id @db.Uuid
+  owner_id       String           @db.Uuid
+  name           String
+  description    String?
+  type           ProjectType      @default(script)
+  status         String           @default("draft")
+  settings       Json             @default("{}")
+  thumbnail_url  String?
+  created_at     DateTime         @default(now())
+  updated_at     DateTime
+  AgentTask      AgentTask[]
+  Character      Character[]
+  ChatSession    ChatSession[]
+  Content        Content[]
+  Document       Document[]
+  Novel          Novel[]
+  Outline        Outline[]
+  User           User             @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+  ProjectMember  ProjectMember[]
+  PromptTemplate PromptTemplate[]
+  Scene          Scene[]
+  Script         Script[]
+  Shot           Shot[]
+  Storyline      Storyline[]
+  Video          Video[]
+  VideoMergeTask VideoMergeTask[]
 }
 
-enum ContentType {
-  text
-  image
-  video
-  audio
-  script
-  novel
-  storyline
-  outline
+model ProjectMember {
+  project_id String     @db.Uuid
+  user_id    String     @db.Uuid
+  role       MemberRole @default(viewer)
+  joined_at  DateTime   @default(now())
+  Project    Project    @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  User       User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@id([project_id, user_id])
 }
 
-enum MemberRole {
-  owner
-  editor
-  viewer
+model ProjectPlugin {
+  id           String   @id @db.Uuid
+  plugin_id    String   @db.Uuid
+  project_id   String   @db.Uuid
+  installed_by String   @db.Uuid
+  settings     Json     @default("{}")
+  status       String   @default("active")
+  created_at   DateTime @default(now())
+  updated_at   DateTime
+
+  @@unique([plugin_id, project_id])
+  @@index([project_id])
+}
+
+model ProjectTemplate {
+  id          String   @id @db.Uuid
+  name        String
+  description String?
+  category    String
+  config      Json     @default("{}")
+  is_public   Boolean  @default(false)
+  usage_count Int      @default(0)
+  created_by  String   @db.Uuid
+  created_at  DateTime @default(now())
+  updated_at  DateTime
+
+  @@index([category])
+  @@index([created_by])
+}
+
+model ProjectVersion {
+  id          String   @id @db.Uuid
+  project_id  String   @db.Uuid
+  name        String?
+  description String?
+  tags        String[] @default([])
+  snapshot    Json
+  parent_id   String?  @db.Uuid
+  version     Int      @default(1)
+  created_by  String   @db.Uuid
+  created_at  DateTime @default(now())
+
+  @@index([created_by])
+  @@index([parent_id])
+  @@index([project_id])
+}
+
+model PromptTemplate {
+  id            String   @id @db.Uuid
+  user_id       String?  @db.Uuid
+  project_id    String?  @db.Uuid
+  code          String   @unique
+  name          String
+  type          String   @default("general")
+  category      String?
+  default_value String
+  custom_value  String?
+  parent_code   String?
+  description   String?
+  variables     Json     @default("[]")
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime
+  Project       Project? @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  User          User?    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([category])
+  @@index([project_id])
+  @@index([type])
+  @@index([user_id])
+}
+
+model QualityReport {
+  id         String   @id @db.Uuid
+  user_id    String   @db.Uuid
+  type       String
+  target_id  String
+  score      String
+  metadata   Json?    @default("{}")
+  created_at DateTime @default(now())
+
+  @@index([target_id])
+  @@index([type])
+  @@index([user_id])
+}
+
+model RenderTask {
+  id           String    @id @db.Uuid
+  type         String
+  status       String    @default("pending")
+  params       Json      @default("{}")
+  project_id   String    @db.Uuid
+  priority     Int       @default(5)
+  progress     Float     @default(0)
+  error        String?
+  logs         Json?     @default("[]")
+  started_at   DateTime?
+  completed_at DateTime?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime
+
+  @@index([project_id])
+  @@index([status])
+  @@index([type])
+}
+
+model Scene {
+  id               String   @id @db.Uuid
+  project_id       String   @db.Uuid
+  script_id        String?  @db.Uuid
+  location         String
+  time             String
+  atmosphere       String?
+  reference_images String[] @default([])
+  created_at       DateTime @default(now())
+  updated_at       DateTime
+  Project          Project  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  Script           Script?  @relation(fields: [script_id], references: [id])
+  Shot             Shot[]
+
+  @@index([project_id])
+  @@index([script_id])
+}
+
+model SceneConcept {
+  id               String   @id @db.Uuid
+  project_id       String   @db.Uuid
+  name             String
+  description      String?
+  location         String
+  time_of_day      String?
+  atmosphere       String?
+  reference_images String[] @default([])
+  ai_prompt        String?
+  created_at       DateTime @default(now())
+  updated_at       DateTime
+
+  @@index([project_id])
+}
+
+model Script {
+  id         String   @id @db.Uuid
+  project_id String   @db.Uuid
+  title      String
+  content    String
+  created_at DateTime @default(now())
+  updated_at DateTime
+  Scene      Scene[]
+  Project    Project  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id])
+}
+
+model ScriptAnalysis {
+  id         String   @id @db.Uuid
+  project_id String   @db.Uuid
+  content    String
+  summary    String?
+  themes     String[] @default([])
+  characters Json     @default("[]")
+  plotPoints Json     @default("[]")
+  sentiment  String?
+  created_at DateTime @default(now())
+  updated_at DateTime
+
+  @@index([project_id])
+}
+
+model Session {
+  id         String   @id @db.Uuid
+  user_id    String   @db.Uuid
+  token      String   @unique
+  expires_at DateTime
+  created_at DateTime @default(now())
+  User       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([token])
+}
+
+model Shot {
+  id              String          @id @db.Uuid
+  project_id      String          @db.Uuid
+  scene_id        String?         @db.Uuid
+  character_id    String?         @db.Uuid
+  chapter_number  Int?
+  episode_number  Int?
+  segment_id      Int?
+  cell_id         Int?
+  action_summary  String
+  camera_movement String?
+  start_prompt    String?
+  end_prompt      String?
+  start_image_url String?
+  end_image_url   String?
+  video_url       String?
+  duration        Int             @default(8)
+  aspect_ratio    String          @default("16:9")
+  visual_style    String?
+  created_at      DateTime        @default(now())
+  updated_at      DateTime
+  NineGridPanel   NineGridPanel[]
+  Character       Character?      @relation(fields: [character_id], references: [id])
+  Project         Project         @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  Scene           Scene?          @relation(fields: [scene_id], references: [id])
+  Video           Video?
+
+  @@index([character_id])
+  @@index([project_id])
+  @@index([scene_id])
+}
+
+model Storyline {
+  id            String    @id @db.Uuid
+  project_id    String    @db.Uuid
+  content_id    String?   @db.Uuid
+  story         String
+  ai_model      String?
+  agent_task_id String?   @db.Uuid
+  created_at    DateTime  @default(now())
+  Outline       Outline[]
+  Content       Content?  @relation(fields: [content_id], references: [id])
+  Project       Project   @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@index([content_id])
+  @@index([project_id])
+}
+
+model TutorialProgress {
+  id               String    @id @db.Uuid
+  tutorial_id      String    @db.Uuid
+  user_id          String    @db.Uuid
+  progress         Float     @default(0)
+  completed        Boolean   @default(false)
+  watched_duration Int       @default(0)
+  last_watched_at  DateTime  @default(now())
+  completed_at     DateTime?
+  created_at       DateTime  @default(now())
+  updated_at       DateTime
+
+  @@unique([tutorial_id, user_id])
+  @@index([user_id])
+}
+
+model TutorialRating {
+  id          String   @id @db.Uuid
+  tutorial_id String   @db.Uuid
+  user_id     String   @db.Uuid
+  rating      Int
+  comment     String?
+  created_at  DateTime @default(now())
+
+  @@unique([tutorial_id, user_id])
+  @@index([tutorial_id])
+}
+
+model User {
+  id              String            @id @db.Uuid
+  email           String            @unique
+  password_hash   String
+  name            String?
+  avatar_url      String?
+  plan            String            @default("free")
+  role            String            @default("user")
+  storage_used    BigInt            @default(0)
+  storage_limit   BigInt            @default(1073741824)
+  created_at      DateTime          @default(now())
+  updated_at      DateTime
+  last_login_at   DateTime?
+  bio             String?
+  AIProvider      AIProvider[]
+  ChatSession     ChatSession[]
+  ModelParameters ModelParameters[]
+  Project         Project[]
+  ProjectMember   ProjectMember[]
+  PromptTemplate  PromptTemplate[]
+  Session         Session[]
+  UserPreferences UserPreferences?
+
+  @@index([email])
+}
+
+model UserPreferences {
+  id               String   @id @db.Uuid
+  user_id          String   @unique @db.Uuid
+  default_models   Json     @default("{}")
+  last_used_models Json     @default("{}")
+  model_parameters Json     @default("{}")
+  created_at       DateTime @default(now())
+  updated_at       DateTime
+  User             User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+}
+
+model Video {
+  id         String   @id @db.Uuid
+  project_id String   @db.Uuid
+  shot_id    String?  @unique @db.Uuid
+  url        String
+  duration   Int
+  width      Int?
+  height     Int?
+  format     String?
+  file_size  BigInt?
+  status     String   @default("processing")
+  ai_model   String?
+  created_at DateTime @default(now())
+  Project    Project  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  Shot       Shot?    @relation(fields: [shot_id], references: [id])
+
+  @@index([project_id])
+  @@index([shot_id])
+}
+
+model VideoMergeTask {
+  id            String    @id @db.Uuid
+  project_id    String    @db.Uuid
+  video_ids     String[]
+  output_url    String?
+  status        String    @default("pending")
+  error_message String?
+  created_at    DateTime  @default(now())
+  completed_at  DateTime?
+  Project       Project   @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id])
+}
+
+model VideoTutorial {
+  id                String   @id @db.Uuid
+  title             String
+  description       String
+  category          String
+  level             String
+  duration          Int
+  video_url         String
+  thumbnail_url     String?
+  chapters          Json     @default("[]")
+  tags              String[] @default([])
+  prerequisites     String[] @default([])
+  related_tutorials String[] @default([])
+  views             Int      @default(0)
+  created_at        DateTime @default(now())
+  updated_at        DateTime
+
+  @@index([category])
+  @@index([level])
+}
+
+model VisualPrompt {
+  id         String   @id @db.Uuid
+  project_id String   @db.Uuid
+  shot_id    String?  @db.Uuid
+  prompt     String
+  type       String   @default("general")
+  style      String?
+  parameters Json?    @default("{}")
+  result     String?
+  status     String   @default("pending")
+  created_at DateTime @default(now())
+  updated_at DateTime
+
+  @@index([project_id])
+  @@index([shot_id])
+}
+
+model Wardrobe {
+  id              String    @id @db.Uuid
+  character_id    String    @db.Uuid
+  name            String
+  description     String?
+  reference_image String?
+  created_at      DateTime  @default(now())
+  Character       Character @relation(fields: [character_id], references: [id], onDelete: Cascade)
+
+  @@index([character_id])
+}
+
+model WorkflowExecution {
+  id              String    @id @db.Uuid
+  workflow_id     String
+  project_id      String    @db.Uuid
+  user_id         String    @db.Uuid
+  status          String    @default("pending")
+  current_step_id String?
+  progress        Float     @default(0)
+  data            Json      @default("{}")
+  metadata        Json?
+  error           String?
+  started_at      DateTime?
+  completed_at    DateTime?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime
+
+  @@index([project_id])
+  @@index([status])
+  @@index([user_id])
+}
+
+model WorkflowTemplate {
+  id                 String   @id @db.Uuid
+  name               String
+  description        String?
+  category           String
+  steps              Json     @default("[]")
+  estimated_duration Int      @default(0)
+  tags               String[] @default([])
+  is_public          Boolean  @default(false)
+  created_at         DateTime @default(now())
+  updated_at         DateTime
+
+  @@index([category])
 }
 
 enum AgentType {
@@ -515,342 +808,32 @@ enum AgentType {
   shot
 }
 
+enum ContentType {
+  script
+  novel
+  text
+  image
+  video
+  audio
+  storyline
+  outline
+}
+
+enum MemberRole {
+  owner
+  editor
+  viewer
+}
+
+enum ProjectType {
+  script
+  novel
+  mixed
+}
+
 enum TaskStatus {
   pending
   processing
   completed
   failed
-}
-
-model QualityReport {
-  id          String   @id @default(uuid()) @db.Uuid
-  userId      String   @map("user_id") @db.Uuid
-  type        String
-  targetId    String   @map("target_id")
-  score       String
-  metadata    Json?    @default("{}")
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  @@index([userId])
-  @@index([type])
-  @@index([targetId])
-}
-
-model WorkflowExecution {
-  id            String    @id @default(uuid()) @db.Uuid
-  workflowId    String    @map("workflow_id")
-  projectId     String    @map("project_id") @db.Uuid
-  userId        String    @map("user_id") @db.Uuid
-  status        String    @default("pending")
-  currentStepId String?   @map("current_step_id")
-  progress      Float     @default(0)
-  data          Json      @default("{}")
-  metadata      Json?     @map("metadata")
-  error         String?
-  startedAt     DateTime? @map("started_at")
-  completedAt   DateTime? @map("completed_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-
-  @@index([projectId])
-  @@index([userId])
-  @@index([status])
-}
-
-model WorkflowTemplate {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String
-  description String?
-  category    String
-  steps       Json     @default("[]")
-  estimatedDuration Int @default(0) @map("estimated_duration")
-  tags        String[] @default([])
-  isPublic    Boolean  @default(false) @map("is_public")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@index([category])
-}
-
-model VideoTutorial {
-  id             String   @id @default(uuid()) @db.Uuid
-  title          String
-  description    String
-  category       String
-  level          String
-  duration       Int
-  videoUrl       String   @map("video_url")
-  thumbnailUrl   String?  @map("thumbnail_url")
-  chapters       Json     @default("[]")
-  tags           String[] @default([])
-  prerequisites  String[] @default([])
-  relatedTutorials String[] @default([]) @map("related_tutorials")
-  views          Int      @default(0)
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-
-  @@index([category])
-  @@index([level])
-}
-
-model TutorialProgress {
-  id             String    @id @default(uuid()) @db.Uuid
-  tutorialId     String    @map("tutorial_id") @db.Uuid
-  userId         String    @map("user_id") @db.Uuid
-  progress       Float     @default(0)
-  completed      Boolean   @default(false)
-  watchedDuration Int      @default(0) @map("watched_duration")
-  lastWatchedAt  DateTime  @default(now()) @map("last_watched_at")
-  completedAt    DateTime? @map("completed_at")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-
-  @@unique([tutorialId, userId])
-  @@index([userId])
-}
-
-model TutorialRating {
-  id          String   @id @default(uuid()) @db.Uuid
-  tutorialId  String   @map("tutorial_id") @db.Uuid
-  userId      String   @map("user_id") @db.Uuid
-  rating      Int
-  comment     String?
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  @@unique([tutorialId, userId])
-  @@index([tutorialId])
-}
-
-model AlertRule {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String
-  metric      String
-  condition   String
-  threshold   Float
-  severity    String
-  enabled     Boolean  @default(true)
-  channels    String[] @default([])
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@index([metric])
-  @@index([enabled])
-}
-
-model AlertRecord {
-  id          String   @id @default(uuid()) @db.Uuid
-  ruleId      String   @map("rule_id") @db.Uuid
-  severity    String
-  message     String
-  channels    String[] @default([])
-  acknowledged Boolean @default(false) @map("acknowledged")
-  acknowledgedAt DateTime? @map("acknowledged_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  @@index([ruleId])
-  @@index([severity])
-  @@index([createdAt])
-}
-
-model Metrics {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  value     Float
-  unit      String?
-  timestamp DateTime @default(now()) @map("timestamp")
-
-  @@index([name])
-  @@index([timestamp])
-}
-
-model RenderTask {
-  id          String    @id @default(uuid()) @db.Uuid
-  type        String
-  status      String    @default("pending")
-  params      Json      @default("{}")
-  projectId   String    @map("project_id") @db.Uuid
-  priority    Int       @default(5)
-  progress    Float     @default(0)
-  error       String?
-  logs        Json?     @default("[]")
-  startedAt   DateTime? @map("started_at")
-  completedAt DateTime? @map("completed_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-
-  @@index([projectId])
-  @@index([status])
-  @@index([type])
-}
-
-model Backup {
-  id          String   @id @default(uuid()) @db.Uuid
-  projectId   String   @map("project_id") @db.Uuid
-  backupId    String   @map("backup_id") @unique
-  description String?
-  size        BigInt?
-  createdBy   String   @map("created_by") @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  @@index([projectId])
-  @@index([createdAt])
-}
-
-model BackupSchedule {
-  id            String    @id @default(uuid()) @db.Uuid
-  projectId     String    @map("project_id") @db.Uuid
-  frequency     String
-  time          String
-  includeAssets Boolean   @default(true) @map("include_assets")
-  retentionDays Int       @default(30) @map("retention_days")
-  enabled       Boolean   @default(true)
-  lastRun       DateTime? @map("last_run")
-  nextRun       DateTime? @map("next_run")
-  createdBy     String    @map("created_by") @db.Uuid
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-
-  @@index([projectId])
-  @@index([enabled])
-}
-
-model MigrationLog {
-  id          String   @id @default(uuid()) @db.Uuid
-  source      String
-  userId      String   @map("user_id") @db.Uuid
-  result      Json     @map("result")
-  timestamp   DateTime @default(now()) @map("timestamp")
-  status      String   @default("pending")
-
-  @@index([userId])
-  @@index([source])
-  @@index([timestamp])
-}
-
-model Plugin {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String   @unique
-  version     String
-  description String?
-  entryPoint  String   @map("entry_point")
-  permissions String[] @default([])
-  settings    Json?    @default("{}")
-  manifest    Json     @map("manifest")
-  isPublic    Boolean  @default(false) @map("is_public")
-  status      String   @default("pending")
-  installations Int   @default(0)
-  createdBy   String   @map("created_by") @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@index([status])
-  @@index([isPublic])
-}
-
-model ProjectPlugin {
-  id          String   @id @default(uuid()) @db.Uuid
-  pluginId    String   @map("plugin_id") @db.Uuid
-  projectId   String   @map("project_id") @db.Uuid
-  installedBy String   @map("installed_by") @db.Uuid
-  settings    Json     @default("{}")
-  status      String   @default("active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@unique([pluginId, projectId])
-  @@index([projectId])
-}
-
-model ProjectTemplate {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String
-  description String?
-  category    String
-  config      Json     @default("{}")
-  isPublic    Boolean  @default(false) @map("is_public")
-  usageCount  Int      @default(0) @map("usage_count")
-  createdBy   String   @map("created_by") @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@index([category])
-  @@index([createdBy])
-}
-
-model Asset {
-  id        String   @id @default(uuid()) @db.Uuid
-  type      String
-  url       String
-  projectId String   @map("project_id") @db.Uuid
-  metadata  Json?    @default("{}")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@index([projectId])
-  @@index([type])
-}
-
-model ProjectVersion {
-  id          String   @id @default(uuid()) @db.Uuid
-  projectId   String   @map("project_id") @db.Uuid
-  name        String?
-  description String?
-  tags        String[] @default([])
-  snapshot    Json     @map("snapshot")
-  parentId    String?  @map("parent_id") @db.Uuid
-  version     Int      @default(1)
-  createdBy   String   @map("created_by") @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  @@index([projectId])
-  @@index([parentId])
-  @@index([createdBy])
-}
-
-model SceneConcept {
-  id          String   @id @default(uuid()) @db.Uuid
-  projectId   String   @map("project_id") @db.Uuid
-  name        String
-  description String?
-  location    String
-  timeOfDay   String?  @map("time_of_day")
-  atmosphere  String?
-  referenceImages String[] @default([]) @map("reference_images")
-  aiPrompt    String?  @map("ai_prompt")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@index([projectId])
-}
-
-model ScriptAnalysis {
-  id          String   @id @default(uuid()) @db.Uuid
-  projectId   String   @map("project_id") @db.Uuid
-  content     String
-  summary     String?
-  themes      String[] @default([])
-  characters  Json     @default("[]")
-  plotPoints  Json     @default("[]")
-  sentiment   String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@index([projectId])
-}
-
-model VisualPrompt {
-  id          String   @id @default(uuid()) @db.Uuid
-  projectId   String   @map("project_id") @db.Uuid
-  shotId      String?  @map("shot_id") @db.Uuid
-  prompt      String
-  type        String   @default("general")
-  style       String?
-  parameters  Json?    @default("{}")
-  result      String?
-  status      String   @default("pending")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@index([projectId])
-  @@index([shotId])
 }

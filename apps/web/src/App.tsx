@@ -2,6 +2,7 @@ import React, { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { QueryProvider } from './core/query/QueryProvider'
 import HomePage from './pages/HomePage'
 import TestPage from './pages/TestPage'
 import SimpleTest from './pages/SimpleTest'
@@ -45,6 +46,12 @@ const AssetsPage = lazy(() => import('./pages/AssetsPage'))
 const ImageGenerationPage = lazy(() => import('./pages/ImageGenerationPage'))
 const VideoGenerationPage = lazy(() => import('./pages/VideoGenerationPage'))
 const ButtonShowcasePage = lazy(() => import('./pages/ButtonShowcasePage'))
+const AdminLoginPage = lazy(() => import('./pages/admin/AdminLoginPage'))
+const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'))
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
+const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'))
+const AdminAssetsPage = lazy(() => import('./pages/admin/AdminAssetsPage'))
+const AdminLogsPage = lazy(() => import('./pages/admin/AdminLogsPage'))
 const DashboardLayout = lazy(() => import('./layouts/DashboardLayout').then(module => ({ default: module.DashboardLayout })))
 const ProjectLayout = lazy(() => import('./layouts/ProjectLayout').then(module => ({ default: module.ProjectLayout })))
 
@@ -94,12 +101,13 @@ function LoadingComponent() {
 function App() {
   return (
     <ThemeProvider>
-      <ToastProvider>
-        <BrowserRouter>
-          <AuthProvider>
-            <PageTransition>
-              <Suspense fallback={<LoadingComponent />}>
-                <Routes>
+      <QueryProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <AuthProvider>
+              <PageTransition>
+                <Suspense fallback={<LoadingComponent />}>
+                  <Routes>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/test" element={<TestPage />} />
                   <Route path="/simple" element={<SimpleTest />} />
@@ -107,6 +115,16 @@ function App() {
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/register" element={<RegisterPage />} />
                   <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                  
+                  {/* Admin Routes */}
+                  <Route path="/admin/login" element={<AdminLoginPage />} />
+                  <Route path="/admin" element={<AdminLayout />}>
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="users" element={<AdminUsersPage />} />
+                    <Route path="assets" element={<AdminAssetsPage />} />
+                    <Route path="logs" element={<AdminLogsPage />} />
+                  </Route>
+                  
                   <Route path="/projects/new" element={<ProtectedRoute><CreateProjectPage /></ProtectedRoute>} />
                   <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetailPage /></ProtectedRoute>} />
 
@@ -153,6 +171,7 @@ function App() {
           </AuthProvider>
         </BrowserRouter>
       </ToastProvider>
+      </QueryProvider>
     </ThemeProvider>
   )
 }

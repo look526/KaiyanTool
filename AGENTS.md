@@ -278,3 +278,5 @@ zhipu: {
 ```
 
 但实际使用的模型应该从数据库的 `AIModel` 表中读取，而不是硬编码。
+
+所有的prompts提示词，都要放在[text](apps/api/src/prompts)这个文件下

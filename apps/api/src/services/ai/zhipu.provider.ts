@@ -17,10 +17,15 @@ export class ZhipuProvider extends AIProvider {
       messages,
       temperature: options.temperature ?? 0.7,
       top_p: options.topP ?? 1,
-      max_tokens: options.maxTokens ?? 4000,
+      max_tokens: options.maxTokens ?? 8192,
+      stream: false,
     }
 
-    console.log('[DEBUG Zhipu] Request:', { model: requestBody.model, max_tokens: requestBody.max_tokens, messagesCount: messages.length });
+    logger.debug('Zhipu chat request', { 
+      model: requestBody.model, 
+      maxTokens: requestBody.max_tokens, 
+      messageCount: messages.length 
+    });
 
     const response = await this.request('/chat/completions', {
       method: 'POST',
@@ -29,8 +34,6 @@ export class ZhipuProvider extends AIProvider {
       },
       body: JSON.stringify(requestBody),
     })
-
-    console.log('[DEBUG Zhipu] Response:', JSON.stringify(response).substring(0, 500));
 
     if (!response.choices || response.choices.length === 0) {
       throw new Error('No response choices returned from Zhipu AI API')
@@ -44,14 +47,20 @@ export class ZhipuProvider extends AIProvider {
       throw new Error('AI返回内容为空，请检查API响应格式')
     }
     
-    console.log('[DEBUG Zhipu] Content length:', messageContent?.length);
-    
     if (message?.message?.reasoning_content && !message?.message?.content) {
-      console.warn('[DEBUG Zhipu] Warning: Using reasoning_content instead of final content. AI should return final JSON result, not reasoning process.');
+      logger.warn('Zhipu AI returned reasoning_content instead of final content', {
+        model: requestBody.model
+      });
       throw new Error('AI返回的是推理过程而不是最终结果，请调整Prompt要求只返回JSON');
     }
 
     const finishReason = response.choices[0].finish_reason
+
+    logger.debug('Zhipu chat response', { 
+      contentLength: messageContent.length,
+      finishReason,
+      model: response.model
+    });
 
     return {
       content: messageContent,
@@ -130,15 +139,15 @@ export class ZhipuProvider extends AIProvider {
 
       return response.json()
     } catch (error) {
-        if (error instanceof Error) {
-          throw error
-        }
-        
-        logger.error('Zhipu AI API request error', {
-          endpoint,
-          error: String(error),
-        })
-        throw new Error(`Zhipu AI request failed: ${String(error)}`)
+      if (error instanceof Error) {
+        throw error
       }
+      
+      logger.error('Zhipu AI API request error', {
+        endpoint,
+        error: String(error),
+      })
+      throw new Error(`Zhipu AI request failed: ${String(error)}`)
+    }
   }
 }

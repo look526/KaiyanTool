@@ -120,28 +120,8 @@ function ScriptEditorContent() {
   const [isRewriting, setIsRewriting] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isParsingScenes, setIsParsingScenes] = useState(false);
-  const [showSceneOptimizer, setShowSceneOptimizer] = useState(false);
   const [useAIParsing, setUseAIParsing] = useState(true);
   const [showSceneOptimizerModal, setShowSceneOptimizerModal] = useState(false);
-  const [availableScenes, setAvailableScenes] = useState<Array<{
-    id: number;
-    original: string;
-    location: string;
-    time: string;
-    content: string;
-    heading: string;
-  }>>([]);
-  const [parsedScenesForOptimization, setParsedScenesForOptimization] = useState<Array<{
-    id: number;
-    original: string;
-    location: string;
-    time: string;
-    content: string;
-    suggestion?: string;
-    optimized?: string;
-    userDirection?: string;
-    isOptimizing?: boolean;
-  }>>([]);
   const [editorMode, setEditorMode] = useState<'edit' | 'preview'>('edit');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string>('');
@@ -330,7 +310,7 @@ function ScriptEditorContent() {
   };
 
   const handleParseScenes = async () => {
-    console.log('[场景解析] 开始处理', { contentLength: content.length, contentTrimmed: content.trim(), isParsingScenes, useAIParsing });
+    console.log('[剧本解析] 开始处理', { contentLength: content.length, contentTrimmed: content.trim(), isParsingScenes, useAIParsing });
     
     if (!content.trim() || isParsingScenes) {
       if (!content.trim()) {
@@ -340,87 +320,29 @@ function ScriptEditorContent() {
     }
     
     try {
-      console.log('[场景解析] 开始发送API请求，使用AI:', useAIParsing);
+      console.log('[剧本解析] 开始发送API请求，使用AI:', useAIParsing);
       setIsParsingScenes(true);
       
       let result;
       if (useAIParsing) {
-        result = await apiClient.parseScriptWithAI(content);
+        result = await apiClient.parseScriptWithAI(content, selectedModel || undefined);
       } else {
         result = await apiClient.parseScript(content);
       }
       
-      console.log('[场景解析] API返回结果:', result);
+      console.log('[剧本解析] API返回结果:', result);
       
       if (result.scenes && result.scenes.length > 0) {
-        const scenesWithContent = result.scenes.map((scene: any, index: number) => ({
-          id: index + 1,
-          original: scene.original || scene.content || '',
-          location: scene.location || `场景${index + 1}`,
-          time: scene.time || '白天',
-          content: scene.content || scene.description || '',
-          suggestion: '',
-          optimized: '',
-          userDirection: '',
-          isOptimizing: false,
-        }));
-        setParsedScenesForOptimization(scenesWithContent);
-        setShowSceneOptimizer(true);
-        addToast({ type: 'success', title: '解析成功', message: `成功解析 ${scenesWithContent.length} 个场景` });
+        addToast({ type: 'success', title: '解析成功', message: `成功解析 ${result.scenes.length} 个场景，${result.characters?.length || 0} 个角色` });
       } else {
         addToast({ type: 'info', title: '未检测到场景', message: '请确保剧本格式正确，包含场景标记，如"场景1 - 室内，白天"' });
       }
     } catch (error) {
-      console.error('[场景解析] 失败:', error);
-      addToast({ type: 'error', title: '场景解析失败', message: error instanceof Error ? error.message : '请稍后重试' });
+      console.error('[剧本解析] 失败:', error);
+      addToast({ type: 'error', title: '剧本解析失败', message: error instanceof Error ? error.message : '请稍后重试' });
     } finally {
       setIsParsingScenes(false);
     }
-  };
-
-  const handleOptimizeScene = async (sceneId: number, direction: string) => {
-    const sceneIndex = parsedScenesForOptimization.findIndex(s => s.id === sceneId);
-    if (sceneIndex === -1) return;
-    const scene = parsedScenesForOptimization[sceneIndex];
-    setParsedScenesForOptimization(prev => prev.map(s => s.id === sceneId ? { ...s, isOptimizing: true } : s));
-    try {
-      const result = await apiClient.optimizeScene({
-        sceneContent: scene.content,
-        location: scene.location,
-        time: scene.time,
-        direction: direction || '增强场景描述，使画面感更强',
-      });
-      setParsedScenesForOptimization(prev => prev.map(s => s.id === sceneId ? { ...s, suggestion: result.suggestion || result.optimized, optimized: result.optimized || result.suggestion, isOptimizing: false } : s));
-    } catch (error) {
-      console.error('场景优化失败:', error);
-      addToast({ type: 'error', title: '场景优化失败', message: '请稍后重试。' });
-      setParsedScenesForOptimization(prev => prev.map(s => s.id === sceneId ? { ...s, isOptimizing: false } : s));
-    }
-  };
-
-  const handleApplySceneOptimization = (sceneId: number) => {
-    const scene = parsedScenesForOptimization.find(s => s.id === sceneId);
-    if (!scene || !scene.optimized) return;
-    const sceneRegex = new RegExp(`(场景\\s*${sceneId}[\\s\\-：:]*[^\\n]*(?:\\n[^场景]*)*)`, 'gi');
-    const newContent = content.replace(sceneRegex, scene.optimized);
-    setContent(newContent);
-    saveToLocalStorage(mode);
-    setParsedScenesForOptimization(prev => prev.map(s => s.id === sceneId ? { ...s, original: s.optimized || s.original || '', optimized: '', suggestion: '' } : s));
-    addToast({ type: 'success', title: '已应用优化', message: `场景 ${sceneId} 已更新` });
-  };
-
-  const handleApplyAllOptimizations = () => {
-    let newContent = content;
-    parsedScenesForOptimization.forEach(scene => {
-      if (scene.optimized) {
-        const sceneRegex = new RegExp(`(场景\\s*${scene.id}[\\s\\-：:]*[^\\n]*(?:\\n[^场景]*)*)`, 'gi');
-        newContent = newContent.replace(sceneRegex, scene.optimized);
-      }
-    });
-    setContent(newContent);
-    saveToLocalStorage(mode);
-    setShowSceneOptimizer(false);
-    addToast({ type: 'success', title: '全部应用成功', message: '所有场景优化已应用到剧本' });
   };
 
   const editorOptions = {
@@ -441,8 +363,8 @@ function ScriptEditorContent() {
     { id: 'continue', label: 'AI续写', icon: Sparkles, color: '#007AFF', handler: handleContinueScript, loading: isContinuing, disabled: isContinuing || isRewriting || isOptimizing || !content.trim() || !selectedModel },
     { id: 'rewrite', label: 'AI改写', icon: Wand2, color: '#10b981', handler: handleRewriteScript, loading: isRewriting, disabled: isContinuing || isRewriting || isOptimizing || !content.trim() || !selectedModel },
     { id: 'optimize', label: 'AI优化', icon: Zap, color: '#f59e0b', handler: handleOptimizeScript, loading: isOptimizing, disabled: isContinuing || isRewriting || isOptimizing || !content.trim() || !selectedModel },
-    { id: 'parse', label: '场景解析', icon: MapPin, color: '#ec4899', handler: handleParseScenes, loading: isParsingScenes, disabled: isParsingScenes || !content.trim() },
-    { id: 'scene-optimizer', label: '场景优化', icon: FileEdit, color: '#8b5cf6', handler: () => setShowSceneOptimizerModal(true), loading: false, disabled: false },
+    { id: 'parse', label: '剧本解析', icon: MapPin, color: '#ec4899', handler: handleParseScenes, loading: isParsingScenes, disabled: isParsingScenes || !content.trim() },
+    { id: 'scene-optimizer', label: '场景优化', icon: FileEdit, color: '#8b5cf6', handler: () => setShowSceneOptimizerModal(true), loading: false, disabled: !content.trim() },
   ];
 
   return (
@@ -1033,7 +955,7 @@ function ScriptEditorContent() {
               marginBottom: '6px' 
             }}>
               <span style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: '500' }}>
-                场景解析模式
+                剧本解析模式
               </span>
               <span style={{ 
                 fontSize: '10px', 
@@ -1268,239 +1190,13 @@ function ScriptEditorContent() {
         </div>
       </div>
 
-      {showSceneOptimizer && (
-        <div style={{ 
-          position: 'fixed', 
-          inset: 0, 
-          backgroundColor: 'rgba(0, 0, 0, 0.5)', 
-          backdropFilter: 'blur(8px)',
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          zIndex: 1000,
-          padding: '20px',
-        }} onClick={() => setShowSceneOptimizer(false)}>
-          <div style={{
-            background: 'var(--bg-card)',
-            borderRadius: '24px',
-            maxWidth: '900px',
-            width: '100%',
-            maxHeight: '85vh',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-            boxShadow: '0 25px 50px rgba(0,0,0,0.2)',
-            border: '1px solid var(--border-primary)',
-          }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ 
-              padding: '24px', 
-              borderBottom: '1px solid var(--border-primary)', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-              background: 'var(--bg-hover)',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <div style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 4px 14px rgba(236, 72, 153, 0.3)',
-                }}>
-                  <MapPin style={{ width: '22px', height: '22px', color: 'white' }} />
-                </div>
-                <div>
-                  <h2 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', margin: '0 0 4px 0' }}>场景优化器</h2>
-                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>解析到 {parsedScenesForOptimization.length} 个场景，选择优化方向后生成建议</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowSceneOptimizer(false)}
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--border-primary)',
-                  background: 'var(--bg-hover)',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.2s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
-                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
-                  e.currentTarget.style.color = '#ef4444';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'var(--bg-hover)';
-                  e.currentTarget.style.borderColor = 'var(--border-primary)';
-                  e.currentTarget.style.color = 'var(--text-muted)';
-                }}
-              >
-                <X style={{ width: '18px', height: '18px' }} />
-              </button>
-            </div>
-
-            <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-              {parsedScenesForOptimization.map((scene) => (
-                <div 
-                  key={scene.id} 
-                  style={{ 
-                    background: 'var(--bg-hover)', 
-                    borderRadius: '16px', 
-                    padding: '20px', 
-                    marginBottom: '16px', 
-                    border: '1px solid var(--border-primary)',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ 
-                        padding: '4px 12px', 
-                        background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', 
-                        color: 'white', 
-                        borderRadius: '8px', 
-                        fontSize: '12px', 
-                        fontWeight: '600',
-                        boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
-                      }}>场景 {scene.id}</span>
-                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{scene.location} · {scene.time}</span>
-                    </div>
-                  </div>
-
-                  <div style={{ 
-                    padding: '14px', 
-                    background: 'var(--bg-input)', 
-                    borderRadius: '12px', 
-                    marginBottom: '16px', 
-                    fontSize: '13px', 
-                    color: 'var(--text-secondary)', 
-                    lineHeight: '1.7', 
-                    whiteSpace: 'pre-wrap',
-                    border: '1px solid var(--border-primary)',
-                  }}>
-                    {scene.content}
-                  </div>
-
-                  <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>优化方向 (可选)</label>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                      <input 
-                        type="text" 
-                        placeholder="例如：增加环境细节、强化氛围描写..." 
-                        value={scene.userDirection || ''} 
-                        onChange={(e) => { setParsedScenesForOptimization(prev => prev.map(s => s.id === scene.id ? { ...s, userDirection: e.target.value } : s)); }} 
-                        style={{
-                          flex: 1,
-                          padding: '12px 16px',
-                          borderRadius: '12px',
-                          border: '1px solid var(--border-primary)',
-                          background: 'var(--bg-input)',
-                          color: 'var(--text-primary)',
-                          fontSize: '13px',
-                          outline: 'none',
-                          transition: 'all 0.2s ease',
-                        }} 
-                        onFocus={(e) => { 
-                          e.currentTarget.style.borderColor = '#6366f1'; 
-                          e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)'; 
-                        }} 
-                        onBlur={(e) => { 
-                          e.currentTarget.style.borderColor = 'var(--border-primary)'; 
-                          e.currentTarget.style.boxShadow = 'none'; 
-                        }} 
-                      />
-                      <button
-                        onClick={() => handleOptimizeScene(scene.id, scene.userDirection || '')}
-                        disabled={scene.isOptimizing}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '10px 18px',
-                          borderRadius: '10px',
-                          border: 'none',
-                          background: scene.isOptimizing ? 'var(--bg-hover)' : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                          color: scene.isOptimizing ? 'var(--text-muted)' : '#fff',
-                          fontSize: '13px',
-                          fontWeight: '500',
-                          cursor: scene.isOptimizing ? 'not-allowed' : 'pointer',
-                          opacity: scene.isOptimizing ? 0.7 : 1,
-                          transition: 'all 0.2s ease',
-                        }}
-                      >
-                        {scene.isOptimizing ? (
-                          <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                        ) : (
-                          <Sparkles style={{ width: '16px', height: '16px' }} />
-                        )}
-                        生成建议
-                      </button>
-                    </div>
-                  </div>
-
-                  {scene.suggestion && (
-                    <div style={{ 
-                      padding: '16px', 
-                      background: 'rgba(16, 185, 129, 0.1)', 
-                      border: '1px solid rgba(16, 185, 129, 0.3)', 
-                      borderRadius: '12px', 
-                      marginBottom: '12px',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <Check style={{ width: '14px', height: '14px' }} />
-                          AI 优化建议
-                        </span>
-                        <Button variant="success" size="sm" onClick={() => handleApplySceneOptimization(scene.id)} icon={<Check style={{ width: '14px', height: '14px' }} />}>采纳</Button>
-                      </div>
-                      <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', lineHeight: '1.7', whiteSpace: 'pre-wrap' }}>{scene.optimized}</div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div style={{ 
-              padding: '16px 24px', 
-              borderTop: '1px solid rgba(255,255,255,0.1)', 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              background: 'rgba(255,255,255,0.02)',
-            }}>
-              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
-                {parsedScenesForOptimization.filter(s => s.optimized).length} / {parsedScenesForOptimization.length} 个场景已优化
-              </span>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <Button variant="outline" size="md" onClick={() => setShowSceneOptimizer(false)}>取消</Button>
-                <Button variant="primary" size="md" onClick={handleApplyAllOptimizations} disabled={parsedScenesForOptimization.filter(s => s.optimized).length === 0}>应用全部优化</Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <SceneOptimizer
         isOpen={showSceneOptimizerModal}
         onClose={() => setShowSceneOptimizerModal(false)}
-        scenes={availableScenes}
-        onApplyOptimization={(sceneId, optimizedContent) => {
-          const sceneIndex = availableScenes.findIndex(s => s.id === sceneId);
-          if (sceneIndex === -1) return;
-          const scene = availableScenes[sceneIndex];
-          
-          const sceneRegex = new RegExp(`(\\*{0,2}场景\\s*${sceneId}[\\s\\-：:]*[^\\n]*(?:\\n[^场景]*)*)`, 'gi');
-          const newContent = content.replace(sceneRegex, optimizedContent);
-          setContent(newContent);
-          addToast({ type: 'success', title: '场景已优化', message: `场景 ${sceneId} 优化内容已应用` });
+        scriptContent={content}
+        onApplyOptimization={(optimizedContent) => {
+          setContent(optimizedContent);
+          addToast({ type: 'success', title: '优化已应用', message: '剧本优化内容已应用' });
         }}
       />
 

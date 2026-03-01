@@ -20,22 +20,42 @@ export interface AISegmentResult {
       description: string
       type: string
     }>
+    items?: Array<{
+      name: string
+      size: string
+      shape: string
+      color: string
+    }>
   }>
   characters: Array<{
     id: string
     name: string
     description?: string
     lines: number
+    personality?: string[]
+    costume?: {
+      type: string
+      color: string
+      material: string
+      decoration: string
+    }
+    appearance?: {
+      hairStyle: string
+      facialFeatures: string
+      bodyProportion: string
+      otherDetails: string[]
+    }
   }>
 }
 
 export class AIProcessor {
-  private defaultModel = 'glm-4'
+  private defaultModel = 'glm-4.7'
   private temperature = 0.3
-  private maxTokens = 4000
+  private maxTokens = 8192
 
   setDefaultModel(model: string) {
     this.defaultModel = model
+    console.log(`[AI处理器] 设置默认模型: ${this.defaultModel}`)
   }
 
   setTemperature(temperature: number) {
@@ -72,7 +92,7 @@ export class AIProcessor {
         content: prompt
       }
     ], {
-      model: model || this.defaultModel,
+      model: model,
       temperature: this.temperature,
       maxTokens: this.maxTokens
     })
@@ -128,20 +148,7 @@ export class AIProcessor {
   }
 
   private sanitizeOutput(data: any): AISegmentResult {
-    if (Array.isArray(data)) {
-      return data.map((item, index) => {
-        if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
-          const sanitized: any = {}
-          for (const [key, value] of Object.entries(item)) {
-            sanitized[key] = value
-          }
-          return sanitized
-        }
-        return item
-      })
-    }
-
-    if (typeof data === 'object' && data !== null) {
+    if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
       const sanitized: any = {}
       for (const [key, value] of Object.entries(data)) {
         sanitized[key] = value
@@ -149,6 +156,10 @@ export class AIProcessor {
       return sanitized
     }
 
-    return data
+    if (Array.isArray(data)) {
+      throw new Error('AI返回了数组而非对象，请检查AI响应格式')
+    }
+
+    throw new Error('AI返回了无效的数据格式')
   }
 }

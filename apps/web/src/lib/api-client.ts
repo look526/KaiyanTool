@@ -57,6 +57,13 @@ export class ApiClient {
     })
   }
 
+  async patch<T>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
   async delete<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE' })
   }
@@ -114,6 +121,22 @@ export class ApiClient {
 
   async deleteAIProvider(id: string) {
     return this.delete(`/ai-providers/${id}`)
+  }
+
+  async testAIProvider(id: string) {
+    return this.post<{ success: boolean; message: string }>(`/ai-providers/${id}/test`)
+  }
+
+  async testAIProviderModel(modelId: string) {
+    return this.post<{ success: boolean; message: string; model: any; testResult?: any }>(`/ai-providers/models/${modelId}/test`)
+  }
+
+  async setAssistantDefaultModel(modelId: string) {
+    return this.post<{ message: string }>(`/ai-providers/models/${modelId}/set-assistant-default`)
+  }
+
+  async unsetAssistantDefaultModel(modelId: string) {
+    return this.post<{ message: string }>(`/ai-providers/models/${modelId}/unset-assistant-default`)
   }
 
   async createAIProviderModel(providerId: string, data: any) {
@@ -294,12 +317,22 @@ export class ApiClient {
     return this.post<any>(`/characters/${characterId}/wardrobes`, data)
   }
 
-  async getAssets(type?: string, search?: string) {
+  async getAssets(type?: string, search?: string, category?: string, source?: string) {
     const params = new URLSearchParams()
     if (type && type !== 'all') params.append('type', type)
     if (search) params.append('search', search)
+    if (category && category !== 'all') params.append('category', category)
+    if (source && source !== 'all') params.append('source', source)
     const query = params.toString() ? `?${params.toString()}` : ''
     return this.get<any[]>(`/upload/assets${query}`)
+  }
+
+  async getAssetCategories() {
+    return this.get<{ categories: Array<{ value: string; label: string }>; sources: Array<{ value: string; label: string }> }>('/upload/categories')
+  }
+
+  async updateAssetCategory(assetId: string, category: string) {
+    return this.patch<any>(`/upload/assets/${assetId}/category`, { category })
   }
 
   async uploadAssetGlobal(file: File) {
@@ -320,29 +353,16 @@ export class ApiClient {
     return response.json()
   }
 
-  async uploadImage(file: File) {
+  async uploadImage(file: File, projectId?: string) {
     const formData = new FormData()
     formData.append('file', file)
-    
-    const response = await fetch(`${this.baseUrl}/assets/images/character`, {
-      method: 'POST',
-      body: formData,
-      credentials: 'include',
-    })
-    
-    if (!response.ok) {
-      const error = await response.text()
-      throw new Error(error || 'Upload failed')
+    formData.append('category', 'character')
+    formData.append('source', 'upload')
+    if (projectId) {
+      formData.append('projectId', projectId)
     }
     
-    return response.json()
-  }
-
-  async uploadSceneImage(file: File) {
-    const formData = new FormData()
-    formData.append('file', file)
-    
-    const response = await fetch(`${this.baseUrl}/assets/images/scene`, {
+    const response = await fetch(`${this.baseUrl}/upload/assets`, {
       method: 'POST',
       body: formData,
       credentials: 'include',
@@ -357,15 +377,17 @@ export class ApiClient {
   }
 
   async deleteAsset(id: string) {
-    return this.delete(`/assets/${id}`)
+    return this.delete(`/upload/assets/${id}`)
   }
 
-  async getProjectAssets(projectId: string, type?: string, search?: string) {
+  async getProjectAssets(projectId: string, type?: string, search?: string, category?: string, source?: string) {
     const params = new URLSearchParams()
     if (type) params.append('type', type)
     if (search) params.append('search', search)
+    if (category && category !== 'all') params.append('category', category)
+    if (source && source !== 'all') params.append('source', source)
     const queryString = params.toString()
-    return this.get<any[]>(`/projects/${projectId}/assets${queryString ? `?${queryString}` : ''}`)
+    return this.get<any[]>(`/upload/projects/${projectId}/assets${queryString ? `?${queryString}` : ''}`)
   }
 
   async uploadProjectAsset(projectId: string, file: File, type: string) {
@@ -373,7 +395,7 @@ export class ApiClient {
     formData.append('file', file)
     formData.append('type', type)
     
-    const response = await fetch(`${this.baseUrl}/projects/${projectId}/assets`, {
+    const response = await fetch(`${this.baseUrl}/upload/projects/${projectId}/assets`, {
       method: 'POST',
       body: formData,
       credentials: 'include',
@@ -388,7 +410,7 @@ export class ApiClient {
   }
 
   async deleteProjectAsset(projectId: string, assetId: string) {
-    return this.delete(`/projects/${projectId}/assets/${assetId}`)
+    return this.delete(`/upload/projects/${projectId}/assets/${assetId}`)
   }
 
   async getPromptTemplates(category?: string) {
@@ -502,8 +524,12 @@ export class ApiClient {
     return this.post<any>(`/projects/${projectId}/members`, { userId, role })
   }
 
-  async generateImage(data: { prompt: string; negativePrompt?: string; width: number; height: number; style: string; projectId?: string | undefined; model?: string }) {
-    return this.post<any>('/image/generate', data)
+  async generateImage(data: { prompt: string; negativePrompt?: string; width: number; height: number; style: string; projectId?: string | undefined; model?: string; category?: string; image_urls?: string[]; threeView?: boolean }) {
+    return this.post<any>('/image-generation/generate', data)
+  }
+
+  async batchGenerateImages(data: { prompt: string; count: number; referenceImageUrl?: string; providerId?: string }) {
+    return this.post<any>('/image-generation/batch', data)
   }
 
   async removeProjectMember(projectId: string, userId: string) {
@@ -604,6 +630,34 @@ export class ApiClient {
 
   async generateStorylineFromForm(formData: any) {
     return this.post<any>('/novel/generate-storyline', formData)
+  }
+
+  async superResolution(imageId: string, scale: number = 2) {
+    return this.post<{ url: string }>('/image-enhancement/super-resolution', { imageId, scale })
+  }
+
+  async upscaleImage(imageId: string, scale: number = 2) {
+    return this.post<{ url: string }>('/image-enhancement/upscale', { imageId, scale })
+  }
+
+  async inpainting(imageId: string, maskPrompt: string) {
+    return this.post<{ url: string }>('/image-enhancement/inpainting', { imageId, maskPrompt })
+  }
+
+  async removeBackground(imageId: string) {
+    return this.post<{ url: string }>('/image-enhancement/background-removal', { imageId })
+  }
+
+  async faceEnhancement(imageId: string, strength: number = 0.5) {
+    return this.post<{ url: string }>('/image-enhancement/face-enhancement', { imageId, strength })
+  }
+
+  async colorCorrection(imageId: string, data: { brightness?: number; contrast?: number; saturation?: number }) {
+    return this.post<{ url: string }>('/image-enhancement/color-correction', { imageId, ...data })
+  }
+
+  async styleTransfer(imageId: string, style?: string, strength: number = 0.5) {
+    return this.post<{ url: string }>('/image-enhancement/style-transfer', { imageId, style, strength })
   }
 }
 

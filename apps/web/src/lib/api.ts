@@ -48,6 +48,7 @@ export interface ApiClientInterface {
   createProject(data: CreateProjectData): Promise<Project>;
   updateProject(id: string, data: Partial<CreateProjectData>): Promise<Project>;
   deleteProject(id: string): Promise<{ message: string }>;
+  getAIProviders(): Promise<{ providers: AIProvider[]; pagination: PaginationMeta }>;
   getAIProviders(params?: {
     page?: number;
     limit?: number;
@@ -91,20 +92,30 @@ export interface ApiClientInterface {
   deleteDocumentById(id: string): Promise<{ message: string }>;
   generateVideo(projectId: string, documentId: string, data: { aiProviderId: string; model: string }): Promise<{ video: Video }>;
   generateShotVideo(shotId: string, providerId: string): Promise<{ success: boolean; videoUrl?: string }>;
-  parseScript(content: string): Promise<{ scenes: any[]; characters: string[] }>;
+  parseScript(content: string, model?: string): Promise<{ scenes: any[]; characters: string[] }>;
   saveScript(projectId: string, title: string, content: string): Promise<{ success: boolean; project: Project }>;
   getScript(scriptId: string): Promise<{ id: string; title: string; content: string; createdAt: string; updatedAt: string }>;
   getProjectScripts(projectId: string): Promise<Array<{ id: string; title: string; content: string; createdAt: string; updatedAt: string }>>;
-  uploadImage(file: File): Promise<{ url: string; filename: string }>;
+  uploadImage(file: File, projectId?: string): Promise<{ url: string; filename: string }>;
+  deleteAsset(assetId: string): Promise<{ message: string }>;
   uploadCharacterImage(file: File): Promise<{ url: string; filename: string }>;
   uploadSceneImage(file: File): Promise<{ url: string; filename: string }>;
+  getAssetCategories(): Promise<{ categories: Array<{ value: string; label: string }>; sources: Array<{ value: string; label: string }> }>;
+  updateAssetCategory(assetId: string, category: string): Promise<any>;
   generateShotsFromScript(projectId: string, scriptContent: string, visualStyle?: string): Promise<{ success: boolean; count: number; shots: any[] }>;
   optimizeShotPrompt(shotId: string, referenceImages: string[]): Promise<{ success: boolean; startPrompt: string; endPrompt: string; shot: any }>;
   optimizeScene(data: { sceneContent: string; location: string; time: string; direction?: string }): Promise<{ suggestion: string; optimized: string }>;
-  generateImage(data: { prompt: string; negativePrompt?: string; width: number; height: number; style: string; projectId: string }): Promise<{ asset: { url: string } }>;
+  generateImage(data: { prompt: string; negativePrompt?: string; width: number; height: number; style: string; projectId?: string; model?: string; category?: string; image_urls?: string[]; threeView?: boolean }): Promise<{ asset: { url: string } }>;
   batchGenerateImages(data: { prompt: string; count: number; referenceImageUrl?: string; providerId?: string }): Promise<{ assets: Array<{ url: string; filename: string }> }>;
-  getProjectAssets(projectId: string, type?: string, search?: string): Promise<any[]>;
+  getProjectAssets(projectId: string, type?: string, search?: string, category?: string, source?: string): Promise<any[]>;
   polishPrompt(prompt: string, type?: string, style?: string): Promise<{ polished: string }>;
+  processContentWithFile(content: string, mode: 'continue' | 'rewrite' | 'optimize', model?: string): Promise<any>;
+  parseScriptWithAI(content: string, model?: string): Promise<any>;
+  optimizePrompt(prompt: string, model?: string, type?: string): Promise<any>;
+  getModelPreferences(): Promise<any>;
+  setDefaultModels(configurations: any[]): Promise<any>;
+  testModel(data: any): Promise<any>;
+  recordModelUsage(data: { modelId: string; contentType: string; success: boolean }): Promise<any>;
   expandPrompt(prompt: string, type?: string): Promise<{ expanded: string }>;
   translatePrompt(prompt: string, targetLanguage: string): Promise<{ translated: string }>;
   generateNegativePrompt(prompt: string, type?: string): Promise<{ negative: string }>;
@@ -187,4 +198,4 @@ export type {
 };
 
 // 导出新的 API 客户端实例，保持向后兼容性
-export const apiClient: ApiClientInterface = newApiClient;
+export const apiClient = newApiClient as unknown as ApiClientInterface;

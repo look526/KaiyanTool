@@ -2,13 +2,15 @@ import { Router } from 'express'
 import { uploadController } from '../controllers/upload.controller'
 import { authMiddleware } from '../middleware/auth.middleware'
 import multer from 'multer'
+import { prisma } from '../lib/prisma'
+import { ASSET_CATEGORIES, ASSET_SOURCES, ASSET_CATEGORY_LABELS, ASSET_SOURCE_LABELS } from '../constants/asset-categories'
 
 const storage = multer.memoryStorage()
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true)
     } else {
@@ -26,6 +28,19 @@ router.post('/images/character', upload.single('file'), uploadController.uploadC
 router.post('/images/scene', upload.single('file'), uploadController.uploadSceneImage.bind(uploadController))
 router.delete('/images/:filename', uploadController.deleteImage.bind(uploadController))
 
+router.get('/categories', (_req, res) => {
+  res.json({
+    categories: Object.entries(ASSET_CATEGORY_LABELS).map(([value, label]) => ({
+      value,
+      label
+    })),
+    sources: Object.entries(ASSET_SOURCE_LABELS).map(([value, label]) => ({
+      value,
+      label
+    }))
+  })
+})
+
 router.get('/assets', async (req, res) => {
   try {
     if (!req.userId) {
@@ -33,8 +48,7 @@ router.get('/assets', async (req, res) => {
       return
     }
 
-    const { type, search } = req.query
-    const { prisma } = await import('../lib/prisma')
+    const { type, search, category, source } = req.query
     
     const userProjects = await prisma.project.findMany({
       where: {
@@ -47,6 +61,7 @@ router.get('/assets', async (req, res) => {
     })
 
     const projectIds = userProjects.map(p => p.id)
+    projectIds.push('00000000-0000-0000-0000-000000000000')
 
     const assets = await prisma.asset.findMany({
       where: { projectId: { in: projectIds } },
@@ -56,7 +71,9 @@ router.get('/assets', async (req, res) => {
     const assetsWithName = assets.map(asset => ({
       ...asset,
       name: (asset.metadata as any)?.name || '未命名素材',
-      thumbnailUrl: (asset.metadata as any)?.thumbnailUrl || asset.url
+      thumbnailUrl: (asset.metadata as any)?.thumbnailUrl || asset.url,
+      categoryLabel: ASSET_CATEGORY_LABELS[asset.category as keyof typeof ASSET_CATEGORY_LABELS] || ASSET_CATEGORY_LABELS.general,
+      sourceLabel: ASSET_SOURCE_LABELS[asset.source as keyof typeof ASSET_SOURCE_LABELS] || ASSET_SOURCE_LABELS.upload,
     }))
 
     const characters = await prisma.character.findMany({
@@ -77,6 +94,10 @@ router.get('/assets', async (req, res) => {
         thumbnailUrl: url,
         name: `${char.name} - 参考图 ${idx + 1}`,
         projectId: char.projectId,
+        category: ASSET_CATEGORIES.CHARACTER,
+        source: ASSET_SOURCES.CHARACTER_GENERATION,
+        categoryLabel: ASSET_CATEGORY_LABELS.character,
+        sourceLabel: ASSET_SOURCE_LABELS.character_generation,
         metadata: { characterId: char.id, characterName: char.name },
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -91,6 +112,10 @@ router.get('/assets', async (req, res) => {
         thumbnailUrl: url,
         name: `${scene.location} - 参考图 ${idx + 1}`,
         projectId: scene.projectId,
+        category: ASSET_CATEGORIES.SCENE,
+        source: ASSET_SOURCES.SCENE_GENERATION,
+        categoryLabel: ASSET_CATEGORY_LABELS.scene,
+        sourceLabel: ASSET_SOURCE_LABELS.scene_generation,
         metadata: { sceneId: scene.id, sceneLocation: scene.location },
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -109,6 +134,14 @@ router.get('/assets', async (req, res) => {
       }
     }
 
+    if (category && category !== 'all') {
+      allAssets = allAssets.filter(a => a.category === category)
+    }
+
+    if (source && source !== 'all') {
+      allAssets = allAssets.filter(a => a.source === source)
+    }
+
     if (search) {
       const searchLower = (search as string).toLowerCase()
       allAssets = allAssets.filter(a => 
@@ -120,6 +153,7 @@ router.get('/assets', async (req, res) => {
 
     res.json(allAssets)
   } catch (error) {
+    console.error('Error fetching assets:', error)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -137,11 +171,14 @@ router.post('/assets', upload.single('file'), async (req, res) => {
       return
     }
 
-    const { prisma } = await import('../lib/prisma')
     const { uploadToStorage } = await import('../lib/storage')
     
-    const filename = `assets/${req.userId}/${Date.now()}-${file.originalname}`
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')
+    const filename = `assets/${req.userId}/${Date.now()}-${safeName}`
     const url = await uploadToStorage(file.buffer, filename, file.mimetype)
+
+    const category = req.body.category || ASSET_CATEGORIES.GENERAL
+    const source = req.body.source || ASSET_SOURCES.UPLOAD
 
     const asset = await prisma.asset.create({
       data: {
@@ -150,17 +187,80 @@ router.post('/assets', upload.single('file'), async (req, res) => {
               file.mimetype.startsWith('audio/') ? 'audio' : 'document',
         url,
         projectId: req.body.projectId || '00000000-0000-0000-0000-000000000000',
+        category,
+        source,
         metadata: {
           originalName: file.originalname,
           size: file.size,
           mimetype: file.mimetype,
           userId: req.userId,
+          name: file.originalname,
+          thumbnailUrl: url,
         },
       },
     })
 
-    res.json(asset)
+    res.json({
+      ...asset,
+      categoryLabel: ASSET_CATEGORY_LABELS[category as keyof typeof ASSET_CATEGORY_LABELS] || ASSET_CATEGORY_LABELS.general,
+      sourceLabel: ASSET_SOURCE_LABELS[source as keyof typeof ASSET_SOURCE_LABELS] || ASSET_SOURCE_LABELS.upload,
+    })
   } catch (error) {
+    console.error('Error creating asset:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+router.patch('/assets/:id/category', async (req, res) => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized' })
+      return
+    }
+
+    const { id } = req.params
+    const { category } = req.body
+
+    if (!category || !Object.values(ASSET_CATEGORIES).includes(category)) {
+      res.status(400).json({ error: 'Invalid category' })
+      return
+    }
+
+    const asset = await prisma.asset.findUnique({
+      where: { id }
+    })
+
+    if (!asset) {
+      res.status(404).json({ error: 'Asset not found' })
+      return
+    }
+
+    const project = await prisma.project.findFirst({
+      where: {
+        id: asset.projectId,
+        OR: [
+          { ownerId: req.userId },
+          { members: { some: { userId: req.userId } } },
+        ],
+      },
+    })
+
+    if (!project) {
+      res.status(403).json({ error: 'Forbidden' })
+      return
+    }
+
+    const updatedAsset = await prisma.asset.update({
+      where: { id },
+      data: { category }
+    })
+
+    res.json({
+      ...updatedAsset,
+      categoryLabel: ASSET_CATEGORY_LABELS[category as keyof typeof ASSET_CATEGORY_LABELS] || ASSET_CATEGORY_LABELS.general,
+    })
+  } catch (error) {
+    console.error('Error updating asset category:', error)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -173,9 +273,7 @@ router.get('/projects/:projectId/assets', async (req, res) => {
     }
 
     const { projectId } = req.params
-    const { type, search } = req.query
-
-    const { prisma } = await import('../lib/prisma')
+    const { type, search, category, source } = req.query
     
     const project = await prisma.project.findFirst({
       where: {
@@ -200,7 +298,9 @@ router.get('/projects/:projectId/assets', async (req, res) => {
     const assetsWithName = assets.map(asset => ({
       ...asset,
       name: (asset.metadata as any)?.name || '未命名素材',
-      thumbnailUrl: (asset.metadata as any)?.thumbnailUrl || asset.url
+      thumbnailUrl: (asset.metadata as any)?.thumbnailUrl || asset.url,
+      categoryLabel: ASSET_CATEGORY_LABELS[asset.category as keyof typeof ASSET_CATEGORY_LABELS] || ASSET_CATEGORY_LABELS.general,
+      sourceLabel: ASSET_SOURCE_LABELS[asset.source as keyof typeof ASSET_SOURCE_LABELS] || ASSET_SOURCE_LABELS.upload,
     }))
 
     const characters = await prisma.character.findMany({
@@ -221,6 +321,10 @@ router.get('/projects/:projectId/assets', async (req, res) => {
         thumbnailUrl: url,
         name: `${char.name} - 参考图 ${idx + 1}`,
         projectId,
+        category: ASSET_CATEGORIES.CHARACTER,
+        source: ASSET_SOURCES.CHARACTER_GENERATION,
+        categoryLabel: ASSET_CATEGORY_LABELS.character,
+        sourceLabel: ASSET_SOURCE_LABELS.character_generation,
         metadata: { characterId: char.id, characterName: char.name },
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -235,6 +339,10 @@ router.get('/projects/:projectId/assets', async (req, res) => {
         thumbnailUrl: url,
         name: `${scene.location} - 参考图 ${idx + 1}`,
         projectId,
+        category: ASSET_CATEGORIES.SCENE,
+        source: ASSET_SOURCES.SCENE_GENERATION,
+        categoryLabel: ASSET_CATEGORY_LABELS.scene,
+        sourceLabel: ASSET_SOURCE_LABELS.scene_generation,
         metadata: { sceneId: scene.id, sceneLocation: scene.location },
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -253,6 +361,14 @@ router.get('/projects/:projectId/assets', async (req, res) => {
       }
     }
 
+    if (category && category !== 'all') {
+      allAssets = allAssets.filter(a => a.category === category)
+    }
+
+    if (source && source !== 'all') {
+      allAssets = allAssets.filter(a => a.source === source)
+    }
+
     if (search) {
       const searchLower = (search as string).toLowerCase()
       allAssets = allAssets.filter(a => 
@@ -264,6 +380,7 @@ router.get('/projects/:projectId/assets', async (req, res) => {
 
     res.json(allAssets)
   } catch (error) {
+    console.error('Error fetching project assets:', error)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -278,35 +395,53 @@ router.delete('/assets/:id', async (req, res) => {
     }
 
     const { id } = req.params
-    const { prisma } = await import('../lib/prisma')
+    console.log('[DELETE ASSET] Attempting to delete asset:', id);
 
     const asset = await prisma.asset.findUnique({
-      where: { id },
+      where: { id }
     })
 
     if (!asset) {
+      console.log('[DELETE ASSET] Asset not found:', id);
       res.status(404).json({ error: 'Asset not found' })
       return
     }
 
-    if (asset.project.ownerId !== req.userId) {
-      const member = await prisma.projectMember.findFirst({
+    console.log('[DELETE ASSET] Found asset:', { id: asset.id, projectId: asset.projectId, url: asset.url });
+
+    const isGlobalAsset = asset.projectId === '00000000-0000-0000-0000-000000000000'
+    const isOwner = (asset.metadata as any)?.userId === req.userId
+
+    if (isGlobalAsset) {
+      if (!isOwner) {
+        console.log('[DELETE ASSET] Forbidden: global asset but not owner');
+        res.status(403).json({ error: 'Forbidden' })
+        return
+      }
+    } else {
+      const project = await prisma.project.findFirst({
         where: {
-          projectId: asset.projectId,
-          userId: req.userId,
+          id: asset.projectId,
+          OR: [
+            { ownerId: req.userId },
+            { members: { some: { userId: req.userId } } },
+          ],
         },
       })
 
-      if (!member || member.role === 'viewer') {
+      if (!project) {
+        console.log('[DELETE ASSET] Forbidden: no project access');
         res.status(403).json({ error: 'Forbidden' })
         return
       }
     }
 
     await prisma.asset.delete({ where: { id } })
+    console.log('[DELETE ASSET] Successfully deleted:', id);
 
     res.json({ message: 'Asset deleted successfully' })
   } catch (error) {
+    console.error('Error deleting asset:', error)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

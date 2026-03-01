@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware';
-import { processContentWithAI } from '../controllers/content.controller';
 import path from 'path';
 import fs from 'fs';
 import { prisma } from '../lib/prisma';
@@ -10,7 +9,7 @@ const router = Router();
 
 router.post('/content/process-file', authMiddleware, async (req, res) => {
   try {
-    const { content, instruction, mode, model } = req.body;
+    const { content, mode, model } = req.body;
 
     if (!content || typeof content !== 'string') {
       return res.status(400).json({ error: '内容不能为空' });

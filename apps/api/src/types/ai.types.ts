@@ -1,7 +1,7 @@
 export interface AIProvider {
   id: string
   name: string
-  type: 'openai' | 'google' | 'antsk' | 'zhipu'
+  type: 'openai' | 'google' | 'antsk' | 'zhipu' | 'seedream'
   apiKey: string
   baseUrl?: string
   models: AIModel[]
@@ -42,7 +42,7 @@ export interface AIResponse {
 }
 
 export interface AIProviderConfig {
-  type: 'openai' | 'google' | 'antsk'
+  type: 'openai' | 'google' | 'antsk' | 'zhipu' | 'seedream'
   apiKey: string
   baseUrl?: string
   models?: {
@@ -59,15 +59,19 @@ export interface AIChatMessage {
 
 export interface AICreateImageRequest {
   prompt: string
-  size?: '256x256' | '512x512' | '1024x1024' | '1920x1080' | '1536x1024' | '1024x1792'
-  quality?: 'standard' | 'hd'
-  style?: 'vivid' | 'natural'
+  size?: '256x256' | '512x512' | '1024x1024' | '1920x1080' | '1536x1024' | '1024x1792' | '1:1' | '4:3' | '3:4' | '16:9' | '9:16' | '3:2' | '2:3' | '21:9' | '9:21'
+  quality?: 'standard' | 'hd' | '2K' | '3K'
+  style?: string
   n?: number
+  image_urls?: string[]
+  resolution?: '2K' | '3K'
+  metadata?: any
 }
 
 export interface AICreateImageResponse {
   url: string
   revisedPrompt?: string
+  thumbnailUrl?: string
 }
 
 export interface AICreateVideoRequest {

@@ -125,7 +125,7 @@ export class IntelligentSegmenter {
     return parts.join('\n')
   }
 
-  private generateSummary(content: string, metadata: TextSegment['metadata']): string {
+  private generateSummary(_content: string, metadata: TextSegment['metadata']): string {
     const typeNames = {
       scene: '场景',
       dialogue: '对话',

@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useWorkflow, WorkflowStepId, StepStatus } from '../contexts/WorkflowContext';
-import { apiClient } from '../lib/api-client';
+import { apiClient } from '../lib/api';
 
 interface StepValidationResult {
   isValid: boolean;

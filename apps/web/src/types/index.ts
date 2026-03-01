@@ -35,6 +35,7 @@ export interface AIProvider {
   type: string;
   apiKey?: string;
   isActive?: boolean;
+  enabled?: boolean;
   models?: AIProviderModel[];
   createdAt?: string;
   updatedAt?: string;
@@ -189,4 +190,12 @@ export interface GenerateVideoParams {
   style?: string;
   projectId?: string;
   model?: string;
+}
+
+export interface MetricData {
+  name: string;
+  type: 'counter' | 'gauge' | 'histogram';
+  value: number;
+  tags: Record<string, string>;
+  timestamp: string;
 }

@@ -3,6 +3,7 @@ import { OpenAIProvider } from './openai.provider'
 import { GoogleProvider } from './google.provider'
 import { ZhipuProvider } from './zhipu.provider'
 import { AntSKProvider } from './antsk.provider'
+import { SeedreamProvider } from './seedream.provider'
 
 export interface ModelProvider {
   id: string
@@ -16,6 +17,7 @@ export class ProviderManager {
   private providers: Map<string, AIProvider> = new Map()
 
   addProvider(config: ModelProvider): void {
+    console.log('[DEBUG providerManager.addProvider] Adding provider:', config.id, config.type, config.baseUrl);
     let provider: AIProvider
 
     switch (config.type) {
@@ -31,15 +33,21 @@ export class ProviderManager {
       case 'antsk':
         provider = new AntSKProvider(config.apiKey, config.baseUrl)
         break
+      case 'seedream':
+        provider = new SeedreamProvider(config.apiKey, config.baseUrl)
+        break
       default:
         provider = new OpenAIProvider(config.apiKey, config.baseUrl)
     }
 
     this.providers.set(config.id, provider)
+    console.log('[DEBUG providerManager.addProvider] Registered, current providers:', Array.from(this.providers.keys()));
   }
 
   getProvider(id: string): AIProvider | undefined {
-    return this.providers.get(id)
+    const provider = this.providers.get(id);
+    console.log('[DEBUG providerManager.getProvider] id:', id, 'found:', provider ? 'yes' : 'no', 'baseUrl:', provider ? (provider as any).baseUrl : 'N/A');
+    return provider;
   }
 
   getProviderId(provider: AIProvider): string {

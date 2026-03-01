@@ -37,6 +37,25 @@ export const config = {
       apiKey: process.env.ANTSK_API_KEY || '',
       baseUrl: process.env.ANTSK_BASE_URL || 'https://api.antsk.com/v1',
     },
+    seedream: {
+      apiKey: process.env.SEEDREAM_API_KEY || '',
+      baseUrl: process.env.SEEDREAM_BASE_URL || 'https://api.seedream.com/v1',
+    },
+    defaults: {
+      model: process.env.AI_DEFAULT_MODEL || 'glm-4',
+      temperature: parseFloat(process.env.AI_TEMPERATURE || '0.7'),
+      maxTokens: parseInt(process.env.AI_MAX_TOKENS || '4096', 10),
+      maxMessageLength: parseInt(process.env.AI_MAX_MESSAGE_LENGTH || '10000', 10),
+    },
+    chat: {
+      defaultModel: process.env.AI_CHAT_DEFAULT_MODEL || 'gpt-3.5-turbo',
+      temperature: parseFloat(process.env.AI_CHAT_TEMPERATURE || '0.7'),
+      maxTokens: parseInt(process.env.AI_CHAT_MAX_TOKENS || '1000', 10),
+    },
+    script: {
+      defaultModel: process.env.AI_SCRIPT_DEFAULT_MODEL || 'glm-4',
+      continueWordCount: parseInt(process.env.AI_SCRIPT_CONTINUE_WORDS || '500', 10),
+    },
   },
   
   sentry: {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   Plus,
@@ -45,6 +45,7 @@ interface ShotFormData {
 
 export default function ShotsPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [shots, setShots] = useState<Shot[]>([]);
   const [filteredShots, setFilteredShots] = useState<Shot[]>([]);
   const [scenes, setScenes] = useState<any[]>([]);
@@ -956,6 +957,25 @@ export default function ShotsPage() {
                             title="优化提示词"
                           >
                             <Wand2 style={{ width: '14px', height: '14px' }} />
+                          </button>
+                          <button
+                            onClick={() => navigate(`/shots/${shot.id}/panels`)}
+                            style={{
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '6px',
+                              border: 'none',
+                              background: 'transparent',
+                              color: 'var(--text-muted)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s ease',
+                            }}
+                            title="九宫格分镜"
+                          >
+                            <Grid3x3 style={{ width: '14px', height: '14px' }} />
                           </button>
                           <button
                             onClick={() => handleOpenModal(shot)}

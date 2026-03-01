@@ -15,10 +15,14 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    port: 3000,
+    port: 3002,
     allowedHosts: ['kaiyan.online', 'www.kaiyan.online', '.kaiyan.online'],
     proxy: {
       '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      '/uploads': {
         target: 'http://localhost:3001',
         changeOrigin: true,
       }

@@ -56,6 +56,41 @@ const PROVIDER_TYPES = [
   { value: 'openai', label: 'OpenAI', icon: Sparkles, color: '#10b981', gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', description: '全球领先的AI研究实验室' },
   { value: 'anthropic', label: 'Anthropic', icon: Globe, color: '#f59e0b', gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', description: '安全可靠的AI助手' },
   { value: 'deepseek', label: 'DeepSeek', icon: Lock, color: '#ec4899', gradient: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)', description: '深度求索AI模型' },
+  { value: 'seedream', label: '豆包 Seedream', icon: Image, color: '#8b5cf6', gradient: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', description: '字节跳动 Seedream 图像生成' },
+];
+
+const PREDEFINED_MODELS = [
+  { value: 'glm-4', label: 'GLM-4', provider: 'zhipu', description: '智谱GLM-4 旗舰模型', types: ['text', 'script', 'novel', 'storyline', 'outline'] },
+  { value: 'glm-4-plus', label: 'GLM-4 Plus', provider: 'zhipu', description: '智谱GLM-4 增强版', types: ['text', 'script', 'novel', 'storyline', 'outline'] },
+  { value: 'glm-4-air', label: 'GLM-4 Air', provider: 'zhipu', description: '智谱GLM-4 轻量版', types: ['text', 'script', 'novel', 'storyline', 'outline'] },
+  { value: 'glm-3-turbo', label: 'GLM-3 Turbo', provider: 'zhipu', description: '智谱GLM-3 高速版', types: ['text', 'script', 'novel', 'storyline', 'outline'] },
+  { value: 'glm-4-flash', label: 'GLM-4 Flash', provider: 'zhipu', description: '智谱GLM-4 极速版', types: ['text', 'script', 'novel', 'storyline', 'outline'] },
+  { value: 'glm-4v', label: 'GLM-4V', provider: 'zhipu', description: '智谱GLM-4 视觉模型', types: ['text', 'image'] },
+  { value: 'glm-4v-plus', label: 'GLM-4V Plus', provider: 'zhipu', description: '智谱GLM-4V 增强版', types: ['text', 'image'] },
+  { value: 'cogview-3', label: 'CogView-3', provider: 'zhipu', description: '智谱图像生成模型', types: ['image'] },
+  { value: 'cogview-3-plus', label: 'CogView-3 Plus', provider: 'zhipu', description: '智谱图像生成增强版', types: ['image'] },
+  { value: 'gpt-4', label: 'GPT-4', provider: 'openai', description: 'OpenAI GPT-4 旗舰模型', types: ['text', 'script', 'novel', 'storyline', 'outline'] },
+  { value: 'gpt-4-turbo', label: 'GPT-4 Turbo', provider: 'openai', description: 'OpenAI GPT-4 高速版', types: ['text', 'script', 'novel', 'storyline', 'outline'] },
+  { value: 'gpt-4o', label: 'GPT-4o', provider: 'openai', description: 'OpenAI GPT-4o 旗舰模型', types: ['text', 'image', 'script', 'novel', 'storyline', 'outline'] },
+  { value: 'gpt-4o-mini', label: 'GPT-4o Mini', provider: 'openai', description: 'OpenAI GPT-4o 轻量版', types: ['text', 'script', 'novel', 'storyline', 'outline'] },
+  { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo', provider: 'openai', description: 'OpenAI GPT-3.5 Turbo', types: ['text', 'script', 'novel', 'storyline', 'outline'] },
+  { value: 'dall-e-3', label: 'DALL-E 3', provider: 'openai', description: 'OpenAI 图像生成模型', types: ['image'] },
+  { value: 'dall-e-2', label: 'DALL-E 2', provider: 'openai', description: 'OpenAI 图像生成模型', types: ['image'] },
+  { value: 'gemini-pro', label: 'Gemini Pro', provider: 'google', description: 'Google Gemini Pro', types: ['text', 'script', 'novel', 'storyline', 'outline'] },
+  { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro', provider: 'google', description: 'Google Gemini 1.5 Pro', types: ['text', 'image', 'script', 'novel', 'storyline', 'outline'] },
+  { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash', provider: 'google', description: 'Google Gemini 1.5 快速版', types: ['text', 'script', 'novel', 'storyline', 'outline'] },
+  { value: 'imagen-3', label: 'Imagen 3', provider: 'google', description: 'Google 图像生成模型', types: ['image'] },
+  { value: 'imagen-3-fast', label: 'Imagen 3 Fast', provider: 'google', description: 'Google 图像生成快速版', types: ['image'] },
+  { value: 'claude-3-opus', label: 'Claude 3 Opus', provider: 'anthropic', description: 'Anthropic Claude 3 旗舰版', types: ['text', 'script', 'novel', 'storyline', 'outline'] },
+  { value: 'claude-3.5-sonnet', label: 'Claude 3.5 Sonnet', provider: 'anthropic', description: 'Anthropic Claude 3.5 高性能版', types: ['text', 'script', 'novel', 'storyline', 'outline'] },
+  { value: 'claude-3-haiku', label: 'Claude 3 Haiku', provider: 'anthropic', description: 'Anthropic Claude 3 轻量版', types: ['text', 'script', 'novel', 'storyline', 'outline'] },
+  { value: 'claude-sonnet-4', label: 'Claude Sonnet 4', provider: 'anthropic', description: 'Anthropic Claude 最新版', types: ['text', 'script', 'novel', 'storyline', 'outline'] },
+  { value: 'deepseek-chat', label: 'DeepSeek Chat', provider: 'deepseek', description: 'DeepSeek 对话模型', types: ['text', 'script', 'novel', 'storyline', 'outline'] },
+  { value: 'deepseek-coder', label: 'DeepSeek Coder', provider: 'deepseek', description: 'DeepSeek 编程模型', types: ['text', 'script'] },
+  { value: 'doubao-seedream-5-0', label: 'Seedream 5.0', provider: 'seedream', description: '字节跳动 Seedream 5.0', types: ['image'] },
+  { value: 'kling-1.0', label: 'Kling 1.0', provider: 'kling', description: '快手可灵视频生成', types: ['video'] },
+  { value: 'kling-1.5', label: 'Kling 1.5', provider: 'kling', description: '快手可灵视频生成增强版', types: ['video'] },
+  { value: 'custom', label: '自定义', provider: 'all', description: '手动输入模型名称', types: [] },
 ];
 
 interface AIProviderModel {
@@ -104,10 +139,12 @@ export default function AIProvidersPage() {
 
   const [modelFormData, setModelFormData] = useState({
     name: '',
+    customName: '',
     types: [] as string[],
     description: '',
     capabilities: [] as string[],
   });
+  const [showCustomInput, setShowCustomInput] = useState(false);
 
   useEffect(() => {
     loadProviders();
@@ -119,7 +156,6 @@ export default function AIProvidersPage() {
       const data = await apiClient.getAIProviders();
       setProviders(data.providers as any);
     } catch (error: any) {
-      console.error('加载 AI 提供商失败:', error);
       const errorMsg = error?.response?.data?.error || error?.message || '无法加载 AI 提供商列表';
       addToast({ type: 'error', title: '加载失败', message: errorMsg });
     } finally {
@@ -206,12 +242,38 @@ export default function AIProvidersPage() {
       addToast({ type: 'error', title: '验证失败', message: '请填写模型名称' });
       return;
     }
+    if (modelFormData.name === 'custom' && !modelFormData.customName) {
+      addToast({ type: 'error', title: '验证失败', message: '请输入自定义模型名称' });
+      return;
+    }
+    if (modelFormData.name === 'custom' && modelFormData.types.length === 0) {
+      addToast({ type: 'error', title: '验证失败', message: '请选择至少一个内容类型' });
+      return;
+    }
     try {
       setSaving(true);
-      await apiClient.createAIProviderModel(selectedProvider.id, modelFormData);
+      let finalName = modelFormData.name;
+      let finalTypes = modelFormData.types;
+
+      if (modelFormData.name === 'custom') {
+        finalName = modelFormData.customName;
+      } else {
+        const predefinedModel = PREDEFINED_MODELS.find(m => m.value === modelFormData.name);
+        if (predefinedModel && predefinedModel.types.length > 0) {
+          finalTypes = predefinedModel.types;
+        }
+      }
+
+      const submitData = {
+        name: finalName,
+        types: finalTypes,
+        description: modelFormData.description,
+        capabilities: modelFormData.capabilities,
+      };
+      await apiClient.createAIProviderModel(selectedProvider.id, submitData);
       addToast({ type: 'success', title: '添加成功', message: '模型已成功添加' });
       setShowModelModal(false);
-      setModelFormData({ name: '', types: [], description: '', capabilities: [] });
+      setModelFormData({ name: '', customName: '', types: [], description: '', capabilities: [] });
       loadProviders();
     } catch (error: any) {
       const errorMsg = error?.response?.data?.error || error?.message || '无法添加模型';
@@ -225,11 +287,24 @@ export default function AIProvidersPage() {
     if (!editingModel || !selectedProvider) return;
     try {
       setSaving(true);
-      await apiClient.updateAIProviderModel(selectedProvider.id, editingModel.id, modelFormData);
+      let finalTypes = modelFormData.types;
+
+      const predefinedModel = PREDEFINED_MODELS.find(m => m.value === editingModel.name);
+      if (predefinedModel && predefinedModel.types.length > 0) {
+        finalTypes = predefinedModel.types;
+      }
+
+      const submitData = {
+        name: modelFormData.name || editingModel.name,
+        types: finalTypes,
+        description: modelFormData.description,
+        capabilities: modelFormData.capabilities,
+      };
+      await apiClient.updateAIProviderModel(selectedProvider.id, editingModel.id, submitData);
       addToast({ type: 'success', title: '更新成功', message: '模型已成功更新' });
       setShowModelModal(false);
       setEditingModel(null);
-      setModelFormData({ name: '', types: [], description: '', capabilities: [] });
+      setModelFormData({ name: '', customName: '', types: [], description: '', capabilities: [] });
       loadProviders();
     } catch (error: any) {
       const errorMsg = error?.response?.data?.error || error?.message || '无法更新模型';
@@ -250,32 +325,16 @@ export default function AIProvidersPage() {
     }
   };
 
-  const handleSetAssistantDefault = async (modelId: string) => {
-    try {
-      await apiClient.setAssistantDefaultModel(modelId);
-      addToast({ type: 'success', title: '设置成功', message: '已设置为AI助手默认模型' });
-      loadProviders();
-    } catch (error: any) {
-      addToast({ type: 'error', title: '设置失败', message: error.message || '无法设置为AI助手默认模型' });
-    }
-  };
+  const handleSetAssistantDefault = async (modelId: string) => {};
 
-  const handleUnsetAssistantDefault = async (modelId: string) => {
-    try {
-      await apiClient.unsetAssistantDefaultModel(modelId);
-      addToast({ type: 'success', title: '取消成功', message: '已取消AI助手默认模型' });
-      loadProviders();
-    } catch (error: any) {
-      addToast({ type: 'error', title: '取消失败', message: error.message || '无法取消AI助手默认模型' });
-    }
-  };
+  const handleUnsetAssistantDefault = async (modelId: string) => {};
 
   const handleTestModel = async (modelId: string) => {
     try {
       setTestingModel(modelId);
       const result = await apiClient.testAIProviderModel(modelId);
       if (result.success) {
-        addToast({ type: 'success', title: '测试成功', message: `模型 "${result.model.name}" 可正常使用` });
+        addToast({ type: 'success', title: '测试成功', message: `模型 "${result.model?.name}" 可正常使用` });
       } else {
         addToast({ type: 'error', title: '测试失败', message: result.message || '无法访问此模型' });
       }
@@ -318,7 +377,7 @@ export default function AIProvidersPage() {
   const openAddModelModal = (provider: AIProvider) => {
     setSelectedProvider(provider);
     setEditingModel(null);
-    setModelFormData({ name: '', types: [], description: '', capabilities: [] });
+    setModelFormData({ name: '', customName: '', types: [], description: '', capabilities: [] });
     setShowModelModal(true);
   };
 
@@ -327,6 +386,7 @@ export default function AIProvidersPage() {
     setEditingModel(model);
     setModelFormData({
       name: model.name,
+      customName: '',
       types: model.types || [],
       description: model.description || '',
       capabilities: model.capabilities,
@@ -757,23 +817,6 @@ export default function AIProvidersPage() {
                                       {testingModel === model.id ? <Loader2 style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite' }} /> : <TestTube style={{ width: '14px', height: '14px' }} />}
                                     </button>
                                     <button
-                                      onClick={() => model.isAssistantDefault ? handleUnsetAssistantDefault(model.id) : handleSetAssistantDefault(model.id)}
-                                      style={{
-                                        width: '32px',
-                                        height: '32px',
-                                        borderRadius: '8px',
-                                        border: model.isAssistantDefault ? 'none' : '1px solid rgba(99, 102, 241, 0.3)',
-                                        background: model.isAssistantDefault ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'rgba(99, 102, 241, 0.1)',
-                                        color: model.isAssistantDefault ? 'white' : '#6366f1',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                      }}
-                                    >
-                                      <Sparkles style={{ width: '14px', height: '14px' }} />
-                                    </button>
-                                    <button
                                       onClick={() => handleDeleteModel(provider.id, model.id)}
                                       style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                     >
@@ -988,17 +1031,63 @@ export default function AIProvidersPage() {
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>模型名称</label>
-                <input
-                  type="text"
-                  placeholder="例如：GLM-4、GPT-4"
-                  value={modelFormData.name}
-                  onChange={(e) => setModelFormData({ ...modelFormData, name: e.target.value })}
-                  style={{ width: '100%', height: '44px', padding: '0 14px', borderRadius: '10px', border: '1px solid var(--border-primary)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
-                />
+                {!showCustomInput ? (
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      value={modelFormData.name}
+                      onChange={(e) => {
+                        const selectedModel: any = PREDEFINED_MODELS.find(m => m.value === e.target.value);
+                        if (selectedModel?.value === 'custom') {
+                          setShowCustomInput(true);
+                          setModelFormData({ ...modelFormData, name: 'custom', customName: '', types: [] });
+                        } else {
+                          setShowCustomInput(false);
+                          setModelFormData({ ...modelFormData, name: selectedModel?.value || e.target.value, customName: '', types: [] });
+                        }
+                      }}
+                      style={{ width: '100%', height: '44px', padding: '0 36px 0 14px', borderRadius: '10px', border: '1px solid var(--border-primary)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box', cursor: 'pointer', appearance: 'none' }}
+                    >
+                      <option value="">选择预定义模型</option>
+                      {PREDEFINED_MODELS.map((model) => (
+                        <option key={model.value} value={model.value}>
+                          {model.label} - {model.description}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', width: '20px', height: '20px', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      placeholder="输入自定义模型名称"
+                      value={modelFormData.customName}
+                      onChange={(e) => setModelFormData({ ...modelFormData, customName: e.target.value })}
+                      style={{ flex: 1, height: '44px', padding: '0 14px', borderRadius: '10px', border: '1px solid var(--border-primary)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                    <button
+                      onClick={() => setShowCustomInput(false)}
+                      style={{
+                        height: '44px',
+                        padding: '0 16px',
+                        borderRadius: '10px',
+                        border: '1px solid var(--border-primary)',
+                        background: 'var(--bg-hover)',
+                        color: 'var(--text-secondary)',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      返回选择
+                    </button>
+                  </div>
+                )}
               </div>
 
+              {modelFormData.name === 'custom' && (
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '10px' }}>选择内容类型（可多选）</label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '10px' }}>选择内容类型（必选）</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
                   {CONTENT_TYPES.map((type) => {
                     const isSelected = modelFormData.types.includes(type.value);
@@ -1029,6 +1118,7 @@ export default function AIProvidersPage() {
                   })}
                 </div>
               </div>
+              )}
 
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '8px' }}>模型描述（可选）</label>

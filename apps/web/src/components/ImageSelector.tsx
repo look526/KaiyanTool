@@ -1,12 +1,25 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Upload, Wand2, Images, X, Loader2, Search, Check } from 'lucide-react';
+import { Upload, Wand2, Images, X, Loader2, Search, Check, Filter, Tag, Image } from 'lucide-react';
 import { apiClient } from '../lib/api';
 import { useToast } from './ui/Toast';
 import { ModelSelector } from './ui/ModelSelector/ModelSelector';
 import { Button } from './ui/button-new';
 
+const getFullUrl = (path: string) => {
+  if (!path) return path;
+  if (path.startsWith('http')) return path;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+  const apiHost = baseUrl.replace('/api', '');
+  return `${apiHost}${path}`;
+};
+
 type TabType = 'upload' | 'generate' | 'library';
 type ThreeViewsMode = 'separate' | 'combined';
+
+interface CategoryOption {
+  value: string;
+  label: string;
+}
 
 interface ImageSelectorProps {
   value: string | null;
@@ -23,7 +36,14 @@ interface ImageSelectorProps {
   threeViewsMode?: ThreeViewsMode;
   threeViewsValue?: { front: string | null; side: string | null; top: string | null };
   onThreeViewsChange?: (views: { front: string | null; side: string | null; top: string | null }) => void;
+  autoCategoryFilter?: boolean;
 }
+
+const TYPE_TO_CATEGORY: Record<string, string> = {
+  character: 'character',
+  scene: 'scene',
+  general: 'all'
+};
 
 export function ImageSelector({
   value,
@@ -40,6 +60,7 @@ export function ImageSelector({
   threeViewsMode = 'separate',
   threeViewsValue = { front: null, side: null, top: null },
   onThreeViewsChange,
+  autoCategoryFilter = true,
 }: ImageSelectorProps) {
   const [showModal, setShowModal] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('upload');
@@ -56,8 +77,16 @@ export function ImageSelector({
   const [imageCount, setImageCount] = useState(4);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<'front' | 'side' | 'top'>('front');
-  const [localThreeViewsMode, setLocalThreeViewsMode] = useState<ThreeViewsMode>(threeViewsMode || 'separate');
+  const [localThreeViewsMode, setLocalThreeViewsMode] = useState<ThreeViewsMode>(threeViewsMode || (enableThreeViews ? 'combined' : 'separate'));
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [showCategoryMenu, setShowCategoryMenu] = useState(false);
+  const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
+  const [showReferenceImagePicker, setShowReferenceImagePicker] = useState(false);
   const { addToast } = useToast();
+
+  const shouldUseThreeViews = enableThreeViews || type === 'character';
+  const effectiveThreeViewsMode = type === 'character' ? 'combined' : localThreeViewsMode;
 
   const styleOptions = [
     { value: 'cinematic', label: '电影' },
@@ -74,18 +103,43 @@ export function ImageSelector({
     { value: 'cyberpunk', label: '赛博朋克' },
   ];
 
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const result = await apiClient.getAssetCategories();
+        setCategories(result.categories);
+      } catch (error) {
+        console.error('Failed to load categories:', error);
+      }
+    };
+    loadCategories();
+  }, []);
+
+  useEffect(() => {
+    if (autoCategoryFilter && type) {
+      const category = TYPE_TO_CATEGORY[type] || 'all';
+      setSelectedCategory(category);
+    }
+  }, [type, autoCategoryFilter]);
+
   const loadAssets = useCallback(async () => {
     if (!projectId) return;
     setLoadingAssets(true);
     try {
-      const data = await apiClient.getProjectAssets(projectId, 'image', searchQuery || undefined);
+      const categoryFilter = selectedCategory !== 'all' ? selectedCategory : undefined;
+      const data = await apiClient.getProjectAssets(
+        projectId, 
+        'image', 
+        searchQuery || undefined,
+        categoryFilter
+      );
       setAssets(data);
     } catch (error) {
       console.error('Failed to load assets:', error);
     } finally {
       setLoadingAssets(false);
     }
-  }, [projectId, searchQuery]);
+  }, [projectId, searchQuery, selectedCategory]);
 
   useEffect(() => {
     if (showModal && activeTab === 'library') {
@@ -113,7 +167,7 @@ export function ImageSelector({
     }
 
     try {
-      const result = await apiClient.uploadImage(file);
+      const result = await apiClient.uploadImage(file, projectId);
       onChange(result.url);
       setShowModal(false);
     } catch (error) {
@@ -136,21 +190,28 @@ export function ImageSelector({
       return;
     }
 
+    if (!selectedModel) {
+      addToast({
+        type: 'error',
+        title: '请选择模型',
+        message: '请先选择一个AI图像生成模型',
+      });
+      return;
+    }
+
     setGenerating(true);
     try {
       if (enableMultipleGeneration) {
-        // 生成多张图片
         const stylePrompt = getStylePrompt(prompt.trim(), style);
         
         const results = await apiClient.batchGenerateImages({
           prompt: stylePrompt,
           count: imageCount,
         });
-        const imageUrls = results.assets.map((asset) => asset.url);
+        const imageUrls = results.assets.map((asset: any) => asset.url);
         
         setGeneratedImages(imageUrls);
         setSelectedImage(null);
-        // 刷新素材库，确保新生成的图片已保存
         loadAssets();
         addToast({
           type: 'success',
@@ -158,39 +219,46 @@ export function ImageSelector({
           message: `已生成 ${imageUrls.length} 张图片，请选择满意的结果`,
         });
       } else {
-        // 生成单张图片
         let finalPrompt = getStylePrompt(prompt.trim(), style);
         
-        // 自动添加三视图提示词
-        if (enableThreeViews) {
+        if (shouldUseThreeViews) {
           finalPrompt = getThreeViewsPrompt(finalPrompt, style);
         }
         
         const result = await apiClient.generateImage({
-          prompt: finalPrompt,
+          prompt: prompt.trim(),
           negativePrompt: getNegativePrompt(style),
-          width: enableThreeViews ? 1920 : 1024,
-          height: enableThreeViews ? 1080 : 1024,
+          width: shouldUseThreeViews ? 1920 : 1024,
+          height: shouldUseThreeViews ? 1080 : 1024,
           style: style,
           projectId,
+          category: type === 'character' ? 'character' : type === 'scene' ? 'scene' : 'general',
+          model: selectedModel,
+          image_urls: referenceImage ? [getFullUrl(referenceImage)] : undefined,
+          threeView: shouldUseThreeViews,
         });
         
+        
         if (result.asset?.url) {
-          // 处理生成的图片
-          if (enableThreeViews) {
-            if (localThreeViewsMode === 'combined') {
-              // 单张包含三视图
+          if (type === 'character' && shouldUseThreeViews) {
+            setGeneratedImages([result.asset.url]);
+            setSelectedImage(result.asset.url);
+            addToast({
+              type: 'success',
+              title: '生成成功',
+              message: '请选择生成结果',
+            });
+          } else if (shouldUseThreeViews) {
+            if (effectiveThreeViewsMode === 'combined') {
               onChange(result.asset.url);
               setShowModal(false);
             } else {
-              // 分开生成的视图
               handleThreeViewsSelect(currentView, result.asset.url);
             }
           } else {
             onChange(result.asset.url);
             setShowModal(false);
           }
-          // 刷新素材库，确保新生成的图片已保存
           loadAssets();
           addToast({
             type: 'success',
@@ -198,7 +266,6 @@ export function ImageSelector({
             message: `${getStyleName(style)}风格图片已生成`,
           });
         } else {
-          // 生成成功但没有返回图片URL
           addToast({
             type: 'error',
             title: '生成失败',
@@ -218,7 +285,6 @@ export function ImageSelector({
     }
   };
 
-  // 根据风格获取提示词模板
   const getStylePrompt = (basePrompt: string, style: string): string => {
     switch (style) {
       case 'cinematic':
@@ -250,7 +316,6 @@ export function ImageSelector({
     }
   };
 
-  // 根据风格获取负面提示词
   const getNegativePrompt = (style: string): string => {
     const baseNegative = '低质量，模糊，失真，比例错误，透视错误';
     switch (style) {
@@ -265,12 +330,10 @@ export function ImageSelector({
     }
   };
 
-  // 获取三视图提示词
   const getThreeViewsPrompt = (basePrompt: string, style: string): string => {
     return `专业工程制图，${getStyleName(style)}风格，${basePrompt}的标准三视图，必须包含正视图、侧视图和俯视图三个视角，严格按照工程制图标准布局，正视图在左，侧视图在中，俯视图在右，保持严格的投影关系，清晰的尺寸标注，比例准确，线条清晰，白色背景，技术图纸风格，光线自然，材质真实，细节丰富，三个视角必须同时出现在同一张图像中`;
   };
 
-  // 获取风格名称
   const getStyleName = (style: string): string => {
     const styleMap: Record<string, string> = {
       cinematic: '电影',
@@ -291,10 +354,9 @@ export function ImageSelector({
 
   const handleSelectGeneratedImage = (imageUrl: string) => {
     setSelectedImage(imageUrl);
-    if (!enableThreeViews) {
+    if (!shouldUseThreeViews) {
       onChange(imageUrl);
       setShowModal(false);
-      // 刷新素材库，确保新生成的图片已保存
       loadAssets();
       addToast({
         type: 'success',
@@ -323,8 +385,13 @@ export function ImageSelector({
   };
 
   const handleSelectAsset = (asset: any) => {
-    if (enableThreeViews) {
-      // 处理三视图选择
+    if (showReferenceImagePicker) {
+      setReferenceImage(asset.url);
+      setShowReferenceImagePicker(false);
+      return;
+    }
+    
+    if (shouldUseThreeViews && type !== 'character') {
       if (onThreeViewsChange) {
         onThreeViewsChange({
           ...threeViewsValue,
@@ -332,9 +399,32 @@ export function ImageSelector({
         });
       }
     } else {
-      // 处理普通图片选择
       onChange(asset.url);
       setShowModal(false);
+    }
+  };
+
+  const handleUpdateAssetCategory = async (assetId: string, newCategory: string) => {
+    try {
+      await apiClient.updateAssetCategory(assetId, newCategory);
+      setAssets(assets.map(a => 
+        a.id === assetId 
+          ? { ...a, category: newCategory, categoryLabel: categories.find(c => c.value === newCategory)?.label || newCategory }
+          : a
+      ));
+      setEditingAssetId(null);
+      addToast({
+        type: 'success',
+        title: '分类已更新',
+        message: '素材分类已成功修改',
+      });
+    } catch (error) {
+      console.error('Failed to update category:', error);
+      addToast({
+        type: 'error',
+        title: '更新失败',
+        message: '无法更新素材分类',
+      });
     }
   };
 
@@ -342,10 +432,28 @@ export function ImageSelector({
     onChange(null);
   };
 
+  const handleDeleteAsset = async (assetId: string) => {
+    try {
+      await apiClient.deleteAsset(assetId);
+      setAssets(assets.filter(a => a.id !== assetId));
+      addToast({
+        type: 'success',
+        title: '删除成功',
+        message: '素材已删除',
+      });
+    } catch (error) {
+      console.error('Failed to delete asset:', error);
+      addToast({
+        type: 'error',
+        title: '删除失败',
+        message: '无法删除素材',
+      });
+    }
+  };
+
   return (
     <div className="image-selector">
-      {/* 三视图显示 */}
-      {enableThreeViews ? (
+      {enableThreeViews && type !== 'character' ? (
         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
           {[
             { key: 'front', label: '正视图' },
@@ -472,7 +580,6 @@ export function ImageSelector({
           ))}
         </div>
       ) : (
-        // 普通图片选择器
         value ? (
           <div style={{ position: 'relative', display: 'inline-block' }}>
             <div style={{
@@ -585,7 +692,7 @@ export function ImageSelector({
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
           }}
-          onClick={() => setShowModal(false)}
+          onClick={() => { setShowModal(false); setShowReferenceImagePicker(false); }}
         >
           <div
             style={{
@@ -613,10 +720,10 @@ export function ImageSelector({
               borderBottom: '1px solid var(--border-primary)',
             }}>
               <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                {enableThreeViews ? `选择${currentView === 'front' ? '正视图' : currentView === 'side' ? '侧视图' : '俯视图'}` : '选择图片'}
+                {showReferenceImagePicker ? '选择参考图' : (enableThreeViews && type !== 'character' ? `选择${currentView === 'front' ? '正视图' : currentView === 'side' ? '侧视图' : '俯视图'}` : '选择图片')}
               </h3>
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => { setShowModal(false); setShowReferenceImagePicker(false); }}
                 style={{
                   padding: '6px',
                   borderRadius: '6px',
@@ -689,19 +796,19 @@ export function ImageSelector({
                     点击或拖拽上传图片
                   </p>
                   <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0 }}>
-                    支持 JPG、PNG、WebP 格式，最大 {maxSize}MB
+                    支持 JPG、PNG、WebP、GIF 格式，最大 {maxSize}MB
                   </p>
                   <input
                     id="image-upload-input"
                     type="file"
-                    accept="image/jpeg,image/png,image/webp"
+                    accept="image/*"
                     style={{ display: 'none' }}
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
                       try {
-                        const result = await apiClient.uploadImage(file);
-                        if (enableThreeViews) {
+                        const result = await apiClient.uploadImage(file, projectId);
+                        if (shouldUseThreeViews && type !== 'character') {
                           if (onThreeViewsChange) {
                             onThreeViewsChange({
                               ...threeViewsValue,
@@ -727,8 +834,7 @@ export function ImageSelector({
 
               {activeTab === 'generate' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {/* 三视图选择 */}
-                  {enableThreeViews && (
+                  {enableThreeViews && type !== 'character' && localThreeViewsMode === 'separate' && (
                     <>
                       <div>
                         <label style={{
@@ -741,22 +847,20 @@ export function ImageSelector({
                           三视图模式
                         </label>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          {
-                            [
-                              { key: 'separate', label: '分开生成' },
-                              { key: 'combined', label: '单张包含' }
-                            ].map((mode) => (
-                              <Button
-                                key={mode.key}
-                                onClick={() => setLocalThreeViewsMode(mode.key as ThreeViewsMode)}
-                                variant={localThreeViewsMode === mode.key ? 'primary' : 'outline'}
-                                size="sm"
-                                fullWidth
-                              >
-                                {mode.label}
-                              </Button>
-                            ))
-                          }
+                          {[
+                            { key: 'separate', label: '分开生成' },
+                            { key: 'combined', label: '单张包含' }
+                          ].map((mode) => (
+                            <Button
+                              key={mode.key}
+                              onClick={() => setLocalThreeViewsMode(mode.key as ThreeViewsMode)}
+                              variant={localThreeViewsMode === mode.key ? 'primary' : 'outline'}
+                              size="sm"
+                              fullWidth
+                            >
+                              {mode.label}
+                            </Button>
+                          ))}
                         </div>
                       </div>
                       
@@ -772,23 +876,21 @@ export function ImageSelector({
                             视图选择
                           </label>
                           <div style={{ display: 'flex', gap: '8px' }}>
-                            {
-                              [
-                                { key: 'front', label: '正视图' },
-                                { key: 'side', label: '侧视图' },
-                                { key: 'top', label: '俯视图' }
-                              ].map((view) => (
-                                <Button
-                                  key={view.key}
-                                  onClick={() => setCurrentView(view.key as 'front' | 'side' | 'top')}
-                                  variant={currentView === view.key ? 'primary' : 'outline'}
-                                  size="sm"
-                                  fullWidth
-                                >
-                                  {view.label}
-                                </Button>
-                              ))
-                            }
+                            {[
+                              { key: 'front', label: '正视图' },
+                              { key: 'side', label: '侧视图' },
+                              { key: 'top', label: '俯视图' }
+                            ].map((view) => (
+                              <Button
+                                key={view.key}
+                                onClick={() => setCurrentView(view.key as 'front' | 'side' | 'top')}
+                                variant={currentView === view.key ? 'primary' : 'outline'}
+                                size="sm"
+                                fullWidth
+                              >
+                                {view.label}
+                              </Button>
+                            ))}
                           </div>
                         </div>
                       )}
@@ -813,7 +915,6 @@ export function ImageSelector({
                     />
                   </div>
 
-                  {/* 参考图片上传 */}
                   {enableReferenceImage && (
                     <div>
                       <label style={{
@@ -862,46 +963,77 @@ export function ImageSelector({
                             </button>
                           </>
                         ) : (
-                          <button
-                            onClick={() => document.getElementById('reference-upload-input')?.click()}
-                            style={{
-                              width: '120px',
-                              height: '120px',
-                              border: '2px dashed var(--border-primary)',
-                              borderRadius: '8px',
-                              backgroundColor: 'transparent',
-                              color: 'var(--text-muted)',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '4px',
-                              transition: 'all 0.2s ease',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.borderColor = 'var(--border-secondary)';
-                              e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.borderColor = 'var(--border-primary)';
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                            }}
-                          >
-                            <Upload style={{ width: '20px', height: '20px' }} />
-                            <span style={{ fontSize: '12px' }}>上传参考图</span>
-                          </button>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            <button
+                              onClick={() => document.getElementById('reference-upload-input')?.click()}
+                              style={{
+                                width: '120px',
+                                height: '120px',
+                                border: '2px dashed var(--border-primary)',
+                                borderRadius: '8px',
+                                backgroundColor: 'transparent',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '4px',
+                                transition: 'all 0.2s ease',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = 'var(--border-secondary)';
+                                e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = 'var(--border-primary)';
+                                e.currentTarget.style.backgroundColor = 'transparent';
+                              }}
+                            >
+                              <Upload style={{ width: '20px', height: '20px' }} />
+                              <span style={{ fontSize: '12px' }}>上传</span>
+                            </button>
+                            <button
+                              onClick={() => { setActiveTab('library'); setShowModal(true); setShowReferenceImagePicker(true); }}
+                              style={{
+                                width: '120px',
+                                height: '120px',
+                                border: '2px dashed var(--border-primary)',
+                                borderRadius: '8px',
+                                backgroundColor: 'transparent',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '4px',
+                                transition: 'all 0.2s ease',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = 'var(--border-secondary)';
+                                e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = 'var(--border-primary)';
+                                e.currentTarget.style.backgroundColor = 'transparent';
+                              }}
+                            >
+                              <Image style={{ width: '20px', height: '20px' }} />
+                              <span style={{ fontSize: '12px' }}>素材库</span>
+                            </button>
+                          </div>
                         )}
                         <input
                           id="reference-upload-input"
                           type="file"
-                          accept="image/jpeg,image/png,image/webp"
+                          accept="image/*"
                           style={{ display: 'none' }}
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (!file) return;
                             try {
-                              const result = await apiClient.uploadImage(file);
+                              const result = await apiClient.uploadImage(file, projectId);
                               setReferenceImage(result.url);
                             } catch (error) {
                               console.error('Upload failed:', error);
@@ -998,7 +1130,6 @@ export function ImageSelector({
                     </div>
                   </div>
 
-                  {/* 多图生成选项 */}
                   {enableMultipleGeneration && (
                     <div>
                       <label style={{
@@ -1030,7 +1161,6 @@ export function ImageSelector({
                     </div>
                   )}
 
-                  {/* 生成按钮 */}
                   <Button
                     type="button"
                     onClick={handleGenerate}
@@ -1042,13 +1172,12 @@ export function ImageSelector({
                     icon={!generating && <Wand2 />}
                   >
                     {generating ? '生成中...' : (
-                      enableThreeViews ? (
-                        localThreeViewsMode === 'combined' ? '生成三视图' : `生成${currentView === 'front' ? '正视图' : currentView === 'side' ? '侧视图' : '俯视图'}`
+                      shouldUseThreeViews ? (
+                        effectiveThreeViewsMode === 'combined' ? '生成三视图' : `生成${currentView === 'front' ? '正视图' : currentView === 'side' ? '侧视图' : '俯视图'}`
                       ) : enableMultipleGeneration ? `生成${imageCount}张图片` : '生成图片'
                     )}
                   </Button>
 
-                  {/* 多图生成结果展示 */}
                   {enableMultipleGeneration && generatedImages.length > 0 && (
                     <div>
                       <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', margin: '0 0 12px 0' }}>
@@ -1110,9 +1239,11 @@ export function ImageSelector({
                     display: 'flex',
                     gap: '12px',
                     marginBottom: '16px',
+                    flexWrap: 'wrap',
                   }}>
                     <div style={{
                       flex: 1,
+                      minWidth: '200px',
                       position: 'relative',
                     }}>
                       <Search style={{
@@ -1140,6 +1271,87 @@ export function ImageSelector({
                         }}
                       />
                     </div>
+                    
+                    <div style={{ position: 'relative' }}>
+                      <button
+                        onClick={() => setShowCategoryMenu(!showCategoryMenu)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-primary)',
+                          backgroundColor: 'var(--bg-hover)',
+                          color: 'var(--text-primary)',
+                          fontSize: '14px',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <Filter style={{ width: '16px', height: '16px' }} />
+                        {selectedCategory === 'all' ? '全部分类' : categories.find(c => c.value === selectedCategory)?.label || selectedCategory}
+                      </button>
+                      
+                      {showCategoryMenu && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          right: 0,
+                          marginTop: '4px',
+                          backgroundColor: 'var(--bg-surface)',
+                          border: '1px solid var(--border-primary)',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                          zIndex: 10,
+                          minWidth: '150px',
+                          overflow: 'hidden',
+                        }}>
+                          <button
+                            onClick={() => {
+                              setSelectedCategory('all');
+                              setShowCategoryMenu(false);
+                            }}
+                            style={{
+                              display: 'block',
+                              width: '100%',
+                              padding: '10px 14px',
+                              border: 'none',
+                              background: selectedCategory === 'all' ? 'rgba(139, 92, 246, 0.1)' : 'transparent',
+                              color: selectedCategory === 'all' ? '#8b5cf6' : 'var(--text-primary)',
+                              textAlign: 'left',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                            }}
+                          >
+                            全部分类
+                          </button>
+                          {categories.map((cat) => (
+                            <button
+                              key={cat.value}
+                              onClick={() => {
+                                setSelectedCategory(cat.value);
+                                setShowCategoryMenu(false);
+                              }}
+                              style={{
+                                display: 'block',
+                                width: '100%',
+                                padding: '10px 14px',
+                                border: 'none',
+                                background: selectedCategory === cat.value ? 'rgba(139, 92, 246, 0.1)' : 'transparent',
+                                color: selectedCategory === cat.value ? '#8b5cf6' : 'var(--text-primary)',
+                                textAlign: 'left',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                              }}
+                            >
+                              {cat.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
                     <Button
                       onClick={loadAssets}
                       variant="outline"
@@ -1174,57 +1386,144 @@ export function ImageSelector({
                       gap: '12px',
                     }}>
                       {assets.map((asset) => (
-                        <button
+                        <div
                           key={asset.id}
-                          onClick={() => handleSelectAsset(asset)}
-                          style={{
-                            position: 'relative',
-                            aspectRatio: '1',
-                            borderRadius: '8px',
-                            overflow: 'hidden',
-                            border: value === asset.url ? '2px solid #8b5cf6' : '2px solid transparent',
-                            cursor: 'pointer',
-                            padding: 0,
-                            background: 'none',
-                            transition: 'all 0.2s ease',
-                          }}
-                          onMouseEnter={(e) => {
-                            if (value !== asset.url) {
-                              e.currentTarget.style.borderColor = 'var(--border-secondary)';
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (value !== asset.url) {
-                              e.currentTarget.style.borderColor = 'transparent';
-                            }
-                          }}
+                          style={{ position: 'relative' }}
                         >
-                          <img
-                            src={asset.thumbnailUrl || asset.url}
-                            alt={asset.name}
+                          <button
+                            onClick={() => handleSelectAsset(asset)}
                             style={{
+                              position: 'relative',
                               width: '100%',
-                              height: '100%',
-                              objectFit: 'cover',
+                              aspectRatio: '1',
+                              borderRadius: '8px',
+                              overflow: 'hidden',
+                              border: value === asset.url ? '2px solid #8b5cf6' : '2px solid transparent',
+                              cursor: 'pointer',
+                              padding: 0,
+                              background: 'none',
+                              transition: 'all 0.2s ease',
                             }}
-                          />
-                          {value === asset.url && (
-                            <div style={{
-                              position: 'absolute',
-                              top: '4px',
-                              right: '4px',
-                              width: '20px',
-                              height: '20px',
-                              borderRadius: '50%',
-                              backgroundColor: '#8b5cf6',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}>
-                              <Check style={{ width: '12px', height: '12px', color: 'white' }} />
+                            onMouseEnter={(e) => {
+                              if (value !== asset.url) {
+                                e.currentTarget.style.borderColor = 'var(--border-secondary)';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (value !== asset.url) {
+                                e.currentTarget.style.borderColor = 'transparent';
+                              }
+                            }}
+                          >
+                            <img
+                              src={asset.thumbnailUrl || asset.url}
+                              alt={asset.name}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                              }}
+                            />
+                            {value === asset.url && (
+                              <div style={{
+                                position: 'absolute',
+                                top: '4px',
+                                right: '4px',
+                                width: '20px',
+                                height: '20px',
+                                borderRadius: '50%',
+                                backgroundColor: '#8b5cf6',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}>
+                                <Check style={{ width: '12px', height: '12px', color: 'white' }} />
+                              </div>
+                            )}
+                          </button>
+                          
+                          {asset.categoryLabel && (
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingAssetId(editingAssetId === asset.id ? null : asset.id);
+                              }}
+                              style={{
+                                position: 'absolute',
+                                bottom: '4px',
+                                left: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                                color: 'white',
+                                fontSize: '10px',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <Tag style={{ width: '10px', height: '10px' }} />
+                              {asset.categoryLabel}
                             </div>
                           )}
-                        </button>
+                          
+                          {editingAssetId === asset.id && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                bottom: '100%',
+                                left: 0,
+                                marginBottom: '4px',
+                                backgroundColor: 'var(--bg-surface)',
+                                border: '1px solid var(--border-primary)',
+                                borderRadius: '6px',
+                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                                zIndex: 20,
+                                minWidth: '120px',
+                                overflow: 'hidden',
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {categories.map((cat) => (
+                                <button
+                                  key={cat.value}
+                                  onClick={() => handleUpdateAssetCategory(asset.id, cat.value)}
+                                  style={{
+                                    display: 'block',
+                                    width: '100%',
+                                    padding: '8px 12px',
+                                    border: 'none',
+                                    background: asset.category === cat.value ? 'rgba(139, 92, 246, 0.1)' : 'transparent',
+                                    color: asset.category === cat.value ? '#8b5cf6' : 'var(--text-primary)',
+                                    textAlign: 'left',
+                                    cursor: 'pointer',
+                                    fontSize: '12px',
+                                  }}
+                                >
+                                  {cat.label}
+                                </button>
+                              ))}
+                              <button
+                                onClick={() => handleDeleteAsset(asset.id)}
+                                style={{
+                                  display: 'block',
+                                  width: '100%',
+                                  padding: '8px 12px',
+                                  border: 'none',
+                                  borderTop: '1px solid var(--border-primary)',
+                                  background: 'transparent',
+                                  color: '#ef4444',
+                                  textAlign: 'left',
+                                  cursor: 'pointer',
+                                  fontSize: '12px',
+                                }}
+                              >
+                                删除素材
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
                   )}

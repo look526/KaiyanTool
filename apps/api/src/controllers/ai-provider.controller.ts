@@ -384,6 +384,7 @@ export class AIProviderController {
         const { OpenAIProvider } = await import('../services/ai/openai.provider')
         const { GoogleProvider } = await import('../services/ai/google.provider')
         const { AntSKProvider } = await import('../services/ai/antsk.provider')
+        const { SeedreamProvider } = await import('../services/ai/seedream.provider')
 
         let aiProvider: any
 
@@ -399,6 +400,9 @@ export class AIProviderController {
             break
           case 'antsk':
             aiProvider = new AntSKProvider(provider.apiKey, provider.baseUrl || undefined)
+            break
+          case 'seedream':
+            aiProvider = new SeedreamProvider(provider.apiKey, provider.baseUrl || undefined)
             break
           default:
             throw new Error(`Unknown provider type: ${provider.type}`)
@@ -454,18 +458,22 @@ export class AIProviderController {
     const { modelId } = req.params
 
     try {
-      await prisma.$transaction([
-        prisma.aIProviderModel.updateMany({
-          where: {
-            provider: { userId: req.userId },
-          },
-          data: { isAssistantDefault: false },
-        }),
-        prisma.aIProviderModel.update({
-          where: { id: modelId },
-          data: { isAssistantDefault: true },
-        }),
-      ])
+      const model = await prisma.aIProviderModel.findFirst({
+        where: {
+          id: modelId,
+          provider: { userId: req.userId },
+        },
+      })
+
+      if (!model) {
+        res.status(404).json({ error: 'Model not found' })
+        return
+      }
+
+      await prisma.aIProviderModel.update({
+        where: { id: modelId },
+        data: { isAssistantDefault: true },
+      })
 
       logger.info('AI provider model set as assistant default', { userId: req.userId, modelId })
       res.json({ message: 'Model set as assistant default' })

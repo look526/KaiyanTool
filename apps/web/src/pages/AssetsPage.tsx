@@ -72,7 +72,7 @@ function AssetsPage() {
   const handleDelete = async (assetId: string) => {
     if (!confirm('确定要删除这个素材吗？')) return;
     try {
-      await apiClient.delete(`/assets/${assetId}`);
+      await apiClient.deleteAsset(assetId);
       setAssets(prev => prev.filter(a => a.id !== assetId));
     } catch (error) {
       console.error('Failed to delete:', error);

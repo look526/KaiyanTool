@@ -19,6 +19,7 @@ export abstract class AIProvider {
 
   protected async request(endpoint: string, options: RequestInit = {}): Promise<any> {
     const url = this.baseUrl ? `${this.baseUrl}${endpoint}` : endpoint
+    console.log('[AIProvider] Request URL:', url, 'baseUrl:', this.baseUrl, 'endpoint:', endpoint, 'provider type:', this.type, 'provider id:', this.id);
     
     try {
       const response = await fetch(url, {
