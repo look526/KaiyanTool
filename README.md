@@ -125,15 +125,15 @@
 
 <div align="center">
 
-| Dashboard | Script Editor | Shot Panel |
+| Dashboard | Projects | Documents |
 |:---------:|:-------------:|:----------:|
-| ![Dashboard](./docs/screenshots/dashboard.png) | ![Script Editor](./docs/screenshots/script-editor.png) | ![Shot Panel](./docs/screenshots/shot-panel.png) |
-| *主界面* | *剧本编辑器* | *分镜面板* |
+| ![Dashboard](./docs/screenshots/dashboard.png) | ![Projects](./docs/screenshots/projects.png) | ![Documents](./docs/screenshots/documents.png) |
+| *主界面* | *项目列表* | *文档管理* |
 
-| Character Management | Image Generation | Video Export |
-|:-------------------:|:----------------:|:------------:|
-| ![Characters](./docs/screenshots/characters.png) | ![Image Gen](./docs/screenshots/image-gen.png) | ![Video Export](./docs/screenshots/video-export.png) |
-| *角色管理* | *图像生成* | *视频导出* |
+| Login | Image Generation | Settings |
+|:------:|:----------------:|:---------:|
+| ![Login](./docs/screenshots/login.png) | ![Image Gen](./docs/screenshots/image-gen.png) | ![Settings](./docs/screenshots/settings.png) |
+| *登录页面* | *图像生成* | *系统设置* |
 
 </div>
 
