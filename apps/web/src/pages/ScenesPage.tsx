@@ -11,56 +11,25 @@ import {
   Moon,
   Cloud,
   Sparkles,
-  Layers
+  Layers,
+  Loader2
 } from 'lucide-react';
 import { Button } from '../components/ui/button-new';
+import { apiClient } from '../lib/api';
 
 interface Scene {
   id: string;
   location: string;
-  time?: string;
-  atmosphere?: string;
-  description?: string;
+  time?: string | null;
+  atmosphere?: string | null;
+  description?: string | null;
   referenceImages?: string[];
   _count?: {
     shots?: number;
   };
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
 }
-
-const MOCK_SCENES: Scene[] = [
-  {
-    id: '1',
-    location: '咖啡厅',
-    time: '下午',
-    atmosphere: '温馨',
-    description: '午后阳光透过落地窗洒进来，咖啡的香气弥漫在空气中',
-    referenceImages: [],
-    _count: { shots: 5 },
-    createdAt: '2024-01-15T10:00:00Z'
-  },
-  {
-    id: '2',
-    location: '办公室',
-    time: '上午',
-    atmosphere: '严肃',
-    description: '现代化的开放式办公室，整洁有序',
-    referenceImages: [],
-    _count: { shots: 8 },
-    createdAt: '2024-01-16T10:00:00Z'
-  },
-  {
-    id: '3',
-    location: '城市街道',
-    time: '夜晚',
-    atmosphere: '热闹',
-    description: '繁华的都市夜景，霓虹灯闪烁',
-    referenceImages: [],
-    _count: { shots: 3 },
-    createdAt: '2024-01-17T10:00:00Z'
-  }
-];
 
 const TIME_OPTIONS = [
   { value: '', label: '全部时间' },
@@ -79,8 +48,9 @@ const ATMOSPHERE_OPTIONS = [
 ];
 
 export default function ScenesPage() {
-  const [scenes, setScenes] = useState<Scene[]>(MOCK_SCENES);
-  const [filteredScenes, setFilteredScenes] = useState<Scene[]>(MOCK_SCENES);
+  const [scenes, setScenes] = useState<Scene[]>([]);
+  const [filteredScenes, setFilteredScenes] = useState<Scene[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'shots' | 'created'>('name');
@@ -91,11 +61,35 @@ export default function ScenesPage() {
   const [editingScene, setEditingScene] = useState<Scene | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingScene, setDeletingScene] = useState<Scene | null>(null);
+  const [batchDeleteLoading, setBatchDeleteLoading] = useState(false);
+  
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const [hoveredAction, setHoveredAction] = useState<{ id: string; action: 'edit' | 'delete' } | null>(null);
 
   const [formLocation, setFormLocation] = useState('');
   const [formTime, setFormTime] = useState('');
   const [formAtmosphere, setFormAtmosphere] = useState('');
   const [formDescription, setFormDescription] = useState('');
+
+  const projectId = window.location.pathname.split('/')[2];
+
+  useEffect(() => {
+    loadScenes();
+  }, [projectId]);
+
+  const loadScenes = async () => {
+    if (!projectId) return;
+    try {
+      setLoading(true);
+      const data = await apiClient.getScenes(projectId);
+      setScenes(data);
+    } catch (error) {
+      console.error('加载场景失败:', error);
+      setScenes([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     let result = [...scenes];
@@ -142,11 +136,34 @@ export default function ScenesPage() {
     setShowDeleteConfirm(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deletingScene) {
-      setScenes(scenes.filter(s => s.id !== deletingScene.id));
+      try {
+        await apiClient.deleteScene(deletingScene.id);
+        setScenes(scenes.filter(s => s.id !== deletingScene.id));
+      } catch (error) {
+        console.error('删除场景失败:', error);
+      }
       setShowDeleteConfirm(false);
       setDeletingScene(null);
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) return;
+    
+    setBatchDeleteLoading(true);
+    try {
+      const idsArray = Array.from(selectedIds);
+      for (const id of idsArray) {
+        await apiClient.deleteScene(id);
+      }
+      setScenes(scenes.filter(s => !selectedIds.has(s.id)));
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error('批量删除失败:', error);
+    } finally {
+      setBatchDeleteLoading(false);
     }
   };
 
@@ -204,7 +221,7 @@ export default function ScenesPage() {
     return <Cloud style={{ width: '14px', height: '14px' }} />;
   };
 
-  const getTimeColor = (time?: string) => {
+  const getTimeColor = (time?: string | null) => {
     if (time === '上午') return '#f59e0b';
     if (time === '下午') return '#f97316';
     if (time === '夜晚') return '#8b5cf6';
@@ -423,26 +440,81 @@ export default function ScenesPage() {
             padding: '24px',
             border: '1px solid var(--border-primary)',
             backdropFilter: 'blur(20px)',
+            display: 'flex',
+            flexDirection: 'column',
+            maxHeight: 'calc(100vh - 200px)',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexShrink: 0 }}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
                 场景列表 <span style={{ color: 'var(--text-muted)', fontWeight: '400' }}>({filteredScenes.length})</span>
               </h3>
-              {selectedIds.size > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>已选择 {selectedIds.size} 个</span>
-                  <Button variant="danger" size="sm" onClick={() => {}}>
-                    <Trash2 style={{ width: '14px', height: '14px', marginRight: '6px' }} />
-                    批量删除
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
-                    取消选择
-                  </Button>
-                </div>
-              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {filteredScenes.length > 0 && (
+                  <button
+                    onClick={() => {
+                      if (selectedIds.size === filteredScenes.length) {
+                        setSelectedIds(new Set());
+                      } else {
+                        setSelectedIds(new Set(filteredScenes.map(s => s.id)));
+                      }
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-primary)',
+                      background: 'transparent',
+                      color: 'var(--text-secondary)',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {selectedIds.size === filteredScenes.length && filteredScenes.length > 0 ? '取消全选' : '全选'}
+                  </button>
+                )}
+                {selectedIds.size > 0 && (
+                  <>
+                    <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>已选择 {selectedIds.size} 个</span>
+                    <Button 
+                      variant="danger" 
+                      size="sm" 
+                      onClick={handleBatchDelete}
+                      disabled={batchDeleteLoading}
+                      style={{
+                        opacity: batchDeleteLoading ? 0.7 : 1,
+                      }}
+                    >
+                      {batchDeleteLoading ? (
+                        <Loader2 style={{ width: '14px', height: '14px', marginRight: '6px', animation: 'spin 1s linear infinite' }} />
+                      ) : (
+                        <Trash2 style={{ width: '14px', height: '14px', marginRight: '6px' }} />
+                      )}
+                      {batchDeleteLoading ? '删除中...' : '批量删除'}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
+                      取消选择
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
 
-            {filteredScenes.length === 0 ? (
+            {loading ? (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '64px 32px',
+                color: 'var(--text-muted)',
+              }}>
+                <Loader2 style={{ width: '40px', height: '40px', animation: 'spin 1s linear infinite', marginBottom: '16px', color: '#ec4899' }} />
+                <p style={{ fontSize: '14px' }}>加载场景中...</p>
+              </div>
+            ) : filteredScenes.length === 0 ? (
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -471,138 +543,106 @@ export default function ScenesPage() {
                 </Button>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
-                {filteredScenes.map(scene => (
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+                gap: '16px',
+                overflowY: 'auto',
+                flex: 1,
+                paddingRight: '8px',
+              }}>
+                {filteredScenes.map(scene => {
+                  const isSelected = selectedIds.has(scene.id);
+                  const isHovered = hoveredCard === scene.id;
+                  const isEditHovered = hoveredAction?.id === scene.id && hoveredAction?.action === 'edit';
+                  const isDeleteHovered = hoveredAction?.id === scene.id && hoveredAction?.action === 'delete';
+                  const timeColor = getTimeColor(scene.time);
+                  
+                  return (
                   <div
                     key={scene.id}
                     style={{
-                      background: 'var(--bg-secondary)',
+                      background: isSelected 
+                        ? 'linear-gradient(135deg, rgba(236, 72, 153, 0.12) 0%, rgba(219, 39, 119, 0.06) 100%)'
+                        : isHovered 
+                          ? 'var(--bg-surface)' 
+                          : 'var(--bg-card)',
                       borderRadius: '16px',
                       padding: '20px',
-                      border: selectedIds.has(scene.id) ? '2px solid #ec4899' : '1px solid var(--border-primary)',
+                      border: isSelected 
+                        ? '2px solid #ec4899' 
+                        : '1px solid var(--border-primary)',
                       transition: 'all 0.2s ease',
                       cursor: 'pointer',
+                      transform: isHovered ? 'translateY(-2px)' : 'none',
+                      boxShadow: isHovered 
+                        ? '0 8px 24px rgba(0, 0, 0, 0.1)' 
+                        : 'none',
                     }}
-                    onMouseEnter={(e) => {
-                      if (!selectedIds.has(scene.id)) {
-                        e.currentTarget.style.borderColor = 'var(--border-hover)';
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!selectedIds.has(scene.id)) {
-                        e.currentTarget.style.borderColor = 'var(--border-primary)';
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = 'none';
-                      }
-                    }}
+                    onMouseEnter={() => setHoveredCard(scene.id)}
+                    onMouseLeave={() => setHoveredCard(null)}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                      <div style={{ display: 'flex', gap: '12px', flex: 1 }}>
-                        <button
-                          onClick={() => handleSelect(scene.id)}
-                          style={{
-                            width: '22px',
-                            height: '22px',
-                            borderRadius: '6px',
-                            border: selectedIds.has(scene.id) ? 'none' : '2px solid var(--border-secondary)',
-                            background: selectedIds.has(scene.id) ? '#ec4899' : 'transparent',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'all 0.2s ease',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {selectedIds.has(scene.id) && <X style={{ width: '12px', height: '12px', color: 'white' }} />}
-                        </button>
-                        <div style={{
-                          width: '48px',
-                          height: '48px',
-                          borderRadius: '12px',
-                          background: `linear-gradient(135deg, ${getTimeColor(scene.time)}20 0%, ${getTimeColor(scene.time)}10 100%)`,
-                          border: `1px solid ${getTimeColor(scene.time)}40`,
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '16px' }}>
+                      <button
+                        onClick={() => handleSelect(scene.id)}
+                        style={{
+                          width: '22px',
+                          height: '22px',
+                          borderRadius: '6px',
+                          border: isSelected ? 'none' : '2px solid var(--border-secondary)',
+                          background: isSelected ? 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' : 'transparent',
+                          cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
+                          transition: 'all 0.2s ease',
+                          flexShrink: 0,
+                          marginTop: '2px',
+                        }}
+                      >
+                        {isSelected && <X style={{ width: '12px', height: '12px', color: 'white' }} />}
+                      </button>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h4 style={{ 
+                          fontSize: '16px', 
+                          fontWeight: '600', 
+                          color: 'var(--text-primary)', 
+                          margin: '0 0 6px 0', 
+                          overflow: 'hidden', 
+                          textOverflow: 'ellipsis', 
+                          whiteSpace: 'nowrap' 
                         }}>
-                          <MapPin style={{ width: '22px', height: '22px', color: getTimeColor(scene.time) }} />
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <h4 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', margin: '0 0 6px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{scene.location}</h4>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        <button
-                          onClick={() => handleEdit(scene)}
-                          style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            background: 'transparent',
-                            color: 'var(--text-muted)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'all 0.2s ease',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'var(--bg-hover)';
-                            e.currentTarget.style.color = 'var(--accent-blue)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'transparent';
-                            e.currentTarget.style.color = 'var(--text-muted)';
-                          }}
-                        >
-                          <Edit2 style={{ width: '16px', height: '16px' }} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(scene)}
-                          style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            background: 'transparent',
-                            color: 'var(--text-muted)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'all 0.2s ease',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
-                            e.currentTarget.style.color = '#ef4444';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'transparent';
-                            e.currentTarget.style.color = 'var(--text-muted)';
-                          }}
-                        >
-                          <Trash2 style={{ width: '16px', height: '16px' }} />
-                        </button>
+                          {scene.location}
+                        </h4>
+                        {scene.description && (
+                          <p style={{ 
+                            fontSize: '13px', 
+                            color: 'var(--text-muted)', 
+                            margin: 0,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {scene.description}
+                          </p>
+                        )}
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', paddingLeft: '36px' }}>
                       {scene.time && (
                         <span style={{
                           display: 'flex',
                           alignItems: 'center',
                           gap: '4px',
                           fontSize: '12px',
-                          color: getTimeColor(scene.time),
-                          background: `${getTimeColor(scene.time)}15`,
+                          fontWeight: '500',
+                          color: timeColor,
+                          background: `${timeColor}15`,
                           padding: '4px 10px',
                           borderRadius: '6px',
                         }}>
-                          <Clock style={{ width: '12px', height: '12px' }} />
+                          <Clock style={{ width: '11px', height: '11px' }} />
                           {scene.time}
                         </span>
                       )}
@@ -612,6 +652,7 @@ export default function ScenesPage() {
                           alignItems: 'center',
                           gap: '4px',
                           fontSize: '12px',
+                          fontWeight: '500',
                           color: 'var(--text-secondary)',
                           background: 'var(--bg-hover)',
                           padding: '4px 10px',
@@ -623,32 +664,69 @@ export default function ScenesPage() {
                       )}
                     </div>
 
-                    <p style={{
-                      fontSize: '13px',
-                      color: 'var(--text-secondary)',
-                      lineHeight: '1.6',
-                      margin: '0 0 16px 0',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                    }}>
-                      {scene.description}
-                    </p>
-
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      paddingTop: '12px',
+                      paddingTop: '14px',
                       borderTop: '1px solid var(--border-primary)',
+                      paddingLeft: '36px',
                     }}>
-                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {scene._count?.shots || 0} 个镜头
+                      <span style={{ 
+                        fontSize: '12px', 
+                        color: 'var(--text-muted)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}>
+                        <Layers style={{ width: '12px', height: '12px' }} />
+                        {scene._count?.shots || 0} 个分镜
                       </span>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleEdit(scene); }}
+                          onMouseEnter={() => setHoveredAction({ id: scene.id, action: 'edit' })}
+                          onMouseLeave={() => setHoveredAction(null)}
+                          style={{
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '6px',
+                            border: 'none',
+                            background: isEditHovered ? 'var(--accent-blue)' : 'var(--bg-hover)',
+                            color: isEditHovered ? '#fff' : 'var(--text-muted)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <Edit2 style={{ width: '14px', height: '14px' }} />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDelete(scene); }}
+                          onMouseEnter={() => setHoveredAction({ id: scene.id, action: 'delete' })}
+                          onMouseLeave={() => setHoveredAction(null)}
+                          style={{
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '6px',
+                            border: 'none',
+                            background: isDeleteHovered ? '#ef4444' : 'transparent',
+                            color: isDeleteHovered ? '#fff' : 'var(--text-muted)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <Trash2 style={{ width: '14px', height: '14px' }} />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
             )}
           </div>

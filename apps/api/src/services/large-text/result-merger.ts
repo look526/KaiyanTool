@@ -14,10 +14,32 @@ export interface MergedResult {
     dialogues: Array<{
       characterName: string
       text: string
+      shot?: {
+        type: string
+        movement: string
+        angle: string
+        description: string
+        duration: number
+        transition: string
+      }
     }>
     actions: Array<{
       description: string
       type: string
+      shot?: {
+        type: string
+        movement: string
+        angle: string
+        description: string
+        duration: number
+        transition: string
+      }
+    }>
+    items?: Array<{
+      name: string
+      size?: string
+      shape?: string
+      color?: string
     }>
     segmentId?: string
   }>
@@ -25,7 +47,15 @@ export interface MergedResult {
     id: string
     name: string
     description?: string
+    appearance?: string
     lines: number
+  }>
+  items: Map<string, {
+    name: string
+    size?: string
+    shape?: string
+    color?: string
+    scenes: string[]
   }>
   metadata: {
     totalScenes: number
@@ -47,10 +77,32 @@ export interface MergedScene {
   dialogues: Array<{
     characterName: string
     text: string
+    shot?: {
+      type: string
+      movement: string
+      angle: string
+      description: string
+      duration: number
+      transition: string
+    }
   }>
   actions: Array<{
     description: string
     type: string
+    shot?: {
+      type: string
+      movement: string
+      angle: string
+      description: string
+      duration: number
+      transition: string
+    }
+  }>
+  items?: Array<{
+    name: string
+    size?: string
+    shape?: string
+    color?: string
   }>
   segmentId?: string
 }
@@ -63,6 +115,7 @@ export class ResultMerger {
     const merged: MergedResult = {
       scenes: [],
       characters: new Map(),
+      items: new Map(),
       metadata: {
         totalScenes: 0,
         totalCharacters: 0,
@@ -74,6 +127,7 @@ export class ResultMerger {
 
     let sceneCounter = 0
     const characterMap = new Map<string, any>()
+    const itemMap = new Map<string, any>()
 
     for (const segment of segments) {
       const result = segmentResults.get(segment.id)
@@ -88,6 +142,25 @@ export class ResultMerger {
             segmentId: segment.id
           } as typeof scene & { number: number; segmentId: string }
           merged.scenes.push(sceneWithId)
+
+          // 收集物品
+          if (scene.items && Array.isArray(scene.items)) {
+            for (const item of scene.items) {
+              if (!item.name) continue
+              const existing = itemMap.get(item.name)
+              if (existing) {
+                existing.scenes.push(scene.id || `scene_${sceneCounter}`)
+              } else {
+                itemMap.set(item.name, {
+                  name: item.name,
+                  size: item.size,
+                  shape: item.shape,
+                  color: item.color,
+                  scenes: [scene.id || `scene_${sceneCounter}`]
+                })
+              }
+            }
+          }
         }
       }
 
@@ -95,19 +168,31 @@ export class ResultMerger {
         for (const character of result.characters) {
           const existing = characterMap.get(character.name)
           if (existing) {
-            existing.lines += character.lines
+            existing.lines += character.lines || 0
+            if (character.appearance && !existing.appearance) {
+              existing.appearance = character.appearance
+            }
           } else {
-            characterMap.set(character.name, { ...character })
+            characterMap.set(character.name, { 
+              ...character,
+              lines: character.lines || 0
+            })
           }
         }
       }
     }
 
     merged.characters = characterMap
+    merged.items = itemMap
     merged.metadata.totalScenes = merged.scenes.length
     merged.metadata.totalCharacters = characterMap.size
     merged.metadata.totalDialogues = this.countTotalDialogues(merged.scenes)
     merged.metadata.estimatedDuration = this.calculateDuration(merged.scenes, merged.metadata.totalDialogues)
+
+    console.log('[ResultMerger] merged.scenes length:', merged.scenes.length)
+    console.log('[ResultMerger] merged.items size:', merged.items.size)
+    console.log('[ResultMerger] merged.items:', Array.from(merged.items.values()))
+    console.log('[ResultMerger] characterMap size:', characterMap.size)
 
     await this.resolveCrossSegmentConflicts(merged, segments)
 
@@ -149,6 +234,7 @@ export class ResultMerger {
       title: merged.title,
       scenes: merged.scenes,
       characters: Array.from(merged.characters.values()),
+      items: Array.from(merged.items.values()),
       metadata: merged.metadata
     }
   }

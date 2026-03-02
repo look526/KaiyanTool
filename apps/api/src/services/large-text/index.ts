@@ -23,6 +23,7 @@ export interface ProcessResult {
   title?: string
   scenes: any[]
   characters: any[]
+  items: any[]
   metadata: {
     totalScenes: number
     totalCharacters: number

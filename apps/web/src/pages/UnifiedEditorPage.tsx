@@ -20,11 +20,19 @@ import { ContentProvider, useContent, ContentMode } from '../contexts/ContentCon
 import { Button } from '../components/ui/button-new';
 
 interface Scene {
-  id: number;
+  id: string | number;
+  number?: number;
+  heading?: string;
+  location?: string;
+  time?: string;
   description: string;
-  type: string;
-  dialogue: any[];
+  characters?: string[];
+  dialogues?: Array<{ characterName: string; text: string }>;
+  actions?: Array<{ description: string; type: string }>;
+  items?: Array<{ name: string; size?: string; shape?: string; color?: string }>;
+  dialogue?: any[];
   action?: string;
+  type?: string;
 }
 
 function UnifiedEditorContent() {
@@ -49,7 +57,7 @@ function UnifiedEditorContent() {
   } = useContent();
 
   const [parsedScenes, setParsedScenes] = useState<Scene[]>([]);
-  const [characters, setCharacters] = useState<string[]>([]);
+  const [characters, setCharacters] = useState<Array<string | { name: string; description?: string }>>([]);
   const [loading, setLoading] = useState(false);
   const [isContinuing, setIsContinuing] = useState(false);
   const [isRewriting, setIsRewriting] = useState(false);
@@ -69,6 +77,7 @@ function UnifiedEditorContent() {
   const [editorMode, setEditorMode] = useState<'edit' | 'preview'>('edit');
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [showAIPanel, setShowAIPanel] = useState(true);
+  const [isGeneratingAssets, setIsGeneratingAssets] = useState(false);
   const { addToast } = useToast();
 
   const title = scriptTitle;
@@ -261,11 +270,21 @@ function UnifiedEditorContent() {
         prev.map(t => t.id === taskId ? { ...t, progress: 100, status: 'completed' } : t)
       );
       
+      console.log('[剧本解析] 结果:', result);
+      console.log('[剧本解析] scenes:', result.scenes);
+      console.log('[剧本解析] scenes.length:', result.scenes?.length);
+      console.log('[剧本解析] items:', result.items);
+      console.log('[剧本解析] 第一个场景:', result.scenes?.[0]);
+      console.log('[剧本解析] 第一个场景的dialogues:', result.scenes?.[0]?.dialogues);
+      console.log('[剧本解析] 第一个场景的items:', result.scenes?.[0]?.items);
+      
       if (result.scenes && result.scenes.length > 0) {
+        console.log('[剧本解析] 切换到预览模式');
         setParsedScenes(result.scenes);
         setCharacters(result.characters || []);
         setEditorMode('preview');
-        addToast({ type: 'success', title: '解析成功', message: `成功解析 ${result.scenes.length} 个场景，${result.characters?.length || 0} 个角色` });
+        const itemsCount = result.items?.length || result.scenes.reduce((sum: number, s: any) => sum + (s.items?.length || 0), 0);
+        addToast({ type: 'success', title: '解析成功', message: `成功解析 ${result.scenes.length} 个场景，${result.characters?.length || 0} 个角色，${itemsCount} 个物品` });
       } else {
         setAiProcessingTasks(prev => 
           prev.map(t => t.id === taskId ? { ...t, status: 'failed', error: '未检测到场景' } : t)
@@ -334,6 +353,179 @@ function UnifiedEditorContent() {
     }
   };
 
+  const handleGenerateAssets = async () => {
+    if (!projectIdStr || parsedScenes.length === 0) return;
+    
+    try {
+      setIsGeneratingAssets(true);
+      addToast({ type: 'info', title: '开始生成', message: '正在根据解析结果创建角色、物品、场景和分镜...' });
+
+      const createdAssets = {
+        characters: 0,
+        items: 0,
+        scenes: 0,
+        shots: 0,
+      };
+
+      const errors: string[] = [];
+
+      for (const char of characters) {
+        try {
+          const charName = typeof char === 'string' ? char : char.name;
+          const charObj = typeof char === 'object' ? char : {} as any;
+          
+          // 组合外貌属性生成完整的外貌描述
+          const appearanceParts: string[] = [];
+          
+          // 发型
+          if (charObj.appearance?.hairStyle) {
+            appearanceParts.push(charObj.appearance.hairStyle);
+          }
+          // 五官
+          if (charObj.appearance?.facialFeatures) {
+            appearanceParts.push(charObj.appearance.facialFeatures);
+          }
+          // 身材
+          if (charObj.appearance?.bodyProportion) {
+            appearanceParts.push(charObj.appearance.bodyProportion);
+          }
+          // 其他外貌细节
+          if (charObj.appearance?.otherDetails && Array.isArray(charObj.appearance.otherDetails)) {
+            appearanceParts.push(...charObj.appearance.otherDetails);
+          }
+          // 服装类型和颜色
+          if (charObj.costume?.type) {
+            const costumeParts = [charObj.costume.type];
+            if (charObj.costume.color) costumeParts.push(charObj.costume.color);
+            if (charObj.costume.material) costumeParts.push(charObj.costume.material);
+            if (charObj.costume.decoration) costumeParts.push(charObj.costume.decoration);
+            appearanceParts.push(`穿着${costumeParts.join('、')}`);
+          }
+          
+          const appearanceDesc = appearanceParts.length > 0 
+            ? appearanceParts.join('，') 
+            : (charObj.description || `角色 ${charName} 的外貌描述`);
+
+          await apiClient.createCharacter(projectIdStr, {
+            name: charName,
+            appearance: appearanceDesc,
+            age: 25,
+            gender: 'unknown',
+          } as any);
+          createdAssets.characters++;
+        } catch (err: any) {
+          const errMsg = err?.message || String(err);
+          console.warn(`创建角色失败: ${char}`, err);
+          if (!errors.includes(errMsg)) errors.push(errMsg);
+        }
+      }
+
+      const allItems = parsedScenes.flatMap(s => s.items || []);
+      const uniqueItems = Array.from(new Map(allItems.map(i => [i.name, i])).values());
+      
+      for (const item of uniqueItems) {
+        try {
+          await apiClient.createItem(projectIdStr, {
+            name: item.name,
+            description: `${item.size || ''} ${item.shape || ''} ${item.color || ''}`.trim(),
+          } as any);
+          createdAssets.items++;
+        } catch (err: any) {
+          const errMsg = err?.message || String(err);
+          console.warn(`创建物品失败: ${item.name}`, err);
+          if (!errors.includes(errMsg)) errors.push(errMsg);
+        }
+      }
+
+      for (let i = 0; i < parsedScenes.length; i++) {
+        const scene = parsedScenes[i];
+        try {
+          const sceneData = await apiClient.createScene(projectIdStr, {
+            location: scene.location || scene.heading?.substring(0, 30) || `场景 ${i + 1}`,
+            time: scene.time || '白天',
+            atmosphere: scene.description || '',
+          } as any);
+
+          if (scene.dialogues && scene.dialogues.length > 0) {
+            for (let j = 0; j < scene.dialogues.length; j++) {
+              const dialogue = scene.dialogues[j];
+              const charName = dialogue.characterName || '角色';
+              const dialogueText = dialogue.text || '';
+              const sceneItems = scene.items?.map((i: any) => i.name).filter(Boolean) || [];
+              const shot = (dialogue as any).shot || {};
+              
+              const startPrompt = `【场景】${scene.location || scene.heading || '室内'}，${scene.time || '白天'}\n` +
+                `【氛围】${scene.description?.substring(0, 100) || '普通场景'}\n` +
+                `【角色】${charName}${scene.characters?.filter((c: string) => c !== charName).length ? `，${scene.characters?.filter((c: string) => c !== charName).join('、')}` : ''}\n` +
+                `【物品】${sceneItems.length > 0 ? sceneItems.join('、') : '无特殊物品'}\n` +
+                `【镜头】${shot.type || '中景'}，${shot.movement || '固定'}，${shot.angle || '平视'}\n` +
+                `【镜头描述】${shot.description || `${charName}正在说话`}\n` +
+                `【台词】${charName}："${dialogueText}"`;
+              
+              const endPrompt = `【场景】${scene.location || scene.heading || '室内'}，${scene.time || '白天'}\n` +
+                `【氛围】${scene.description?.substring(0, 100) || '普通场景'}\n` +
+                `【角色】${charName}说完台词后的表情变化\n` +
+                `【镜头】${shot.transition || '切'}转场`;
+
+              try {
+                await apiClient.createShot(projectIdStr, {
+                  sceneId: sceneData.id,
+                  chapterNumber: i + 1,
+                  episodeNumber: 1,
+                  segmentId: 1,
+                  cellId: j + 1,
+                  actionSummary: `${charName}: "${dialogueText}"`,
+                  startPrompt,
+                  endPrompt,
+                  duration: shot.duration || Math.max(3, Math.ceil(dialogueText.length / 8)),
+                  aspectRatio: '16:9',
+                  cameraMovement: `${shot.type || '中景'}，${shot.movement || '固定'}，${shot.angle || '平视'}`,
+                } as any);
+                createdAssets.shots++;
+              } catch (err: any) {
+                const errMsg = err?.message || String(err);
+                console.warn(`创建分镜失败:`, err);
+                if (!errors.includes(errMsg)) errors.push(errMsg);
+              }
+            }
+          }
+          createdAssets.scenes++;
+        } catch (err: any) {
+          const errMsg = err?.message || String(err);
+          console.warn(`创建场景失败:`, err);
+          if (!errors.includes(errMsg)) errors.push(errMsg);
+        }
+      }
+
+      const totalCreated = createdAssets.characters + createdAssets.items + createdAssets.scenes + createdAssets.shots;
+      
+      if (totalCreated === 0 && errors.length > 0) {
+        addToast({ 
+          type: 'error', 
+          title: '生成失败', 
+          message: `无法创建资产: ${errors[0]}` 
+        });
+      } else if (errors.length > 0) {
+        addToast({ 
+          type: 'warning', 
+          title: '部分生成成功', 
+          message: `已创建 ${createdAssets.characters} 角色、${createdAssets.items} 物品、${createdAssets.scenes} 场景、${createdAssets.shots} 分镜。部分失败: ${errors[0]}` 
+        });
+      } else {
+        addToast({ 
+          type: 'success', 
+          title: '生成完成', 
+          message: `已创建 ${createdAssets.characters} 个角色、${createdAssets.items} 个物品、${createdAssets.scenes} 个场景、${createdAssets.shots} 个分镜` 
+        });
+      }
+    } catch (error) {
+      console.error('生成资产失败:', error);
+      addToast({ type: 'error', title: '生成失败', message: '创建资产时发生错误' });
+    } finally {
+      setIsGeneratingAssets(false);
+    }
+  };
+
   const aiTools = [
     { id: 'continue', label: 'AI续写', icon: Sparkles, color: '#007AFF', handler: handleContinueScript, loading: isContinuing, disabled: isContinuing || isRewriting || isOptimizing || isConverting || !content.trim() || !selectedModel },
     { id: 'rewrite', label: 'AI改写', icon: Wand2, color: '#10b981', handler: handleRewriteScript, loading: isRewriting, disabled: isContinuing || isRewriting || isOptimizing || isConverting || !content.trim() || !selectedModel },
@@ -383,6 +575,8 @@ function UnifiedEditorContent() {
             scenes={parsedScenes}
             characters={characters}
             onEdit={() => setEditorMode('edit')}
+            onGenerateAssets={handleGenerateAssets}
+            isGenerating={isGeneratingAssets}
           />
         )}
       </div>
@@ -434,11 +628,6 @@ function UnifiedEditorContent() {
         />
       )}
 
-      <AIProcessingProgress
-        tasks={aiProcessingTasks}
-        onClear={() => setAiProcessingTasks([])}
-      />
-
       {showPromptOptimizerModal && (
         <div style={{
           position: 'fixed',
@@ -488,6 +677,11 @@ function UnifiedEditorContent() {
         isConverting={isConverting}
         novelText={novelText}
         editorContent={content}
+      />
+
+      <AIProcessingProgress
+        tasks={aiProcessingTasks}
+        onClear={() => setAiProcessingTasks([])}
       />
 
       <style>

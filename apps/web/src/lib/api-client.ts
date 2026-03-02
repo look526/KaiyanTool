@@ -313,6 +313,39 @@ export class ApiClient {
     return this.delete(`/characters/${id}`)
   }
 
+  async getScenes(projectId: string) {
+    return this.get<any[]>(`/projects/${projectId}/scenes`)
+  }
+
+  async createScene(projectId: string, data: any) {
+    return this.post<any>(`/projects/${projectId}/scenes`, data)
+  }
+
+  async updateScene(id: string, data: any) {
+    return this.put<any>(`/scenes/${id}`, data)
+  }
+
+  async deleteScene(id: string) {
+    return this.delete(`/scenes/${id}`)
+  }
+
+  async getShots(projectId: string, sceneId?: string) {
+    const params = sceneId ? `?sceneId=${sceneId}` : ''
+    return this.get<any[]>(`/projects/${projectId}/shots${params}`)
+  }
+
+  async createShot(projectId: string, data: any) {
+    return this.post<any>(`/projects/${projectId}/shots`, data)
+  }
+
+  async updateShot(id: string, data: any) {
+    return this.put<any>(`/shots/${id}`, data)
+  }
+
+  async deleteShot(id: string) {
+    return this.delete(`/shots/${id}`)
+  }
+
   async createWardrobe(characterId: string, data: any) {
     return this.post<any>(`/characters/${characterId}/wardrobes`, data)
   }

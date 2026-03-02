@@ -232,13 +232,29 @@ export const AI_PROCESSOR_PROMPTS = {
       "dialogues": [
         {
           "characterName": "角色名",
-          "text": "对话内容"
+          "text": "对话内容",
+          "shot": {
+            "type": "镜头类型（特写/近景/中景/全景/远景）",
+            "movement": "镜头运动（推/拉/摇/移/跟/固定）",
+            "angle": "镜头角度（平视/俯视/仰视/斜角）",
+            "description": "镜头描述（如何拍摄这个镜头，包含角色动作、表情、环境互动）",
+            "duration": 预估时长秒数,
+            "transition": "转场方式（切/淡入淡出/溶解/划变）"
+          }
         }
       ],
       "actions": [
         {
           "description": "动作描述",
-          "type": "action"
+          "type": "action",
+          "shot": {
+            "type": "镜头类型",
+            "movement": "镜头运动",
+            "angle": "镜头角度",
+            "description": "镜头描述",
+            "duration": 预估时长秒数,
+            "transition": "转场方式"
+          }
         }
       ],
       "items": [
@@ -255,7 +271,7 @@ export const AI_PROCESSOR_PROMPTS = {
     {
       "id": "角色唯一标识",
       "name": "角色名",
-      "description": "角色描述",
+      "description": "角色描述（简短介绍）",
       "personality": ["性格特质1（行为表现）", "性格特质2（行为表现）", "性格特质3（行为表现）"],
       "costume": {
         "type": "服装类型",
@@ -264,10 +280,10 @@ export const AI_PROCESSOR_PROMPTS = {
         "decoration": "特殊装饰元素"
       },
       "appearance": {
-        "hairStyle": "发型样式",
-        "facialFeatures": "五官特征",
-        "bodyProportion": "身材比例",
-        "otherDetails": ["其他细节1", "其他细节2", "其他细节3"]
+        "hairStyle": "发型样式（如：短发、长发、马尾等）",
+        "facialFeatures": "五官特征（如：圆脸、大眼睛、高鼻梁等）",
+        "bodyProportion": "身材比例（如：高挑、中等、娇小等）",
+        "otherDetails": ["其他外貌细节1", "其他外貌细节2"]
       },
       "lines": 对话行数
     }
@@ -278,12 +294,15 @@ export const AI_PROCESSOR_PROMPTS = {
 1. 如果片段中没有场景，scenes返回空数组[]
 2. 如果片段中没有对话，dialogues返回空数组[]
 3. 如果片段中没有物品，items返回空数组[]
-4. 角色信息必须包含至少3个性格特质，每个特质需提供具体行为表现说明
-5. 角色服装和相貌信息必须详细，至少包含5个具体细节
-6. 场景描述长度必须控制在150-300字
-7. 物品信息必须包含名称、尺寸、形状、颜色四个属性
-8. 确保所有字符都正确转义JSON特殊字符
-9. 保持与上下文的连贯性`
+4. 每个对话和动作都必须包含shot字段，描述镜头拍摄方式
+5. 镜头类型根据内容选择：特写（表情/细节）、近景（上半身）、中景（膝上）、全景（全身）、远景（环境为主）
+6. 镜头运动根据内容选择：推（强调）、拉（展示环境）、摇（跟随视线）、移（平行移动）、跟（跟随角色）、固定（静态）
+7. 角色appearance必须详细填写发型、五官、身材等视觉特征
+8. 角色costume必须详细填写服装类型、颜色、材质、装饰
+9. 场景描述长度必须控制在150-300字
+10. 物品信息必须包含名称、尺寸、形状、颜色四个属性
+11. 确保所有字符都正确转义JSON特殊字符
+12. 保持与上下文的连贯性`
 };
 
 export const ASSISTANT_PROMPTS = {

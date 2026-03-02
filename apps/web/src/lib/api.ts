@@ -82,6 +82,7 @@ export interface ApiClientInterface {
   createShot(projectId: string, data: Partial<Shot>): Promise<Shot>;
   updateShot(shotId: string, data: Partial<Shot>): Promise<Shot>;
   deleteShot(shotId: string): Promise<{ message: string }>;
+  createItem(projectId: string, data: { name: string; description?: string }): Promise<any>;
   generateShotBothImages(shotId: string, providerId: string): Promise<{ success: boolean; startImageUrl?: string; endImageUrl?: string }>;
   reorderShots(projectId: string, shots: { id: string; chapterNumber: number; episodeNumber: number; segmentId: number; cellId: number }[]): Promise<{ message: string }>;
   parseNovel(content: string): Promise<{ chapters: any[]; characters: string[] }>;

@@ -39,6 +39,7 @@ export interface ParsedScript {
   title?: string
   scenes: ScriptScene[]
   characters: ScriptCharacter[]
+  items: any[]
   metadata: {
     totalScenes: number
     totalCharacters: number
@@ -127,6 +128,7 @@ export class ScriptParserService {
         title: result.title,
         scenes: result.scenes,
         characters: result.characters,
+        items: result.items || [],
         metadata: {
           totalScenes: result.metadata.totalScenes,
           totalCharacters: result.metadata.totalCharacters,

@@ -326,12 +326,17 @@ export const parseScriptWithAI = asyncHandler(async (req: Request, res: Response
   logger.info('Script parsing completed', { 
     userId, 
     scenesCount: result.scenes.length,
-    charactersCount: result.characters.length
+    charactersCount: result.characters.length,
+    itemsCount: result.items?.length || 0
   });
+
+  console.log('[Script Controller] result.items:', result.items);
+  console.log('[Script Controller] result.items length:', result.items?.length);
 
   res.json({
     scenes: result.scenes,
     characters: result.characters,
+    items: result.items || [],
     metadata: result.metadata
   });
 });

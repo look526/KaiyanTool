@@ -126,8 +126,14 @@ export class AIProcessor {
 
       console.log(`[AI响应解析] 提取的JSON长度: ${jsonMatch[0].length}`)
       
-      const extractedJson = jsonMatch[0]
-      console.log(`[AI响应解析] 提取的JSON前100字符:`, extractedJson.substring(0, 100))
+      let extractedJson = jsonMatch[0]
+      
+      // 清理 JSON 字符串中的非法控制字符
+      // JSON 规范只允许在字符串中出现 \n, \r, \t（需要转义）
+      // 其他控制字符（0x00-0x1F）必须被转义或移除
+      extractedJson = this.cleanJsonControlChars(extractedJson)
+      
+      console.log(`[AI响应解析] 清理后的JSON前100字符:`, extractedJson.substring(0, 100))
       
       const parsed = JSON.parse(extractedJson)
 
@@ -136,6 +142,8 @@ export class AIProcessor {
       }
 
       console.log(`[AI响应解析] 解析成功，scenes数量: ${parsed.scenes?.length || 0}, characters数量: ${parsed.characters?.length || 0}`)
+      console.log(`[AI响应解析] 第一个场景的dialogues:`, parsed.scenes?.[0]?.dialogues?.length || 0)
+      console.log(`[AI响应解析] 第一个场景的items:`, parsed.scenes?.[0]?.items?.length || 0)
       console.log(`[AI响应解析] 解析后的完整数据:`, JSON.stringify(parsed, null, 2))
       
       return this.sanitizeOutput(parsed)
@@ -145,6 +153,23 @@ export class AIProcessor {
       console.error('解析AI响应失败的错误详情:', error instanceof Error ? error.message : String(error))
       throw new Error(`片段 ${segmentId} 解析失败`)
     }
+  }
+
+  private cleanJsonControlChars(json: string): string {
+    // 在 JSON 字符串值内部转义控制字符
+    // 匹配 JSON 字符串值："..." （考虑转义引号）
+    return json.replace(/"(?:[^"\\]|\\.)*"/g, (match) => {
+      // 在字符串值内部，转义控制字符
+      return match.replace(/[\x00-\x1F]/g, (char) => {
+        const code = char.charCodeAt(0)
+        switch (code) {
+          case 0x09: return '\\t'  // 制表符
+          case 0x0A: return '\\n'  // 换行符
+          case 0x0D: return '\\r'  // 回车符
+          default: return ''       // 其他控制字符直接移除
+        }
+      })
+    })
   }
 
   private sanitizeOutput(data: any): AISegmentResult {
