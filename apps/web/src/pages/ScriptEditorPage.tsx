@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Maximize2,
   Minimize2,
+  AlertCircle,
   Zap,
   Wand2,
 } from 'lucide-react';
@@ -112,6 +113,8 @@ function ScriptEditorContent() {
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [showAIPanel, setShowAIPanel] = useState(true);
   const [tasks, setTasks] = useState<AIProcessingTask[]>([]);
+  const [showReparseConfirm, setShowReparseConfirm] = useState(false);
+  const [hasParsedResult, setHasParsedResult] = useState(false);
   const { addToast } = useToast();
 
   const addTask = (type: AIProcessingTask['type'], title: string) => {
@@ -146,6 +149,48 @@ function ScriptEditorContent() {
   const setTitle = mode === 'script' ? setScriptTitle : setNovelTitle;
   const content = mode === 'script' ? scriptContent : novelContent;
   const setContent = mode === 'script' ? setScriptContent : setNovelContent;
+
+  const PARSED_RESULT_KEY = `parsed_result_${projectIdStr}`;
+
+  const saveParsedResult = useCallback((scenes: Scene[], chars: any[], items: any[]) => {
+    try {
+      localStorage.setItem(PARSED_RESULT_KEY, JSON.stringify({
+        scenes,
+        characters: chars,
+        items,
+        timestamp: Date.now(),
+        contentHash: content.substring(0, 100)
+      }));
+      setHasParsedResult(true);
+    } catch (e) {
+      console.warn('保存解析结果失败:', e);
+    }
+  }, [PARSED_RESULT_KEY, content]);
+
+  const loadParsedResult = useCallback(() => {
+    try {
+      const saved = localStorage.getItem(PARSED_RESULT_KEY);
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.contentHash === content.substring(0, 100)) {
+          return data;
+        }
+      }
+    } catch (e) {
+      console.warn('加载解析结果失败:', e);
+    }
+    return null;
+  }, [PARSED_RESULT_KEY, content]);
+
+  useEffect(() => {
+    const saved = loadParsedResult();
+    if (saved && saved.scenes?.length > 0) {
+      setParsedScenes(saved.scenes);
+      setCharacters(saved.characters || []);
+      setParsedItems(saved.items || []);
+      setHasParsedResult(true);
+    }
+  }, [loadParsedResult]);
 
   useEffect(() => { loadFromLocalStorage(mode); }, [mode, loadFromLocalStorage]);
 
@@ -316,6 +361,15 @@ function ScriptEditorContent() {
       if (!content.trim()) addToast({ type: 'warning', title: '内容为空' });
       return;
     }
+    if (hasParsedResult && parsedScenes.length > 0) {
+      setShowReparseConfirm(true);
+      return;
+    }
+    await executeParse();
+  };
+
+  const executeParse = async () => {
+    setShowReparseConfirm(false);
     const taskId = addTask('parsing', useAIParsing ? 'AI 智能解析剧本' : '快速正则解析剧本');
     try {
       setIsParsingScenes(true);
@@ -333,6 +387,7 @@ function ScriptEditorContent() {
         setParsedScenes(result.scenes);
         setCharacters(result.characters || []);
         setParsedItems(result.items || []);
+        saveParsedResult(result.scenes, result.characters || [], result.items || []);
         setEditorMode('preview');
         addToast({ type: 'success', title: '解析成功', message: `成功解析 ${result.scenes.length} 个场景` });
       } else {
@@ -378,7 +433,7 @@ function ScriptEditorContent() {
         try {
           await apiClient.createItem(projectIdStr, {
             name: item.name || '未命名物品',
-            category: '其他',
+            type: '其他',
             description: `尺寸: ${item.size || '未知'}, 形状: ${item.shape || '未知'}, 颜色: ${item.color || '未知'}`,
           } as any);
           createdAssets.items++;
@@ -783,6 +838,73 @@ function ScriptEditorContent() {
           addToast({ type: 'success', title: '优化已应用' });
         }}
       />
+
+      {/* Reparse Confirm Modal */}
+      {showReparseConfirm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.6)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          backdropFilter: 'blur(4px)',
+        }}>
+          <div style={{
+            background: 'var(--bg-surface)',
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '400px',
+            width: '90%',
+            border: '1px solid var(--border-primary)',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <AlertCircle style={{ width: '24px', height: '24px', color: '#f59e0b' }} />
+              <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--text-primary)' }}>重新解析确认</h3>
+            </div>
+            <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+              已有解析结果（{parsedScenes.length} 个场景、{characters.length} 个角色、{parsedItems.length} 个物品）。<br />
+              是否要重新解析？这将覆盖当前结果。
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowReparseConfirm(false)}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-primary)',
+                  background: 'transparent',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                }}
+              >
+                取消
+              </button>
+              <button
+                onClick={executeParse}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#f59e0b',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                }}
+              >
+                重新解析
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <AIProcessingProgress tasks={tasks} onClear={removeCompletedTasks} />
 
