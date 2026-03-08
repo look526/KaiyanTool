@@ -35,8 +35,8 @@ export class CollaborationService {
 
     const existingMember = await prisma.projectMember.findFirst({
       where: {
-        projectId: validated.projectId,
-        userId: user.id
+        project_id: validated.projectId,
+        user_id: user.id
       }
     });
 
@@ -46,8 +46,8 @@ export class CollaborationService {
 
     const member = await prisma.projectMember.create({
       data: {
-        projectId: validated.projectId,
-        userId: user.id,
+        project_id: validated.projectId,
+        user_id: user.id,
         role: validated.role
       }
     });
@@ -57,10 +57,10 @@ export class CollaborationService {
 
   async getProjectMembers(projectId: string) {
     const members = await prisma.projectMember.findMany({
-      where: { projectId },
+      where: { project_id: projectId },
       include: {
-        user: {
-          select: { id: true, name: true, email: true, avatar: true }
+        User: {
+          select: { id: true, name: true, email: true, avatar_url: true }
         }
       }
     });
@@ -70,7 +70,7 @@ export class CollaborationService {
 
   async updateMemberRole(projectId: string, userId: string, newRole: z.infer<typeof UpdateMemberSchema>['role']) {
     const member = await prisma.projectMember.findFirst({
-      where: { projectId, userId }
+      where: { project_id: projectId, user_id: userId }
     });
 
     if (!member) {
@@ -82,7 +82,7 @@ export class CollaborationService {
     }
 
     const updated = await prisma.projectMember.updateMany({
-      where: { projectId, userId },
+      where: { project_id: projectId, user_id: userId },
       data: { role: newRole }
     });
 
@@ -91,7 +91,7 @@ export class CollaborationService {
 
   async removeMember(projectId: string, userId: string) {
     const member = await prisma.projectMember.findFirst({
-      where: { projectId, userId }
+      where: { project_id: projectId, user_id: userId }
     });
 
     if (!member) {
@@ -103,7 +103,7 @@ export class CollaborationService {
     }
 
     await prisma.projectMember.deleteMany({
-      where: { projectId, userId }
+      where: { project_id: projectId, user_id: userId }
     });
 
     return { success: true };
@@ -111,7 +111,7 @@ export class CollaborationService {
 
   async leaveProject(projectId: string, userId: string) {
     const member = await prisma.projectMember.findFirst({
-      where: { projectId, userId }
+      where: { project_id: projectId, user_id: userId }
     });
 
     if (!member) {
@@ -123,7 +123,7 @@ export class CollaborationService {
     }
 
     await prisma.projectMember.deleteMany({
-      where: { projectId, userId }
+      where: { project_id: projectId, user_id: userId }
     });
 
     return { success: true };
@@ -138,12 +138,12 @@ export class CollaborationService {
       throw new Error('Project not found');
     }
 
-    if (project.ownerId !== fromUserId) {
+    if (project.owner_id !== fromUserId) {
       throw new Error('Only owner can transfer ownership');
     }
 
     const newOwner = await prisma.projectMember.findFirst({
-      where: { projectId, userId: toUserId }
+      where: { project_id: projectId, user_id: toUserId }
     });
 
     if (!newOwner) {
@@ -153,14 +153,14 @@ export class CollaborationService {
     await prisma.$transaction([
       prisma.project.update({
         where: { id: projectId },
-        data: { ownerId: toUserId }
+        data: { owner_id: toUserId }
       }),
       prisma.projectMember.updateMany({
-        where: { projectId, userId: toUserId },
+        where: { project_id: projectId, user_id: toUserId },
         data: { role: 'owner' as const }
       }),
       prisma.projectMember.updateMany({
-        where: { projectId, userId: fromUserId },
+        where: { project_id: projectId, user_id: fromUserId },
         data: { role: 'editor' as const }
       })
     ]);
@@ -171,18 +171,18 @@ export class CollaborationService {
   async getUserCollaborations(userId: string) {
     const [owned, shared] = await Promise.all([
       prisma.project.findMany({
-        where: { ownerId: userId },
+        where: { owner_id: userId },
         include: {
-          _count: { select: { members: true } }
+          _count: { select: { ProjectMember: true } }
         }
       }),
       prisma.projectMember.findMany({
-        where: { userId },
+        where: { user_id: userId },
         include: {
-          project: {
+          Project: {
             include: {
-              owner: { select: { id: true, name: true, avatar: true } },
-              _count: { select: { members: true } }
+              User: { select: { id: true, name: true, avatar_url: true } },
+              _count: { select: { ProjectMember: true } }
             }
           }
         }
@@ -191,7 +191,7 @@ export class CollaborationService {
 
     return {
       owned,
-      shared: shared.map(m => m.project)
+      shared: shared.map(m => m.Project)
     };
   }
 }

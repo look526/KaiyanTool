@@ -51,3 +51,6 @@ uploads/*
 # Misc
 *.pem
 .cache/
+
+# Turbo
+.turbo/

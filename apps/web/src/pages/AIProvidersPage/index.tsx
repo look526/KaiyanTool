@@ -1,7 +1,11 @@
 export { ProviderHeader } from './ProviderHeader';
 export { ProviderCard } from './ProviderCard';
+export { ProviderActions } from './ProviderActions';
 export { ProviderModal } from './ProviderModal';
+export { ModelCard } from './ModelCard';
 export { ModelModal } from './ModelModal';
 export { EmptyState } from './EmptyState';
+export { useAIProvidersPage } from './useAIProvidersPage';
 export * from './types';
 export * from './constants';
+export { default as AIProvidersPage } from './AIProvidersPage';

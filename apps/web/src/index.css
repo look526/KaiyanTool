@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-@import './styles/theme-dark.css';
-@import './styles/theme-light.css';
+/* @import './styles/theme-dark.css';
+@import './styles/theme-light.css'; */
 
 @tailwind base;
 @tailwind components;
@@ -61,12 +61,44 @@
     animation: slide-in-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
+  .animate-slide-in-left {
+    animation: slide-in-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .animate-slide-in-down {
+    animation: slide-in-down 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .animate-slide-in-up {
+    animation: slide-in-up 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
   .animate-pulse-glow {
     animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
   .animate-spin {
     animation: spin 1s linear infinite;
+  }
+
+  .animate-bounce {
+    animation: bounce 1s infinite;
+  }
+
+  .animate-ping {
+    animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-shake {
+    animation: shake 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .animate-wiggle {
+    animation: wiggle 1s ease-in-out infinite;
   }
 
   /* 关键帧定义 */
@@ -82,7 +114,7 @@
   @keyframes fade-in-up {
     from {
       opacity: 0;
-      transform: translateY(10px);
+      transform: translateY(20px);
     }
     to {
       opacity: 1;
@@ -112,12 +144,45 @@
     }
   }
 
+  @keyframes slide-in-left {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes slide-in-down {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   @keyframes pulse-glow {
     0%, 100% {
-      box-shadow: 0 0 0 0 rgba(181, 147, 107, 0.4);
+      box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4);
     }
     50% {
-      box-shadow: 0 0 0 8px rgba(181, 147, 107, 0);
+      box-shadow: 0 0 0 8px rgba(139, 92, 246, 0);
     }
   }
 
@@ -127,6 +192,54 @@
     }
     to {
       transform: rotate(360deg);
+    }
+  }
+
+  @keyframes bounce {
+    0%, 100% {
+      transform: translateY(-25%);
+      animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+    }
+    50% {
+      transform: translateY(0);
+      animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    }
+  }
+
+  @keyframes ping {
+    75%, 100% {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  @keyframes shake {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+      transform: translateX(-4px);
+    }
+    20%, 40%, 60%, 80% {
+      transform: translateX(4px);
+    }
+  }
+
+  @keyframes wiggle {
+    0%, 100% {
+      transform: rotate(-3deg);
+    }
+    50% {
+      transform: rotate(3deg);
     }
   }
 
@@ -157,68 +270,276 @@
     to {
       opacity: 1;
       transform: translateY(0);
-      backdrop-filter: blur(20px);
+      backdrop-filter: blur(40px);
+    }
+  }
+
+  @keyframes ripple {
+    0% {
+      transform: scale(0);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(4);
+      opacity: 0;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+
+  @keyframes glow {
+    0%, 100% {
+      box-shadow: 0 0 5px var(--accent), 0 0 10px var(--accent);
+    }
+    50% {
+      box-shadow: 0 0 20px var(--accent), 0 0 30px var(--accent);
+    }
+  }
+
+  @keyframes slideInFromLeft {
+    0% {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    100% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideInFromRight {
+    0% {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    100% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes zoomIn {
+    0% {
+      transform: scale(0.5);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes zoomOut {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(0.5);
+      opacity: 0;
+    }
+  }
+
+  @keyframes flipInX {
+    0% {
+      transform: perspective(400px) rotateX(90deg);
+      opacity: 0;
+    }
+    40% {
+      transform: perspective(400px) rotateX(-20deg);
+    }
+    60% {
+      transform: perspective(400px) rotateX(10deg);
+    }
+    80% {
+      transform: perspective(400px) rotateX(-5deg);
+    }
+    100% {
+      transform: perspective(400px) rotateX(0deg);
+      opacity: 1;
+    }
+  }
+
+  @keyframes flipInY {
+    0% {
+      transform: perspective(400px) rotateY(90deg);
+      opacity: 0;
+    }
+    40% {
+      transform: perspective(400px) rotateY(-20deg);
+    }
+    60% {
+      transform: perspective(400px) rotateY(10deg);
+    }
+    80% {
+      transform: perspective(400px) rotateY(-5deg);
+    }
+    100% {
+      transform: perspective(400px) rotateY(0deg);
+      opacity: 1;
+    }
+  }
+
+  @keyframes rotateIn {
+    0% {
+      transform: rotate(-200deg);
+      opacity: 0;
+    }
+    100% {
+      transform: rotate(0deg);
+      opacity: 1;
+    }
+  }
+
+  @keyframes lightSpeedIn {
+    0% {
+      transform: translateX(100%) skewX(-30deg);
+      opacity: 0;
+    }
+    60% {
+      transform: translateX(-20%) skewX(30deg);
+      opacity: 1;
+    }
+    80% {
+      transform: translateX(0%) skewX(-15deg);
+    }
+    100% {
+      transform: translateX(0%) skewX(0deg);
+      opacity: 1;
     }
   }
 
   /* 过渡动画类 */
   .transition-all {
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all var(--transition-base);
   }
 
   .transition-transform {
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform var(--transition-base);
   }
 
   .transition-opacity {
-    transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity var(--transition-base);
   }
 
   .transition-colors {
-    transition: color 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base);
   }
 
   .transition-shadow {
-    transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: box-shadow var(--transition-base);
+  }
+
+  .transition-all-fast {
+    transition: all var(--transition-fast);
+  }
+
+  .transition-all-slow {
+    transition: all var(--transition-slow);
+  }
+
+  .transition-all-bounce {
+    transition: all var(--transition-bounce);
   }
 
   /* 悬停效果 */
   .hover\:scale-105:hover {
     transform: scale(1.05);
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform var(--transition-base);
   }
 
   .hover\:scale-110:hover {
     transform: scale(1.1);
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform var(--transition-base);
+  }
+
+  .hover\:scale-95:hover {
+    transform: scale(0.95);
+    transition: transform var(--transition-base);
   }
 
   .hover\:-translate-y-1:hover {
     transform: translateY(-4px);
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform var(--transition-base);
   }
 
   .hover\:-translate-y-0\.5:hover {
     transform: translateY(-2px);
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform var(--transition-base);
+  }
+
+  .hover\:-translate-y-2:hover {
+    transform: translateY(-8px);
+    transition: transform var(--transition-base);
+  }
+
+  .hover\:translate-y-1:hover {
+    transform: translateY(4px);
+    transition: transform var(--transition-base);
+  }
+
+  .hover\:rotate-90:hover {
+    transform: rotate(90deg);
+    transition: transform var(--transition-slow);
+  }
+
+  .hover\:rotate-180:hover {
+    transform: rotate(180deg);
+    transition: transform var(--transition-slow);
   }
 
   .hover\:shadow-2xl:hover {
-    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-    transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-xl);
+    transition: box-shadow var(--transition-base);
+  }
+
+  .hover\:shadow-accent:hover {
+    box-shadow: var(--shadow-accent);
+    transition: box-shadow var(--transition-base);
+  }
+
+  .hover\:glow:hover {
+    animation: glow 1.5s ease-in-out infinite;
+  }
+
+  /* 悬停颜色效果 */
+  .hover\:text-accent:hover {
+    color: var(--accent);
+    transition: color var(--transition-fast);
+  }
+
+  .hover\:bg-accent:hover {
+    background-color: var(--accent);
+    transition: background-color var(--transition-fast);
+  }
+
+  .hover\:bg-glass-hover:hover {
+    background-color: var(--bg-glass-hover);
+    transition: background-color var(--transition-fast);
   }
 
   /* 缓动函数变体 */
   .ease-in-out {
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-timing-function: var(--easing-in-out);
   }
 
   .ease-out {
-    transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    transition-timing-function: var(--easing-out);
   }
 
   .ease-in {
-    transition-timing-function: cubic-bezier(0.4, 0, 1, 1);
+    transition-timing-function: var(--easing-in);
+  }
+
+  .ease-linear {
+    transition-timing-function: var(--easing-linear);
   }
 
   /* 动画延迟 */
@@ -234,6 +555,18 @@
     animation-delay: 300ms;
   }
 
+  .delay-500 {
+    animation-delay: 500ms;
+  }
+
+  .delay-700 {
+    animation-delay: 700ms;
+  }
+
+  .delay-1000 {
+    animation-delay: 1000ms;
+  }
+
   /* 动画填充模式 */
   .animate-fill-forwards {
     animation-fill-mode: forwards;
@@ -241,5 +574,44 @@
 
   .animate-fill-backwards {
     animation-fill-mode: backwards;
+  }
+
+  .animate-fill-both {
+    animation-fill-mode: both;
+  }
+
+  /* 动画方向 */
+  .animate-direction-normal {
+    animation-direction: normal;
+  }
+
+  .animate-direction-reverse {
+    animation-direction: reverse;
+  }
+
+  .animate-direction-alternate {
+    animation-direction: alternate;
+  }
+
+  .animate-direction-alternate-reverse {
+    animation-direction: alternate-reverse;
+  }
+
+  /* 动画播放状态 */
+  .animate-play-running {
+    animation-play-state: running;
+  }
+
+  .animate-play-paused {
+    animation-play-state: paused;
+  }
+
+  /* 实用类 */
+  .animate-infinite {
+    animation-iteration-count: infinite;
+  }
+
+  .animate-once {
+    animation-iteration-count: 1;
   }
 }

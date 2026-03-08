@@ -114,7 +114,7 @@ const StorylinePage: React.FC = () => {
     setStep('generating');
 
     try {
-      const result = await apiClient.generateStorylineFromForm(formData);
+      const result = await (apiClient as any).generateStorylineFromForm(formData) as Storyline;
       setStoryline(result);
       setStep('result');
       addToast({
@@ -137,7 +137,7 @@ const StorylinePage: React.FC = () => {
     if (!storyline || !projectId) return;
 
     try {
-      const result = await apiClient.saveStoryline(projectId, storyline);
+      const result = await (apiClient as any).saveStoryline(projectId, storyline) as { id: string };
       setSavedId(result.id);
       addToast({
         type: 'success',

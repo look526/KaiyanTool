@@ -1,0 +1,99 @@
+name: Component Size Check
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/src/components/**'
+      - '.github/workflows/component-size-check.yml'
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'apps/web/src/components/**'
+
+jobs:
+  check-component-size:
+    name: Check Component Size Limits
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run component size check
+        run: npm run check:component-size
+        continue-on-error: false
+      
+      - name: Upload size report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: component-size-report
+          path: |
+            component-size-report.txt
+            component-size-report.json
+      
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reportPath = 'component-size-report.json';
+            
+            if (fs.existsSync(reportPath)) {
+              const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+              const hasViolations = report.violations && report.violations.length > 0;
+              
+              let comment = '## 📊 Component Size Check Report\n\n';
+              
+              if (hasViolations) {
+                comment += '### ❌ Violations Found\n\n';
+                comment += 'The following components exceed size limits:\n\n';
+                
+                report.violations.forEach(v => {
+                  comment += `**${v.filePath}**\n`;
+                  comment += `- Category: ${v.category}\n`;
+                  comment += `- Lines: ${v.lines} / ${v.limit} (${v.percentage}%)\n`;
+                  comment += `- Over by: ${v.overBy} lines\n\n`;
+                });
+                
+                comment += '---\n\n';
+                comment += '### 📋 Actions Required\n\n';
+                comment += 'Please refactor the components above to comply with size limits:\n';
+                comment += '- Atoms: < 100 lines\n';
+                comment += '- Molecules: < 300 lines\n';
+                comment += '- Organisms: < 500 lines\n';
+                comment += '- Hooks: < 300 lines\n';
+                comment += '- Utils: < 150 lines\n\n';
+                comment += 'See [ARCHITECTURE.md](apps/web/src/components/ARCHITECTURE.md) for guidelines.\n';
+              } else {
+                comment += '### ✅ All Components Within Limits\n\n';
+                comment += 'All checked components comply with size limits!\n\n';
+                comment += `**Summary:**\n`;
+                comment += `- Total files: ${report.totalFiles}\n`;
+                comment += `- Within limit: ${report.withinLimit}\n`;
+                comment += `- Near limit: ${report.nearLimit}\n`;
+                comment += `- Over limit: ${report.overLimit}\n`;
+              }
+              
+              comment += `\n---\n\n*This check was run on commit ${context.sha}*`;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+          github-token: ${{ secrets.GITHUB_TOKEN }}

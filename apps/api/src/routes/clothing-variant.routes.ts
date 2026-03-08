@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { clothingVariantService } from '../services/clothing-variant.service';
 import { authMiddleware } from '../middleware/auth.middleware';
+import crypto from 'crypto';
 
 const router = Router();
 
@@ -33,15 +34,17 @@ router.post('/generate', async (req, res) => {
     for (let i = 0; i < tasks.length; i++) {
       await prisma.asset.create({
         data: {
+          id: crypto.randomUUID(),
           type: 'image',
           url: tasks[i].url,
-          projectId: character.projectId,
+          project_id: character.project_id,
           metadata: {
-            characterId,
+            character_id: characterId,
             variant: variants[i],
-            baseImageUrl,
+            base_image_url: baseImageUrl,
             type: 'clothing-variant'
-          } as any
+          } as any,
+          updated_at: new Date()
         }
       });
     }
@@ -57,7 +60,7 @@ router.get('/character/:characterId', async (req, res) => {
     const variants = await prisma.asset.findMany({
       where: {
         metadata: {
-          path: ['characterId'],
+          path: ['character_id'],
           equals: req.params.characterId
         }
       }

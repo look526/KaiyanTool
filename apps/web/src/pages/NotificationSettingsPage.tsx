@@ -7,8 +7,9 @@ import {
   Volume2,
   Smartphone,
   Clock,
+  ArrowLeft,
 } from 'lucide-react';
-import { Card } from '../components/ui/card';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface NotificationSetting {
   id: string;
@@ -58,6 +59,12 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ checked, onChange }) => {
 };
 
 export default function NotificationSettingsPage() {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  const [backHovered, setBackHovered] = useState(false);
+  const [hoveredOption, setHoveredOption] = useState<string | null>(null);
+  const [pushHovered, setPushHovered] = useState(false);
+
   const [settings, setSettings] = useState<NotificationSetting[]>([
     { id: 'project_updates', title: '项目更新', description: '当项目状态发生变化时通知我', enabled: true },
     { id: 'team_invites', title: '团队邀请', description: '当有新的团队邀请时通知我', enabled: true },
@@ -77,45 +84,95 @@ export default function NotificationSettingsPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+    <div style={{
+      minHeight: '100vh',
+      background: isDark
+        ? 'linear-gradient(180deg, #05050a 0%, #0a0a12 50%, #0f0f1a 100%)'
+        : 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+      display: 'flex',
+      flexDirection: 'column',
+      position: 'relative',
+    }}>
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 50%)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
+
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1, overflow: 'hidden' }}>
         <header style={{
-          height: '64px',
-          borderBottom: '1px solid var(--border-primary)',
-          backgroundColor: 'var(--bg-elevated)',
-          padding: '0 24px',
+          height: '72px',
+          borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(0, 0, 0, 0.06)',
+          backgroundColor: isDark ? 'rgba(5, 5, 10, 0.95)' : 'rgba(255, 255, 255, 0.92)',
+          backdropFilter: 'blur(40px)',
+          padding: '0 32px',
           display: 'flex',
           alignItems: 'center',
           flexShrink: 0,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button
+            onClick={() => window.history.back()}
+            onMouseEnter={() => setBackHovered(true)}
+            onMouseLeave={() => setBackHovered(false)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              background: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.02)',
+              border: `1px solid ${backHovered ? 'rgba(139, 92, 246, 0.25)' : isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
+              borderRadius: '12px',
+              color: isDark ? '#fafafa' : '#18181b',
+              fontSize: '14px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'all 0.25s ease',
+            }}
+          >
+            <ArrowLeft style={{ width: '16px', height: '16px' }} />
+            返回
+          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginLeft: '24px' }}>
             <div>
               <h1 style={{
                 fontSize: '20px',
-                fontWeight: '700',
-                color: 'var(--text-primary)',
+                fontWeight: 700,
+                color: isDark ? '#fafafa' : '#18181b',
                 margin: '0 0 4px 0',
               }}>通知设置</h1>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: '12px', color: isDark ? 'rgba(250, 250, 250, 0.6)' : 'rgba(24, 24, 27, 0.6)' }}>
                 管理您的通知偏好
               </div>
             </div>
           </div>
         </header>
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '32px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '32px 48px' }}>
           <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <Card style={{ padding: '32px', marginBottom: '24px' }}>
+            <div style={{
+              padding: '32px',
+              marginBottom: '24px',
+              background: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.02)',
+              backdropFilter: 'blur(20px)',
+              border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
+              borderRadius: '24px',
+            }}>
               <h2 style={{
                 fontSize: '16px',
-                fontWeight: '600',
-                color: 'var(--text-primary)',
+                fontWeight: 600,
+                color: isDark ? '#fafafa' : '#18181b',
                 margin: '0 0 24px 0',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px',
               }}>
-                <Bell style={{ width: '18px', height: '18px', color: 'var(--accent)' }} />
+                <Bell style={{ width: '18px', height: '18px', color: '#8b5cf6' }} />
                 通知类型
               </h2>
 
@@ -128,15 +185,15 @@ export default function NotificationSettingsPage() {
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       padding: '16px',
-                      backgroundColor: 'var(--bg-hover)',
-                      borderRadius: '10px',
+                      background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+                      borderRadius: '18px',
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: '15px', fontWeight: '500', color: 'var(--text-primary)' }}>
+                      <div style={{ fontSize: '15px', fontWeight: 500, color: isDark ? '#fafafa' : '#18181b' }}>
                         {setting.title}
                       </div>
-                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                      <div style={{ fontSize: '13px', color: isDark ? 'rgba(250, 250, 250, 0.6)' : 'rgba(24, 24, 27, 0.6)', marginTop: '4px' }}>
                         {setting.description}
                       </div>
                     </div>
@@ -147,19 +204,26 @@ export default function NotificationSettingsPage() {
                   </div>
                 ))}
               </div>
-            </Card>
+            </div>
 
-            <Card style={{ padding: '32px', marginBottom: '24px' }}>
+            <div style={{
+              padding: '32px',
+              marginBottom: '24px',
+              background: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.02)',
+              backdropFilter: 'blur(20px)',
+              border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
+              borderRadius: '24px',
+            }}>
               <h2 style={{
                 fontSize: '16px',
-                fontWeight: '600',
-                color: 'var(--text-primary)',
+                fontWeight: 600,
+                color: isDark ? '#fafafa' : '#18181b',
                 margin: '0 0 24px 0',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px',
               }}>
-                <Mail style={{ width: '18px', height: '18px', color: 'var(--accent)' }} />
+                <Mail style={{ width: '18px', height: '18px', color: '#8b5cf6' }} />
                 邮件摘要频率
               </h2>
 
@@ -171,46 +235,61 @@ export default function NotificationSettingsPage() {
                   { value: 'never', label: '从不', desc: '不发送邮件通知' },
                 ].map((option) => {
                   const isSelected = emailDigest === option.value;
+                  const isHovered = hoveredOption === option.value;
                   return (
                     <button
                       key={option.value}
                       onClick={() => setEmailDigest(option.value as any)}
+                      onMouseEnter={() => setHoveredOption(option.value)}
+                      onMouseLeave={() => setHoveredOption(null)}
                       style={{
                         padding: '16px',
-                        backgroundColor: isSelected ? 'var(--accent-bg)' : 'var(--bg-surface)',
-                        border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border-primary)'}`,
-                        borderRadius: '10px',
+                        backgroundColor: isSelected
+                          ? 'rgba(139, 92, 246, 0.12)'
+                          : isHovered
+                            ? isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)'
+                            : isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.02)',
+                        border: `2px solid ${isSelected ? '#8b5cf6' : isHovered ? 'rgba(139, 92, 246, 0.25)' : isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
+                        borderRadius: '14px',
                         cursor: 'pointer',
                         textAlign: 'left',
-                        transition: 'all 0.2s ease',
+                        transition: 'all 0.25s ease',
+                        boxShadow: isHovered ? '0 4px 12px rgba(0, 0, 0, 0.08)' : 'none',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        {isSelected && <CheckCircle style={{ width: '16px', height: '16px', color: 'var(--accent)' }} />}
-                        <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                        {isSelected && <CheckCircle style={{ width: '16px', height: '16px', color: '#8b5cf6' }} />}
+                        <span style={{ fontSize: '14px', fontWeight: 600, color: isDark ? '#fafafa' : '#18181b' }}>
                           {option.label}
                         </span>
                       </div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+                      <div style={{ fontSize: '12px', color: isDark ? 'rgba(250, 250, 250, 0.6)' : 'rgba(24, 24, 27, 0.6)', marginTop: '6px' }}>
                         {option.desc}
                       </div>
                     </button>
                   );
                 })}
               </div>
-            </Card>
+            </div>
 
-            <Card style={{ padding: '32px', marginBottom: '24px' }}>
+            <div style={{
+              padding: '32px',
+              marginBottom: '24px',
+              background: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.02)',
+              backdropFilter: 'blur(20px)',
+              border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
+              borderRadius: '24px',
+            }}>
               <h2 style={{
                 fontSize: '16px',
-                fontWeight: '600',
-                color: 'var(--text-primary)',
+                fontWeight: 600,
+                color: isDark ? '#fafafa' : '#18181b',
                 margin: '0 0 24px 0',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px',
               }}>
-                <Clock style={{ width: '18px', height: '18px', color: 'var(--accent)' }} />
+                <Clock style={{ width: '18px', height: '18px', color: '#8b5cf6' }} />
                 免打扰时段
               </h2>
 
@@ -219,17 +298,17 @@ export default function NotificationSettingsPage() {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '16px',
-                backgroundColor: 'var(--bg-hover)',
-                borderRadius: '10px',
+                background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+                borderRadius: '18px',
                 marginBottom: '16px',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <Volume2 style={{ width: '20px', height: '20px', color: 'var(--text-secondary)' }} />
+                  <Volume2 style={{ width: '20px', height: '20px', color: isDark ? 'rgba(250, 250, 250, 0.6)' : 'rgba(24, 24, 27, 0.6)' }} />
                   <div>
-                    <div style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 500, color: isDark ? '#fafafa' : '#18181b' }}>
                       启用免打扰
                     </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    <div style={{ fontSize: '12px', color: isDark ? 'rgba(250, 250, 250, 0.6)' : 'rgba(24, 24, 27, 0.6)' }}>
                       在指定时间段内静音通知
                     </div>
                   </div>
@@ -246,8 +325,8 @@ export default function NotificationSettingsPage() {
                     <label style={{
                       display: 'block',
                       fontSize: '13px',
-                      fontWeight: '500',
-                      color: 'var(--text-primary)',
+                      fontWeight: 500,
+                      color: isDark ? '#fafafa' : '#18181b',
                       marginBottom: '8px',
                     }}>
                       开始时间
@@ -260,11 +339,12 @@ export default function NotificationSettingsPage() {
                         width: '100%',
                         height: '44px',
                         padding: '0 12px',
-                        backgroundColor: 'var(--bg-surface)',
-                        border: '1px solid var(--border-primary)',
-                        borderRadius: '8px',
-                        color: 'var(--text-primary)',
+                        backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.02)',
+                        border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
+                        borderRadius: '14px',
+                        color: isDark ? '#fafafa' : '#18181b',
                         fontSize: '14px',
+                        transition: 'all 0.25s ease',
                       }}
                     />
                   </div>
@@ -272,8 +352,8 @@ export default function NotificationSettingsPage() {
                     <label style={{
                       display: 'block',
                       fontSize: '13px',
-                      fontWeight: '500',
-                      color: 'var(--text-primary)',
+                      fontWeight: 500,
+                      color: isDark ? '#fafafa' : '#18181b',
                       marginBottom: '8px',
                     }}>
                       结束时间
@@ -286,19 +366,26 @@ export default function NotificationSettingsPage() {
                         width: '100%',
                         height: '44px',
                         padding: '0 12px',
-                        backgroundColor: 'var(--bg-surface)',
-                        border: '1px solid var(--border-primary)',
-                        borderRadius: '8px',
-                        color: 'var(--text-primary)',
+                        backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.02)',
+                        border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
+                        borderRadius: '14px',
+                        color: isDark ? '#fafafa' : '#18181b',
                         fontSize: '14px',
+                        transition: 'all 0.25s ease',
                       }}
                     />
                   </div>
                 </div>
               )}
-            </Card>
+            </div>
 
-            <Card style={{ padding: '24px' }}>
+            <div style={{
+              padding: '24px',
+              background: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.02)',
+              backdropFilter: 'blur(20px)',
+              border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
+              borderRadius: '24px',
+            }}>
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -308,18 +395,18 @@ export default function NotificationSettingsPage() {
                   width: '48px',
                   height: '48px',
                   borderRadius: '12px',
-                  backgroundColor: 'var(--bg-hover)',
+                  background: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
-                  <Smartphone style={{ width: '24px', height: '24px', color: 'var(--text-secondary)' }} />
+                  <Smartphone style={{ width: '24px', height: '24px', color: '#ffffff' }} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                  <div style={{ fontSize: '15px', fontWeight: 600, color: isDark ? '#fafafa' : '#18181b' }}>
                     浏览器推送通知
                   </div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  <div style={{ fontSize: '13px', color: isDark ? 'rgba(250, 250, 250, 0.6)' : 'rgba(24, 24, 27, 0.6)' }}>
                     允许浏览器发送桌面推送通知
                   </div>
                 </div>
@@ -329,21 +416,29 @@ export default function NotificationSettingsPage() {
                       Notification.requestPermission();
                     }
                   }}
+                  onMouseEnter={() => setPushHovered(true)}
+                  onMouseLeave={() => setPushHovered(false)}
                   style={{
-                    padding: '10px 20px',
-                    backgroundColor: 'var(--accent)',
+                    padding: '12px 24px',
+                    background: pushHovered
+                      ? 'linear-gradient(135deg, #a78bfa 0%, #c4b5fd 100%)'
+                      : 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
                     border: 'none',
-                    borderRadius: '8px',
-                    color: 'white',
+                    borderRadius: '14px',
+                    color: '#ffffff',
                     fontSize: '14px',
-                    fontWeight: '500',
+                    fontWeight: 600,
                     cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    boxShadow: pushHovered
+                      ? '0 12px 32px rgba(139, 92, 246, 0.5)'
+                      : '0 8px 24px rgba(139, 92, 246, 0.4)',
                   }}
                 >
                   启用推送
                 </button>
               </div>
-            </Card>
+            </div>
           </div>
         </div>
       </main>

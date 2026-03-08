@@ -7,4 +7,6 @@ export { api, queryKeys, ApiError } from './api/client';
 export type { ApiResponse, PaginationParams, SearchResult } from './api/client';
 export { webSocketManager, useRealtimeSync, useGenerationProgress, useRealtimeNotifications } from './sync';
 export type { WebSocketStatus } from './sync';
-export { usePerformanceMonitor, PerformanceMonitor, useWebVitals } from './monitoring/PerformanceMonitor';
+export { PerformanceMonitor } from './monitoring/PerformanceMonitor';
+export { reportWebVitals, PERFORMANCE_THRESHOLDS, getPerformanceRating } from './monitoring/web-vitals';
+export type { VitalName } from './monitoring/web-vitals';

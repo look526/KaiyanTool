@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { authMiddleware } from '../middleware/auth.middleware'
-import { checkProjectAccess, checkProjectRole, Role } from '../middleware/permission.middleware'
+import { checkProjectAccess, checkProjectRole } from '../middleware/permission.middleware'
+import { Role } from '../types/auth.types'
 import { projectMemberController } from '../controllers/project-member.controller'
 
 const router = Router()

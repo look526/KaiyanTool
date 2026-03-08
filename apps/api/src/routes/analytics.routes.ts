@@ -6,6 +6,31 @@ const router = Router();
 
 router.use(authMiddleware);
 
+router.get('/', async (req, res) => {
+  try {
+    const userId = (req as any).userId;
+    const type = req.query.type as string;
+    
+    if (!userId) {
+      return res.status(401).json({ error: '未授权' });
+    }
+    
+    if (type === 'user' || type === 'usage') {
+      const analytics = await analyticsService.getUserAnalytics(userId);
+      return res.json(analytics);
+    }
+    
+    if (type === 'platform') {
+      const analytics = await analyticsService.getPlatformAnalytics();
+      return res.json(analytics);
+    }
+    
+    res.status(400).json({ error: 'Invalid analytics type' });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to get analytics' });
+  }
+});
+
 router.get('/usage', async (req, res) => {
   try {
     const userId = (req as any).userId;

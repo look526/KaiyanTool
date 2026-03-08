@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma';
+import crypto from 'crypto';
 
 interface MigrationSource {
   type: 'bigbanana' | 'toonflow' | 'cinegen' | 'custom';
@@ -35,14 +36,17 @@ export class DataMigrationService {
       try {
         const newProject = await prisma.project.create({
           data: {
+            id: crypto.randomUUID(),
             name: project.name || 'Imported Project',
             description: project.description || '',
-            ownerId: userId,
+            owner_id: userId,
             settings: {
               source: 'bigbanana',
               originalId: project.id,
               importedAt: new Date().toISOString()
-            } as any
+            } as any,
+            created_at: new Date(),
+            updated_at: new Date()
           }
         });
 
@@ -53,14 +57,17 @@ export class DataMigrationService {
             try {
               await prisma.character.create({
                 data: {
-                  projectId: newProject.id,
+                  id: crypto.randomUUID(),
+                  project_id: newProject.id,
                   name: char.name,
                   appearance: JSON.stringify({
                     description: char.description,
                     appearance: char.appearance,
                     source: 'bigbanana',
                     originalId: char.id
-                  })
+                  }),
+                  created_at: new Date(),
+                  updated_at: new Date()
                 }
               });
             } catch (e: any) {
@@ -77,7 +84,8 @@ export class DataMigrationService {
             try {
               await prisma.document.create({
                 data: {
-                  projectId: newProject.id,
+                  id: crypto.randomUUID(),
+                  project_id: newProject.id,
                   title: script.title || 'Imported Script',
                   type: 'script',
                   content: {
@@ -85,7 +93,9 @@ export class DataMigrationService {
                     originalId: script.id,
                     fullText: script.content
                   } as any,
-                  status: 'completed'
+                  status: 'completed',
+                  created_at: new Date(),
+                  updated_at: new Date()
                 }
               });
             } catch (e: any) {
@@ -109,9 +119,10 @@ export class DataMigrationService {
       try {
         await prisma.asset.create({
           data: {
+            id: crypto.randomUUID(),
             type: asset.type || 'image',
             url: asset.url,
-            projectId: (await prisma.project.findFirst({
+            project_id: (await prisma.project.findFirst({
               where: {
                 settings: {
                   path: ['source'],
@@ -123,7 +134,9 @@ export class DataMigrationService {
               source: 'bigbanana',
               originalId: asset.id,
               generationParams: asset.params
-            } as any
+            } as any,
+            created_at: new Date(),
+            updated_at: new Date()
           }
         });
         result.migratedAssets++;
@@ -162,15 +175,18 @@ export class DataMigrationService {
       try {
         const newProject = await prisma.project.create({
           data: {
+            id: crypto.randomUUID(),
             name: project.name || 'Toonflow Import',
             description: project.description || '',
-            ownerId: userId,
+            owner_id: userId,
             settings: {
               source: 'toonflow',
               originalId: project.id,
               importedAt: new Date().toISOString(),
               workflowConfig: project.workflowConfig
-            } as any
+            } as any,
+            created_at: new Date(),
+            updated_at: new Date()
           }
         });
 
@@ -181,10 +197,13 @@ export class DataMigrationService {
             try {
               await prisma.scene.create({
                 data: {
-                  projectId: newProject.id,
+                  id: crypto.randomUUID(),
+                  project_id: newProject.id,
                   location: scene.location,
                   time: scene.timeOfDay,
-                  atmosphere: ''
+                  atmosphere: '',
+                  created_at: new Date(),
+                  updated_at: new Date()
                 }
               });
             } catch (e: any) {
@@ -230,14 +249,17 @@ export class DataMigrationService {
       try {
         await prisma.project.create({
           data: {
+            id: crypto.randomUUID(),
             name: project.name || 'Cinegen Import',
             description: project.description || '',
-            ownerId: userId,
+            owner_id: userId,
             settings: {
               source: 'cinegen',
               originalId: project.id,
               importedAt: new Date().toISOString()
-            } as any
+            } as any,
+            created_at: new Date(),
+            updated_at: new Date()
           }
         });
 
@@ -263,7 +285,7 @@ export class DataMigrationService {
 
   async getMigrationHistory(userId: string, limit = 50) {
     return prisma.migrationLog.findMany({
-      where: { userId },
+      where: { user_id: userId },
       orderBy: { timestamp: 'desc' },
       take: limit
     });
@@ -321,7 +343,7 @@ export class DataMigrationService {
       where: { id: migrationId }
     });
 
-    if (!migration || migration.userId !== userId) {
+    if (!migration || migration.user_id !== userId) {
       throw new Error('Migration not found or unauthorized');
     }
 
@@ -347,8 +369,9 @@ export class DataMigrationService {
   }) {
     return prisma.migrationLog.create({
       data: {
+        id: crypto.randomUUID(),
         source: data.source,
-        userId: data.userId,
+        user_id: data.userId,
         result: data.result as any,
         timestamp: data.timestamp,
         status: data.result.success ? 'completed' : 'partial'

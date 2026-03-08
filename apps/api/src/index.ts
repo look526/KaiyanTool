@@ -57,6 +57,8 @@ import { getMetrics } from './lib/metrics'
 import { metricsMiddleware } from './middleware/metrics.middleware'
 import { setupOpenTelemetry } from './config/opentelemetry'
 import { errorMiddleware, notFoundHandler } from './middleware/error.middleware'
+import { responseCaseTransform } from './middleware/response-case-transform.middleware'
+import { csrfMiddleware } from './middleware/csrf.middleware'
 
 setupOpenTelemetry()
 
@@ -72,7 +74,7 @@ app.use(cors({
   origin: config.cors.origins,
   credentials: config.cors.credentials,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-CSRF-Token']
 }))
 app.use(cookieParser())
 app.use(express.json())
@@ -81,6 +83,8 @@ app.use('/uploads', express.static(UPLOAD_DIR))
 app.use(sentryTracingHandler)
 app.use(requestLogger)
 app.use(metricsMiddleware)
+app.use(responseCaseTransform)
+app.use(csrfMiddleware)
 
 app.use('/api/health', healthRoutes)
 
@@ -113,7 +117,10 @@ app.post('/api/metrics', cors({
   }
 })
 
+// 先注册不需要认证的路由
 app.use('/api/auth', authRoutes)
+
+// 注册需要认证的路由
 app.use('/api/projects', projectRoutes)
 app.use('/api', contentRoutes)
 app.use('/api', assetRoutes)

@@ -1,166 +1,316 @@
-import { Zap, Cpu, LayoutGrid, CheckCircle, Plus } from 'lucide-react';
-import { AIProvider } from './types';
+import { useState } from 'react';
+import { Cpu, Layers, CheckCircle, Plus, Zap } from 'lucide-react';
+import type { AIProvider } from '../../types';
 
 interface ProviderHeaderProps {
   providers: AIProvider[];
   isMobile: boolean;
   isTablet: boolean;
-  onAddProvider?: () => void;
+  isDark?: boolean;
+  colors?: {
+    bgPrimary: string;
+    bgSecondary: string;
+    bgGlass: string;
+    bgGlassHover: string;
+    textPrimary: string;
+    textSecondary: string;
+    textMuted: string;
+    border: string;
+    borderHover: string;
+  };
+  accentColor?: string;
 }
 
-export function ProviderHeader({ providers, isMobile, isTablet, onAddProvider }: ProviderHeaderProps) {
+export function ProviderHeader({ 
+  providers, 
+  isMobile, 
+  isTablet, 
+  isDark = false,
+  colors,
+  accentColor = '#8b5cf6'
+}: ProviderHeaderProps) {
+
+  const [cardHovers, setCardHovers] = useState<Record<string, boolean>>({
+    providers: false,
+    models: false,
+    enabled: false
+  });
+
+  const handleCardHover = (key: string, hover: boolean) => {
+    setCardHovers(prev => ({ ...prev, [key]: hover }));
+  };
+
+  // 确保colors有默认值
+  const defaultColors = isDark ? {
+    bgPrimary: 'rgba(5, 5, 10, 0.95)',
+    bgSecondary: 'rgba(255, 255, 255, 0.03)',
+    bgGlass: 'rgba(255, 255, 255, 0.04)',
+    bgGlassHover: 'rgba(255, 255, 255, 0.06)',
+    textPrimary: '#fafafa',
+    textSecondary: 'rgba(250, 250, 250, 0.6)',
+    textMuted: 'rgba(250, 250, 250, 0.4)',
+    border: 'rgba(255, 255, 255, 0.06)',
+    borderHover: 'rgba(139, 92, 246, 0.25)',
+  } : {
+    bgPrimary: 'rgba(255, 255, 255, 0.92)',
+    bgSecondary: 'rgba(0, 0, 0, 0.02)',
+    bgGlass: 'rgba(0, 0, 0, 0.02)',
+    bgGlassHover: 'rgba(0, 0, 0, 0.04)',
+    textPrimary: '#18181b',
+    textSecondary: 'rgba(24, 24, 27, 0.6)',
+    textMuted: 'rgba(24, 24, 27, 0.4)',
+    border: 'rgba(0, 0, 0, 0.06)',
+    borderHover: 'rgba(139, 92, 246, 0.25)',
+  };
+
+  const finalColors = colors || defaultColors;
+
+  // 统计数据
+  const providerCount = providers?.length || 0;
+  const modelCount = providers?.reduce((acc, p) => acc + (p.models?.length || 0), 0) || 0;
+  const enabledCount = providers?.filter(p => p.enabled).length || 0;
+
   return (
     <div style={{
-      marginBottom: isMobile ? '24px' : '48px',
+      marginBottom: '40px',
       display: 'flex',
       flexDirection: isMobile ? 'column' : 'row',
       justifyContent: 'space-between',
-      alignItems: isMobile ? 'flex-start' : 'flex-start',
-      gap: isMobile ? '20px' : 0,
+      alignItems: isMobile ? 'stretch' : 'center',
+      gap: isMobile ? '20px' : '32px',
+      flexWrap: 'wrap',
     }}>
-      <div style={{ flex: 1, width: isMobile ? '100%' : 'auto' }}>
-        <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? '12px' : '20px', marginBottom: '16px', flexDirection: isMobile ? 'column' : 'row' }}>
+      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', flex: isMobile ? 1 : 'auto' }}>
+        {/* 提供商统计卡片 */}
+        <div 
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '20px',
+            padding: '24px 32px',
+            background: finalColors.bgGlass,
+            backdropFilter: 'blur(20px)',
+            borderRadius: '24px',
+            border: `1px solid ${cardHovers.providers ? accentColor : finalColors.border}`,
+            transition: 'all 0.3s ease',
+            boxShadow: isDark 
+              ? cardHovers.providers 
+                ? '0 24px 48px rgba(0, 0, 0, 0.2), 0 0 40px rgba(139, 92, 246, 0.15)'
+                : '0 8px 24px rgba(0, 0, 0, 0.1)'
+              : cardHovers.providers 
+                ? '0 16px 36px rgba(0, 0, 0, 0.15)'
+                : '0 4px 12px rgba(0, 0, 0, 0.05)',
+            transform: cardHovers.providers ? 'translateY(-6px)' : 'translateY(0)',
+            minWidth: '220px',
+          }}
+          onMouseEnter={() => handleCardHover('providers', true)}
+          onMouseLeave={() => handleCardHover('providers', false)}
+        >
           <div style={{
-            width: isMobile ? '48px' : '64px',
-            height: isMobile ? '48px' : '64px',
-            borderRadius: isMobile ? '14px' : '20px',
-            background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+            width: '60px',
+            height: '60px',
+            borderRadius: '16px',
+            background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}cc 100%)`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 8px 24px -4px rgba(139, 92, 246, 0.4)',
+            boxShadow: `0 8px 24px ${accentColor}40`,
+            transition: 'all 0.3s ease',
+            transform: cardHovers.providers ? 'scale(1.1)' : 'scale(1)',
           }}>
-            <Zap style={{ width: isMobile ? '24px' : '32px', height: isMobile ? '24px' : '32px', color: '#ffffff' }} />
+            <Cpu style={{ width: '28px', height: '28px', color: '#ffffff' }} />
           </div>
-          <div>
-            <h1 style={{
-              fontSize: isMobile ? '24px' : '36px',
-              fontWeight: '800',
-              color: 'var(--text-primary)',
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ 
+              fontSize: '32px', 
+              fontWeight: '700', 
+              color: finalColors.textPrimary, 
+              lineHeight: 1, 
               marginBottom: '8px',
-              margin: '0 0 8px 0',
-              letterSpacing: '-0.5px',
+              background: cardHovers.providers 
+                ? `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}cc 100%)`
+                : 'none',
+              WebkitBackgroundClip: cardHovers.providers ? 'text' : 'none',
+              WebkitTextFillColor: cardHovers.providers ? 'transparent' : finalColors.textPrimary,
+              transition: 'all 0.3s ease',
             }}>
-              AI 服务提供商
-            </h1>
-            <p style={{ fontSize: isMobile ? '14px' : '15px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.6' }}>
-              管理您的 AI 服务提供商和模型配置，轻松连接多个AI服务
-            </p>
+              {providerCount}
+            </div>
+            <div style={{ 
+              fontSize: '14px', 
+              color: finalColors.textMuted, 
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}>
+              <span>提供商</span>
+              {cardHovers.providers && (
+                <Zap style={{ 
+                  width: '14px', 
+                  height: '14px', 
+                  color: accentColor,
+                  animation: 'pulse 1s infinite',
+                }} />
+              )}
+            </div>
           </div>
         </div>
-        
-        <div style={{
-          display: 'flex',
-          gap: isMobile ? '12px' : '24px',
-          marginTop: '24px',
-          padding: isMobile ? '16px' : '20px',
-          backgroundColor: 'var(--bg-surface)',
-          borderRadius: '16px',
-          border: '1px solid var(--border-primary)',
-          flexDirection: isMobile ? 'column' : 'row',
-          flexWrap: 'wrap',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '12px',
-              backgroundColor: 'var(--success-bg)',
+
+        {/* 模型统计卡片 */}
+        <div 
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '20px',
+            padding: '24px 32px',
+            background: finalColors.bgGlass,
+            backdropFilter: 'blur(20px)',
+            borderRadius: '24px',
+            border: `1px solid ${cardHovers.models ? '#06b6d4' : finalColors.border}`,
+            transition: 'all 0.3s ease',
+            boxShadow: isDark 
+              ? cardHovers.models 
+                ? '0 24px 48px rgba(0, 0, 0, 0.2), 0 0 40px rgba(6, 182, 212, 0.15)'
+                : '0 8px 24px rgba(0, 0, 0, 0.1)'
+              : cardHovers.models 
+                ? '0 16px 36px rgba(0, 0, 0, 0.15)'
+                : '0 4px 12px rgba(0, 0, 0, 0.05)',
+            transform: cardHovers.models ? 'translateY(-6px)' : 'translateY(0)',
+            minWidth: '220px',
+          }}
+          onMouseEnter={() => handleCardHover('models', true)}
+          onMouseLeave={() => handleCardHover('models', false)}
+        >
+          <div style={{
+            width: '60px',
+            height: '60px',
+            borderRadius: '16px',
+            background: 'linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 8px 24px rgba(6, 182, 212, 0.4)',
+            transition: 'all 0.3s ease',
+            transform: cardHovers.models ? 'scale(1.1)' : 'scale(1)',
+          }}>
+            <Layers style={{ width: '28px', height: '28px', color: '#ffffff' }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ 
+              fontSize: '32px', 
+              fontWeight: '700', 
+              color: finalColors.textPrimary, 
+              lineHeight: 1, 
+              marginBottom: '8px',
+              background: cardHovers.models 
+                ? 'linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%)'
+                : 'none',
+              WebkitBackgroundClip: cardHovers.models ? 'text' : 'none',
+              WebkitTextFillColor: cardHovers.models ? 'transparent' : finalColors.textPrimary,
+              transition: 'all 0.3s ease',
+            }}>
+              {modelCount}
+            </div>
+            <div style={{ 
+              fontSize: '14px', 
+              color: finalColors.textMuted, 
+              fontWeight: '600',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
+              gap: '6px',
             }}>
-              <Cpu style={{ width: '20px', height: '20px', color: 'var(--success)' }} />
-            </div>
-            <div>
-              <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)', lineHeight: 1 }}>
-                {providers?.length || 0}
-              </div>
-              <div style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>
-                已配置提供商
-              </div>
+              <span>模型</span>
+              {cardHovers.models && (
+                <Zap style={{ 
+                  width: '14px', 
+                  height: '14px', 
+                  color: '#06b6d4',
+                  animation: 'pulse 1s infinite',
+                }} />
+              )}
             </div>
           </div>
-          <div style={{ width: isMobile ? '100%' : '1px', height: isMobile ? '1px' : 'auto', backgroundColor: 'var(--border-secondary)' }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '12px',
-              backgroundColor: 'var(--info-bg)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <LayoutGrid style={{ width: '20px', height: '20px', color: 'var(--info)' }} />
-            </div>
-            <div>
-              <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)', lineHeight: 1 }}>
-                {providers?.reduce((acc, p) => acc + (p.models?.length || 0), 0) || 0}
-              </div>
-              <div style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>
-                模型总数
-              </div>
-            </div>
+        </div>
+
+        {/* 已启用统计卡片 */}
+        <div 
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '20px',
+            padding: '24px 32px',
+            background: finalColors.bgGlass,
+            backdropFilter: 'blur(20px)',
+            borderRadius: '24px',
+            border: `1px solid ${cardHovers.enabled ? '#10b981' : finalColors.border}`,
+            transition: 'all 0.3s ease',
+            boxShadow: isDark 
+              ? cardHovers.enabled 
+                ? '0 24px 48px rgba(0, 0, 0, 0.2), 0 0 40px rgba(16, 185, 129, 0.15)'
+                : '0 8px 24px rgba(0, 0, 0, 0.1)'
+              : cardHovers.enabled 
+                ? '0 16px 36px rgba(0, 0, 0, 0.15)'
+                : '0 4px 12px rgba(0, 0, 0, 0.05)',
+            transform: cardHovers.enabled ? 'translateY(-6px)' : 'translateY(0)',
+            minWidth: '220px',
+          }}
+          onMouseEnter={() => handleCardHover('enabled', true)}
+          onMouseLeave={() => handleCardHover('enabled', false)}
+        >
+          <div style={{
+            width: '60px',
+            height: '60px',
+            borderRadius: '16px',
+            background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 8px 24px rgba(16, 185, 129, 0.4)',
+            transition: 'all 0.3s ease',
+            transform: cardHovers.enabled ? 'scale(1.1)' : 'scale(1)',
+          }}>
+            <CheckCircle style={{ width: '28px', height: '28px', color: '#ffffff' }} />
           </div>
-          <div style={{ width: isMobile ? '100%' : '1px', height: isMobile ? '1px' : 'auto', backgroundColor: 'var(--border-secondary)' }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '12px',
-              backgroundColor: 'var(--success-bg)',
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ 
+              fontSize: '32px', 
+              fontWeight: '700', 
+              color: finalColors.textPrimary, 
+              lineHeight: 1, 
+              marginBottom: '8px',
+              background: cardHovers.enabled 
+                ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)'
+                : 'none',
+              WebkitBackgroundClip: cardHovers.enabled ? 'text' : 'none',
+              WebkitTextFillColor: cardHovers.enabled ? 'transparent' : finalColors.textPrimary,
+              transition: 'all 0.3s ease',
+            }}>
+              {enabledCount}
+            </div>
+            <div style={{ 
+              fontSize: '14px', 
+              color: finalColors.textMuted, 
+              fontWeight: '600',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
+              gap: '6px',
             }}>
-              <CheckCircle style={{ width: '20px', height: '20px', color: 'var(--success)' }} />
-            </div>
-            <div>
-              <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)', lineHeight: 1 }}>
-                {providers?.filter(p => p.enabled).length || 0}
-              </div>
-              <div style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>
-                已启用服务
-              </div>
+              <span>已启用</span>
+              {cardHovers.enabled && (
+                <Zap style={{ 
+                  width: '14px', 
+                  height: '14px', 
+                  color: '#10b981',
+                  animation: 'pulse 1s infinite',
+                }} />
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {onAddProvider && (
-        <button
-          onClick={onAddProvider}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            height: '48px',
-            padding: '0 28px',
-            background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
-            border: 'none',
-            borderRadius: '14px',
-            fontSize: '15px',
-            fontWeight: '600',
-            color: 'white',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: '0 4px 14px rgba(139, 92, 246, 0.35)',
-            alignSelf: 'flex-start',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 6px 20px rgba(139, 92, 246, 0.45)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 4px 14px rgba(139, 92, 246, 0.35)';
-          }}
-        >
-          <Plus style={{ width: '20px', height: '20px' }} />
-          添加提供商
-        </button>
-      )}
+
     </div>
   );
 }

@@ -13,8 +13,8 @@ router.get('/sessions', async (req: Request, res: Response) => {
     const userId = (req as any).user.id;
     const { projectId, type, page = '1', limit = '20' } = req.query;
 
-    const where: any = { userId };
-    if (projectId) where.projectId = projectId;
+    const where: any = { user_id: userId };
+    if (projectId) where.project_id = projectId;
     if (type) where.type = type;
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
@@ -23,7 +23,7 @@ router.get('/sessions', async (req: Request, res: Response) => {
     const [sessions, total] = await Promise.all([
       prismaAny.chatSession.findMany({
         where,
-        orderBy: { updatedAt: 'desc' },
+        orderBy: { updated_at: 'desc' },
         skip,
         take,
         include: {
@@ -58,8 +58,8 @@ router.post('/sessions', async (req: Request, res: Response) => {
 
     const session = await prismaAny.chatSession.create({
       data: {
-        userId,
-        projectId: projectId || null,
+        user_id: userId,
+        project_id: projectId || null,
         title: title || '新对话',
       },
     });
@@ -77,10 +77,10 @@ router.get('/sessions/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
 
     const session = await prismaAny.chatSession.findFirst({
-      where: { id, userId },
+      where: { id, user_id: userId },
       include: {
         messages: {
-          orderBy: { createdAt: 'asc' },
+          orderBy: { created_at: 'asc' },
         },
       },
     });
@@ -103,7 +103,7 @@ router.put('/sessions/:id', async (req: Request, res: Response) => {
     const { title } = req.body;
 
     const session = await prismaAny.chatSession.findFirst({
-      where: { id, userId },
+      where: { id, user_id: userId },
     });
 
     if (!session) {
@@ -128,7 +128,7 @@ router.delete('/sessions/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
 
     const session = await prismaAny.chatSession.findFirst({
-      where: { id, userId },
+      where: { id, user_id: userId },
     });
 
     if (!session) {
@@ -153,7 +153,7 @@ router.get('/sessions/:sessionId/messages', async (req: Request, res: Response) 
     const { page = '1', limit = '50' } = req.query;
 
     const session = await prismaAny.chatSession.findFirst({
-      where: { id: sessionId, userId },
+      where: { id: sessionId, user_id: userId },
     });
 
     if (!session) {
@@ -165,12 +165,12 @@ router.get('/sessions/:sessionId/messages', async (req: Request, res: Response) 
 
     const [messages, total] = await Promise.all([
       prismaAny.chatMessage?.findMany?.({
-        where: { sessionId },
-        orderBy: { createdAt: 'asc' },
+        where: { session_id: sessionId },
+        orderBy: { created_at: 'asc' },
         skip,
         take,
       }) || [],
-      prismaAny.chatMessage?.count?.({ where: { sessionId } }) || 0,
+      prismaAny.chatMessage?.count?.({ where: { session_id: sessionId } }) || 0,
     ]);
 
     res.json({
@@ -199,7 +199,7 @@ router.post('/sessions/:sessionId/messages', async (req: Request, res: Response)
     }
 
     const session = await prismaAny.chatSession.findFirst({
-      where: { id: sessionId, userId },
+      where: { id: sessionId, user_id: userId },
     });
 
     if (!session) {
@@ -208,7 +208,7 @@ router.post('/sessions/:sessionId/messages', async (req: Request, res: Response)
 
     const message = await prismaAny.chatMessage?.create?.({
       data: {
-        sessionId,
+        session_id: sessionId,
         role,
         content,
         metadata: metadata || {},
@@ -217,7 +217,7 @@ router.post('/sessions/:sessionId/messages', async (req: Request, res: Response)
 
     await prismaAny.chatSession.update({
       where: { id: sessionId },
-      data: { updatedAt: new Date() },
+      data: { updated_at: new Date() },
     });
 
     res.status(201).json(message || {});
@@ -233,7 +233,7 @@ router.delete('/sessions/:sessionId/messages/:messageId', async (req: Request, r
     const { sessionId, messageId } = req.params;
 
     const session = await prismaAny.chatSession.findFirst({
-      where: { id: sessionId, userId },
+      where: { id: sessionId, user_id: userId },
     });
 
     if (!session) {
@@ -257,7 +257,7 @@ router.post('/sessions/:sessionId/clear', async (req: Request, res: Response) =>
     const { sessionId } = req.params;
 
     const session = await prismaAny.chatSession.findFirst({
-      where: { id: sessionId, userId },
+      where: { id: sessionId, user_id: userId },
     });
 
     if (!session) {
@@ -265,7 +265,7 @@ router.post('/sessions/:sessionId/clear', async (req: Request, res: Response) =>
     }
 
     await prismaAny.chatMessage?.deleteMany?.({
-      where: { sessionId },
+      where: { session_id: sessionId },
     });
 
     res.json({ success: true, message: 'Messages cleared' });

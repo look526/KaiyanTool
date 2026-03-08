@@ -24,7 +24,7 @@ const OutlinePage = lazy(() => import('./pages/OutlinePage'))
 const CharactersPage = lazy(() => import('./pages/CharactersPage'))
 const ScenesPage = lazy(() => import('./pages/ScenesPage'))
 const ProjectMembersPage = lazy(() => import('./pages/ProjectMembersPage'))
-const AIProvidersPage = lazy(() => import('./pages/AIProvidersPage'))
+const AIProvidersPage = lazy(() => import('./pages/AIProvidersPage').then(m => ({ default: m.AIProvidersPage })))
 const ShotsPage = lazy(() => import('./pages/ShotsPage'))
 const PanelsPage = lazy(() => import('./pages/PanelsPage'))
 const VideoMergePage = lazy(() => import('./pages/VideoMergePage'))
@@ -52,6 +52,7 @@ const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'))
 const AdminAssetsPage = lazy(() => import('./pages/admin/AdminAssetsPage'))
 const AdminLogsPage = lazy(() => import('./pages/admin/AdminLogsPage'))
+const APIDashboardPage = lazy(() => import('./pages/APIDashboardPage'))
 const DashboardLayout = lazy(() => import('./layouts/DashboardLayout').then(module => ({ default: module.DashboardLayout })))
 const ProjectLayout = lazy(() => import('./layouts/ProjectLayout').then(module => ({ default: module.ProjectLayout })))
 
@@ -123,6 +124,7 @@ function App() {
                     <Route path="users" element={<AdminUsersPage />} />
                     <Route path="assets" element={<AdminAssetsPage />} />
                     <Route path="logs" element={<AdminLogsPage />} />
+                    <Route path="api" element={<APIDashboardPage />} />
                   </Route>
                   
                   <Route path="/projects/new" element={<ProtectedRoute><CreateProjectPage /></ProtectedRoute>} />

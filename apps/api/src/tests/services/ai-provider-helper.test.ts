@@ -116,8 +116,8 @@ describe('AIProviderHelper', () => {
       const result = await AIProviderHelper.getProviderForUser('user-1');
 
       expect(prisma.aIProvider.findMany).toHaveBeenCalledWith({
-        where: { userId: 'user-1', enabled: true },
-        include: { models: true },
+        where: { user_id: 'user-1', enabled: true },
+        include: { AIProviderModel: true },
       });
       expect(result.providerId).toBe('provider-1');
     });

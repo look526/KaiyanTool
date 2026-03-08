@@ -1,0 +1,17 @@
+{
+  "budgets": [
+    {
+      "path": "/*.js",
+      "maxSize": "200KB",
+      "maxInstantSize": "50KB"
+    },
+    {
+      "path": "/*.css",
+      "maxSize": "50KB"
+    },
+    {
+      "path": "/assets/images/*",
+      "maxSize": "500KB"
+    }
+  ]
+}

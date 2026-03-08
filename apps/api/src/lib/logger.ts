@@ -17,7 +17,29 @@ const consoleFormat = winston.format.combine(
   winston.format.printf(({ timestamp, level, message, ...meta }) => {
     let msg = `${timestamp} [${level}]: ${message}`;
     if (Object.keys(meta).length > 0) {
-      msg += ` ${JSON.stringify(meta)}`;
+      try {
+        const seen = new WeakSet();
+        msg += ` ${JSON.stringify(meta, (key, value) => {
+          if (value instanceof Error) {
+            return { message: value.message, stack: value.stack };
+          }
+          if (value instanceof Date) {
+            return value.toISOString();
+          }
+          if (typeof value === 'object' && value !== null) {
+            if (seen.has(value)) {
+              return '[Circular]';
+            }
+            seen.add(value);
+          }
+          if (typeof value === 'function') {
+            return '[Function]';
+          }
+          return value;
+        })}`;
+      } catch (e) {
+        msg += ` [Meta serialization failed: ${(e as Error).message}]`;
+      }
     }
     return msg;
   })

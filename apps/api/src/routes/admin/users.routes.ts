@@ -4,11 +4,12 @@ import { prisma } from '../../lib/prisma';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { AppError, asyncHandler } from '../../middleware/error.middleware';
 import logger from '../../lib/logger';
+import crypto from 'crypto';
 
 const router = Router();
 
 const requireAdmin = async (req: Request, _res: Response, next: Function) => {
-  const userId = req.userId;
+  const userId = req.user_id;
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { role: true },
@@ -47,12 +48,12 @@ router.get('/', authMiddleware, requireAdmin, asyncHandler(async (req: Request, 
         email: true,
         name: true,
         role: true,
-        avatarUrl: true,
+        avatar_url: true,
         plan: true,
-        storageUsed: true,
-        storageLimit: true,
-        createdAt: true,
-        lastLoginAt: true,
+        storage_used: true,
+        storage_limit: true,
+        created_at: true,
+        last_login_at: true,
         _count: {
           select: { Project: true },
         },
@@ -67,12 +68,12 @@ router.get('/', authMiddleware, requireAdmin, asyncHandler(async (req: Request, 
       email: u.email,
       name: u.name,
       role: u.role,
-      avatarUrl: u.avatarUrl,
+      avatar_url: u.avatar_url,
       plan: u.plan,
-      storageUsed: u.storageUsed?.toString(),
-      storageLimit: u.storageLimit?.toString(),
-      createdAt: u.createdAt,
-      lastLoginAt: u.lastLoginAt,
+      storageUsed: u.storage_used?.toString(),
+      storageLimit: u.storage_limit?.toString(),
+      createdAt: u.created_at,
+      lastLoginAt: u.last_login_at,
       projectCount: u._count.Project,
     })),
     pagination: {
@@ -94,14 +95,14 @@ router.get('/:id', authMiddleware, requireAdmin, asyncHandler(async (req: Reques
       email: true,
       name: true,
       role: true,
-      avatarUrl: true,
+      avatar_url: true,
       bio: true,
       plan: true,
-      storageUsed: true,
-      storageLimit: true,
-      createdAt: true,
-      updatedAt: true,
-      lastLoginAt: true,
+      storage_used: true,
+      storage_limit: true,
+      created_at: true,
+      updated_at: true,
+      last_login_at: true,
       _count: {
         select: {
           Project: true,
@@ -117,7 +118,7 @@ router.get('/:id', authMiddleware, requireAdmin, asyncHandler(async (req: Reques
   }
   
   const recentLogs = await prisma.auditLog.findMany({
-    where: { userId: id },
+    where: { user_id: id },
     take: 10,
     orderBy: { id: 'desc' },
   });
@@ -128,14 +129,14 @@ router.get('/:id', authMiddleware, requireAdmin, asyncHandler(async (req: Reques
       email: user.email,
       name: user.name,
       role: user.role,
-      avatarUrl: user.avatarUrl,
+      avatar_url: user.avatar_url,
       bio: user.bio,
       plan: user.plan,
-      storageUsed: user.storageUsed?.toString(),
-      storageLimit: user.storageLimit?.toString(),
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-      lastLoginAt: user.lastLoginAt,
+      storageUsed: user.storage_used?.toString(),
+      storageLimit: user.storage_limit?.toString(),
+      createdAt: user.created_at,
+      updatedAt: user.updated_at,
+      lastLoginAt: user.last_login_at,
       projectCount: user._count.Project,
       providerCount: user._count.AIProvider,
       sessionCount: user._count.Session,
@@ -163,33 +164,35 @@ router.post('/', authMiddleware, requireAdmin, asyncHandler(async (req: Request,
   
   const user = await prisma.user.create({
     data: {
+      id: crypto.randomUUID(),
       email,
       name: name || email.split('@')[0],
-      passwordHash: hashedPassword,
+      password_hash: hashedPassword,
       role,
-      updatedAt: new Date(),
+      updated_at: new Date(),
     },
     select: {
       id: true,
       email: true,
       name: true,
       role: true,
-      createdAt: true,
+      created_at: true,
     },
   });
   
   await prisma.auditLog.create({
     data: {
-      userId: req.userId,
+      id: crypto.randomUUID(),
+      user_id: req.user_id,
       action: 'user_created',
       resource: 'user',
-      resourceId: user.id,
+      resource_id: user.id,
       metadata: { email, name, role },
-      ipAddress: req.ip,
+      ip_address: req.ip,
     },
   });
   
-  logger.info('User created by admin', { adminId: req.userId, newUserId: user.id });
+  logger.info('User created by admin', { adminId: req.user_id, newUserId: user.id });
   
   res.status(201).json({ user });
 }));
@@ -203,11 +206,11 @@ router.patch('/:id', authMiddleware, requireAdmin, asyncHandler(async (req: Requ
     throw AppError.notFound('用户不存在');
   }
   
-  const data: any = { updatedAt: new Date() };
+  const data: any = { updated_at: new Date() };
   if (name !== undefined) data.name = name;
   if (role !== undefined) data.role = role;
   if (plan !== undefined) data.plan = plan;
-  if (storageLimit !== undefined) data.storageLimit = BigInt(storageLimit);
+  if (storageLimit !== undefined) data.storage_limit = BigInt(storageLimit);
   
   const updated = await prisma.user.update({
     where: { id },
@@ -218,28 +221,29 @@ router.patch('/:id', authMiddleware, requireAdmin, asyncHandler(async (req: Requ
       name: true,
       role: true,
       plan: true,
-      storageLimit: true,
+      storage_limit: true,
     },
   });
   
   await prisma.auditLog.create({
     data: {
-      userId: req.userId,
+      id: crypto.randomUUID(),
+      user_id: req.user_id,
       action: 'user_updated',
       resource: 'user',
-      resourceId: id,
+      resource_id: id,
       metadata: { changes: { name, role, plan } },
-      ipAddress: req.ip,
+      ip_address: req.ip,
     },
   });
   
-  res.json({ user: { ...updated, storageLimit: updated.storageLimit?.toString() } });
+  res.json({ user: { ...updated, storageLimit: updated.storage_limit?.toString() } });
 }));
 
 router.delete('/:id', authMiddleware, requireAdmin, asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   
-  if (id === req.userId) {
+  if (id === req.user_id) {
     throw AppError.badRequest('不能删除自己的账户');
   }
   
@@ -252,16 +256,17 @@ router.delete('/:id', authMiddleware, requireAdmin, asyncHandler(async (req: Req
   
   await prisma.auditLog.create({
     data: {
-      userId: req.userId,
+      id: crypto.randomUUID(),
+      user_id: req.user_id,
       action: 'user_deleted',
       resource: 'user',
-      resourceId: id,
+      resource_id: id,
       metadata: { email: user.email, name: user.name },
-      ipAddress: req.ip,
+      ip_address: req.ip,
     },
   });
   
-  logger.info('User deleted by admin', { adminId: req.userId, deletedUserId: id });
+  logger.info('User deleted by admin', { adminId: req.user_id, deletedUserId: id });
   
   res.json({ message: '用户已删除' });
 }));
@@ -283,18 +288,19 @@ router.post('/:id/reset-password', authMiddleware, requireAdmin, asyncHandler(as
   
   await prisma.user.update({
     where: { id },
-    data: { passwordHash: hashedPassword, updatedAt: new Date() },
+    data: { password_hash: hashedPassword, updated_at: new Date() },
   });
   
-  await prisma.session.deleteMany({ where: { userId: id } });
+  await prisma.session.deleteMany({ where: { user_id: id } });
   
   await prisma.auditLog.create({
     data: {
-      userId: req.userId,
+      id: crypto.randomUUID(),
+      user_id: req.user_id,
       action: 'password_reset',
       resource: 'user',
-      resourceId: id,
-      ipAddress: req.ip,
+      resource_id: id,
+      ip_address: req.ip,
     },
   });
   

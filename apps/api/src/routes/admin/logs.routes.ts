@@ -6,7 +6,7 @@ import { AppError, asyncHandler } from '../../middleware/error.middleware';
 const router = Router();
 
 const requireAdmin = async (req: Request, _res: Response, next: Function) => {
-  const userId = req.userId;
+  const userId = req.user_id;
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { role: true },
@@ -32,20 +32,20 @@ router.get('/', authMiddleware, requireAdmin, asyncHandler(async (req: Request, 
   }
   
   if (userId) {
-    where.userId = userId;
+    where.user_id = userId;
   }
-  
+
   if (success !== undefined) {
     where.success = success === 'true';
   }
-  
+
   if (startDate || endDate) {
-    where.createdAt = {};
+    where.created_at = {};
     if (startDate) {
-      where.createdAt.gte = new Date(startDate as string);
+      where.created_at.gte = new Date(startDate as string);
     }
     if (endDate) {
-      where.createdAt.lte = new Date(endDate as string);
+      where.created_at.lte = new Date(endDate as string);
     }
   }
   
@@ -59,7 +59,7 @@ router.get('/', authMiddleware, requireAdmin, asyncHandler(async (req: Request, 
     prisma.auditLog.count({ where }),
   ]);
   
-  const userIds = [...new Set(logs.filter(l => l.userId).map(l => l.userId))] as string[];
+  const userIds = [...new Set(logs.filter(l => l.user_id).map(l => l.user_id))] as string[];
   const users = await prisma.user.findMany({
     where: { id: { in: userIds } },
     select: { id: true, name: true, email: true },
@@ -68,7 +68,7 @@ router.get('/', authMiddleware, requireAdmin, asyncHandler(async (req: Request, 
   
   const logsWithUsers = logs.map(log => ({
     ...log,
-    user: log.userId ? userMap.get(log.userId) : null,
+    user: log.user_id ? userMap.get(log.user_id) : null,
   }));
   
   res.json({
@@ -87,9 +87,9 @@ router.get('/stats', authMiddleware, requireAdmin, asyncHandler(async (req: Requ
   
   const dateFilter: any = {};
   if (startDate || endDate) {
-    dateFilter.createdAt = {};
-    if (startDate) dateFilter.createdAt.gte = new Date(startDate as string);
-    if (endDate) dateFilter.createdAt.lte = new Date(endDate as string);
+    dateFilter.created_at = {};
+    if (startDate) dateFilter.created_at.gte = new Date(startDate as string);
+    if (endDate) dateFilter.created_at.lte = new Date(endDate as string);
   }
   
   const [byAction, byResource, totalCount, successCount, recentErrors] = await Promise.all([
@@ -132,9 +132,9 @@ router.get('/export', authMiddleware, requireAdmin, asyncHandler(async (req: Req
   
   const where: any = {};
   if (startDate || endDate) {
-    where.createdAt = {};
-    if (startDate) where.createdAt.gte = new Date(startDate as string);
-    if (endDate) where.createdAt.lte = new Date(endDate as string);
+    where.created_at = {};
+    if (startDate) where.created_at.gte = new Date(startDate as string);
+    if (endDate) where.created_at.lte = new Date(endDate as string);
   }
   
   const logs = await prisma.auditLog.findMany({
@@ -142,7 +142,7 @@ router.get('/export', authMiddleware, requireAdmin, asyncHandler(async (req: Req
     orderBy: { id: 'desc' },
   });
   
-  const userIds = [...new Set(logs.filter(l => l.userId).map(l => l.userId))] as string[];
+  const userIds = [...new Set(logs.filter(l => l.user_id).map(l => l.user_id))] as string[];
   const users = await prisma.user.findMany({
     where: { id: { in: userIds } },
     select: { id: true, name: true, email: true },
@@ -153,9 +153,9 @@ router.get('/export', authMiddleware, requireAdmin, asyncHandler(async (req: Req
     const csv = [
       'ID,时间,用户,操作,资源,资源ID,IP地址,成功,错误信息',
       ...logs.map(log => {
-        const user = log.userId ? userMap.get(log.userId) : null;
+        const user = log.user_id ? userMap.get(log.user_id) : null;
         const userEmail = user?.email ?? '系统';
-        return `"${log.id}","${log.createdAt.toISOString()}","${userEmail}","${log.action}","${log.resource}","${log.resourceId || ''}","${log.ipAddress || ''}","${log.success}","${log.errorMessage || ''}"`;
+        return `"${log.id}","${log.created_at.toISOString()}","${userEmail}","${log.action}","${log.resource}","${log.resource_id || ''}","${log.ip_address || ''}","${log.success}","${log.error_message || ''}"`;
       }),
     ].join('\n');
     

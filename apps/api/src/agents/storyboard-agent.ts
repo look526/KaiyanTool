@@ -2,6 +2,7 @@ import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
 import logger from '../lib/logger';
 import { STORYBOARD_STYLE_TEMPLATES, STORYBOARD_AGENT } from '../prompts/agents';
+import * as crypto from 'crypto';
 
 interface StoryboardInput {
   outlineId: string;
@@ -117,9 +118,8 @@ export class StoryboardAgent {
     const prompt = `请根据反馈优化镜头：
 
 **原始镜头**
-序列：${shot.sequence}
-描述：${shot.description}
-提示词：${(shot as any).prompt}
+描述：${shot.action_summary}
+提示词：${shot.start_prompt}
 
 **用户反馈**
 ${feedback}
@@ -254,11 +254,14 @@ ${JSON.stringify({
     for (const shot of storyboard.shots) {
       const createdShot = await prisma.shot.create({
         data: {
-          projectId,
-          actionSummary: shot.description,
-          startPrompt: shot.visualPrompt,
+          id: crypto.randomUUID(),
+          project_id: projectId,
+          action_summary: shot.description,
+          start_prompt: shot.visualPrompt,
           duration: shot.duration,
-          cameraMovement: shot.camera?.movement
+          camera_movement: shot.camera?.movement,
+          created_at: new Date(),
+          updated_at: new Date()
         }
       });
 
@@ -273,8 +276,8 @@ ${JSON.stringify({
     format: 'pdf' | 'csv' | 'json' | 'fcpxml' | 'drp'
   ): Promise<string> {
     const shots = await prisma.shot.findMany({
-      where: { projectId },
-      orderBy: { createdAt: 'asc' }
+      where: { project_id: projectId },
+      orderBy: { created_at: 'asc' }
     });
 
     switch (format) {

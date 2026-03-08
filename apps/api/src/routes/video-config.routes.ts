@@ -13,12 +13,12 @@ router.get('/configs', async (req: Request, res: Response) => {
 
     const where: any = {};
     if (projectId) {
-      where.projectId = projectId;
+      where.project_id = projectId;
     }
 
     const configs = await (prisma as any).videoConfig?.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { created_at: 'desc' },
     }) || [];
 
     res.json(configs);
@@ -80,7 +80,7 @@ router.post('/configs', async (req: Request, res: Response) => {
     const config = await (prisma as any).videoConfig?.create({
       data: {
         name,
-        projectId: projectId || null,
+        project_id: projectId || null,
         model: model || 'default',
         mode: mode || 'text',
         duration: duration || 5,

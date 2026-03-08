@@ -2,7 +2,7 @@ import { prisma } from '../lib/prisma';
 import { startOfDay, subDays, startOfWeek, startOfMonth, format } from 'date-fns';
 
 export class AnalyticsService {
-  async getProjectAnalytics(projectId: string) {
+  async getProjectAnalytics(project_id: string) {
     const now = new Date();
     const today = startOfDay(now);
     const weekStart = startOfWeek(now);
@@ -19,15 +19,15 @@ export class AnalyticsService {
       assetBreakdown,
       generationStats
     ] = await Promise.all([
-      prisma.asset.count({ where: { projectId } }),
-      prisma.shot.count({ where: { projectId } }),
-      prisma.character.count({ where: { projectId } }),
-      prisma.scene.count({ where: { projectId } }),
-      this.getActivityCount(projectId, today),
-      this.getActivityCount(projectId, weekStart),
-      this.getActivityCount(projectId, monthStart),
-      this.getAssetBreakdown(projectId),
-      this.getGenerationStats(projectId)
+      prisma.asset.count({ where: { project_id: project_id } }),
+      prisma.shot.count({ where: { project_id: project_id } }),
+      prisma.character.count({ where: { project_id: project_id } }),
+      prisma.scene.count({ where: { project_id: project_id } }),
+      this.getActivityCount(project_id, today),
+      this.getActivityCount(project_id, weekStart),
+      this.getActivityCount(project_id, monthStart),
+      this.getAssetBreakdown(project_id),
+      this.getGenerationStats(project_id)
     ]);
 
     return {
@@ -57,8 +57,8 @@ export class AnalyticsService {
       topProjects,
       recentActivity
     ] = await Promise.all([
-      prisma.project.findMany({ where: { ownerId: userId }, select: { id: true } }),
-      prisma.projectMember.findMany({ where: { userId }, select: { projectId: true } }),
+      prisma.project.findMany({ where: { owner_id: userId }, select: { id: true } }),
+      prisma.projectMember.findMany({ where: { user_id: userId }, select: { project_id: true } }),
       this.getUserContributions(userId, today),
       this.getUserContributions(userId, weekStart),
       this.getUserContributions(userId, monthStart),
@@ -68,7 +68,7 @@ export class AnalyticsService {
 
     const allProjectIds = new Set([
       ...ownedProjects.map(p => p.id),
-      ...totalContributions.map(m => m.projectId)
+      ...totalContributions.map(m => m.project_id)
     ]);
 
     return {
@@ -126,16 +126,16 @@ export class AnalyticsService {
     throw new Error('analyticsEvent model not implemented');
   }
 
-  async getGenerationReport(projectId: string, days: number = 30) {
+  async getGenerationReport(project_id: string, days: number = 30) {
     const startDate = subDays(new Date(), days);
     
     const generations = await prisma.renderTask.findMany({
       where: {
-        projectId,
-        createdAt: { gte: startDate },
+        project_id: project_id,
+        created_at: { gte: startDate },
         status: { in: ['completed', 'failed'] }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { created_at: 'desc' }
     });
 
     const byDate: Record<string, { success: number; failed: number; total: number }> = {};
@@ -146,7 +146,7 @@ export class AnalyticsService {
     }
 
     generations.forEach(gen => {
-      const date = format(gen.createdAt, 'yyyy-MM-dd');
+      const date = format(gen.created_at, 'yyyy-MM-dd');
       if (byDate[date]) {
         byDate[date].total++;
         if (gen.status === 'completed') {
@@ -181,18 +181,18 @@ export class AnalyticsService {
     };
   }
 
-  async getCostReport(projectId: string, days: number = 30) {
+  async getCostReport(project_id: string, days: number = 30) {
     const startDate = subDays(new Date(), days);
     
     const tasks = await prisma.renderTask.findMany({
       where: {
-        projectId,
-        createdAt: { gte: startDate },
+        project_id: project_id,
+        created_at: { gte: startDate },
         status: 'completed'
       },
       select: {
         type: true,
-        createdAt: true,
+        created_at: true,
         params: true
       }
     });
@@ -227,7 +227,7 @@ export class AnalyticsService {
     };
   }
 
-  private async getActivityCount(_projectId: string, _since: Date): Promise<number> {
+  private async getActivityCount(_project_id: string, _since: Date): Promise<number> {
     return 0;
   }
 
@@ -235,23 +235,23 @@ export class AnalyticsService {
     return 0;
   }
 
-  private async getAssetBreakdown(projectId: string) {
+  private async getAssetBreakdown(project_id: string) {
     const [images, videos, audio, documents] = await Promise.all([
-      prisma.asset.count({ where: { projectId, type: 'image' } }),
-      prisma.asset.count({ where: { projectId, type: 'video' } }),
-      prisma.asset.count({ where: { projectId, type: 'audio' } }),
-      prisma.asset.count({ where: { projectId, type: 'document' } })
+      prisma.asset.count({ where: { project_id: project_id, type: 'image' } }),
+      prisma.asset.count({ where: { project_id: project_id, type: 'video' } }),
+      prisma.asset.count({ where: { project_id: project_id, type: 'audio' } }),
+      prisma.asset.count({ where: { project_id: project_id, type: 'document' } })
     ]);
 
     return { images, videos, audio, documents };
   }
 
-  private async getGenerationStats(projectId: string) {
+  private async getGenerationStats(project_id: string) {
     const [pending, processing, completed, failed] = await Promise.all([
-      prisma.renderTask.count({ where: { projectId, status: 'pending' } }),
-      prisma.renderTask.count({ where: { projectId, status: 'processing' } }),
-      prisma.renderTask.count({ where: { projectId, status: 'completed' } }),
-      prisma.renderTask.count({ where: { projectId, status: 'failed' } })
+      prisma.renderTask.count({ where: { project_id: project_id, status: 'pending' } }),
+      prisma.renderTask.count({ where: { project_id: project_id, status: 'processing' } }),
+      prisma.renderTask.count({ where: { project_id: project_id, status: 'completed' } }),
+      prisma.renderTask.count({ where: { project_id: project_id, status: 'failed' } })
     ]);
 
     return { pending, processing, completed, failed };
@@ -266,15 +266,15 @@ export class AnalyticsService {
 
       const [projects, assets, generations] = await Promise.all([
         prisma.project.count({
-          where: { createdAt: { gte: startOfDay(date), lt: new Date(date.getTime() + 86400000) } }
+          where: { created_at: { gte: startOfDay(date), lt: new Date(date.getTime() + 86400000) } }
         }),
         prisma.asset.count({
-          where: { createdAt: { gte: startOfDay(date), lt: new Date(date.getTime() + 86400000) } }
+          where: { created_at: { gte: startOfDay(date), lt: new Date(date.getTime() + 86400000) } }
         }),
         prisma.renderTask.count({
           where: {
             status: 'completed',
-            completedAt: { gte: startOfDay(date), lt: new Date(date.getTime() + 86400000) }
+            completed_at: { gte: startOfDay(date), lt: new Date(date.getTime() + 86400000) }
           }
         })
       ]);
@@ -289,26 +289,25 @@ export class AnalyticsService {
     const projects = await prisma.project.findMany({
       take: limit,
       orderBy: {
-        createdAt: 'desc'
+        created_at: 'desc'
       },
       select: {
         id: true,
-        name: true,
-        _count: { select: { contents: true } }
+        name: true
       }
     });
 
     return projects.map(p => ({
       id: p.id,
       name: p.name,
-      assetCount: p._count.contents
+      assetCount: 0
     }));
   }
 
   private async getTopProjectsByUser(userId: string, limit: number) {
     const [ownedProjects, memberProjects] = await Promise.all([
       prisma.project.findMany({
-        where: { ownerId: userId },
+        where: { owner_id: userId },
         take: limit,
         select: {
           id: true,
@@ -316,10 +315,10 @@ export class AnalyticsService {
         }
       }),
       prisma.projectMember.findMany({
-        where: { userId },
+        where: { user_id: userId },
         take: limit,
         include: {
-          project: {
+          Project: {
             select: {
               id: true,
               name: true,
@@ -337,8 +336,8 @@ export class AnalyticsService {
     }));
 
     const member = memberProjects.map(m => ({
-      id: m.project.id,
-      name: m.project.name,
+      id: m.Project.id,
+      name: m.Project.name,
       role: m.role,
       assetCount: 0
     }));
@@ -350,7 +349,7 @@ export class AnalyticsService {
 
     for (const project of uniqueProjects) {
       const assetCount = await prisma.asset.count({
-        where: { projectId: project.id }
+        where: { project_id: project.id }
       });
       project.assetCount = assetCount;
     }
@@ -362,19 +361,19 @@ export class AnalyticsService {
     const users = await prisma.user.findMany({
       take: limit,
       orderBy: {
-        members: { _count: 'desc' }
+        ProjectMember: { _count: 'desc' }
       },
       select: {
         id: true,
         name: true,
-        _count: { select: { members: true } }
+        _count: { select: { ProjectMember: true } }
       }
     });
 
     return users.map(u => ({
       id: u.id,
       name: u.name,
-      projectCount: u._count.members
+      projectCount: u._count.ProjectMember
     }));
   }
 

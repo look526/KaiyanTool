@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import logger from '../lib/logger';
+import * as crypto from 'crypto';
 
 class DocumentController {
   // 获取文档列表
@@ -9,16 +10,8 @@ class DocumentController {
       const { projectId } = req.query;
       
       const documents = await prisma.document.findMany({
-        where: projectId ? { projectId: projectId as string } : {},
-        orderBy: { createdAt: 'desc' },
-        include: {
-          project: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
+        where: projectId ? { project_id: projectId as string } : {},
+        orderBy: { created_at: 'desc' },
       });
 
       res.status(200).json({
@@ -41,14 +34,6 @@ class DocumentController {
 
       const document = await prisma.document.findUnique({
         where: { id },
-        include: {
-          project: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
       });
 
       if (!document) {
@@ -84,11 +69,14 @@ class DocumentController {
 
       const document = await prisma.document.create({
         data: {
-          projectId,
+          id: crypto.randomUUID(),
+          project_id: projectId,
           title,
           content,
           type,
           status,
+          created_at: new Date(),
+          updated_at: new Date(),
         },
       });
 

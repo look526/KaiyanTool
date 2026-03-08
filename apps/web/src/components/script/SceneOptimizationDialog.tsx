@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { ParsedScene } from '../../utils/SceneParser';
 import { Button } from '../ui/button';
+import styles from './SceneOptimizationDialog.module.css';
 
 export type OptimizationDirection = 
   | 'plot_pacing'

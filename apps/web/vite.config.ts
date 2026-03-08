@@ -1,17 +1,44 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { visualizer } from 'rollup-plugin-visualizer'
+import { bundleAnalyzerConfig } from './optimization/bundling/bundle-analyzer.config'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    visualizer(bundleAnalyzerConfig),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '../..'),
       '@shared': path.resolve(__dirname, '../../packages/shared'),
       '@ui': path.resolve(__dirname, '../../packages/ui'),
       '@/lib': path.resolve(__dirname, './src/lib'),
-      '@/components': path.resolve(__dirname, './src/components')
-    }
+      '@/components': path.resolve(__dirname, './src/components'),
+    },
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['framer-motion', 'lucide-react', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
+          editor: ['@monaco-editor/react', 'monaco-editor'],
+          charts: ['recharts', 'chart.js'],
+          ai: ['openai'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 200,
+    sourcemap: process.env.NODE_ENV === 'production',
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: process.env.NODE_ENV === 'production',
+        drop_debugger: true,
+      },
+    },
   },
   server: {
     host: '0.0.0.0',
@@ -25,8 +52,8 @@ export default defineConfig({
       '/uploads': {
         target: 'http://localhost:3001',
         changeOrigin: true,
-      }
-    }
+      },
+    },
   },
   test: {
     environment: 'jsdom',
@@ -41,8 +68,11 @@ export default defineConfig({
         '@shared': path.resolve(__dirname, '../../packages/shared'),
         '@ui': path.resolve(__dirname, '../../packages/ui'),
         '@/lib': path.resolve(__dirname, './src/lib'),
-        '@/components': path.resolve(__dirname, './src/components')
-      }
-    }
-  }
+        '@/components': path.resolve(__dirname, './src/components'),
+      },
+    },
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', 'zustand'],
+  },
 })

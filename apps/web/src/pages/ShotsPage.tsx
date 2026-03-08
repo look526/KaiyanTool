@@ -28,19 +28,19 @@ import { Shot, getShotDisplayNumber, getShotStatus, getShotStatusLabel, getShotS
 import { useToast } from '../components/ui/Toast';
 
 interface ShotFormData {
-  sceneId?: string;
-  characterId?: string;
-  chapterNumber?: number;
-  episodeNumber?: number;
-  segmentId?: number;
-  cellId?: number;
-  actionSummary?: string;
-  cameraMovement?: string;
-  startPrompt?: string;
-  endPrompt?: string;
+  scene_id?: string;
+  character_id?: string;
+  chapter_number?: number;
+  episode_number?: number;
+  segment_id?: number;
+  cell_id?: number;
+  action_summary?: string;
+  camera_movement?: string;
+  start_prompt?: string;
+  end_prompt?: string;
   duration?: number;
-  aspectRatio?: string;
-  visualStyle?: string;
+  aspect_ratio?: string;
+  visual_style?: string;
 }
 
 export default function ShotsPage() {
@@ -63,7 +63,7 @@ export default function ShotsPage() {
   const [selectedShot, setSelectedShot] = useState<Shot | null>(null);
   const [showScriptModal, setShowScriptModal] = useState(false);
   const [scriptContent, setScriptContent] = useState('');
-  const [visualStyle, setVisualStyle] = useState('');
+  const [visual_style, setVisualStyle] = useState('');
   const [generatingFromScript, setGeneratingFromScript] = useState(false);
   const [showOptimizeModal, setShowOptimizeModal] = useState(false);
   const [optimizingShot, setOptimizingShot] = useState<Shot | null>(null);
@@ -107,19 +107,19 @@ export default function ShotsPage() {
   };
 
   const [form, setForm] = useState<ShotFormData>({
-    sceneId: '',
-    characterId: '',
-    chapterNumber: 1,
-    episodeNumber: 1,
-    segmentId: 1,
-    cellId: 1,
-    actionSummary: '',
-    cameraMovement: '',
-    startPrompt: '',
-    endPrompt: '',
+    scene_id: '',
+    character_id: '',
+    chapter_number: 1,
+    episode_number: 1,
+    segment_id: 1,
+    cell_id: 1,
+    action_summary: '',
+    camera_movement: '',
+    start_prompt: '',
+    end_prompt: '',
     duration: 8,
-    aspectRatio: '16:9',
-    visualStyle: '',
+    aspect_ratio: '16:9',
+    visual_style: '',
   });
 
   const loadShots = useCallback(async () => {
@@ -155,8 +155,8 @@ export default function ShotsPage() {
 
     if (searchQuery) {
       result = result.filter(s => 
-        s.actionSummary?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.cameraMovement?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.action_summary?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.camera_movement?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.scene?.location?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
@@ -173,8 +173,8 @@ export default function ShotsPage() {
         break;
       case 'created':
         result.sort((a, b) => {
-          const dateA = new Date(a.createdAt || 0).getTime();
-          const dateB = new Date(b.createdAt || 0).getTime();
+          const dateA = new Date(a.created_at || 0).getTime();
+          const dateB = new Date(b.created_at || 0).getTime();
           return dateB - dateA;
         });
         break;
@@ -191,19 +191,19 @@ export default function ShotsPage() {
   const handleSave = async () => {
     try {
       const data = {
-        sceneId: form.sceneId || undefined,
-        characterId: form.characterId || undefined,
-        chapterNumber: form.chapterNumber,
-        episodeNumber: form.episodeNumber,
-        segmentId: form.segmentId,
-        cellId: form.cellId,
-        actionSummary: form.actionSummary || undefined,
-        cameraMovement: form.cameraMovement || undefined,
-        startPrompt: form.startPrompt || undefined,
-        endPrompt: form.endPrompt || undefined,
+        scene_id: form.scene_id || undefined,
+        character_id: form.character_id || undefined,
+        chapter_number: form.chapter_number,
+        episode_number: form.episode_number,
+        segment_id: form.segment_id,
+        cell_id: form.cell_id,
+        action_summary: form.action_summary || undefined,
+        camera_movement: form.camera_movement || undefined,
+        start_prompt: form.start_prompt || undefined,
+        end_prompt: form.end_prompt || undefined,
         duration: form.duration,
-        aspectRatio: form.aspectRatio,
-        visualStyle: form.visualStyle || undefined,
+        aspect_ratio: form.aspect_ratio,
+        visual_style: form.visual_style || undefined,
       };
 
       if (editingShot) {
@@ -242,7 +242,7 @@ export default function ShotsPage() {
       return;
     }
 
-    if (!shot.startImageUrl || !shot.endImageUrl) {
+    if (!shot.start_image_url || !shot.end_image_url) {
       addToast({
         type: 'warning',
         title: '缺少关键帧',
@@ -272,7 +272,7 @@ export default function ShotsPage() {
   };
 
   const handleOpenVideoModal = (shot: Shot) => {
-    if (shot.videoUrl) {
+    if (shot.video_url) {
       setSelectedShot(shot);
       setShowVideoModal(true);
     } else {
@@ -327,36 +327,36 @@ export default function ShotsPage() {
     if (shot) {
       setEditingShot(shot);
       setForm({
-        sceneId: shot.sceneId || '',
-        characterId: shot.characterId || '',
-        chapterNumber: shot.chapterNumber,
-        episodeNumber: shot.episodeNumber,
-        segmentId: shot.segmentId,
-        cellId: shot.cellId,
-        actionSummary: shot.actionSummary || '',
-        cameraMovement: shot.cameraMovement || '',
-        startPrompt: shot.startPrompt || '',
-        endPrompt: shot.endPrompt || '',
+        scene_id: shot.scene_id || '',
+        character_id: shot.character_id || '',
+        chapter_number: shot.chapter_number,
+        episode_number: shot.episode_number,
+        segment_id: shot.segment_id,
+        cell_id: shot.cell_id,
+        action_summary: shot.action_summary || '',
+        camera_movement: shot.camera_movement || '',
+        start_prompt: shot.start_prompt || '',
+        end_prompt: shot.end_prompt || '',
         duration: shot.duration,
-        aspectRatio: shot.aspectRatio,
-        visualStyle: shot.visualStyle || '',
+        aspect_ratio: shot.aspect_ratio,
+        visual_style: shot.visual_style || '',
       });
     } else {
       setEditingShot(null);
       setForm({
-        sceneId: '',
-        characterId: '',
-        chapterNumber: 1,
-        episodeNumber: 1,
-        segmentId: 1,
-        cellId: 1,
-        actionSummary: '',
-        cameraMovement: '',
-        startPrompt: '',
-        endPrompt: '',
+        scene_id: '',
+        character_id: '',
+        chapter_number: 1,
+        episode_number: 1,
+        segment_id: 1,
+        cell_id: 1,
+        action_summary: '',
+        camera_movement: '',
+        start_prompt: '',
+        end_prompt: '',
         duration: 8,
-        aspectRatio: '16:9',
-        visualStyle: '',
+        aspect_ratio: '16:9',
+        visual_style: '',
       });
     }
     setShowModal(true);
@@ -366,19 +366,19 @@ export default function ShotsPage() {
     setShowModal(false);
     setEditingShot(null);
     setForm({
-      sceneId: '',
-      characterId: '',
-      chapterNumber: 1,
-      episodeNumber: 1,
-      segmentId: 1,
-      cellId: 1,
-      actionSummary: '',
-      cameraMovement: '',
-      startPrompt: '',
-      endPrompt: '',
+      scene_id: '',
+      character_id: '',
+      chapter_number: 1,
+      episode_number: 1,
+      segment_id: 1,
+      cell_id: 1,
+      action_summary: '',
+      camera_movement: '',
+      start_prompt: '',
+      end_prompt: '',
       duration: 8,
-      aspectRatio: '16:9',
-      visualStyle: '',
+      aspect_ratio: '16:9',
+      visual_style: '',
     });
   };
 
@@ -435,7 +435,7 @@ export default function ShotsPage() {
 
     try {
       setGeneratingFromScript(true);
-      const result = await apiClient.generateShotsFromScript(id!, scriptContent, visualStyle);
+      const result = await apiClient.generateShotsFromScript(id!, scriptContent, visual_style);
       await loadShots();
       setShowScriptModal(false);
       setScriptContent('');
@@ -483,8 +483,8 @@ export default function ShotsPage() {
     try {
       setOptimizingPrompt(true);
       const referenceImages: string[] = [];
-      if (optimizingShot.startImageUrl) referenceImages.push(optimizingShot.startImageUrl);
-      if (optimizingShot.endImageUrl) referenceImages.push(optimizingShot.endImageUrl);
+      if (optimizingShot.start_image_url) referenceImages.push(optimizingShot.start_image_url);
+      if (optimizingShot.end_image_url) referenceImages.push(optimizingShot.end_image_url);
 
       await apiClient.optimizeShotPrompt(optimizingShot.id, referenceImages);
       await loadShots();
@@ -1018,7 +1018,7 @@ export default function ShotsPage() {
                         </div>
                       </div>
 
-                      {shot.actionSummary && (
+                      {shot.action_summary && (
                         <p style={{
                           fontSize: '13px',
                           color: 'var(--text-secondary)',
@@ -1029,7 +1029,7 @@ export default function ShotsPage() {
                           WebkitBoxOrient: 'vertical',
                           overflow: 'hidden',
                         }}>
-                          {shot.actionSummary}
+                          {shot.action_summary}
                         </p>
                       )}
 
@@ -1051,7 +1051,7 @@ export default function ShotsPage() {
                         </div>
                       </div>
 
-                      {(shot.startImageUrl || shot.endImageUrl) && (
+                      {(shot.start_image_url || shot.end_image_url) && (
                         <div style={{
                           background: 'var(--bg-secondary)',
                           borderRadius: '10px',
@@ -1059,32 +1059,32 @@ export default function ShotsPage() {
                           marginBottom: '12px',
                         }}>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                            {shot.startImageUrl && (
+                            {shot.start_image_url && (
                               <div>
                                 <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '4px' }}>起始帧</div>
                                 <img
-                                  src={shot.startImageUrl}
+                                  src={shot.start_image_url}
                                   alt="起始帧"
                                   style={{
                                     width: '100%',
                                     borderRadius: '6px',
                                     objectFit: 'cover',
-                                    aspectRatio: shot.aspectRatio === '16:9' ? '16/9' : '4/3',
+                                    aspectRatio: shot.aspect_ratio === '16:9' ? '16/9' : '4/3',
                                   }}
                                 />
                               </div>
                             )}
-                            {shot.endImageUrl && (
+                            {shot.end_image_url && (
                               <div>
                                 <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '4px' }}>结束帧</div>
                                 <img
-                                  src={shot.endImageUrl}
+                                  src={shot.end_image_url}
                                   alt="结束帧"
                                   style={{
                                     width: '100%',
                                     borderRadius: '6px',
                                     objectFit: 'cover',
-                                    aspectRatio: shot.aspectRatio === '16:9' ? '16/9' : '4/3',
+                                    aspectRatio: shot.aspect_ratio === '16:9' ? '16/9' : '4/3',
                                   }}
                                 />
                               </div>
@@ -1093,7 +1093,7 @@ export default function ShotsPage() {
                         </div>
                       )}
 
-                      {shot.videoUrl ? (
+                      {shot.video_url ? (
                         <button
                           onClick={() => handleOpenVideoModal(shot)}
                           style={{
@@ -1217,8 +1217,8 @@ export default function ShotsPage() {
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>场景</label>
                   <select
-                    value={form.sceneId || ''}
-                    onChange={(e) => setForm({ ...form, sceneId: e.target.value })}
+                    value={form.scene_id || ''}
+                    onChange={(e) => setForm({ ...form, scene_id: e.target.value })}
                     style={{
                       width: '100%',
                       height: '40px',
@@ -1242,8 +1242,8 @@ export default function ShotsPage() {
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>角色</label>
                   <select
-                    value={form.characterId || ''}
-                    onChange={(e) => setForm({ ...form, characterId: e.target.value })}
+                    value={form.character_id || ''}
+                    onChange={(e) => setForm({ ...form, character_id: e.target.value })}
                     style={{
                       width: '100%',
                       height: '40px',
@@ -1269,8 +1269,8 @@ export default function ShotsPage() {
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>动作摘要</label>
                 <textarea
-                  value={form.actionSummary}
-                  onChange={(e) => setForm({ ...form, actionSummary: e.target.value })}
+                  value={form.action_summary}
+                  onChange={(e) => setForm({ ...form, action_summary: e.target.value })}
                   placeholder="描述镜头中的动作内容"
                   rows={3}
                   style={{
@@ -1293,8 +1293,8 @@ export default function ShotsPage() {
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>镜头运动</label>
                   <input
                     type="text"
-                    value={form.cameraMovement}
-                    onChange={(e) => setForm({ ...form, cameraMovement: e.target.value })}
+                    value={form.camera_movement}
+                    onChange={(e) => setForm({ ...form, camera_movement: e.target.value })}
                     placeholder="例如：推、拉、摇、移"
                     style={{
                       width: '100%',
@@ -1454,7 +1454,7 @@ export default function ShotsPage() {
             </div>
             <div style={{ padding: '24px' }}>
               <video
-                src={selectedShot.videoUrl!}
+                src={selectedShot.video_url!}
                 controls
                 autoPlay
                 style={{
@@ -1544,7 +1544,7 @@ export default function ShotsPage() {
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>视觉风格（可选）</label>
                 <input
                   type="text"
-                  value={visualStyle}
+                  value={visual_style}
                   onChange={(e) => setVisualStyle(e.target.value)}
                   placeholder="例如：写实、卡通、动漫、电影感"
                   style={{
@@ -1642,32 +1642,32 @@ export default function ShotsPage() {
               </p>
 
               <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                {optimizingShot.startImageUrl && (
+                {optimizingShot.start_image_url && (
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '6px' }}>起始帧参考</div>
                     <img
-                      src={optimizingShot.startImageUrl}
+                      src={optimizingShot.start_image_url}
                       alt="起始帧"
                       style={{
                         width: '100%',
                         borderRadius: '8px',
                         objectFit: 'cover',
-                        aspectRatio: optimizingShot.aspectRatio === '16:9' ? '16/9' : '4/3',
+                        aspectRatio: optimizingShot.aspect_ratio === '16:9' ? '16/9' : '4/3',
                       }}
                     />
                   </div>
                 )}
-                {optimizingShot.endImageUrl && (
+                {optimizingShot.end_image_url && (
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '6px' }}>结束帧参考</div>
                     <img
-                      src={optimizingShot.endImageUrl}
+                      src={optimizingShot.end_image_url}
                       alt="结束帧"
                       style={{
                         width: '100%',
                         borderRadius: '8px',
                         objectFit: 'cover',
-                        aspectRatio: optimizingShot.aspectRatio === '16:9' ? '16/9' : '4/3',
+                        aspectRatio: optimizingShot.aspect_ratio === '16:9' ? '16/9' : '4/3',
                       }}
                     />
                   </div>

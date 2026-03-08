@@ -1,11 +1,11 @@
-import { Role } from '../middleware/permission.middleware';
+import { Role } from './auth.types';
 
 declare global {
   namespace Express {
     interface Request {
-      userId?: string;
+      user_id?: string;
       user?: { id: string; email: string; name: string | null };
-      session?: { id: string; userId: string; expiresAt: Date; token: string };
+      session?: { id: string; user_id: string; expires_at: Date; token: string };
       userRole?: Role;
     }
   }

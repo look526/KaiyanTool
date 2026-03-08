@@ -24,7 +24,7 @@ const SCENE_PATTERNS = {
   standard: /^场景\s*(\d+)[\s\-—:：]*(.+)$/im,
   bracket: /^\[场景\s*(\d+)\][\s\-—:：]*(.+)$/im,
   movie: /^INT\.|EXT\.|内景|外景/i,
-  numbered: /^(\d+)[\.、\s]+(.+)$/,
+  numbered: /^(?:场景|Scene|SCENE)\s*(\d+)[\s\-—:：]*(.+)$/im,
   heading: /^#{1,3}\s*(.+)$/,
 };
 

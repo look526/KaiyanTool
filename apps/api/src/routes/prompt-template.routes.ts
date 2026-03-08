@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
 import logger from '../lib/logger';
+import crypto from 'crypto';
 
 const router = Router();
 
@@ -10,19 +11,19 @@ router.use(authMiddleware);
 router.get('/', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
-    const { type, category, projectId } = req.query;
+    const { type, category, project_id } = req.query;
 
     const where: any = {
       OR: [
-        { userId: null, projectId: null },
-        { userId },
+        { user_id: null, project_id: null },
+        { user_id: userId },
       ],
     };
 
     if (type) where.type = type;
     if (category) where.category = category;
-    if (projectId) {
-      where.OR.push({ projectId: projectId as string });
+    if (project_id) {
+      where.OR.push({ project_id: project_id as string });
     }
 
     const templates = await prisma.promptTemplate.findMany({
@@ -70,8 +71,8 @@ router.get('/:code', async (req: Request, res: Response) => {
       where: {
         code,
         OR: [
-          { userId: null, projectId: null },
-          { userId },
+          { user_id: null, project_id: null },
+          { user_id: userId },
         ],
       },
     });
@@ -95,16 +96,16 @@ router.post('/', async (req: Request, res: Response) => {
       name,
       type = 'general',
       category,
-      defaultValue,
-      customValue,
-      parentCode,
+      default_value,
+      custom_value,
+      parent_code,
       description,
       variables,
-      projectId,
+      project_id,
     } = req.body;
 
-    if (!code || !name || !defaultValue) {
-      return res.status(400).json({ error: 'code, name, and defaultValue are required' });
+    if (!code || !name || !default_value) {
+      return res.status(400).json({ error: 'code, name, and default_value are required' });
     }
 
     const existing = await prisma.promptTemplate.findUnique({
@@ -117,17 +118,20 @@ router.post('/', async (req: Request, res: Response) => {
 
     const template = await prisma.promptTemplate.create({
       data: {
-        userId,
-        projectId: projectId || null,
+        id: crypto.randomUUID(),
+        user_id: userId,
+        project_id: project_id || null,
         code,
         name,
         type,
         category: category || null,
-        defaultValue,
-        customValue: customValue || null,
-        parentCode: parentCode || null,
+        default_value,
+        custom_value: custom_value || null,
+        parent_code: parent_code || null,
         description: description || null,
         variables: variables || [],
+        is_active: true,
+        updated_at: new Date(),
       },
     });
 
@@ -146,16 +150,16 @@ router.put('/:code', async (req: Request, res: Response) => {
       name,
       type,
       category,
-      defaultValue,
-      customValue,
-      parentCode,
+      default_value,
+      custom_value,
+      parent_code,
       description,
       variables,
-      isActive,
+      is_active,
     } = req.body;
 
     const template = await prisma.promptTemplate.findFirst({
-      where: { code, userId },
+      where: { code, user_id: userId },
     });
 
     if (!template) {
@@ -168,12 +172,12 @@ router.put('/:code', async (req: Request, res: Response) => {
         name,
         type,
         category,
-        defaultValue,
-        customValue,
-        parentCode,
+        default_value,
+        custom_value,
+        parent_code: parent_code,
         description,
         variables,
-        isActive,
+        is_active: is_active,
       },
     });
 
@@ -190,7 +194,7 @@ router.delete('/:code', async (req: Request, res: Response) => {
     const { code } = req.params;
 
     const template = await prisma.promptTemplate.findFirst({
-      where: { code, userId },
+      where: { code, user_id: userId },
     });
 
     if (!template) {
@@ -218,8 +222,8 @@ router.post('/:code/render', async (req: Request, res: Response) => {
       where: {
         code,
         OR: [
-          { userId: null, projectId: null },
-          { userId },
+          { user_id: null, project_id: null },
+          { user_id: userId },
         ],
       },
     });
@@ -228,7 +232,7 @@ router.post('/:code/render', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Template not found' });
     }
 
-    const value = template.customValue || template.defaultValue;
+    const value = template.custom_value || template.default_value;
 
     let rendered = value;
     Object.entries(variables).forEach(([key, val]) => {
@@ -256,7 +260,7 @@ router.post('/seed', async (_req: Request, res: Response) => {
         name: '故事大纲生成',
         type: 'story',
         category: 'outline',
-        defaultValue: `请根据以下小说内容生成故事大纲：
+        default_value: `请根据以下小说内容生成故事大纲：
 
 小说内容：
 {{content}}
@@ -274,7 +278,7 @@ router.post('/seed', async (_req: Request, res: Response) => {
         name: '镜头提示词生成',
         type: 'image',
         category: 'shot',
-        defaultValue: `{{style}}风格，{{scene}}场景，{{character}}角色，{{action}}动作，{{mood}}氛围，高质量，细节丰富，电影级光影`,
+        default_value: `{{style}}风格，{{scene}}场景，{{character}}角色，{{action}}动作，{{mood}}氛围，高质量，细节丰富，电影级光影`,
         description: '用于生成镜头图像的提示词模板',
         variables: [
           { name: 'style', description: '视觉风格', default: '电影' },
@@ -289,7 +293,7 @@ router.post('/seed', async (_req: Request, res: Response) => {
         name: '视频提示词生成',
         type: 'video',
         category: 'video',
-        defaultValue: `{{description}}，{{camera}}运镜，{{duration}}秒时长，流畅过渡，高质量视频`,
+        default_value: `{{description}}，{{camera}}运镜，{{duration}}秒时长，流畅过渡，高质量视频`,
         description: '用于生成视频的提示词模板',
         variables: [
           { name: 'description', description: '场景描述', required: true },
@@ -302,7 +306,7 @@ router.post('/seed', async (_req: Request, res: Response) => {
         name: '角色设计',
         type: 'image',
         category: 'character',
-        defaultValue: `角色设计：{{name}}，{{appearance}}，{{clothing}}服装，{{personality}}性格，{{style}}风格，全身像，白色背景，高质量角色设计稿`,
+        default_value: `角色设计：{{name}}，{{appearance}}，{{clothing}}服装，{{personality}}性格，{{style}}风格，全身像，白色背景，高质量角色设计稿`,
         description: '用于生成角色设计图的提示词模板',
         variables: [
           { name: 'name', description: '角色名称' },
@@ -317,7 +321,7 @@ router.post('/seed', async (_req: Request, res: Response) => {
         name: '场景设计',
         type: 'image',
         category: 'scene',
-        defaultValue: `场景设计：{{name}}，{{description}}，{{time}}时间，{{weather}}天气，{{style}}风格，全景视角，高质量场景设计`,
+        default_value: `场景设计：{{name}}，{{description}}，{{time}}时间，{{weather}}天气，{{style}}风格，全景视角，高质量场景设计`,
         description: '用于生成场景设计图的提示词模板',
         variables: [
           { name: 'name', description: '场景名称' },
@@ -340,15 +344,19 @@ router.post('/seed', async (_req: Request, res: Response) => {
       if (!existing) {
         await prisma.promptTemplate.create({
           data: {
+            id: crypto.randomUUID(),
             code: template.code,
             name: template.name,
             type: template.type,
             category: template.category,
-            defaultValue: template.defaultValue,
+            default_value: template.default_value,
             description: template.description,
             variables: template.variables,
-            userId: null,
-            projectId: null,
+            user_id: null,
+            parent_code: null,
+            custom_value: null,
+            is_active: true,
+            updated_at: new Date(),
           },
         });
         created++;

@@ -17,12 +17,11 @@ import {
   MapPin,
   Calendar,
   TrendingUp,
-  Clock,
-  ChevronRight
+  Clock
 } from 'lucide-react';
 import Breadcrumb from '../components/Breadcrumb';
-import { Button } from '../components/ui/button-new';
-import { Input } from '../components/ui/input';
+import { GlassActionButton } from '../components/ui/GlassActionButton';
+import { QuickActionCard } from '../components/QuickActionCard';
 import { apiClient, Project } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -74,8 +73,10 @@ export default function ProjectDetailPage() {
     }
   };
 
-  const formatDate = (date: Date | string) => {
+  const formatDate = (date: Date | string | undefined | null) => {
+    if (!date) return '未知';
     const dateObj = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(dateObj.getTime())) return '未知';
     return dateObj.toLocaleDateString('zh-CN', {
       year: 'numeric',
       month: 'long',
@@ -144,15 +145,15 @@ export default function ProjectDetailPage() {
             <FolderKanban style={{ width: '40px', height: '40px', color: 'var(--text-muted)' }} />
           </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '18px', marginBottom: '24px' }}>项目不存在</p>
-          <Button variant="primary" onClick={() => navigate('/projects')}>
+          <GlassActionButton variant="primary" onClick={() => navigate('/projects')}>
             返回项目列表
-          </Button>
+          </GlassActionButton>
         </div>
       </div>
     );
   }
 
-  const isOwner = project.ownerId === user?.id;
+  const isOwner = project.owner_id === user?.id;
 
   const quickActions = [
     { to: `/projects/${project.id}/editor`, icon: FileText, label: '内容创作', desc: '剧本和小说统一编辑', gradient: 'var(--gradient-primary)', shadow: 'var(--accent-shadow)' },
@@ -160,6 +161,7 @@ export default function ProjectDetailPage() {
     { to: `/projects/${project.id}/members`, icon: Users, label: '管理成员', desc: '管理项目成员和权限', gradient: 'var(--gradient-accent)', shadow: 'var(--warning-shadow)' },
     { to: `/projects/${project.id}/scenes`, icon: MapPin, label: '管理场景', desc: '创建和管理拍摄场景', gradient: 'var(--gradient-pink)', shadow: 'var(--error-shadow)' },
     { to: `/projects/${project.id}/shots`, icon: FolderKanban, label: '分镜管理', desc: '查看和编辑镜头列表', gradient: 'var(--gradient-teal)', shadow: 'var(--info-shadow)' },
+    { to: `/projects/${project.id}/outline`, icon: BookOpen, label: '生成大纲', desc: 'AI智能生成剧情大纲', gradient: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)', shadow: '0 8px 24px rgba(139, 92, 246, 0.3)' },
   ];
 
   return (
@@ -232,7 +234,7 @@ export default function ProjectDetailPage() {
               }}>
                 {getProjectTypeLabel(project.type)}
               </span>
-              <span style={{ display: isMobile ? 'none' : 'inline', opacity: 0.7 }}>创建于 {formatDate(project.createdAt)}</span>
+              <span style={{ display: isMobile ? 'none' : 'inline', opacity: 0.7 }}>创建于 {formatDate(project.created_at)}</span>
             </div>
           </div>
         </div>
@@ -240,7 +242,7 @@ export default function ProjectDetailPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px' }}>
           {isOwner && (
             <>
-              <Button
+              <GlassActionButton
                 onClick={() => {
                   setEditingProject({ 
                     name: project.name, 
@@ -248,33 +250,27 @@ export default function ProjectDetailPage() {
                   });
                   setShowSettingsModal(true);
                 }}
-                variant="outline"
-                size={isMobile ? 'sm' : 'md'}
+                variant="default"
                 icon={<Settings size={16} />}
-                iconPosition="left"
               >
                 {!isMobile && '项目设置'}
-              </Button>
-              <Button
+              </GlassActionButton>
+              <GlassActionButton
                 onClick={() => setShowDeleteModal(true)}
-                variant="ghost"
-                size={isMobile ? 'sm' : 'md'}
+                variant="danger"
                 icon={<Trash2 size={16} />}
-                style={{ color: 'var(--error)' }}
               >
                 {!isMobile && '删除'}
-              </Button>
+              </GlassActionButton>
             </>
           )}
-          <Button
+          <GlassActionButton
             onClick={() => navigate(`/projects/${id}/script`)}
             variant="primary"
-            size={isMobile ? 'sm' : 'md'}
             icon={<Play size={16} />}
-            iconPosition="left"
           >
             开始创作
-          </Button>
+          </GlassActionButton>
         </div>
       </header>
 
@@ -370,7 +366,18 @@ export default function ProjectDetailPage() {
                   textAlign: 'center',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '8px' }}>
-                    <Users style={{ width: '14px', height: '14px', color: 'var(--accent)' }} />
+                    <div style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '8px',
+                      background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 8px rgba(139, 92, 246, 0.4)',
+                    }}>
+                      <Users style={{ width: '14px', height: '14px', color: 'white' }} />
+                    </div>
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>成员</span>
                   </div>
                   <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)' }}>
@@ -384,7 +391,18 @@ export default function ProjectDetailPage() {
                   textAlign: 'center',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '8px' }}>
-                    <Image style={{ width: '14px', height: '14px', color: 'var(--success)' }} />
+                    <div style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '8px',
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)',
+                    }}>
+                      <Image style={{ width: '14px', height: '14px', color: 'white' }} />
+                    </div>
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>角色</span>
                   </div>
                   <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)' }}>
@@ -398,7 +416,18 @@ export default function ProjectDetailPage() {
                   textAlign: 'center',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '8px' }}>
-                    <FileText style={{ width: '14px', height: '14px', color: 'var(--warning)' }} />
+                    <div style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '8px',
+                      background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 8px rgba(249, 115, 22, 0.4)',
+                    }}>
+                      <FileText style={{ width: '14px', height: '14px', color: 'white' }} />
+                    </div>
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>镜头</span>
                   </div>
                   <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)' }}>
@@ -435,98 +464,25 @@ export default function ProjectDetailPage() {
             marginBottom: '32px',
           }}>
             {quickActions.map((action, index) => (
-              <Link key={action.to} to={action.to} style={{ textDecoration: 'none' }}>
-                <div
-                  style={{
-                    padding: isMobile ? '18px' : '22px',
-                    borderRadius: '18px',
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border-primary)',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    backdropFilter: 'var(--glass-blur)',
-                    position: 'relative',
-                    overflow: 'hidden',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = `0 20px 40px ${action.shadow}`;
-                    e.currentTarget.style.borderColor = 'var(--accent-border)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.borderColor = 'var(--border-primary)';
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '12px' }}>
-                    <div style={{
-                      width: '44px',
-                      height: '44px',
-                      borderRadius: '14px',
-                      background: action.gradient,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: `0 4px 14px ${action.shadow}`,
-                    }}>
-                      <action.icon style={{ width: '22px', height: '22px', color: 'white' }} />
-                    </div>
-                    <div style={{ flex: 1, fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                      {action.label}
-                    </div>
-                    <ChevronRight style={{ width: '18px', height: '18px', color: 'var(--text-muted)' }} />
-                  </div>
-                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0, paddingLeft: '58px' }}>
-                    {action.desc}
-                  </p>
-                </div>
-              </Link>
+              <QuickActionCard
+                key={action.to}
+                to={action.to}
+                icon={<action.icon style={{ width: '22px', height: '22px', color: 'white' }} />}
+                label={action.label}
+                desc={action.desc}
+                gradient={action.gradient}
+                shadow={action.shadow}
+              />
             ))}
 
-            <div
-              style={{
-                padding: isMobile ? '18px' : '22px',
-                borderRadius: '18px',
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-primary)',
-                cursor: 'pointer',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                backdropFilter: 'var(--glass-blur)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 20px 40px var(--shadow-lg)';
-                e.currentTarget.style.borderColor = 'var(--accent-border)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-                e.currentTarget.style.borderColor = 'var(--border-primary)';
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '12px' }}>
-                <div style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '14px',
-                  background: 'var(--gradient-gray)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 4px 14px var(--shadow-md)',
-                }}>
-                  <Download style={{ width: '22px', height: '22px', color: 'white' }} />
-                </div>
-                <div style={{ flex: 1, fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                  导出项目
-                </div>
-                <ChevronRight style={{ width: '18px', height: '18px', color: 'var(--text-muted)' }} />
-              </div>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0, paddingLeft: '58px' }}>
-                导出项目数据或视频
-              </p>
-            </div>
+            <QuickActionCard
+              icon={<Download style={{ width: '22px', height: '22px', color: 'white' }} />}
+              label="导出项目"
+              desc="导出项目数据或视频"
+              gradient="var(--gradient-gray)"
+              shadow="var(--shadow-md)"
+              onClick={() => {}}
+            />
           </div>
         </div>
       </div>
@@ -591,7 +547,8 @@ export default function ProjectDetailPage() {
               }}>
                 项目名称
               </label>
-              <Input
+              <input
+                type="text"
                 value={editingProject.name}
                 onChange={(e) => setEditingProject({ ...editingProject, name: e.target.value })}
                 placeholder="输入项目名称"
@@ -652,15 +609,14 @@ export default function ProjectDetailPage() {
             </div>
             
             <div style={{ display: 'flex', gap: '12px' }}>
-              <Button
+              <GlassActionButton
                 onClick={() => setShowSettingsModal(false)}
-                variant="outline"
-                size="lg"
+                variant="default"
                 style={{ flex: 1 }}
               >
                 取消
-              </Button>
-              <Button
+              </GlassActionButton>
+              <GlassActionButton
                 onClick={async () => {
                   try {
                     await apiClient.updateProject(project!.id, {
@@ -674,11 +630,10 @@ export default function ProjectDetailPage() {
                   }
                 }}
                 variant="primary"
-                size="lg"
                 style={{ flex: 1 }}
               >
                 保存更改
-              </Button>
+              </GlassActionButton>
             </div>
           </div>
         </div>
@@ -742,24 +697,21 @@ export default function ProjectDetailPage() {
             </p>
             
             <div style={{ display: 'flex', gap: '12px' }}>
-              <Button
+              <GlassActionButton
                 onClick={() => setShowDeleteModal(false)}
-                variant="outline"
-                size="lg"
+                variant="default"
                 style={{ flex: 1 }}
               >
                 取消
-              </Button>
-              <Button
+              </GlassActionButton>
+              <GlassActionButton
                 onClick={handleDeleteProject}
                 variant="danger"
-                size="lg"
                 style={{ flex: 1 }}
                 icon={<Trash2 size={16} />}
-                iconPosition="left"
               >
                 删除项目
-              </Button>
+              </GlassActionButton>
             </div>
           </div>
         </div>

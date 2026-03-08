@@ -1,57 +1,58 @@
 import { Request, Response } from 'express'
+import * as crypto from 'crypto'
 import { prisma } from '../lib/prisma'
 import logger from '../lib/logger'
 
 class ShotController {
   async getShots(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { projectId } = req.params
+      const { project_id } = req.params
 
       const project = await prisma.project.findFirst({
         where: {
-          id: projectId,
+          id: project_id,
           OR: [
-            { ownerId: req.userId },
-            { members: { some: { userId: req.userId } } },
+            { owner_id: req.user_id },
+            { ProjectMember: { some: { user_id: req.user_id } } },
           ],
         },
       })
 
       if (!project) {
-        logger.warn('项目不存在', { userId: req.userId, projectId })
+        logger.warn('项目不存在', { user_id: req.user_id, project_id })
         res.status(404).json({ error: 'Project not found' })
         return
       }
 
       const shots = await prisma.shot.findMany({
-        where: { projectId },
+        where: { project_id: project_id },
         include: {
-          scene: true,
-          character: true,
+          Scene: true,
+          Character: true,
         },
         orderBy: [
-          { chapterNumber: 'asc' },
-          { episodeNumber: 'asc' },
-          { segmentId: 'asc' },
-          { cellId: 'asc' },
+          { chapter_number: 'asc' },
+          { episode_number: 'asc' },
+          { segment_id: 'asc' },
+          { cell_id: 'asc' },
         ],
       })
 
       res.json(shots)
     } catch (error) {
-      logger.error('获取分镜失败', { userId: req.userId, projectId: req.params.projectId, error })
+      logger.error('获取分镜失败', { user_id: req.user_id, project_id: req.params.project_id, error })
       res.status(500).json({ error: 'Failed to get shots' })
     }
   }
 
   async getShot(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
@@ -61,143 +62,143 @@ class ShotController {
       const shot = await prisma.shot.findFirst({
         where: {
           id,
-          project: {
+          Project: {
             OR: [
-              { ownerId: req.userId },
-              { members: { some: { userId: req.userId } } },
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id } } },
             ],
           },
         },
         include: {
-          scene: true,
-          character: true,
-          panels: {
-            orderBy: { position: 'asc' },
-          },
+          Scene: true,
+          Character: true,
         },
       })
 
       if (!shot) {
-        logger.warn('分镜不存在', { userId: req.userId, shotId: id })
+        logger.warn('分镜不存在', { user_id: req.user_id, shot_id: id })
         res.status(404).json({ error: 'Shot not found' })
         return
       }
 
       res.json(shot)
     } catch (error) {
-      logger.error('获取分镜详情失败', { userId: req.userId, shotId: req.params.id, error })
+      logger.error('获取分镜详情失败', { user_id: req.user_id, shotId: req.params.id, error })
       res.status(500).json({ error: 'Failed to get shot' })
     }
   }
 
   async createShot(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { projectId } = req.params
+      const { project_id } = req.params
       const {
-        sceneId,
-        characterId,
-        chapterNumber,
-        episodeNumber,
-        segmentId,
-        cellId,
-        actionSummary,
-        cameraMovement,
-        startPrompt,
-        endPrompt,
+        scene_id,
+        character_id,
+        chapter_number,
+        episode_number,
+        segment_id,
+        cell_id,
+        action_summary,
+        camera_movement,
+        start_prompt,
+        end_prompt,
         duration,
-        aspectRatio,
-        visualStyle,
+        aspect_ratio,
+        visual_style,
       } = req.body
 
       const project = await prisma.project.findFirst({
         where: {
-          id: projectId,
-          ownerId: req.userId,
+          id: project_id,
+          owner_id: req.user_id,
         },
       })
 
       if (!project) {
-        logger.warn('项目不存在', { userId: req.userId, projectId })
+        logger.warn('项目不存在', { user_id: req.user_id, project_id })
         res.status(404).json({ error: 'Project not found' })
         return
       }
 
       const shot = await prisma.shot.create({
         data: {
-          projectId,
-          sceneId,
-          characterId,
-          chapterNumber,
-          episodeNumber,
-          segmentId,
-          cellId,
-          actionSummary,
-          cameraMovement,
-          startPrompt,
-          endPrompt,
+          id: crypto.randomUUID(),
+          project_id: project_id,
+          scene_id,
+          character_id,
+          chapter_number,
+          episode_number,
+          segment_id,
+          cell_id,
+          action_summary,
+          camera_movement,
+          start_prompt,
+          end_prompt,
           duration: duration ?? 8,
-          aspectRatio: aspectRatio ?? '16:9',
-          visualStyle,
+          aspect_ratio: aspect_ratio ?? '16:9',
+          visual_style,
+          created_at: new Date(),
+          updated_at: new Date(),
         },
         include: {
-          scene: true,
-          character: true,
+          Scene: true,
+          Character: true,
         },
       })
 
       res.status(201).json(shot)
-      logger.info('分镜创建成功', { userId: req.userId, projectId, shotId: shot.id })
+      logger.info('分镜创建成功', { user_id: req.user_id, project_id, shotId: shot.id })
     } catch (error) {
-      logger.error('创建分镜失败', { userId: req.userId, projectId: req.params.projectId, error })
+      logger.error('创建分镜失败', { user_id: req.user_id, project_id: req.params.project_id, error })
       res.status(500).json({ error: 'Failed to create shot' })
     }
   }
 
   async updateShot(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
       const { id } = req.params
       const {
-        sceneId,
-        characterId,
-        chapterNumber,
-        episodeNumber,
-        segmentId,
-        cellId,
-        actionSummary,
-        cameraMovement,
-        startPrompt,
-        endPrompt,
-        startImageUrl,
-        endImageUrl,
+        scene_id,
+        character_id,
+        chapter_number,
+        episode_number,
+        segment_id,
+        cell_id,
+        action_summary,
+        camera_movement,
+        start_prompt,
+        end_prompt,
+        start_image_url,
+        end_image_url,
         duration,
-        aspectRatio,
-        visualStyle,
+        aspect_ratio,
+        visual_style,
       } = req.body
 
       const shot = await prisma.shot.findFirst({
         where: {
           id,
-          project: {
+          Project: {
             OR: [
-              { ownerId: req.userId },
-              { members: { some: { userId: req.userId } } },
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id } } },
             ],
           },
         },
       })
 
       if (!shot) {
-        logger.warn('分镜不存在或无权限', { userId: req.userId, shotId: id })
+        logger.warn('分镜不存在或无权限', { user_id: req.user_id, shot_id: id })
         res.status(404).json({ error: 'Shot not found or unauthorized' })
         return
       }
@@ -205,39 +206,39 @@ class ShotController {
       const updated = await prisma.shot.update({
         where: { id },
         data: {
-          sceneId,
-          characterId,
-          chapterNumber,
-          episodeNumber,
-          segmentId,
-          cellId,
-          actionSummary,
-          cameraMovement,
-          startPrompt,
-          endPrompt,
-          startImageUrl,
-          endImageUrl,
+          scene_id,
+          character_id,
+          chapter_number,
+          episode_number,
+          segment_id,
+          cell_id,
+          action_summary,
+          camera_movement,
+          start_prompt,
+          end_prompt,
+          start_image_url,
+          end_image_url,
           duration,
-          aspectRatio,
-          visualStyle,
+          aspect_ratio,
+          visual_style,
         },
         include: {
-          scene: true,
-          character: true,
+          Scene: true,
+          Character: true,
         },
       })
 
       res.json(updated)
-      logger.info('分镜更新成功', { userId: req.userId, shotId: id })
+      logger.info('分镜更新成功', { user_id: req.user_id, shot_id: id })
     } catch (error) {
-      logger.error('更新分镜失败', { userId: req.userId, shotId: req.params.id, error })
+      logger.error('更新分镜失败', { user_id: req.user_id, shotId: req.params.id, error })
       res.status(500).json({ error: 'Failed to update shot' })
     }
   }
 
   async deleteShot(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
@@ -247,17 +248,17 @@ class ShotController {
       const shot = await prisma.shot.findFirst({
         where: {
           id,
-          project: {
+          Project: {
             OR: [
-              { ownerId: req.userId },
-              { members: { some: { userId: req.userId } } },
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id } } },
             ],
           },
         },
       })
 
       if (!shot) {
-        logger.warn('分镜不存在或无权限', { userId: req.userId, shotId: id })
+        logger.warn('分镜不存在或无权限', { user_id: req.user_id, shot_id: id })
         res.status(404).json({ error: 'Shot not found or unauthorized' })
         return
       }
@@ -267,21 +268,21 @@ class ShotController {
       })
 
       res.json({ message: 'Shot deleted successfully' })
-      logger.info('分镜删除成功', { userId: req.userId, shotId: id })
+      logger.info('分镜删除成功', { user_id: req.user_id, shot_id: id })
     } catch (error) {
-      logger.error('删除分镜失败', { userId: req.userId, shotId: req.params.id, error })
+      logger.error('删除分镜失败', { user_id: req.user_id, shotId: req.params.id, error })
       res.status(500).json({ error: 'Failed to delete shot' })
     }
   }
 
   async reorderShots(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { projectId } = req.params
+      const { project_id } = req.params
       const { shots } = req.body
 
       if (!Array.isArray(shots)) {
@@ -291,16 +292,16 @@ class ShotController {
 
       const project = await prisma.project.findFirst({
         where: {
-          id: projectId,
+          id: project_id,
           OR: [
-            { ownerId: req.userId },
-            { members: { some: { userId: req.userId } } },
+            { owner_id: req.user_id },
+            { ProjectMember: { some: { user_id: req.user_id } } },
           ],
         },
       })
 
       if (!project) {
-        logger.warn('项目不存在', { userId: req.userId, projectId })
+        logger.warn('项目不存在', { user_id: req.user_id, project_id })
         res.status(404).json({ error: 'Project not found' })
         return
       }
@@ -309,10 +310,10 @@ class ShotController {
         prisma.shot.update({
           where: { id: shot.id },
           data: {
-            chapterNumber: shot.chapterNumber,
-            episodeNumber: shot.episodeNumber,
-            segmentId: shot.segmentId,
-            cellId: shot.cellId,
+            chapter_number: shot.chapter_number,
+            episode_number: shot.episode_number,
+            segment_id: shot.segment_id,
+            cell_id: shot.cell_id,
           },
         })
       )
@@ -320,39 +321,39 @@ class ShotController {
       await Promise.all(updatePromises)
 
       res.json({ message: 'Shots reordered successfully' })
-      logger.info('分镜重新排序成功', { userId: req.userId, projectId, count: shots.length })
+      logger.info('分镜重新排序成功', { user_id: req.user_id, project_id, count: shots.length })
     } catch (error) {
-      logger.error('重新排序分镜失败', { userId: req.userId, projectId: req.params.projectId, error })
+      logger.error('重新排序分镜失败', { user_id: req.user_id, project_id: req.params.project_id, error })
       res.status(500).json({ error: 'Failed to reorder shots' })
     }
   }
 
   async generateShotsFromScript(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { projectId } = req.params
-      const { scriptId } = req.body
+      const { project_id } = req.params
+      const { script_id } = req.body
 
       const project = await prisma.project.findFirst({
         where: {
-          id: projectId,
-          ownerId: req.userId,
+          id: project_id,
+          owner_id: req.user_id,
         },
       })
 
       if (!project) {
-        logger.warn('项目不存在', { userId: req.userId, projectId })
+        logger.warn('项目不存在', { user_id: req.user_id, project_id })
         res.status(404).json({ error: 'Project not found' })
         return
       }
 
       const script = await prisma.script.findUnique({
-        where: { id: scriptId },
-        include: { scenes: true },
+        where: { id: script_id },
+        include: { Scene: true },
       })
 
       if (!script) {
@@ -363,14 +364,17 @@ class ShotController {
       const generatedShots = []
       let sequence = 1
 
-      for (const scene of script.scenes) {
+      for (const scene of script.Scene) {
         const shot = await prisma.shot.create({
           data: {
-            projectId,
-            sceneId: scene.id,
-            actionSummary: scene.description || `Scene ${scene.id}`,
+            id: crypto.randomUUID(),
+            project_id: project_id,
+            scene_id: scene.id,
+            action_summary: scene.location || `Scene ${scene.id}`,
             duration: 8,
-            aspectRatio: '16:9',
+            aspect_ratio: '16:9',
+            created_at: new Date(),
+            updated_at: new Date(),
           },
         })
         generatedShots.push(shot)
@@ -381,9 +385,9 @@ class ShotController {
         shots: generatedShots,
         total: generatedShots.length,
       })
-      logger.info('从剧本生成分镜成功', { userId: req.userId, projectId, scriptId, count: generatedShots.length })
+      logger.info('从剧本生成分镜成功', { user_id: req.user_id, project_id, script_id, count: generatedShots.length })
     } catch (error) {
-      logger.error('从剧本生成分镜失败', { userId: req.userId, projectId: req.params.projectId, error })
+      logger.error('从剧本生成分镜失败', { user_id: req.user_id, project_id: req.params.project_id, error })
       res.status(500).json({ error: 'Failed to generate shots' })
     }
   }

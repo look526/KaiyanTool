@@ -43,12 +43,12 @@ router.get('/:id', async (req, res) => {
 router.post('/:id/progress', async (req, res) => {
   try {
     const userId = (req as any).user.id;
-    const { progress, completed, watchedDuration } = req.body;
+    const { progress, completed, watched_duration } = req.body;
     
     const result = await videoTutorialService.updateProgress(
       req.params.id,
       userId,
-      { progress, completed, watchedDuration }
+      { progress, completed, watched_duration }
     );
     res.json(result);
   } catch (error) {

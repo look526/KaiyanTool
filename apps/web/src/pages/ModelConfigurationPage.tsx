@@ -67,14 +67,14 @@ export default function ModelConfigurationPage() {
     try {
       setLoading(true)
       setError(null)
-      const prefs = await apiClient.getModelPreferences()
-      setConfigurations(prefs.defaultModels || {})
+      const prefs = await apiClient.getModelPreferences() as { defaultModels?: Record<string, string> } | null
+      setConfigurations(prefs?.defaultModels || {})
       
-      const stats = await apiClient.getUsageStats()
+      const stats = await apiClient.getUsageStats() as UsageStats | null
       setUsageStats(stats)
 
       const providers = await apiClient.getAIProviders()
-      const models = (providers || []).flatMap((p: any) => p.models || []) as AIProviderModel[]
+      const models = ((providers as any).providers || []).flatMap((p: any) => p.models || []) as AIProviderModel[]
       setAllModels(models)
     } catch (err: any) {
       setError(err.message || '加载配置失败')
@@ -160,7 +160,7 @@ export default function ModelConfigurationPage() {
   const handleBatchTestByType = async (contentType: ContentType) => {
     try {
       const providers = await apiClient.getAIProviders()
-      const models = (providers || []).flatMap((p: any) => p.models?.filter((m: any) => m.types?.includes(contentType)) || [])
+      const models = ((providers as any).providers || []).flatMap((p: any) => p.models?.filter((m: any) => m.types?.includes(contentType)) || [])
       
       if (models.length === 0) {
         addToast?.({ type: 'warning', title: '无可用模型', message: `${CONTENT_TYPES.find(ct => ct.contentType === contentType)?.label}没有可用的模型` })
@@ -202,7 +202,7 @@ export default function ModelConfigurationPage() {
   const loadHistory = async () => {
     try {
       setHistoryLoading(true)
-      const result = await apiClient.getConfigurationHistory({ limit: 20 })
+      const result = await apiClient.getConfigurationHistory({ limit: '20' }) as { history: Array<{ id: string; timestamp: string; changes: string }> }
       setHistory(result.history)
     } catch (err: any) {
       setError(err.message || '加载历史记录失败')

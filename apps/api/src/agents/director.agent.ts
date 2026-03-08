@@ -119,7 +119,7 @@ export class DirectorAgent {
     const prompt = this.buildShotGenerationPrompt(scene, visualStyle);
 
     const provider = await prisma.aIProvider.findFirst({
-      where: { userId: _userId, enabled: true },
+      where: { user_id: _userId, enabled: true },
     });
 
     if (!provider) {
@@ -195,7 +195,7 @@ export class DirectorAgent {
   ): Promise<{ startPrompt: string; endPrompt: string }> {
     const shot = await prisma.shot.findUnique({
       where: { id: shotId },
-      include: { scene: true, character: true },
+      include: { Scene: true, Character: true },
     });
 
     if (!shot) {
@@ -205,7 +205,7 @@ export class DirectorAgent {
     const prompt = this.buildOptimizationPrompt(shot, referenceImages);
 
     const provider = await prisma.aIProvider.findFirst({
-      where: { userId, enabled: true },
+      where: { user_id: userId, enabled: true },
     });
 
     if (!provider) {
@@ -229,13 +229,13 @@ export class DirectorAgent {
 
   private buildOptimizationPrompt(shot: any, referenceImages: string[]): string {
     return DIRECTOR_AGENT.optimizationPrompt
-      .replace('{{actionSummary}}', shot.actionSummary || '无')
-      .replace('{{cameraMovement}}', shot.cameraMovement || '无')
-      .replace('{{sceneLocation}}', shot.scene?.location || '无')
-      .replace('{{characterName}}', shot.character?.name || '无')
+      .replace('{{actionSummary}}', shot.action_summary || '无')
+      .replace('{{cameraMovement}}', shot.camera_movement || '无')
+      .replace('{{sceneLocation}}', shot.Scene?.location || '无')
+      .replace('{{characterName}}', shot.Character?.name || '无')
       .replace('{{referenceImageCount}}', String(referenceImages.length))
-      .replace('{{startPrompt}}', shot.startPrompt || '无')
-      .replace('{{endPrompt}}', shot.endPrompt || '无');
+      .replace('{{startPrompt}}', shot.start_prompt || '无')
+      .replace('{{endPrompt}}', shot.end_prompt || '无');
   }
 
   private parseOptimizationResponse(content: string): { startPrompt: string; endPrompt: string } {
@@ -274,7 +274,7 @@ export class DirectorAgent {
   ): Promise<string> {
     try {
       const provider = await prisma.aIProvider.findFirst({
-        where: { userId, enabled: true },
+        where: { user_id: userId, enabled: true },
       });
 
       if (!provider) {

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { imageEnhancementService } from '../services/image-enhancement.service';
+import crypto from 'crypto';
 
 const router = Router();
 
@@ -18,10 +19,12 @@ router.post('/super-resolution', async (req, res) => {
 
     const task = await prisma.renderTask.create({
       data: {
+        id: crypto.randomUUID(),
         type: 'super-resolution',
         status: 'pending',
-        params: { imageId, scale, model },
-        projectId: image.projectId
+        params: { image_id: imageId, scale, model },
+        project_id: image.project_id,
+        updated_at: new Date()
       }
     });
 
@@ -33,17 +36,19 @@ router.post('/super-resolution', async (req, res) => {
 
     const enhancedAsset = await prisma.asset.create({
       data: {
+        id: crypto.randomUUID(),
         type: 'image',
         url: result.url,
-        projectId: image.projectId,
+        project_id: image.project_id,
         metadata: {
-          originalImageId: imageId,
+          original_image_id: imageId,
           scale,
           model,
           width: result.width,
           height: result.height,
-          thumbnailUrl: result.thumbnailUrl || result.url
-        }
+          thumbnail_url: result.thumbnailUrl || result.url
+        },
+        updated_at: new Date()
       }
     });
 
@@ -51,7 +56,8 @@ router.post('/super-resolution', async (req, res) => {
       where: { id: task.id },
       data: {
         status: 'completed',
-        params: { ...task.params, enhancedAssetId: enhancedAsset.id } as any
+        params: { ...(typeof task.params === 'object' ? task.params : {}), enhanced_asset_id: enhancedAsset.id } as any,
+        updated_at: new Date()
       }
     });
 
@@ -81,14 +87,16 @@ router.post('/inpainting', async (req, res) => {
 
     const inpaintedAsset = await prisma.asset.create({
       data: {
+        id: crypto.randomUUID(),
         type: 'image',
         url: result.url,
-        projectId: image.projectId,
+        project_id: image.project_id,
         metadata: {
-          originalImageId: imageId,
-          maskPrompt,
-          negativePrompt
-        }
+          original_image_id: imageId,
+          mask_prompt: maskPrompt,
+          negative_prompt: negativePrompt
+        },
+        updated_at: new Date()
       }
     });
 
@@ -114,15 +122,17 @@ router.post('/background-removal', async (req, res) => {
 
     const resultAsset = await prisma.asset.create({
       data: {
+        id: crypto.randomUUID(),
         type: 'image',
         url: result.url,
-        projectId: image.projectId,
+        project_id: image.project_id,
         metadata: {
-          originalImageId: imageId,
+          original_image_id: imageId,
           type: 'background-removed',
-          maskUrl: result.maskUrl,
-          hasAlpha: true
-        }
+          mask_url: result.maskUrl,
+          has_alpha: true
+        },
+        updated_at: new Date()
       }
     });
 
@@ -148,14 +158,16 @@ router.post('/face-enhancement', async (req, res) => {
 
     const enhancedAsset = await prisma.asset.create({
       data: {
+        id: crypto.randomUUID(),
         type: 'image',
         url: result.url,
-        projectId: image.projectId,
+        project_id: image.project_id,
         metadata: {
-          originalImageId: imageId,
+          original_image_id: imageId,
           type: 'face-enhanced',
           strength
-        }
+        },
+        updated_at: new Date()
       }
     });
 
@@ -187,14 +199,16 @@ router.post('/color-correction', async (req, res) => {
 
     const correctedAsset = await prisma.asset.create({
       data: {
+        id: crypto.randomUUID(),
         type: 'image',
         url: result.url,
-        projectId: image.projectId,
+        project_id: image.project_id,
         metadata: {
-          originalImageId: imageId,
+          original_image_id: imageId,
           type: 'color-corrected',
           adjustments: { brightness, contrast, saturation, temperature, tint }
-        }
+        },
+        updated_at: new Date()
       }
     });
 
@@ -225,15 +239,17 @@ router.post('/style-transfer', async (req, res) => {
 
     const styledAsset = await prisma.asset.create({
       data: {
+        id: crypto.randomUUID(),
         type: 'image',
         url: result.url,
-        projectId: image.projectId,
+        project_id: image.project_id,
         metadata: {
-          originalImageId: imageId,
+          original_image_id: imageId,
           type: 'style-transfer',
-          styleReferenceId,
+          style_reference_id: styleReferenceId,
           strength
-        }
+        },
+        updated_at: new Date()
       }
     });
 
@@ -259,17 +275,19 @@ router.post('/upscale', async (req, res) => {
 
     const upscaledAsset = await prisma.asset.create({
       data: {
+        id: crypto.randomUUID(),
         type: 'image',
         url: result.url,
-        projectId: image.projectId,
+        project_id: image.project_id,
         metadata: {
-          originalImageId: imageId,
+          original_image_id: imageId,
           type: 'upscaled',
           scale,
           model,
           width: result.width,
           height: result.height
-        }
+        },
+        updated_at: new Date()
       }
     });
 

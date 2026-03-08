@@ -30,7 +30,7 @@ router.post('/content/process-file', authMiddleware, async (req, res) => {
 
     const aiProviders = await prisma.aIProvider.findMany({
       where: { enabled: true },
-      include: { models: true },
+      include: { AIProviderModel: true },
     });
 
     if (aiProviders.length === 0) {
@@ -43,7 +43,7 @@ router.post('/content/process-file', authMiddleware, async (req, res) => {
 
     if (model) {
       for (const p of aiProviders) {
-        const foundModel = p.models?.find(m => m.id === model || m.name === model);
+        const foundModel = p.AIProviderModel?.find(m => m.id === model || m.name === model);
         if (foundModel) {
           provider = p;
           modelName = foundModel.name;
@@ -54,10 +54,10 @@ router.post('/content/process-file', authMiddleware, async (req, res) => {
 
     providerManager.addProvider({
       id: provider.id,
-      name: provider.name,
+      name: provider.type,
       type: provider.type as any,
-      apiKey: provider.apiKey,
-      baseUrl: provider.baseUrl || undefined,
+      apiKey: provider.api_key,
+      baseUrl: provider.base_url || undefined,
     });
 
     const aiProvider = providerManager.getProvider(provider.id);

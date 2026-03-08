@@ -16,13 +16,13 @@ export async function createBackup(options: {
   const project = await prisma.project.findUnique({
     where: { id: options.projectId },
     include: {
-      shots: true,
-      characters: true,
-      scenes: true,
-      documents: true,
-      members: {
+      Shot: true,
+      Character: true,
+      Scene: true,
+      Document: true,
+      ProjectMember: {
         include: {
-          user: { select: { id: true, name: true, email: true } }
+          User: { select: { id: true, name: true, email: true } }
         }
       }
     }
@@ -42,54 +42,52 @@ export async function createBackup(options: {
         name: project.name,
         description: project.description,
         settings: project.settings,
-        createdAt: project.createdAt,
-        updatedAt: project.updatedAt
+        created_at: project.created_at,
+        updated_at: project.updated_at
       },
-      shots: project.shots.map((shot, idx) => ({
+      shots: project.Shot.map((shot, idx) => ({
         id: shot.id,
         sequence: idx + 1,
-        actionSummary: shot.actionSummary,
-        cameraMovement: shot.cameraMovement,
-        startPrompt: shot.startPrompt,
-        endPrompt: shot.endPrompt,
-        startImageUrl: shot.startImageUrl,
-        endImageUrl: shot.endImageUrl,
-        videoUrl: shot.videoUrl,
+        actionSummary: shot.action_summary,
+        cameraMovement: shot.camera_movement,
+        startPrompt: shot.start_prompt,
+        endPrompt: shot.end_prompt,
+        startImageUrl: shot.start_image_url,
+        endImageUrl: shot.end_image_url,
+        videoUrl: shot.video_url,
         duration: shot.duration,
-        aspectRatio: shot.aspectRatio,
-        visualStyle: shot.visualStyle,
-        createdAt: shot.createdAt,
-        updatedAt: shot.updatedAt
+        aspectRatio: shot.aspect_ratio,
+        visualStyle: shot.visual_style,
+        created_at: shot.created_at,
+        updated_at: shot.updated_at
       })),
-      characters: project.characters.map(char => ({
+      characters: project.Character.map(char => ({
         id: char.id,
         name: char.name,
-        description: char.description,
         appearance: char.appearance,
-        metadata: char.metadata,
-        createdAt: char.createdAt,
-        updatedAt: char.updatedAt
+        created_at: char.created_at,
+        updated_at: char.updated_at
       })),
-      scenes: project.scenes.map(scene => ({
+      scenes: project.Scene.map(scene => ({
         id: scene.id,
         location: scene.location,
         time: scene.time,
         atmosphere: scene.atmosphere,
-        referenceImages: scene.referenceImages,
-        createdAt: scene.createdAt,
-        updatedAt: scene.updatedAt
+        reference_images: scene.reference_images,
+        created_at: scene.created_at,
+        updated_at: scene.updated_at
       })),
-      documents: project.documents.map(doc => ({
+      documents: project.Document.map(doc => ({
         id: doc.id,
         title: doc.title,
         type: doc.type,
         content: doc.content,
         status: doc.status,
-        createdAt: doc.createdAt,
-        updatedAt: doc.updatedAt
+        created_at: doc.created_at,
+        updated_at: doc.updated_at
       })),
-      members: project.members.map(m => ({
-        userId: m.userId,
+      members: project.ProjectMember.map(m => ({
+        userId: m.user_id,
         role: m.role
       }))
     },
@@ -98,7 +96,7 @@ export async function createBackup(options: {
 
   if (options.includeHistory) {
     const history = await prisma.projectVersion.findMany({
-      where: { projectId: options.projectId },
+      where: { project_id: options.projectId },
       orderBy: { version: 'desc' },
       take: 100
     });
@@ -108,23 +106,23 @@ export async function createBackup(options: {
       name: h.name,
       description: h.description,
       tags: h.tags,
-      createdAt: h.createdAt
+      created_at: h.created_at
     }));
   }
 
   if (options.includeAssets) {
     const assets = await prisma.asset.findMany({
-      where: { projectId: options.projectId }
+      where: { project_id: options.projectId }
     });
 
     backupData.data.assets = assets.map(a => ({
       id: a.id,
       type: a.type,
-      name: a.name,
+      name: typeof a.metadata === 'object' && a.metadata !== null ? (a.metadata as any).name : undefined,
       url: a.url,
-      thumbnailUrl: a.thumbnailUrl,
+      thumbnailUrl: typeof a.metadata === 'object' && a.metadata !== null ? (a.metadata as any).thumbnailUrl : undefined,
       metadata: a.metadata,
-      createdAt: a.createdAt
+      createdAt: a.created_at
     }));
   }
 
@@ -143,26 +141,26 @@ export async function listBackups(projectId: string): Promise<Array<{
   size: number;
 }>> {
   const backups = await prisma.backup.findMany({
-    where: { projectId },
-    orderBy: { createdAt: 'desc' },
+    where: { project_id: projectId },
+    orderBy: { created_at: 'desc' },
     take: 50
   });
 
   return backups.map(b => ({
-    id: b.backupId,
-    timestamp: b.createdAt,
-    size: b.size
+    id: b.backup_id,
+    timestamp: b.created_at,
+    size: Number(b.size)
   }));
 }
 
 export async function getBackup(backupId: string): Promise<BackupData | null> {
   const backup = await prisma.backup.findFirst({
-    where: { backupId }
+    where: { backup_id: backupId }
   });
 
   if (!backup) return null;
 
-  const key = `backups/${backup.projectId}/${backupId}.json`;
+  const key = `backups/${backup.project_id}/${backupId}.json`;
   const data = await downloadFromStorage(key);
 
   if (!data) return null;
@@ -183,15 +181,15 @@ export async function restoreBackup(backupId: string): Promise<{
   const projectId = backup.projectId;
 
   await prisma.$transaction(async () => {
-    await prisma.shot.deleteMany({ where: { projectId } });
-    await prisma.character.deleteMany({ where: { projectId } });
-    await prisma.scene.deleteMany({ where: { projectId } });
-    await prisma.document.deleteMany({ where: { projectId } });
+    await prisma.shot.deleteMany({ where: { project_id: projectId } });
+    await prisma.character.deleteMany({ where: { project_id: projectId } });
+    await prisma.scene.deleteMany({ where: { project_id: projectId } });
+    await prisma.document.deleteMany({ where: { project_id: projectId } });
 
     if (backup.data.shots?.length) {
       await prisma.shot.createMany({
         data: backup.data.shots.map((s: any) => ({
-          projectId,
+          project_id: projectId,
           actionSummary: s.actionSummary,
           cameraMovement: s.cameraMovement,
           startPrompt: s.startPrompt,
@@ -208,7 +206,7 @@ export async function restoreBackup(backupId: string): Promise<{
     if (backup.data.characters?.length) {
       await prisma.character.createMany({
         data: backup.data.characters.map((c: any) => ({
-          projectId,
+          project_id: projectId,
           name: c.name,
           description: c.description,
           appearance: c.appearance,
@@ -220,7 +218,7 @@ export async function restoreBackup(backupId: string): Promise<{
     if (backup.data.scenes?.length) {
       await prisma.scene.createMany({
         data: backup.data.scenes.map((s: any) => ({
-          projectId,
+          project_id: projectId,
           location: s.location,
           time: s.time,
           atmosphere: s.atmosphere,
@@ -232,7 +230,7 @@ export async function restoreBackup(backupId: string): Promise<{
     if (backup.data.documents?.length) {
       await prisma.document.createMany({
         data: backup.data.documents.map((d: any) => ({
-          projectId,
+          project_id: projectId,
           title: d.title,
           type: d.type,
           content: d.content,
@@ -259,11 +257,11 @@ export async function restoreBackup(backupId: string): Promise<{
 
 export async function deleteBackup(backupId: string): Promise<void> {
   const backup = await prisma.backup.findFirst({
-    where: { backupId }
+    where: { backup_id: backupId }
   });
 
   if (backup) {
-    const key = `backups/${backup.projectId}/${backupId}.json`;
+    const key = `backups/${backup.project_id}/${backupId}.json`;
     await deleteFromStorage(key);
   }
 }

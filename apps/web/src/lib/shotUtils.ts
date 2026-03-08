@@ -1,22 +1,22 @@
 export interface Shot {
   id: string;
-  projectId: string;
-  sceneId?: string;
-  characterId?: string;
-  chapterNumber?: number;
-  episodeNumber?: number;
-  segmentId?: number;
-  cellId?: number;
-  actionSummary?: string;
-  cameraMovement?: string;
-  startPrompt?: string;
-  endPrompt?: string;
-  startImageUrl?: string;
-  endImageUrl?: string;
-  videoUrl?: string;
+  project_id: string;
+  scene_id?: string;
+  character_id?: string;
+  chapter_number?: number;
+  episode_number?: number;
+  segment_id?: number;
+  cell_id?: number;
+  action_summary?: string;
+  camera_movement?: string;
+  start_prompt?: string;
+  end_prompt?: string;
+  start_image_url?: string;
+  end_image_url?: string;
+  video_url?: string;
   duration: number;
-  aspectRatio: string;
-  visualStyle?: string;
+  aspect_ratio: string;
+  visual_style?: string;
   scene?: {
     id: string;
     location: string;
@@ -26,8 +26,8 @@ export interface Shot {
     id: string;
     name: string;
   };
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ShotStatus {
@@ -41,16 +41,16 @@ export interface ShotStatus {
 }
 
 export function getShotDisplayNumber(shot: Shot, index: number): string {
-  if (shot.chapterNumber && shot.episodeNumber && shot.segmentId && shot.cellId) {
-    return `SHOT ${String(shot.chapterNumber).padStart(3, '0')}-${shot.episodeNumber}.${shot.segmentId}.${shot.cellId}`;
+  if (shot.chapter_number && shot.episode_number && shot.segment_id && shot.cell_id) {
+    return `SHOT ${String(shot.chapter_number).padStart(3, '0')}-${shot.episode_number}.${shot.segment_id}.${shot.cell_id}`;
   }
   return `SHOT ${String(index + 1).padStart(3, '0')}`;
 }
 
 export function getShotStatus(shot: Shot): ShotStatus {
-  const hasStartImage = !!shot.startImageUrl;
-  const hasEndImage = !!shot.endImageUrl;
-  const hasVideo = !!shot.videoUrl;
+  const hasStartImage = !!shot.start_image_url;
+  const hasEndImage = !!shot.end_image_url;
+  const hasVideo = !!shot.video_url;
   const hasBothImages = hasStartImage && hasEndImage;
   const isComplete = hasBothImages && hasVideo;
   const isInProgress = hasBothImages && !hasVideo;

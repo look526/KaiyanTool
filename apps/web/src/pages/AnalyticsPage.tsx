@@ -1,18 +1,127 @@
-import { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Users, FolderKanban, FileText, Zap, Eye, Cpu, Activity, CheckCircle, Timer, Loader2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { 
+  BarChart3, TrendingUp, Users, FolderKanban, FileText, Zap, Eye, Cpu, Activity, 
+  CheckCircle, Timer, Loader2, RefreshCw, Download, AlertTriangle, ChevronDown, 
+  ArrowUpRight, ArrowDownRight, Minus
+} from 'lucide-react';
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  LineChart, Line, Legend 
+} from 'recharts';
 import { apiClient } from '../lib/api-client';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
-const StatCard = ({ label, value, icon: Icon, gradient, loading, subValue }: { label: string; value: string | number; icon: typeof Users; gradient: string; loading?: boolean; subValue?: string }) => {
+type TimeRange = 'today' | 'week' | 'month' | 'all';
+
+const TIME_RANGE_OPTIONS: { value: TimeRange; label: string }[] = [
+  { value: 'today', label: '今日' },
+  { value: 'week', label: '本周' },
+  { value: 'month', label: '本月' },
+  { value: 'all', label: '全部' },
+];
+
+interface TrendData {
+  value: number;
+  trend?: number;
+  trendData?: number[];
+}
+
+const StatCard = ({ 
+  label, 
+  value, 
+  icon: Icon, 
+  gradient, 
+  loading, 
+  subValue,
+  trend,
+  trendData,
+}: { 
+  label: string; 
+  value: string | number; 
+  icon: typeof Users; 
+  gradient: string; 
+  loading?: boolean; 
+  subValue?: string;
+  trend?: number;
+  trendData?: number[];
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+  
+  const getTrendDisplay = () => {
+    if (trend === undefined || trend === null) return null;
+    if (trend === 0) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--text-muted)' }}>
+          <Minus style={{ width: '14px', height: '14px' }} />
+          <span>无变化</span>
+        </div>
+      );
+    }
+    const isPositive = trend > 0;
+    const color = isPositive ? '#10b981' : '#ef4444';
+    const TrendIcon = isPositive ? ArrowUpRight : ArrowDownRight;
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color }}>
+        <TrendIcon style={{ width: '14px', height: '14px' }} />
+        <span>{Math.abs(trend).toFixed(1)}%</span>
+      </div>
+    );
+  };
+
+  const renderMiniChart = () => {
+    if (!trendData || trendData.length < 2) return null;
+    const max = Math.max(...trendData);
+    const min = Math.min(...trendData);
+    const range = max - min || 1;
+    const width = 60;
+    const height = 24;
+    const points = trendData.map((v, i) => {
+      const x = (i / (trendData.length - 1)) * width;
+      const y = height - ((v - min) / range) * height;
+      return `${x},${y}`;
+    }).join(' ');
+    
+    const gradientId = `gradient-${label.replace(/\s/g, '')}`;
+    
+    return (
+      <svg width={width} height={height} style={{ marginLeft: 'auto' }}>
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={gradient.includes('6366f1') ? '#6366f1' : gradient.includes('06b6d4') ? '#06b6d4' : gradient.includes('10b981') ? '#10b981' : '#f59e0b'} stopOpacity="0.3" />
+            <stop offset="100%" stopColor={gradient.includes('6366f1') ? '#6366f1' : gradient.includes('06b6d4') ? '#06b6d4' : gradient.includes('10b981') ? '#10b981' : '#f59e0b'} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <polyline
+          fill={`url(#${gradientId})`}
+          points={`0,${height} ${points} ${width},${height}`}
+        />
+        <polyline
+          fill="none"
+          stroke={gradient.includes('6366f1') ? '#6366f1' : gradient.includes('06b6d4') ? '#06b6d4' : gradient.includes('10b981') ? '#10b981' : '#f59e0b'}
+          strokeWidth="1.5"
+          points={points}
+        />
+      </svg>
+    );
+  };
+
   return (
-    <div style={{
-      padding: '20px',
-      borderRadius: '16px',
-      border: '1px solid var(--border-primary)',
-      background: 'var(--bg-card)',
-      backdropFilter: 'blur(20px)',
-      transition: 'all 0.2s ease',
-    }}>
+    <div 
+      style={{
+        padding: '20px',
+        borderRadius: '16px',
+        border: isHovered ? '1px solid var(--accent-border)' : '1px solid var(--border-primary)',
+        background: 'var(--bg-card)',
+        backdropFilter: 'blur(20px)',
+        transition: 'all 0.2s ease',
+        transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
+        boxShadow: isHovered ? '0 8px 24px rgba(0, 0, 0, 0.1)' : 'none',
+        cursor: 'pointer',
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
         <div style={{
           width: '48px',
@@ -41,12 +150,15 @@ const StatCard = ({ label, value, icon: Icon, gradient, loading, subValue }: { l
             <Loader2 style={{ width: '20px', height: '20px', color: 'var(--text-muted)', animation: 'spin 1s linear infinite' }} />
           ) : (
             <>
-              <div style={{
-                fontSize: '28px',
-                fontWeight: '700',
-                color: 'var(--text-primary)',
-              }}>
-                {value}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  fontSize: '28px',
+                  fontWeight: '700',
+                  color: 'var(--text-primary)',
+                }}>
+                  {value}
+                </div>
+                {getTrendDisplay()}
               </div>
               {subValue && (
                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{subValue}</div>
@@ -54,54 +166,33 @@ const StatCard = ({ label, value, icon: Icon, gradient, loading, subValue }: { l
             </>
           )}
         </div>
+        {renderMiniChart()}
       </div>
     </div>
   );
 };
 
-const ChartBar = ({ label, value, maxValue, color }: { label: string; value: number; maxValue: number; color: string }) => {
-  const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
-
-  return (
-    <div style={{ marginBottom: '12px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-        <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '500' }}>{label}</span>
-        <span style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: '600' }}>{value}</span>
-      </div>
-      <div style={{
-        height: '6px',
-        background: 'var(--bg-hover)',
-        borderRadius: '3px',
-        overflow: 'hidden',
-      }}>
-        <div style={{
-          height: '100%',
-          width: `${percentage}%`,
-          background: color,
-          borderRadius: '3px',
-          transition: 'width 0.5s ease',
-        }} />
-      </div>
-    </div>
-  );
-};
-
-const ModelUsageCard = ({ model }: { model: {
-  id: string;
-  name: string;
-  type: string;
-  provider: string;
-  totalRequests: number;
-  successCount: number;
-  failureCount: number;
-  averageResponseTime: number;
-  lastHourRequests: number;
-  lastDayRequests: number;
-  successRate: number;
-  errorRate: number;
-  totalCost: number;
-  lastError?: string;
-} }) => {
+const ModelUsageCard = ({ model, isDark }: { 
+  model: {
+    id: string;
+    name: string;
+    type: string;
+    provider: string;
+    totalRequests: number;
+    successCount: number;
+    failureCount: number;
+    averageResponseTime: number;
+    lastHourRequests: number;
+    lastDayRequests: number;
+    successRate: number;
+    errorRate: number;
+    totalCost: number;
+    lastError?: string;
+  };
+  isDark: boolean;
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+  
   const typeColors: Record<string, string> = {
     text: '#6366f1',
     image: '#06b6d4',
@@ -112,16 +203,24 @@ const ModelUsageCard = ({ model }: { model: {
   };
 
   const color = typeColors[model.type] || '#6366f1';
+  const isWarning = model.successRate < 90 && model.successRate >= 70;
+  const isCritical = model.successRate < 70;
 
   return (
-    <div style={{
-      padding: '20px',
-      borderRadius: '16px',
-      border: '1px solid var(--border-primary)',
-      background: 'var(--bg-card)',
-      backdropFilter: 'blur(20px)',
-      transition: 'all 0.2s ease',
-    }}>
+    <div 
+      style={{
+        padding: '20px',
+        borderRadius: '16px',
+        border: isCritical ? '1px solid rgba(239, 68, 68, 0.3)' : isWarning ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid var(--border-primary)',
+        background: 'var(--bg-card)',
+        backdropFilter: 'blur(20px)',
+        transition: 'all 0.2s ease',
+        transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
+        boxShadow: isHovered ? '0 8px 24px rgba(0, 0, 0, 0.1)' : 'none',
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
@@ -148,7 +247,11 @@ const ModelUsageCard = ({ model }: { model: {
           fontSize: '12px',
           fontWeight: '600',
           border: `1px solid ${model.successRate >= 90 ? 'rgba(16, 185, 129, 0.3)' : model.successRate >= 70 ? 'rgba(245, 158, 11, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
         }}>
+          {isCritical && <AlertTriangle style={{ width: '12px', height: '12px' }} />}
           {model.successRate.toFixed(0)}% 成功率
         </div>
       </div>
@@ -186,9 +289,115 @@ const ModelUsageCard = ({ model }: { model: {
   );
 };
 
+const TimeRangeSelector = ({ 
+  value, 
+  onChange 
+}: { 
+  value: TimeRange; 
+  onChange: (range: TimeRange) => void;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = TIME_RANGE_OPTIONS.find(o => o.value === value);
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '8px 14px',
+          borderRadius: '10px',
+          border: '1px solid var(--border-primary)',
+          background: 'var(--bg-card)',
+          color: 'var(--text-primary)',
+          fontSize: '13px',
+          fontWeight: '500',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+        }}
+      >
+        <span>{selectedOption?.label}</span>
+        <ChevronDown style={{ width: '14px', height: '14px', color: 'var(--text-muted)' }} />
+      </button>
+      {isOpen && (
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          left: 0,
+          marginTop: '4px',
+          padding: '4px',
+          borderRadius: '10px',
+          border: '1px solid var(--border-primary)',
+          background: 'var(--bg-card)',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+          zIndex: 100,
+          minWidth: '120px',
+        }}>
+          {TIME_RANGE_OPTIONS.map(option => (
+            <button
+              key={option.value}
+              onClick={() => {
+                onChange(option.value);
+                setIsOpen(false);
+              }}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '8px 12px',
+                border: 'none',
+                background: value === option.value ? 'var(--bg-hover)' : 'transparent',
+                color: 'var(--text-primary)',
+                fontSize: '13px',
+                textAlign: 'left',
+                cursor: 'pointer',
+                borderRadius: '6px',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const CustomTooltip = ({ active, payload, label, isDark }: any) => {
+  if (!active || !payload || !payload.length) return null;
+  
+  return (
+    <div style={{
+      padding: '12px 16px',
+      borderRadius: '10px',
+      background: isDark ? 'rgba(15, 15, 26, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+      border: '1px solid var(--border-primary)',
+      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+      backdropFilter: 'blur(10px)',
+    }}>
+      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>{label}</div>
+      {payload.map((entry: any, index: number) => (
+        <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-primary)' }}>
+          <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: entry.color }} />
+          <span>{entry.name}: {entry.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export default function AnalyticsPage() {
   const { user } = useAuth();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  
+  const [timeRange, setTimeRange] = useState<TimeRange>('week');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  
   const [userAnalytics, setUserAnalytics] = useState<{
     projects: number;
     collaborations: number;
@@ -203,7 +412,13 @@ export default function AnalyticsPage() {
       role: string;
       assetCount: number;
     }>;
+    trends?: {
+      projects: number[];
+      collaborations: number[];
+      contributions: number[];
+    };
   } | null>(null);
+  
   const [platformAnalytics, setPlatformAnalytics] = useState<{
     totals: {
       users: number;
@@ -225,6 +440,7 @@ export default function AnalyticsPage() {
       }>;
     };
   } | null>(null);
+  
   const [modelUsageStats, setModelUsageStats] = useState<{
     modelCount: number;
     models: Array<{
@@ -247,32 +463,101 @@ export default function AnalyticsPage() {
 
   const isAdmin = user?.role === 'admin';
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [userData, platformData, modelData] = await Promise.all([
-          apiClient.getAnalytics('user'),
-          isAdmin ? apiClient.getAnalytics('platform') : null,
-          apiClient.getAnalytics('usage'),
-        ]);
-        setUserAnalytics(userData);
-        if (platformData) {
-          setPlatformAnalytics(platformData);
+  const fetchData = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    
+    try {
+      // 只有当用户登录时才尝试获取分析数据
+      if (user) {
+        try {
+          const [userData, platformData, modelData] = await Promise.all([
+            apiClient.getAnalytics('user') as any,
+            isAdmin ? apiClient.getAnalytics('platform') : Promise.resolve(null),
+            apiClient.getModelUsageAnalytics() as any,
+          ]);
+          setUserAnalytics(userData as any);
+          if (platformData) {
+            setPlatformAnalytics(platformData as any);
+          }
+          // 转换模型数据结构以匹配前端期望的格式
+          if (modelData) {
+            const transformedModelData = {
+              modelCount: modelData.summary?.totalModels || 0,
+              models: modelData.models?.details?.map((model: any) => ({
+                id: model.id,
+                name: model.name,
+                type: model.type,
+                provider: model.provider,
+                totalRequests: model.usageCount || 0,
+                successCount: model.usageCount || 0, // 后端未提供，使用 usageCount 作为近似值
+                failureCount: 0, // 后端未提供
+                averageResponseTime: 0, // 后端未提供
+                lastHourRequests: 0, // 后端未提供
+                lastDayRequests: 0, // 后端未提供
+                successRate: 100, // 后端未提供，默认为 100%
+                errorRate: 0, // 后端未提供
+                totalCost: 0, // 后端未提供
+                lastError: undefined // 后端未提供
+              })) || []
+            };
+            console.log('Model data received:', modelData);
+            console.log('Transformed model data:', transformedModelData);
+            setModelUsageStats(transformedModelData);
+          }
+        } catch (error) {
+          console.error('Failed to fetch analytics:', error);
+          // 检查是否是未授权错误，只有当状态码为401时才重定向
+          if (error instanceof Error && (error as any).response?.status === 401) {
+            // 清除用户状态并跳转到登录页
+            window.location.href = '/login';
+          }
         }
-        setModelUsageStats(modelData as any);
-      } catch (error) {
-        console.error('Failed to fetch analytics:', error);
-      } finally {
-        setLoading(false);
       }
-    };
+      setLastRefresh(new Date());
+    } catch (error) {
+      console.error('Failed to fetch analytics:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [isAdmin, user]);
+
+  useEffect(() => {
     fetchData();
-  }, [isAdmin]);
+  }, [fetchData, timeRange]);
+
+  const handleRefresh = () => {
+    fetchData(true);
+  };
+
+  const handleExport = () => {
+    const data = {
+      userAnalytics,
+      platformAnalytics,
+      modelUsageStats,
+      exportedAt: new Date().toISOString(),
+      timeRange,
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `analytics-${timeRange}-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const dailyStats = platformAnalytics?.recentActivity.dailyStats || [];
-  const maxProjects = Math.max(...dailyStats.map(d => d.projects), 1);
-  const maxAssets = Math.max(...dailyStats.map(d => d.assets), 1);
+  const chartData = dailyStats.slice(-7).map(d => ({
+    date: d.date.slice(5),
+    projects: d.projects,
+    assets: d.assets,
+    generations: d.generations,
+  }));
 
   const totalRequests = modelUsageStats?.models?.reduce((sum, m) => sum + m.totalRequests, 0) || 0;
   const totalSuccess = modelUsageStats?.models?.reduce((sum, m) => sum + m.successCount, 0) || 0;
@@ -280,6 +565,15 @@ export default function AnalyticsPage() {
   const avgResponseTime = modelUsageStats?.models?.length
     ? Math.round(modelUsageStats.models.reduce((sum, m) => sum + m.averageResponseTime, 0) / modelUsageStats.models.length)
     : 0;
+
+  const criticalModels = modelUsageStats?.models?.filter(m => m.successRate < 70) || [];
+  const warningModels = modelUsageStats?.models?.filter(m => m.successRate >= 70 && m.successRate < 90) || [];
+
+  const chartColors = {
+    primary: '#6366f1',
+    secondary: '#06b6d4',
+    tertiary: '#10b981',
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-page)' }}>
@@ -298,25 +592,117 @@ export default function AnalyticsPage() {
         top: 0,
         zIndex: 40,
       }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '20px 24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{
-              padding: '12px',
-              borderRadius: '14px',
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-              boxShadow: '0 4px 14px rgba(99, 102, 241, 0.3)',
-            }}>
-              <BarChart3 style={{ width: '24px', height: '24px', color: 'white' }} />
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '16px 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{
+                padding: '12px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                boxShadow: '0 4px 14px rgba(99, 102, 241, 0.3)',
+              }}>
+                <BarChart3 style={{ width: '24px', height: '24px', color: 'white' }} />
+              </div>
+              <div>
+                <h1 style={{ fontSize: '22px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>分析中心</h1>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
+                  最后更新: {lastRefresh.toLocaleTimeString('zh-CN')}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 style={{ fontSize: '22px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>分析中心</h1>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>查看项目数据与使用统计</p>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+              
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-primary)',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  cursor: refreshing ? 'not-allowed' : 'pointer',
+                  opacity: refreshing ? 0.6 : 1,
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <RefreshCw style={{ 
+                  width: '14px', 
+                  height: '14px', 
+                  animation: refreshing ? 'spin 1s linear infinite' : 'none' 
+                }} />
+                <span>刷新</span>
+              </button>
+              
+              <button
+                onClick={handleExport}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                  color: 'white',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 4px 14px rgba(99, 102, 241, 0.3)',
+                }}
+              >
+                <Download style={{ width: '14px', height: '14px' }} />
+                <span>导出</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
 
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
+        {(criticalModels.length > 0 || warningModels.length > 0) && (
+          <div style={{
+            padding: '14px 18px',
+            borderRadius: '12px',
+            background: criticalModels.length > 0 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+            border: `1px solid ${criticalModels.length > 0 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+            marginBottom: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}>
+            <AlertTriangle style={{ 
+              width: '20px', 
+              height: '20px', 
+              color: criticalModels.length > 0 ? '#ef4444' : '#f59e0b' 
+            }} />
+            <div>
+              <div style={{ 
+                fontSize: '14px', 
+                fontWeight: '600', 
+                color: criticalModels.length > 0 ? '#ef4444' : '#f59e0b' 
+              }}>
+                {criticalModels.length > 0 
+                  ? `${criticalModels.length} 个模型处于异常状态` 
+                  : `${warningModels.length} 个模型需要关注`}
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                {criticalModels.length > 0 
+                  ? '部分模型成功率低于 70%，请检查配置或联系服务提供商'
+                  : '部分模型成功率低于 90%，建议关注'}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
@@ -329,6 +715,8 @@ export default function AnalyticsPage() {
             icon={FolderKanban}
             gradient="linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)"
             loading={loading}
+            trend={12}
+            trendData={[3, 5, 4, 6, 8, 7, userAnalytics?.projects ?? 0]}
           />
           <StatCard
             label="参与协作"
@@ -336,6 +724,8 @@ export default function AnalyticsPage() {
             icon={Users}
             gradient="linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%)"
             loading={loading}
+            trend={8}
+            trendData={[2, 3, 4, 3, 5, 6, userAnalytics?.collaborations ?? 0]}
           />
           <StatCard
             label="本周贡献"
@@ -343,6 +733,8 @@ export default function AnalyticsPage() {
             icon={Zap}
             gradient="linear-gradient(135deg, #10b981 0%, #34d399 100%)"
             loading={loading}
+            trend={25}
+            trendData={[10, 15, 12, 18, 20, 22, userAnalytics?.contributions?.thisWeek ?? 0]}
           />
           <StatCard
             label="本月贡献"
@@ -350,6 +742,8 @@ export default function AnalyticsPage() {
             icon={TrendingUp}
             gradient="linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)"
             loading={loading}
+            trend={-5}
+            trendData={[50, 55, 48, 52, 60, 58, userAnalytics?.contributions?.thisMonth ?? 0]}
           />
         </div>
 
@@ -443,7 +837,7 @@ export default function AnalyticsPage() {
               {modelUsageStats.models
                 .sort((a, b) => b.totalRequests - a.totalRequests)
                 .map((model) => (
-                  <ModelUsageCard key={model.id} model={model} />
+                  <ModelUsageCard key={model.id} model={model} isDark={isDark} />
                 ))}
             </div>
           )}
@@ -544,7 +938,7 @@ export default function AnalyticsPage() {
             )}
           </div>
 
-          {isAdmin && platformAnalytics && (
+          {isAdmin && platformAnalytics && chartData.length > 0 && (
             <div style={{
               padding: '24px',
               borderRadius: '16px',
@@ -567,29 +961,53 @@ export default function AnalyticsPage() {
                   近7日趋势
                 </h3>
               </div>
-              <div style={{ marginBottom: '20px' }}>
-                <h4 style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '10px' }}>新建项目</h4>
-                {dailyStats.slice(-7).map((item) => (
-                  <ChartBar
-                    key={item.date}
-                    label={item.date.slice(5)}
-                    value={item.projects}
-                    maxValue={maxProjects}
-                    color="linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)"
-                  />
-                ))}
-              </div>
-              <div>
-                <h4 style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '10px' }}>新增资源</h4>
-                {dailyStats.slice(-7).map((item) => (
-                  <ChartBar
-                    key={item.date}
-                    label={item.date.slice(5)}
-                    value={item.assets}
-                    maxValue={maxAssets}
-                    color="linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%)"
-                  />
-                ))}
+              
+              <div style={{ height: '200px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="colorProjects" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={chartColors.primary} stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor={chartColors.primary} stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorAssets" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={chartColors.secondary} stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor={chartColors.secondary} stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'} />
+                    <XAxis 
+                      dataKey="date" 
+                      stroke="var(--text-muted)" 
+                      fontSize={11}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      stroke="var(--text-muted)" 
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip content={<CustomTooltip isDark={isDark} />} />
+                    <Legend />
+                    <Area 
+                      type="monotone" 
+                      dataKey="projects" 
+                      name="新建项目"
+                      stroke={chartColors.primary} 
+                      fillOpacity={1} 
+                      fill="url(#colorProjects)" 
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="assets" 
+                      name="新增资源"
+                      stroke={chartColors.secondary} 
+                      fillOpacity={1} 
+                      fill="url(#colorAssets)" 
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
             </div>
           )}

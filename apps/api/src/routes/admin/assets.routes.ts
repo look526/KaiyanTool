@@ -2,11 +2,12 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../../lib/prisma';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { AppError, asyncHandler } from '../../middleware/error.middleware';
+import crypto from 'crypto';
 
 const router = Router();
 
 const requireAdmin = async (req: Request, _res: Response, next: Function) => {
-  const userId = req.userId;
+  const userId = req.user_id;
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { role: true },
@@ -88,12 +89,13 @@ router.delete('/:id', authMiddleware, requireAdmin, asyncHandler(async (req: Req
   
   await prisma.auditLog.create({
     data: {
-      userId: req.userId,
+      id: crypto.randomUUID(),
+      user_id: req.user_id,
       action: 'asset_deleted',
       resource: 'asset',
-      resourceId: id,
+      resource_id: id,
       metadata: { url: asset.url, type: asset.type },
-      ipAddress: req.ip,
+      ip_address: req.ip,
     },
   });
   
@@ -113,11 +115,12 @@ router.post('/batch-delete', authMiddleware, requireAdmin, asyncHandler(async (r
   
   await prisma.auditLog.create({
     data: {
-      userId: req.userId,
+      id: crypto.randomUUID(),
+      user_id: req.user_id,
       action: 'assets_batch_deleted',
       resource: 'asset',
       metadata: { count: result.count, ids },
-      ipAddress: req.ip,
+      ip_address: req.ip,
     },
   });
   

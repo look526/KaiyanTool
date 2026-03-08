@@ -1,6 +1,10 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useCallback, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { apiClient, User, setAuthErrorHandler } from '../lib/api';
+import { useAuth as useAuthStore } from '../core/store/auth.store';
+import { useCurrentUser } from '../modules/auth/hooks';
+import { queryKeys } from '../core/api/query-keys';
 
 const ENABLE_AUTH = true;
 
@@ -19,50 +23,28 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [sessionExpired, setSessionExpired] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { data: userData, isLoading: userLoading, refetch } = useCurrentUser();
+  const { rememberMe, sessionExpired, setRememberMe, setSessionExpired, setTokens, logout: storeLogout, clearSession } = useAuthStore();
+  
+  const user = userData?.user || null;
+  const loading = userLoading;
 
   const clearSessionExpired = useCallback(() => {
     setSessionExpired(false);
-  }, []);
+  }, [setSessionExpired]);
 
   const handleAuthError = useCallback(() => {
-    setUser(null);
-    setRememberMe(false);
+    clearSession();
     setSessionExpired(true);
     localStorage.removeItem('rememberedEmail');
     localStorage.removeItem('rememberMe');
-  }, []);
+  }, [clearSession, setSessionExpired]);
 
   useEffect(() => {
     setAuthErrorHandler(handleAuthError);
   }, [handleAuthError]);
-
-  useEffect(() => {
-    if (ENABLE_AUTH) {
-      checkAuth();
-    } else {
-      const mockUser: User = {
-        id: 'mock-user-id',
-        name: 'Mock User',
-        email: 'mock@example.com',
-        avatarUrl: null,
-        bio: null,
-        role: 'user',
-        plan: 'free',
-        storageUsed: BigInt(0),
-        storageLimit: BigInt(1073741824),
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      setUser(mockUser);
-      setRememberMe(false);
-      setLoading(false);
-    }
-  }, []);
 
   useEffect(() => {
     if (sessionExpired) {
@@ -70,67 +52,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [sessionExpired, navigate]);
 
-  const checkAuth = async () => {
-    try {
-      const response = await apiClient.getCurrentUser();
-      setUser(response.user);
-      setRememberMe(response.rememberMe || false);
-    } catch (error) {
-      if (error instanceof Error && error.message === 'UNAUTHORIZED') {
-        setUser(null);
-        setRememberMe(false);
-      } else {
-        setUser(null);
-        setRememberMe(false);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const login = async (email: string, password: string, rememberMe?: boolean) => {
-    const response = await apiClient.login({ email, password, rememberMe });
-    setUser(response.user);
-    setRememberMe(rememberMe || false);
+    await apiClient.login({ email, password, remember_me: rememberMe });
+    window.location.href = '/projects';
   };
-
+ 
   const register = async (name: string, email: string, password: string) => {
-    const response = await apiClient.register({ name, email, password });
-    setUser(response.user);
-    setRememberMe(false);
+    await apiClient.register({ name, email, password });
+    window.location.href = '/projects';
   };
 
   const logout = async () => {
-    try {
-      await apiClient.logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setUser(null);
-      setRememberMe(false);
-      localStorage.removeItem('rememberedEmail');
-      localStorage.removeItem('rememberMe');
-    }
+    await storeLogout();
+    refetch();
   };
 
   const refreshUser = async () => {
-    try {
-      const response = await apiClient.getCurrentUser();
-      setUser(response.user);
-      setRememberMe(response.rememberMe || false);
-    } catch (error) {
-      if (error instanceof Error && error.message === 'UNAUTHORIZED') {
-        setUser(null);
-        setRememberMe(false);
-      } else {
-        setUser(null);
-        setRememberMe(false);
-      }
-    }
+    await refetch();
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser, rememberMe, sessionExpired, clearSessionExpired }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      login, 
+      register, 
+      logout, 
+      refreshUser, 
+      rememberMe, 
+      sessionExpired, 
+      clearSessionExpired 
+    }}>
       {children}
     </AuthContext.Provider>
   );

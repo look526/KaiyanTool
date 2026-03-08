@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { z } from 'zod';
+import crypto from 'crypto';
 
 const CreateTemplateSchema = z.object({
   name: z.string().min(1),
@@ -20,14 +21,18 @@ export class ProjectTemplateService {
   async createTemplate(userId: string, input: z.infer<typeof CreateTemplateSchema>) {
     const validated = CreateTemplateSchema.parse(input);
 
+    const now = new Date();
     const template = await prisma.projectTemplate.create({
       data: {
+        id: crypto.randomUUID(),
         name: validated.name,
         description: validated.description,
         category: validated.category,
         config: validated.settings as any,
-        isPublic: validated.isPublic,
-        createdBy: userId
+        is_public: validated.isPublic,
+        created_by: userId,
+        created_at: now,
+        updated_at: now
       }
     });
 
@@ -37,23 +42,29 @@ export class ProjectTemplateService {
           case 'character':
             await prisma.character.create({
               data: {
-                projectId: '',
+                id: crypto.randomUUID(),
+                project_id: null,
                 name: asset.name,
                 appearance: JSON.stringify({
                   description: asset.description || '',
                   prompt: asset.prompt
-                })
+                }),
+                created_at: new Date(),
+                updated_at: new Date()
               }
             });
             break;
           case 'scene':
             await prisma.scene.create({
               data: {
-                projectId: '',
+                id: crypto.randomUUID(),
+                project_id: null,
                 location: asset.name || '',
                 time: '未知',
                 atmosphere: asset.description || '',
-                referenceImages: []
+                reference_images: [],
+                created_at: new Date(),
+                updated_at: new Date()
               }
             });
             break;
@@ -80,7 +91,7 @@ export class ProjectTemplateService {
     }
 
     if (isPublic !== undefined) {
-      where.isPublic = isPublic;
+      where.is_public = isPublic;
     }
 
     if (search) {
@@ -94,7 +105,7 @@ export class ProjectTemplateService {
     const [templates, total] = await Promise.all([
       prisma.projectTemplate.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { created_at: 'desc' },
         take: limit,
         skip: offset
       }),
@@ -119,12 +130,16 @@ export class ProjectTemplateService {
   async useTemplate(templateId: string, userId: string, projectName?: string) {
     const template = await this.getTemplate(templateId);
 
+    const now = new Date();
     const project = await prisma.project.create({
       data: {
+        id: crypto.randomUUID(),
         name: projectName || `New ${template.name} Project`,
         description: `Created from template: ${template.name}`,
         settings: template.config as any,
-        ownerId: userId
+        owner_id: userId,
+        created_at: now,
+        updated_at: now
       }
     });
 
@@ -140,7 +155,7 @@ export class ProjectTemplateService {
       throw new Error('Template not found');
     }
 
-    if (template.createdBy !== userId) {
+    if (template.created_by !== userId) {
       throw new Error('Not authorized to update this template');
     }
 
@@ -150,7 +165,8 @@ export class ProjectTemplateService {
         name: input.name,
         description: input.description,
         category: input.category,
-        config: input.settings as any
+        config: input.settings as any,
+        updated_at: new Date()
       }
     });
 
@@ -166,7 +182,7 @@ export class ProjectTemplateService {
       throw new Error('Template not found');
     }
 
-    if (template.createdBy !== userId) {
+    if (template.created_by !== userId) {
       throw new Error('Not authorized to delete this template');
     }
 
@@ -180,14 +196,18 @@ export class ProjectTemplateService {
   async duplicateTemplate(templateId: string, userId: string, newName?: string) {
     const original = await this.getTemplate(templateId);
 
+    const now = new Date();
     const duplicate = await prisma.projectTemplate.create({
       data: {
+        id: crypto.randomUUID(),
         name: newName || `${original.name} (Copy)`,
         description: original.description,
         category: original.category,
         config: original.config,
-        isPublic: false,
-        createdBy: userId
+        is_public: false,
+        created_by: userId,
+        created_at: now,
+        updated_at: now
       }
     });
 
@@ -208,9 +228,9 @@ export class ProjectTemplateService {
 
   async getPopularTemplates(limit = 10) {
     const templates = await prisma.projectTemplate.findMany({
-      where: { isPublic: true },
+      where: { is_public: true },
       orderBy: {
-        usageCount: 'desc'
+        usage_count: 'desc'
       },
       take: limit
     });

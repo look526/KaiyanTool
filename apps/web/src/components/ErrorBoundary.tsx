@@ -1,6 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home, Copy, Mail } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
 import { categorizeError, ErrorInfo as ErrorInfoType } from '../utils/errorHandling';
 
 interface ErrorBoundaryState {
@@ -68,7 +67,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render() {
     if (this.state.hasError) {
       const categorizedError = categorizeError(this.state.error);
-      const { theme } = useTheme();
+      const theme = 'dark';
 
       if (this.props.fallback) {
         return this.props.fallback;

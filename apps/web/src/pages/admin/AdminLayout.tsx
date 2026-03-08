@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
-import { useAuthStore } from '../../core/store/auth.store';
+import { useAuth } from '../../core/store/auth.store';
+import { useCurrentUser } from '../../modules/auth/hooks';
 import { api } from '../../core/api/client';
 import { 
   Home, Users, Image, FileText, 
@@ -39,25 +40,22 @@ const navItems: NavItem[] = [
 function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { logout, isAuthenticated } = useAuth();
+  const { data: userData, isLoading: userLoading } = useCurrentUser();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
 
+  const user = userData?.user;
+
   useEffect(() => {
-    const checkAdmin = async () => {
-      try {
-        const response = await api.get<{ user: any }>('/api/admin/auth/me');
-        if (!response.user || (response.user.role !== 'admin' && response.user.role !== 'super_admin')) {
-          navigate('/admin/login');
-        }
-      } catch {
-        navigate('/admin/login');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    checkAdmin();
-  }, [navigate]);
+    if (!isAuthenticated && !userLoading) {
+      navigate('/admin/login');
+    } else if (user && user.role !== 'admin' && user.role !== 'super_admin') {
+      navigate('/admin/login');
+    } else if (isAuthenticated && user) {
+      setIsLoading(false);
+    }
+  }, [isAuthenticated, user, userLoading, navigate]);
 
   const handleLogout = async () => {
     await logout();

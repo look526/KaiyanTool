@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma';
+import crypto from 'crypto';
 
 interface WorkflowTemplate {
   id: string;
@@ -6,7 +7,7 @@ interface WorkflowTemplate {
   description: string;
   category: string;
   steps: WorkflowStep[];
-  estimatedDuration: number;
+  estimated_duration: number;
   tags: string[];
 }
 
@@ -26,21 +27,21 @@ interface WorkflowStep {
     type: string;
   }>;
   config?: Record<string, any>;
-  nextSteps?: string[];
+  next_steps?: string[];
   parallel?: boolean;
 }
 
 interface WorkflowExecution {
   id: string;
-  workflowId: string;
-  projectId: string;
-  userId: string;
+  workflow_id: string;
+  project_id: string;
+  user_id: string;
   status: 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
-  currentStepId?: string;
+  current_step_id?: string;
   progress: number;
   data: Record<string, any>;
-  startedAt?: Date;
-  completedAt?: Date;
+  started_at?: Date;
+  completed_at?: Date;
   error?: string;
 }
 
@@ -58,7 +59,7 @@ export class WorkflowService {
         name: '小说转视频',
         description: '从导入小说到生成完整视频的完整工作流',
         category: 'content',
-        estimatedDuration: 480,
+        estimated_duration: 480,
         tags: ['小说', '视频', '完整流程'],
         steps: [
           {
@@ -68,7 +69,7 @@ export class WorkflowService {
             description: '上传或粘贴小说内容',
             inputs: [{ name: 'content', type: 'text', required: true }],
             outputs: [{ name: 'novel', type: 'document' }],
-            nextSteps: ['analyze']
+            next_steps: ['analyze']
           },
           {
             id: 'analyze',
@@ -78,7 +79,7 @@ export class WorkflowService {
             inputs: [{ name: 'novel', type: 'document', required: true }],
             outputs: [{ name: 'analysis', type: 'document' }],
             config: { model: 'gpt-4' },
-            nextSteps: ['generate-characters', 'generate-scenes']
+            next_steps: ['generate-characters', 'generate-scenes']
           },
           {
             id: 'generate-characters',
@@ -88,7 +89,7 @@ export class WorkflowService {
             inputs: [{ name: 'analysis', type: 'document', required: true }],
             outputs: [{ name: 'characters', type: 'assets' }],
             config: { imageModel: 'midjourney' },
-            nextSteps: ['approval-characters']
+            next_steps: ['approval-characters']
           },
           {
             id: 'approval-characters',
@@ -97,7 +98,7 @@ export class WorkflowService {
             description: '审核生成的角色图像',
             inputs: [{ name: 'characters', type: 'assets', required: true }],
             outputs: [{ name: 'approvedCharacters', type: 'assets' }],
-            nextSteps: ['generate-scenes']
+            next_steps: ['generate-scenes']
           },
           {
             id: 'generate-scenes',
@@ -107,7 +108,7 @@ export class WorkflowService {
             inputs: [{ name: 'analysis', type: 'document', required: true }],
             outputs: [{ name: 'scenes', type: 'assets' }],
             config: { imageModel: 'stable-diffusion' },
-            nextSteps: ['storyboard']
+            next_steps: ['storyboard']
           },
           {
             id: 'storyboard',
@@ -119,7 +120,7 @@ export class WorkflowService {
               { name: 'duration', type: 'number', required: true, default: '30' }
             ],
             outputs: [{ name: 'storyboard', type: 'document' }],
-            nextSteps: ['generate-keyframes']
+            next_steps: ['generate-keyframes']
           },
           {
             id: 'generate-keyframes',
@@ -129,7 +130,7 @@ export class WorkflowService {
             inputs: [{ name: 'storyboard', type: 'document', required: true }],
             outputs: [{ name: 'keyframes', type: 'assets' }],
             config: { batchSize: 9 },
-            nextSteps: ['generate-video']
+            next_steps: ['generate-video']
           },
           {
             id: 'generate-video',
@@ -139,7 +140,7 @@ export class WorkflowService {
             inputs: [{ name: 'keyframes', type: 'assets', required: true }],
             outputs: [{ name: 'video', type: 'video' }],
             config: { videoModel: 'veo' },
-            nextSteps: ['export']
+            next_steps: ['export']
           },
           {
             id: 'export',
@@ -157,7 +158,7 @@ export class WorkflowService {
         name: '快速分镜',
         description: '从概念快速生成完整分镜',
         category: 'storyboard',
-        estimatedDuration: 120,
+        estimated_duration: 120,
         tags: ['分镜', '快速', '概念'],
         steps: [
           {
@@ -167,7 +168,7 @@ export class WorkflowService {
             description: '输入视频概念描述',
             inputs: [{ name: 'concept', type: 'text', required: true }],
             outputs: [{ name: 'conceptDoc', type: 'document' }],
-            nextSteps: ['generate-storyboard']
+            next_steps: ['generate-storyboard']
           },
           {
             id: 'generate-storyboard',
@@ -176,7 +177,7 @@ export class WorkflowService {
             description: '使用AI生成分镜',
             inputs: [{ name: 'conceptDoc', type: 'document', required: true }],
             outputs: [{ name: 'storyboard', type: 'document' }],
-            nextSteps: ['generate-keyframes']
+            next_steps: ['generate-keyframes']
           },
           {
             id: 'generate-keyframes',
@@ -185,7 +186,7 @@ export class WorkflowService {
             description: '生成关键帧图像',
             inputs: [{ name: 'storyboard', type: 'document', required: true }],
             outputs: [{ name: 'keyframes', type: 'assets' }],
-            nextSteps: ['export']
+            next_steps: ['export']
           },
           {
             id: 'export',
@@ -202,7 +203,7 @@ export class WorkflowService {
         name: '角色一致性',
         description: '批量生成保持角色一致性的图像',
         category: 'character',
-        estimatedDuration: 60,
+        estimated_duration: 60,
         tags: ['角色', '一致性', '批量'],
         steps: [
           {
@@ -212,7 +213,7 @@ export class WorkflowService {
             description: '上传或生成角色基础形象',
             inputs: [{ name: 'characterRef', type: 'image', required: true }],
             outputs: [{ name: 'baseLook', type: 'asset' }],
-            nextSteps: ['generate-variants']
+            next_steps: ['generate-variants']
           },
           {
             id: 'generate-variants',
@@ -224,7 +225,7 @@ export class WorkflowService {
               { name: 'variants', type: 'text', required: true }
             ],
             outputs: [{ name: 'variants', type: 'assets' }],
-            nextSteps: ['batch-export']
+            next_steps: ['batch-export']
           },
           {
             id: 'batch-export',
@@ -275,18 +276,24 @@ export class WorkflowService {
       throw new Error('Template not found');
     }
 
+    const now = new Date();
+    const executionId = crypto.randomUUID();
+    
     const execution = await prisma.workflowExecution.create({
       data: {
-        workflowId: templateId,
-        projectId,
-        userId,
+        id: executionId,
+        workflow_id: templateId,
+        project_id: projectId,
+        user_id: userId,
         status: 'pending',
         progress: 0,
         data: initialData,
         metadata: {
           templateName: template.name,
           steps: template.steps.map(s => ({ id: s.id, name: s.name }))
-        } as any
+        } as any,
+        created_at: now,
+        updated_at: now
       }
     });
 
@@ -302,7 +309,7 @@ export class WorkflowService {
       throw new Error('Execution not found');
     }
 
-    const template = this.templates.get(execution.workflowId);
+    const template = this.templates.get(execution.workflow_id);
     if (!template) {
       throw new Error('Template not found');
     }
@@ -313,9 +320,9 @@ export class WorkflowService {
       where: { id: executionId },
       data: {
         status: 'running',
-        currentStepId: firstStep.id,
-        startedAt: new Date(),
-        updatedAt: new Date()
+        current_step_id: firstStep.id,
+        started_at: new Date(),
+        updated_at: new Date()
       }
     });
 
@@ -331,7 +338,7 @@ export class WorkflowService {
       throw new Error('Execution not found');
     }
 
-    const template = this.templates.get(execution.workflowId);
+    const template = this.templates.get(execution.workflow_id);
     if (!template) {
       throw new Error('Template not found');
     }
@@ -349,9 +356,9 @@ export class WorkflowService {
         where: { id: executionId },
         data: {
           status: 'running',
-          currentStepId: stepId,
+          current_step_id: stepId,
           progress: currentProgress,
-          updatedAt: new Date()
+          updated_at: new Date()
         }
       });
 
@@ -359,8 +366,8 @@ export class WorkflowService {
         await this.processAIStep(execution, step);
       }
 
-      if (step.nextSteps && step.nextSteps.length > 0 && !step.parallel) {
-        const nextStepId = step.nextSteps[0];
+      if (step.next_steps && step.next_steps.length > 0 && !step.parallel) {
+        const nextStepId = step.next_steps[0];
         await this.executeStep(executionId, nextStepId);
       }
 
@@ -369,7 +376,7 @@ export class WorkflowService {
         return execStep?.completed;
       });
 
-      if (allStepsCompleted || !step.nextSteps?.length) {
+      if (allStepsCompleted || !step.next_steps?.length) {
         await this.completeExecution(executionId);
       }
 
@@ -388,7 +395,7 @@ export class WorkflowService {
   async pauseExecution(executionId: string) {
     await prisma.workflowExecution.update({
       where: { id: executionId },
-      data: { status: 'paused', updatedAt: new Date() }
+      data: { status: 'paused', updated_at: new Date() }
     });
   }
 
@@ -403,18 +410,18 @@ export class WorkflowService {
 
     await prisma.workflowExecution.update({
       where: { id: executionId },
-      data: { status: 'running', updatedAt: new Date() }
+      data: { status: 'running', updated_at: new Date() }
     });
 
-    if (execution.currentStepId) {
-      await this.executeStep(executionId, execution.currentStepId);
+    if (execution.current_step_id) {
+      await this.executeStep(executionId, execution.current_step_id);
     }
   }
 
   async cancelExecution(executionId: string) {
     await prisma.workflowExecution.update({
       where: { id: executionId },
-      data: { status: 'cancelled', updatedAt: new Date() }
+      data: { status: 'cancelled', updated_at: new Date() }
     });
   }
 
@@ -424,8 +431,8 @@ export class WorkflowService {
       data: {
         status: 'completed',
         progress: 100,
-        completedAt: new Date(),
-        updatedAt: new Date()
+        completed_at: new Date(),
+        updated_at: new Date()
       }
     });
   }
@@ -436,7 +443,7 @@ export class WorkflowService {
       data: {
         status: 'failed',
         error,
-        updatedAt: new Date()
+        updated_at: new Date()
       }
     });
   }
@@ -449,17 +456,20 @@ export class WorkflowService {
 
   async getProjectExecutions(projectId: string) {
     return prisma.workflowExecution.findMany({
-      where: { projectId },
-      orderBy: { createdAt: 'desc' }
+      where: { project_id: projectId },
+      orderBy: { created_at: 'desc' }
     });
   }
 
   async updateExecutionData(executionId: string, data: Record<string, any>) {
+    const existingExecution = await prisma.workflowExecution.findUnique({ where: { id: executionId } });
+    const existingData = typeof existingExecution?.data === 'object' && existingExecution?.data !== null ? existingExecution.data : {};
+    
     await prisma.workflowExecution.update({
       where: { id: executionId },
       data: {
-        data: { ...(await prisma.workflowExecution.findUnique({ where: { id: executionId } }))?.data, ...data } as any,
-        updatedAt: new Date()
+        data: Object.assign({}, existingData, data) as any,
+        updated_at: new Date()
       }
     });
   }

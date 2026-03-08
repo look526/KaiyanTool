@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Slot } from '@radix-ui/react-slot';
+import { cn } from '../../design-system';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success' | 'link';
@@ -11,143 +12,66 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   asChild?: boolean;
 }
 
-const sizeConfig: Record<string, { height: number; padding?: number; fontSize: number; iconSize: number; radius: number; gap?: number; width?: number }> = {
-  xs: { height: 32, padding: 14, fontSize: 12, iconSize: 14, radius: 10, gap: 6 },
-  sm: { height: 36, padding: 16, fontSize: 14, iconSize: 16, radius: 12, gap: 8 },
-  md: { height: 44, padding: 20, fontSize: 14, iconSize: 18, radius: 14, gap: 10 },
-  lg: { height: 48, padding: 24, fontSize: 16, iconSize: 18, radius: 16, gap: 10 },
-  xl: { height: 56, padding: 32, fontSize: 16, iconSize: 20, radius: 20, gap: 12 },
-  '2xl': { height: 64, padding: 40, fontSize: 18, iconSize: 22, radius: 24, gap: 12 },
-  icon: { height: 44, width: 44, fontSize: 14, iconSize: 20, radius: 14 },
-  'icon-sm': { height: 36, width: 36, fontSize: 12, iconSize: 16, radius: 12 },
-  'icon-lg': { height: 48, width: 48, fontSize: 16, iconSize: 22, radius: 16 },
-  'icon-xs': { height: 32, width: 32, fontSize: 12, iconSize: 14, radius: 10 },
+const sizeClasses: Record<string, string> = {
+  xs: 'h-8 px-3.5 text-xs gap-1.5',
+  sm: 'h-9 px-4 text-sm gap-2',
+  md: 'h-11 px-5 text-sm gap-2.5',
+  lg: 'h-12 px-6 text-base gap-2.5',
+  xl: 'h-14 px-8 text-base gap-3',
+  '2xl': 'h-16 px-10 text-lg gap-3',
+  icon: 'h-11 w-11 p-0',
+  'icon-sm': 'h-9 w-9 p-0',
+  'icon-lg': 'h-12 w-12 p-0',
+  'icon-xs': 'h-8 w-8 p-0',
 };
 
-const variantStyles: Record<string, React.CSSProperties> = {
-  primary: {
-    background: 'linear-gradient(135deg, #007AFF 0%, #0056CC 100%)',
-    color: '#FFFFFF',
-    border: 'none',
-    boxShadow: '0 4px 14px rgba(0, 122, 255, 0.4)',
-  },
-  secondary: {
-    background: 'var(--bg-secondary)',
-    color: 'var(--text-primary)',
-    border: '2px solid var(--border-primary)',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
-  },
-  outline: {
-    background: 'transparent',
-    color: 'var(--text-primary)',
-    border: '2px solid var(--border-primary)',
-    boxShadow: 'none',
-  },
-  ghost: {
-    background: 'transparent',
-    color: 'var(--text-secondary)',
-    border: 'none',
-    boxShadow: 'none',
-  },
-  danger: {
-    background: 'linear-gradient(135deg, #FF3B30 0%, #E04538 100%)',
-    color: '#FFFFFF',
-    border: 'none',
-    boxShadow: '0 4px 14px rgba(255, 59, 48, 0.4)',
-  },
-  success: {
-    background: 'linear-gradient(135deg, #34C759 0%, #2DB85A 100%)',
-    color: '#FFFFFF',
-    border: 'none',
-    boxShadow: '0 4px 14px rgba(52, 199, 89, 0.4)',
-  },
-  link: {
-    background: 'transparent',
-    color: 'var(--color-primary)',
-    border: 'none',
-    boxShadow: 'none',
-    textDecoration: 'underline',
-    textUnderlineOffset: '4px',
-  },
+const variantClasses: Record<string, string> = {
+  primary: 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/40 border-none',
+  secondary: 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-2 border-gray-300 dark:border-gray-700 shadow-sm',
+  outline: 'bg-transparent text-gray-900 dark:text-gray-100 border-2 border-gray-300 dark:border-gray-700 shadow-none',
+  ghost: 'bg-transparent text-gray-600 dark:text-gray-400 border-none shadow-none',
+  danger: 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/40 border-none',
+  success: 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-500/40 border-none',
+  link: 'bg-transparent text-blue-500 border-none shadow-none underline underline-offset-4',
 };
 
-const hoverStyles: Record<string, React.CSSProperties> = {
-  primary: {
-    background: 'linear-gradient(135deg, #0056CC 0%, #0044A3 100%)',
-    boxShadow: '0 6px 20px rgba(0, 122, 255, 0.5)',
-    transform: 'translateY(-1px)',
-  },
-  secondary: {
-    background: 'var(--bg-hover)',
-    borderColor: 'var(--border-secondary)',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-    transform: 'translateY(-1px)',
-  },
-  outline: {
-    background: 'var(--bg-hover)',
-    borderColor: 'var(--accent)',
-    color: 'var(--accent)',
-    transform: 'translateY(-1px)',
-  },
-  ghost: {
-    background: 'var(--bg-hover)',
-    color: 'var(--text-primary)',
-  },
-  danger: {
-    background: 'linear-gradient(135deg, #E04538 0%, #C42B22 100%)',
-    boxShadow: '0 6px 20px rgba(255, 59, 48, 0.5)',
-    transform: 'translateY(-1px)',
-  },
-  success: {
-    background: 'linear-gradient(135deg, #2DB85A 0%, #248A3D 100%)',
-    boxShadow: '0 6px 20px rgba(52, 199, 89, 0.5)',
-    transform: 'translateY(-1px)',
-  },
-  link: {
-    textDecoration: 'underline',
-  },
+const hoverClasses: Record<string, string> = {
+  primary: 'from-blue-600 to-blue-700 shadow-xl shadow-blue-500/50 -translate-y-0.5',
+  secondary: 'bg-gray-200 dark:bg-gray-700 border-gray-400 dark:border-gray-600 shadow-md -translate-y-0.5',
+  outline: 'bg-gray-50 dark:bg-gray-900 border-blue-500 text-blue-500 -translate-y-0.5',
+  ghost: 'bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100',
+  danger: 'from-red-600 to-red-700 shadow-xl shadow-red-500/50 -translate-y-0.5',
+  success: 'from-green-600 to-green-700 shadow-xl shadow-green-500/50 -translate-y-0.5',
+  link: 'underline',
 };
 
-const activeStyles: Record<string, React.CSSProperties> = {
-  primary: {
-    background: 'linear-gradient(135deg, #0044A3 0%, #003380 100%)',
-    boxShadow: '0 2px 8px rgba(0, 122, 255, 0.3)',
-    transform: 'translateY(0) scale(0.98)',
-  },
-  secondary: {
-    background: 'var(--bg-active)',
-    boxShadow: 'none',
-    transform: 'translateY(0) scale(0.98)',
-  },
-  outline: {
-    background: 'var(--bg-active)',
-    transform: 'translateY(0) scale(0.98)',
-  },
-  ghost: {
-    background: 'var(--bg-active)',
-    transform: 'scale(0.98)',
-  },
-  danger: {
-    background: 'linear-gradient(135deg, #C42B22 0%, #A3231C 100%)',
-    boxShadow: '0 2px 8px rgba(255, 59, 48, 0.3)',
-    transform: 'translateY(0) scale(0.98)',
-  },
-  success: {
-    background: 'linear-gradient(135deg, #248A3D 0%, #1E7A34 100%)',
-    boxShadow: '0 2px 8px rgba(52, 199, 89, 0.3)',
-    transform: 'translateY(0) scale(0.98)',
-  },
-  link: {},
+const activeClasses: Record<string, string> = {
+  primary: 'from-blue-700 to-blue-800 shadow-md shadow-blue-500/30 translate-y-0 scale-98',
+  secondary: 'bg-gray-300 dark:bg-gray-600 shadow-none translate-y-0 scale-98',
+  outline: 'bg-gray-100 dark:bg-gray-800 translate-y-0 scale-98',
+  ghost: 'bg-gray-200 dark:bg-gray-700 scale-98',
+  danger: 'from-red-700 to-red-800 shadow-md shadow-red-500/30 translate-y-0 scale-98',
+  success: 'from-green-700 to-green-800 shadow-md shadow-green-500/30 translate-y-0 scale-98',
+  link: '',
 };
 
-const LoadingSpinner = ({ size, color }: { size: number; color: string }) => (
+const radiusClasses: Record<string, string> = {
+  xs: 'rounded-md',
+  sm: 'rounded-lg',
+  md: 'rounded-xl',
+  lg: 'rounded-2xl',
+  xl: 'rounded-3xl',
+  '2xl': 'rounded-4xl',
+  icon: 'rounded-xl',
+  'icon-sm': 'rounded-lg',
+  'icon-lg': 'rounded-2xl',
+  'icon-xs': 'rounded-md',
+};
+
+const LoadingSpinner = ({ size }: { size: number }) => (
   <svg
-    style={{
-      width: size,
-      height: size,
-      flexShrink: 0,
-      animation: 'spin 1s linear infinite',
-    }}
+    className="animate-spin flex-shrink-0"
+    style={{ width: size, height: size }}
     viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
@@ -184,7 +108,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       fullWidth = false,
       children,
       disabled,
-      style,
+      className,
       ...props
     },
     ref
@@ -193,62 +117,26 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const [isActive, setIsActive] = React.useState(false);
     
     const Comp = asChild ? Slot : 'button';
-    const config = sizeConfig[size] || sizeConfig.md;
     const isIconOnly = size.toString().startsWith('icon');
     
-    const baseStyle: React.CSSProperties = {
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: config.gap ? `${config.gap}px` : undefined,
-      height: config.height,
-      width: config.width,
-      padding: isIconOnly ? 0 : (config.padding ? `0 ${config.padding}px` : 0),
-      fontSize: `${config.fontSize}px`,
-      fontWeight: 600,
-      fontFamily: 'var(--font-family-sans)',
-      letterSpacing: '-0.01em',
-      borderRadius: `${config.radius}px`,
-      cursor: disabled || loading ? 'not-allowed' : 'pointer',
-      userSelect: 'none',
-      position: 'relative',
-      overflow: 'hidden',
-      outline: 'none',
-      opacity: disabled ? 0.5 : 1,
-      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-      whiteSpace: 'nowrap',
-      ...variantStyles[variant],
-      ...style,
-    };
-
-    const currentStateStyle = isActive
-      ? activeStyles[variant]
-      : isHovered
-      ? hoverStyles[variant]
-      : {};
-
-    const mergedStyle: React.CSSProperties = {
-      ...baseStyle,
-      ...currentStateStyle,
-    };
-
-    const iconElement = React.isValidElement(icon)
-      ? React.cloneElement(icon as React.ReactElement<{ style?: React.CSSProperties }>, {
-          style: {
-            width: config.iconSize,
-            height: config.iconSize,
-            flexShrink: 0,
-            ...((icon as React.ReactElement<{ style?: React.CSSProperties }>).props.style || {}),
-          },
-        })
-      : icon;
+    const baseClasses = cn(
+      'inline-flex items-center justify-center font-semibold font-sans tracking-tight user-select-none relative overflow-hidden outline-none transition-all duration-200 whitespace-nowrap',
+      sizeClasses[size],
+      variantClasses[variant],
+      radiusClasses[size],
+      fullWidth && 'w-full',
+      disabled || loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
+      isHovered && !disabled && !loading && hoverClasses[variant],
+      isActive && !disabled && !loading && activeClasses[variant],
+      className
+    );
 
     const ariaLabel = props['aria-label'] || (isIconOnly && typeof children === 'string' ? children : undefined);
 
     return (
       <Comp
         ref={ref}
-        style={mergedStyle}
+        className={baseClasses}
         disabled={disabled || loading}
         aria-busy={loading}
         aria-disabled={disabled || loading}
@@ -260,42 +148,26 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         }}
         onMouseDown={() => !disabled && !loading && setIsActive(true)}
         onMouseUp={() => setIsActive(false)}
-        onFocus={(e) => {
-          e.currentTarget.style.boxShadow = `0 0 0 3px ${variant === 'danger' ? 'var(--error-shadow)' : 'var(--accent-shadow)'}`;
-        }}
-        onBlur={(e) => {
-          e.currentTarget.style.boxShadow = mergedStyle.boxShadow as string;
-        }}
         {...props}
       >
-        {loading && <LoadingSpinner size={config.iconSize} color="currentColor" />}
+        {loading && <LoadingSpinner size={size === 'xs' || size === 'icon-xs' ? 14 : size === 'sm' || size === 'icon-sm' ? 16 : size === 'md' || size === 'icon' ? 18 : size === 'lg' || size === 'icon-lg' ? 22 : 20} />}
         
         {!loading && icon && iconPosition === 'left' && (
-          <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-            {iconElement}
+          <span className="flex items-center flex-shrink-0">
+            {icon}
           </span>
         )}
         
         {!isIconOnly && children}
         
         {!loading && icon && iconPosition === 'right' && (
-          <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-            {iconElement}
+          <span className="flex items-center flex-shrink-0">
+            {icon}
           </span>
         )}
 
         {variant === 'primary' && !disabled && !loading && (
-          <span
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 50%)',
-              opacity: isHovered ? 1 : 0,
-              transition: 'opacity 0.2s',
-              pointerEvents: 'none',
-              borderRadius: 'inherit',
-            }}
-          />
+          <span className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity pointer-events-none rounded-inherit" />
         )}
       </Comp>
     );
@@ -310,15 +182,15 @@ const ButtonGroup = React.forwardRef<
     orientation?: 'horizontal' | 'vertical';
     attached?: boolean;
   }
->(({ orientation = 'horizontal', attached = false, children, style, ...props }, ref) => (
+>(({ orientation = 'horizontal', attached = false, children, className, ...props }, ref) => (
   <div
     ref={ref}
-    style={{
-      display: 'inline-flex',
-      flexDirection: orientation === 'vertical' ? 'column' : 'row',
-      gap: attached ? 0 : '12px',
-      ...style,
-    }}
+    className={cn(
+      'inline-flex',
+      orientation === 'vertical' ? 'flex-col' : 'flex-row',
+      attached ? 'gap-0' : 'gap-3',
+      className
+    )}
     role="group"
     {...props}
   >

@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 type EventCallback<T = any> = (data: T) => void;
 type EventUnsubscribe = () => void;
 
@@ -91,8 +93,6 @@ export function useEvent<K extends keyof EventBusEvents>(
   callback: EventCallback<EventBusEvents[K]>,
   deps: any[] = []
 ): void {
-  const { useEffect } = require('react');
-  
   useEffect(() => {
     const unsubscribe = eventBus.on(event, callback);
     return unsubscribe;

@@ -13,7 +13,7 @@ interface ChatRequest {
   context?: {
     page?: string;
     projectId?: string;
-    currentData?: any;
+    currentData?: Record<string, unknown>;
   };
   provider?: string;
   model?: string;
@@ -47,7 +47,11 @@ function validateMessage(message: string): void {
 export const chat = asyncHandler(async (req: AuthRequest, res: Response) => {
   const requestId = Math.random().toString(36).substring(7);
   const { message, conversation = [], context, model }: ChatRequest = req.body;
-  const userId = req.userId!;
+  const userId = req.user_id;
+
+  if (!userId) {
+    throw AppError.unauthorized('未登录');
+  }
 
   validateMessage(message);
 
@@ -95,18 +99,22 @@ export const chat = asyncHandler(async (req: AuthRequest, res: Response) => {
 });
 
 export const getProviders = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const userId = req.userId!;
+  const userId = req.user_id;
+
+  if (!userId) {
+    throw AppError.unauthorized('未登录');
+  }
 
   const { prisma } = await import('../lib/prisma');
   
   const dbProviders = await prisma.aIProvider.findMany({
-    where: { userId, enabled: true },
+    where: { user_id: userId, enabled: true },
     include: {
-      models: {
+      AIProviderModel: {
         select: {
           id: true,
           name: true,
-          isAssistantDefault: true,
+          is_assistant_default: true,
           types: true
         }
       }
@@ -119,11 +127,11 @@ export const getProviders = asyncHandler(async (req: AuthRequest, res: Response)
     providers: dbProviders.map(p => ({
       id: p.id,
       type: p.type,
-      models: p.models.map(m => ({
+      models: p.AIProviderModel.map(m => ({
         id: m.id,
         name: m.name,
         types: m.types,
-        isAssistantDefault: m.isAssistantDefault
+        isAssistantDefault: m.is_assistant_default
       }))
     }))
   });
@@ -131,11 +139,17 @@ export const getProviders = asyncHandler(async (req: AuthRequest, res: Response)
 
 export const getModels = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { provider: providerId } = req.query;
+  const userId = req.user_id;
+
+  if (!userId) {
+    throw AppError.unauthorized('未登录');
+  }
+
   const { prisma } = await import('../lib/prisma');
   
   if (providerId && typeof providerId === 'string') {
     const models = await prisma.aIProviderModel.findMany({
-      where: { providerId },
+      where: { ai_provider_id: providerId },
       select: { id: true, name: true, types: true }
     });
     
@@ -150,11 +164,10 @@ export const getModels = asyncHandler(async (req: AuthRequest, res: Response) =>
     return;
   }
   
-  const userId = req.userId!;
   const allProviders = await prisma.aIProvider.findMany({
-    where: { userId, enabled: true },
+    where: { user_id: userId, enabled: true },
     include: {
-      models: {
+      AIProviderModel: {
         select: { id: true, name: true, types: true }
       }
     }
@@ -163,7 +176,7 @@ export const getModels = asyncHandler(async (req: AuthRequest, res: Response) =>
   res.json({
     providers: allProviders.map(p => ({
       id: p.id,
-      models: p.models.map(m => ({
+      models: p.AIProviderModel.map(m => ({
         id: m.id,
         name: m.name,
         type: m.types

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { X, Send, MessageSquare, Sparkles, Loader2, Minimize2, Settings, Check } from 'lucide-react';
+import { getCsrfToken } from '../../lib/csrf';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -13,6 +14,7 @@ interface AIProvider {
   models: Array<{
     id: string;
     name: string;
+    types: string[];
     isAssistantDefault?: boolean;
   }>;
 }
@@ -41,6 +43,7 @@ function AIAssistantComponent({ isOpen, onClose, onMinimize }: AIAssistantProps)
   const [selectedProvider, setSelectedProvider] = useState<string>('');
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [defaultAssistantModelId, setDefaultAssistantModelId] = useState<string>('');
+  const [csrfToken, setCsrfTokenState] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -52,6 +55,12 @@ function AIAssistantComponent({ isOpen, onClose, onMinimize }: AIAssistantProps)
       });
       console.log('Response status:', response.status);
       console.log('Response ok:', response.ok);
+      
+      const csrfTokenFromHeader = response.headers.get('X-CSRF-Token');
+      if (csrfTokenFromHeader) {
+        setCsrfTokenState(csrfTokenFromHeader);
+        localStorage.setItem('csrfToken', csrfTokenFromHeader);
+      }
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -69,7 +78,6 @@ function AIAssistantComponent({ isOpen, onClose, onMinimize }: AIAssistantProps)
       console.log('Providers data:', JSON.stringify(data, null, 2));
       setProviders(data.providers || []);
       
-      // Find the default assistant model
       let defaultModelId = '';
       for (const provider of data.providers || []) {
         for (const model of provider.models || []) {
@@ -82,12 +90,10 @@ function AIAssistantComponent({ isOpen, onClose, onMinimize }: AIAssistantProps)
       }
       setDefaultAssistantModelId(defaultModelId);
       
-      // Set selected provider and model
       if (data.providers && data.providers.length > 0) {
         const firstProvider = data.providers[0];
         setSelectedProvider(firstProvider.id);
         
-        // If there's a default assistant model, use it
         if (defaultModelId) {
           setSelectedModel(defaultModelId);
         } else if (firstProvider.models && firstProvider.models.length > 0) {
@@ -106,6 +112,7 @@ function AIAssistantComponent({ isOpen, onClose, onMinimize }: AIAssistantProps)
   useEffect(() => {
     if (isOpen) {
       fetchProviders();
+      getCsrfToken().then(setCsrfTokenState).catch(console.error);
     }
   }, [isOpen, fetchProviders]);
 
@@ -157,7 +164,8 @@ function AIAssistantComponent({ isOpen, onClose, onMinimize }: AIAssistantProps)
       const response = await fetch('/api/assistant/chat', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken
         },
         credentials: 'include',
         signal: abortController.signal,
@@ -176,8 +184,19 @@ function AIAssistantComponent({ isOpen, onClose, onMinimize }: AIAssistantProps)
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || '请求失败');
+        const errorData = await response.json();
+        console.error('API Error Response:', errorData);
+        
+        let errorMessage = '请求失败';
+        if (typeof errorData.error === 'string') {
+          errorMessage = errorData.error;
+        } else if (errorData.error && typeof errorData.error === 'object') {
+          errorMessage = errorData.error.message || errorData.error.code || JSON.stringify(errorData.error);
+        } else if (errorData.code) {
+          errorMessage = errorData.code;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -194,16 +213,32 @@ function AIAssistantComponent({ isOpen, onClose, onMinimize }: AIAssistantProps)
       
       let errorMessage = '抱歉，我遇到了一些问题。请稍后再试。';
       if (error instanceof Error) {
+        console.error('Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
+        
         if (error.name === 'AbortError') {
           return;
         }
-        if (error.message.includes('权限不足')) {
+        
+        if (error.message.includes('CSRF') || error.message.includes('CSRF_TOKEN')) {
+          errorMessage = 'CSRF令牌无效或已过期，请刷新页面重试';
+          getCsrfToken().then(setCsrfTokenState).catch(console.error);
+        } else if (error.message.includes('权限不足') || error.message.includes('FORBIDDEN')) {
           errorMessage = '您没有使用AI助手的权限';
-        } else if (error.message.includes('未配置AI提供商')) {
+        } else if (error.message.includes('未配置AI提供商') || error.message.includes('No AI provider available')) {
           errorMessage = '系统未配置AI服务，请联系管理员';
-        } else if (error.message.includes('timeout')) {
+        } else if (error.message.includes('timeout') || error.message.includes('超时')) {
           errorMessage = 'AI响应超时，请稍后再试';
+        } else if (error.message.includes('请求失败')) {
+          errorMessage = '请求失败，请检查网络连接后重试';
+        } else {
+          errorMessage = error.message;
         }
+      } else {
+        console.error('Unknown error type:', typeof error, error);
       }
       
       const errorInfo: Message = {

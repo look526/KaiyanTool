@@ -1,24 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Button } from '../components/ui/button-new';
-import { apiClient } from '../lib/api-client';
-
-interface Document {
-  id: string;
-  projectId: string;
-  title: string;
-  content: string | null;
-  type: string;
-  createdAt: string;
-  updatedAt: string;
-  status?: string;
-  project?: {
-    id: string;
-    name: string;
-  };
-}
-
 import {
   FileText,
   FileCode,
@@ -42,10 +24,26 @@ import {
   FileSpreadsheet,
   Layers,
   ChevronRight,
+  RefreshCw,
 } from 'lucide-react';
 
+interface Document {
+  id: string;
+  projectId: string;
+  title: string;
+  content: string | null;
+  type: string;
+  createdAt: string;
+  updatedAt: string;
+  status?: string;
+  project?: {
+    id: string;
+    name: string;
+  };
+}
+
 const DOCUMENT_TYPES: Record<string, { icon: React.ElementType; color: string; gradient: string; bgColor: string; borderColor: string; label: string }> = {
-  script: { icon: FileCode, color: '#8b5cf6', gradient: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', bgColor: 'rgba(139, 92, 246, 0.12)', borderColor: 'rgba(139, 92, 246, 0.25)', label: '剧本' },
+  script: { icon: FileCode, color: 'var(--accent)', gradient: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%)', bgColor: 'var(--accent-bg)', borderColor: 'var(--border-hover)', label: '剧本' },
   novel: { icon: FileText, color: '#3b82f6', gradient: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', bgColor: 'rgba(59, 130, 246, 0.12)', borderColor: 'rgba(59, 130, 246, 0.25)', label: '小说' },
   outline: { icon: FileSpreadsheet, color: '#10b981', gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', bgColor: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.25)', label: '大纲' },
   storyboard: { icon: FileImage, color: '#f59e0b', gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', bgColor: 'rgba(245, 158, 11, 0.12)', borderColor: 'rgba(245, 158, 11, 0.25)', label: '故事板' },
@@ -59,15 +57,69 @@ const STATUS_CONFIG: Record<string, { color: string; bgColor: string; borderColo
   pending: { color: '#f59e0b', bgColor: 'rgba(245, 158, 11, 0.12)', borderColor: 'rgba(245, 158, 11, 0.2)', label: '待处理' },
   in_progress: { color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.12)', borderColor: 'rgba(59, 130, 246, 0.2)', label: '进行中' },
   completed: { color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.2)', label: '已完成' },
-  published: { color: '#8b5cf6', bgColor: 'rgba(139, 92, 246, 0.12)', borderColor: 'rgba(139, 92, 246, 0.2)', label: '已发布' },
+  published: { color: 'var(--accent)', bgColor: 'var(--accent-bg)', borderColor: 'rgba(139, 92, 246, 0.2)', label: '已发布' },
 };
 
 type ViewMode = 'grid' | 'list';
 type SortOption = 'newest' | 'oldest' | 'title' | 'updated';
 
+interface ButtonProps {
+  onClick: () => void;
+  variant?: 'primary' | 'secondary';
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}
+
+const Button = ({ onClick, variant = 'primary', children, style }: ButtonProps) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  const baseStyles = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    padding: variant === 'primary' ? '12px 20px' : '10px 18px',
+    borderRadius: variant === 'primary' ? '14px' : '10px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    transform: isHovered ? 'translateY(-1px)' : 'translateY(0)',
+    border: 'none',
+    ...style,
+  };
+
+  const variantStyles = {
+    primary: {
+      background: isHovered
+        ? 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)'
+        : 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
+      color: '#ffffff',
+      boxShadow: isHovered ? '0 8px 24px var(--accent-shadow)' : '0 4px 14px var(--accent-shadow)',
+    },
+    secondary: {
+      background: isHovered ? 'var(--bg-hover)' : 'var(--bg-surface)',
+      color: 'var(--text-primary)',
+      border: '1px solid var(--border-primary)',
+      boxShadow: 'none',
+    },
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      style={{ ...baseStyles, ...variantStyles[variant] }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {children}
+    </button>
+  );
+};
+
 const DocumentsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { } = useAuth();
+  useAuth();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +129,8 @@ const DocumentsPage: React.FC = () => {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const [refreshHovered, setRefreshHovered] = useState(false);
+  const [filterHovered, setFilterHovered] = useState(false);
 
   useEffect(() => {
     fetchDocuments();
@@ -86,8 +140,18 @@ const DocumentsPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await apiClient.getDocuments();
-      setDocuments(data || []);
+      const response = await fetch('/api/documents', {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch documents');
+      }
+      
+      const data = await response.json();
+      setDocuments(data.documents || data || []);
     } catch (err) {
       setError('加载文档失败');
       console.error('Error fetching documents:', err);
@@ -187,14 +251,14 @@ const DocumentsPage: React.FC = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'var(--bg-page)',
+        background: 'var(--bg-base)',
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{
             width: '48px',
             height: '48px',
             border: '3px solid var(--border-primary)',
-            borderTopColor: '#14b8a6',
+            borderTopColor: 'var(--accent)',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
             margin: '0 auto 16px',
@@ -207,7 +271,7 @@ const DocumentsPage: React.FC = () => {
 
   if (error) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-page)', padding: '24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-base)', padding: '24px' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
           <div style={{
             display: 'flex',
@@ -235,7 +299,10 @@ const DocumentsPage: React.FC = () => {
             <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>
               {error}
             </p>
-            <Button onClick={fetchDocuments}>重试</Button>
+            <Button onClick={fetchDocuments}>
+              <RefreshCw style={{ width: '16px', height: '16px' }} />
+              重试
+            </Button>
           </div>
         </div>
       </div>
@@ -243,9 +310,9 @@ const DocumentsPage: React.FC = () => {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-page)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-base)' }}>
       <div style={{
-        background: 'var(--bg-header)',
+        background: 'var(--bg-elevated)',
         backdropFilter: 'blur(20px)',
         borderBottom: '1px solid var(--border-primary)',
         position: 'sticky',
@@ -258,8 +325,8 @@ const DocumentsPage: React.FC = () => {
               <div style={{
                 padding: '12px',
                 borderRadius: '14px',
-                background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
-                boxShadow: '0 4px 14px rgba(20, 184, 166, 0.3)',
+                background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%)',
+                boxShadow: '0 4px 14px var(--accent-shadow)',
               }}>
                 <FolderOpen style={{ width: '24px', height: '24px', color: 'white' }} />
               </div>
@@ -269,24 +336,7 @@ const DocumentsPage: React.FC = () => {
               </div>
             </div>
 
-            <Button
-              onClick={handleCreateDocument}
-              style={{
-                height: '44px',
-                padding: '0 20px',
-                background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
-                borderRadius: '12px',
-                fontSize: '14px',
-                fontWeight: '600',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 14px rgba(20, 184, 166, 0.3)',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
-            >
+            <Button onClick={handleCreateDocument} variant="primary">
               <Plus style={{ width: '18px', height: '18px' }} />
               新建文档
             </Button>
@@ -321,8 +371,8 @@ const DocumentsPage: React.FC = () => {
                   transition: 'all 0.2s ease',
                 }}
                 onFocus={(e) => {
-                  e.currentTarget.style.borderColor = '#14b8a6';
-                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(20, 184, 166, 0.1)';
+                  e.currentTarget.style.borderColor = 'var(--accent)';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px var(--accent-bg)';
                 }}
                 onBlur={(e) => {
                   e.currentTarget.style.borderColor = 'var(--border-primary)';
@@ -365,13 +415,15 @@ const DocumentsPage: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: showFilters ? '#14b8a6' : 'var(--bg-input)',
+                backgroundColor: showFilters ? 'var(--accent)' : (filterHovered ? 'var(--bg-hover)' : 'var(--bg-input)'),
                 border: '1px solid var(--border-primary)',
                 borderRadius: '10px',
                 color: showFilters ? 'white' : 'var(--text-muted)',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
               }}
+              onMouseEnter={() => setFilterHovered(true)}
+              onMouseLeave={() => setFilterHovered(false)}
             >
               <Filter style={{ width: '16px', height: '16px' }} />
             </button>
@@ -392,7 +444,7 @@ const DocumentsPage: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: viewMode === 'grid' ? '#14b8a6' : 'transparent',
+                  backgroundColor: viewMode === 'grid' ? 'var(--accent)' : 'transparent',
                   border: 'none',
                   color: viewMode === 'grid' ? 'white' : 'var(--text-muted)',
                   cursor: 'pointer',
@@ -410,7 +462,7 @@ const DocumentsPage: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: viewMode === 'list' ? '#14b8a6' : 'transparent',
+                  backgroundColor: viewMode === 'list' ? 'var(--accent)' : 'transparent',
                   border: 'none',
                   color: viewMode === 'list' ? 'white' : 'var(--text-muted)',
                   cursor: 'pointer',
@@ -436,7 +488,7 @@ const DocumentsPage: React.FC = () => {
                   padding: '0 14px',
                   fontSize: '13px',
                   fontWeight: '500',
-                  backgroundColor: selectedType === null ? '#14b8a6' : 'var(--bg-input)',
+                  backgroundColor: selectedType === null ? 'var(--accent)' : 'var(--bg-input)',
                   border: '1px solid var(--border-primary)',
                   borderRadius: '8px',
                   color: selectedType === null ? 'white' : 'var(--text-secondary)',
@@ -486,64 +538,32 @@ const DocumentsPage: React.FC = () => {
           gap: '16px',
           marginBottom: '24px',
         }}>
-          <div style={{
-            background: 'var(--bg-card)',
-            borderRadius: '16px',
-            padding: '20px',
-            border: '1px solid var(--border-primary)',
-            backdropFilter: 'blur(20px)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'rgba(20, 184, 166, 0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <FileText style={{ width: '20px', height: '20px', color: '#14b8a6' }} />
-              </div>
-              <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>总文档</span>
-            </div>
-            <div style={{ fontSize: '32px', fontWeight: '700', color: 'var(--text-primary)' }}>{stats.total}</div>
-          </div>
-
+          <StatCard
+            icon={FileText}
+            color="var(--accent)"
+            bgColor="var(--accent-bg)"
+            label="总文档"
+            value={stats.total}
+          />
           {Object.entries(stats.typeCounts).slice(0, 3).map(([type, count]) => {
             const config = getDocumentTypeConfig(type);
             const Icon = config.icon;
             return (
-              <div key={type} style={{
-                background: 'var(--bg-card)',
-                borderRadius: '16px',
-                padding: '20px',
-                border: '1px solid var(--border-primary)',
-                backdropFilter: 'blur(20px)',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '10px',
-                    background: config.bgColor,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Icon style={{ width: '20px', height: '20px', color: config.color }} />
-                  </div>
-                  <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>{config.label}</span>
-                </div>
-                <div style={{ fontSize: '32px', fontWeight: '700', color: config.color }}>{count}</div>
-              </div>
+              <StatCard
+                key={type}
+                icon={Icon}
+                color={config.color}
+                bgColor={config.bgColor}
+                label={config.label}
+                value={count}
+              />
             );
           })}
         </div>
 
         {filteredAndSortedDocuments.length === 0 ? (
           <div style={{
-            background: 'var(--bg-card)',
+            background: 'var(--bg-surface)',
             borderRadius: '20px',
             padding: '64px 32px',
             border: '1px solid var(--border-primary)',
@@ -569,7 +589,7 @@ const DocumentsPage: React.FC = () => {
             </p>
             {!searchQuery && (
               <Button variant="primary" onClick={handleCreateDocument}>
-                <Plus style={{ width: '16px', height: '16px', marginRight: '6px' }} />
+                <Plus style={{ width: '16px', height: '16px' }} />
                 新建文档
               </Button>
             )}
@@ -587,142 +607,17 @@ const DocumentsPage: React.FC = () => {
               const isHovered = hoveredCard === document.id;
 
               return (
-                <div
+                <DocumentCard
                   key={document.id}
+                  document={document}
+                  typeConfig={typeConfig}
+                  statusConfig={statusConfig}
+                  TypeIcon={TypeIcon}
+                  isHovered={isHovered}
+                  onHover={(hovered) => setHoveredCard(hovered ? document.id : null)}
                   onClick={() => handleDocumentClick(document)}
-                  style={{
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border-primary)',
-                    borderRadius: '20px',
-                    overflow: 'hidden',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    transform: isHovered ? 'translateY(-6px) scale(1.01)' : 'translateY(0) scale(1)',
-                    boxShadow: isHovered ? '0 20px 40px rgba(0, 0, 0, 0.15)' : '0 2px 8px rgba(0, 0, 0, 0.04)',
-                    position: 'relative',
-                  }}
-                  onMouseEnter={() => setHoveredCard(document.id)}
-                  onMouseLeave={() => setHoveredCard(null)}
-                >
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: '100%',
-                    background: `linear-gradient(180deg, ${typeConfig.color}08 0%, transparent 30%)`,
-                    pointerEvents: 'none',
-                  }} />
-
-                  <div style={{ padding: '24px', position: 'relative', zIndex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '16px' }}>
-                      <div style={{
-                        width: '56px',
-                        height: '56px',
-                        borderRadius: '16px',
-                        background: typeConfig.gradient,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                        boxShadow: `0 8px 20px ${typeConfig.color}30`,
-                      }}>
-                        <TypeIcon style={{ width: '28px', height: '28px', color: 'white' }} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <h3 style={{
-                          fontSize: '17px',
-                          fontWeight: '700',
-                          color: 'var(--text-primary)',
-                          margin: '0 0 8px 0',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          letterSpacing: '-0.01em',
-                        }}>
-                          {document.title}
-                        </h3>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            padding: '4px 12px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            color: typeConfig.color,
-                            backgroundColor: typeConfig.bgColor,
-                            border: `1px solid ${typeConfig.borderColor}`,
-                            borderRadius: '8px',
-                          }}>
-                            {typeConfig.label}
-                          </span>
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            padding: '4px 12px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            color: statusConfig.color,
-                            backgroundColor: statusConfig.bgColor,
-                            border: `1px solid ${statusConfig.borderColor}`,
-                            borderRadius: '8px',
-                          }}>
-                            {statusConfig.label}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <p style={{
-                      fontSize: '14px',
-                      color: 'var(--text-secondary)',
-                      lineHeight: '1.7',
-                      margin: '0 0 20px 0',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                      minHeight: '48px',
-                    }}>
-                      {(document.content || '').substring(0, 120).replace(/<[^>]*>/g, '')}
-                      {(document.content?.length || 0) > 120 && '...'}
-                    </p>
-
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '14px 16px',
-                      background: 'var(--bg-hover)',
-                      borderRadius: '12px',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Clock style={{ width: '14px', height: '14px', color: 'var(--text-muted)' }} />
-                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>
-                          {formatDate(document.updatedAt)}
-                        </span>
-                      </div>
-                      {document.project && (
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '6px 12px',
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          color: 'var(--text-secondary)',
-                          backgroundColor: 'var(--bg-card)',
-                          borderRadius: '8px',
-                        }}>
-                          <FolderOpen style={{ width: '12px', height: '12px' }} />
-                          {document.project.name}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                  formatDate={formatDate}
+                />
               );
             })}
           </div>
@@ -735,115 +630,17 @@ const DocumentsPage: React.FC = () => {
               const isHovered = hoveredCard === document.id;
 
               return (
-                <div
+                <DocumentListItem
                   key={document.id}
+                  document={document}
+                  typeConfig={typeConfig}
+                  statusConfig={statusConfig}
+                  TypeIcon={TypeIcon}
+                  isHovered={isHovered}
+                  onHover={(hovered) => setHoveredCard(hovered ? document.id : null)}
                   onClick={() => handleDocumentClick(document)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '20px',
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border-primary)',
-                    borderRadius: '16px',
-                    padding: '20px 24px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    transform: isHovered ? 'translateX(4px)' : 'translateX(0)',
-                    boxShadow: isHovered ? '0 8px 24px rgba(0, 0, 0, 0.08)' : 'none',
-                  }}
-                  onMouseEnter={() => setHoveredCard(document.id)}
-                  onMouseLeave={() => setHoveredCard(null)}
-                >
-                  <div style={{
-                    width: '52px',
-                    height: '52px',
-                    borderRadius: '14px',
-                    background: typeConfig.gradient,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    boxShadow: `0 6px 16px ${typeConfig.color}25`,
-                  }}>
-                    <TypeIcon style={{ width: '26px', height: '26px', color: 'white' }} />
-                  </div>
-
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
-                      <h3 style={{
-                        fontSize: '16px',
-                        fontWeight: '600',
-                        color: 'var(--text-primary)',
-                        margin: 0,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {document.title}
-                      </h3>
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        padding: '3px 10px',
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        color: typeConfig.color,
-                        backgroundColor: typeConfig.bgColor,
-                        borderRadius: '6px',
-                      }}>
-                        {typeConfig.label}
-                      </span>
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        padding: '3px 10px',
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        color: statusConfig.color,
-                        backgroundColor: statusConfig.bgColor,
-                        borderRadius: '6px',
-                      }}>
-                        {statusConfig.label}
-                      </span>
-                    </div>
-                    <p style={{
-                      fontSize: '13px',
-                      color: 'var(--text-muted)',
-                      margin: 0,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}>
-                      {(document.content || '').substring(0, 80).replace(/<[^>]*>/g, '')}
-                    </p>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0 }}>
-                    {document.project && (
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '6px 14px',
-                        fontSize: '13px',
-                        fontWeight: '500',
-                        color: 'var(--text-secondary)',
-                        backgroundColor: 'var(--bg-hover)',
-                        borderRadius: '8px',
-                      }}>
-                        <FolderOpen style={{ width: '14px', height: '14px' }} />
-                        {document.project.name}
-                      </span>
-                    )}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '80px' }}>
-                      <Clock style={{ width: '14px', height: '14px', color: 'var(--text-muted)' }} />
-                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>
-                        {formatDate(document.updatedAt)}
-                      </span>
-                    </div>
-                    <ChevronRight style={{ width: '18px', height: '18px', color: 'var(--text-muted)' }} />
-                  </div>
-                </div>
+                  formatDate={formatDate}
+                />
               );
             })}
           </div>
@@ -874,6 +671,326 @@ const DocumentsPage: React.FC = () => {
           }
         `}
       </style>
+    </div>
+  );
+};
+
+interface StatCardProps {
+  icon: React.ElementType;
+  color: string;
+  bgColor: string;
+  label: string;
+  value: number;
+}
+
+const StatCard = ({ icon: Icon, color, bgColor, label, value }: StatCardProps) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <div
+      style={{
+        background: 'var(--bg-surface)',
+        borderRadius: '16px',
+        padding: '20px',
+        border: '1px solid var(--border-primary)',
+        backdropFilter: 'blur(20px)',
+        transition: 'all 0.2s ease',
+        transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
+        boxShadow: isHovered ? '0 8px 24px rgba(0, 0, 0, 0.08)' : 'none',
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          borderRadius: '10px',
+          background: bgColor,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <Icon style={{ width: '20px', height: '20px', color }} />
+        </div>
+        <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>{label}</span>
+      </div>
+      <div style={{ fontSize: '32px', fontWeight: '700', color }}>{value}</div>
+    </div>
+  );
+};
+
+interface DocumentCardProps {
+  document: Document;
+  typeConfig: { icon: React.ElementType; color: string; gradient: string; bgColor: string; borderColor: string; label: string };
+  statusConfig: { color: string; bgColor: string; borderColor: string; label: string };
+  TypeIcon: React.ElementType;
+  isHovered: boolean;
+  onHover: (hovered: boolean) => void;
+  onClick: () => void;
+  formatDate: (date: string) => string;
+}
+
+const DocumentCard = ({ document, typeConfig, statusConfig, TypeIcon, isHovered, onHover, onClick, formatDate }: DocumentCardProps) => {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border-primary)',
+        borderRadius: '20px',
+        overflow: 'hidden',
+        cursor: 'pointer',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        transform: isHovered ? 'translateY(-6px) scale(1.01)' : 'translateY(0) scale(1)',
+        boxShadow: isHovered ? '0 20px 40px rgba(0, 0, 0, 0.15)' : '0 2px 8px rgba(0, 0, 0, 0.04)',
+        position: 'relative',
+      }}
+      onMouseEnter={() => onHover(true)}
+      onMouseLeave={() => onHover(false)}
+    >
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '100%',
+        background: `linear-gradient(180deg, ${typeConfig.color}08 0%, transparent 30%)`,
+        pointerEvents: 'none',
+      }} />
+
+      <div style={{ padding: '24px', position: 'relative', zIndex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '16px' }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '16px',
+            background: typeConfig.gradient,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            boxShadow: `0 8px 20px ${typeConfig.color}30`,
+          }}>
+            <TypeIcon style={{ width: '28px', height: '28px', color: 'white' }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h3 style={{
+              fontSize: '17px',
+              fontWeight: '700',
+              color: 'var(--text-primary)',
+              margin: '0 0 8px 0',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              letterSpacing: '-0.01em',
+            }}>
+              {document.title}
+            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 12px',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: typeConfig.color,
+                backgroundColor: typeConfig.bgColor,
+                border: `1px solid ${typeConfig.borderColor}`,
+                borderRadius: '8px',
+              }}>
+                {typeConfig.label}
+              </span>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 12px',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: statusConfig.color,
+                backgroundColor: statusConfig.bgColor,
+                border: `1px solid ${statusConfig.borderColor}`,
+                borderRadius: '8px',
+              }}>
+                {statusConfig.label}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <p style={{
+          fontSize: '14px',
+          color: 'var(--text-secondary)',
+          lineHeight: '1.7',
+          margin: '0 0 20px 0',
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          minHeight: '48px',
+        }}>
+          {(document.content || '').substring(0, 120).replace(/<[^>]*>/g, '')}
+          {(document.content?.length || 0) > 120 && '...'}
+        </p>
+
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '14px 16px',
+          background: 'var(--bg-hover)',
+          borderRadius: '12px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Clock style={{ width: '14px', height: '14px', color: 'var(--text-muted)' }} />
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>
+              {formatDate(document.updatedAt)}
+            </span>
+          </div>
+          {document.project && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: '600',
+              color: 'var(--text-secondary)',
+              backgroundColor: 'var(--bg-surface)',
+              borderRadius: '8px',
+            }}>
+              <FolderOpen style={{ width: '12px', height: '12px' }} />
+              {document.project.name}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface DocumentListItemProps {
+  document: Document;
+  typeConfig: { icon: React.ElementType; color: string; gradient: string; bgColor: string; borderColor: string; label: string };
+  statusConfig: { color: string; bgColor: string; borderColor: string; label: string };
+  TypeIcon: React.ElementType;
+  isHovered: boolean;
+  onHover: (hovered: boolean) => void;
+  onClick: () => void;
+  formatDate: (date: string) => string;
+}
+
+const DocumentListItem = ({ document, typeConfig, statusConfig, TypeIcon, isHovered, onHover, onClick, formatDate }: DocumentListItemProps) => {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '20px',
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border-primary)',
+        borderRadius: '16px',
+        padding: '20px 24px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        transform: isHovered ? 'translateX(4px)' : 'translateX(0)',
+        boxShadow: isHovered ? '0 8px 24px rgba(0, 0, 0, 0.08)' : 'none',
+      }}
+      onMouseEnter={() => onHover(true)}
+      onMouseLeave={() => onHover(false)}
+    >
+      <div style={{
+        width: '52px',
+        height: '52px',
+        borderRadius: '14px',
+        background: typeConfig.gradient,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        boxShadow: `0 6px 16px ${typeConfig.color}25`,
+      }}>
+        <TypeIcon style={{ width: '26px', height: '26px', color: 'white' }} />
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
+          <h3 style={{
+            fontSize: '16px',
+            fontWeight: '600',
+            color: 'var(--text-primary)',
+            margin: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
+            {document.title}
+          </h3>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            padding: '3px 10px',
+            fontSize: '11px',
+            fontWeight: '600',
+            color: typeConfig.color,
+            backgroundColor: typeConfig.bgColor,
+            borderRadius: '6px',
+          }}>
+            {typeConfig.label}
+          </span>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            padding: '3px 10px',
+            fontSize: '11px',
+            fontWeight: '600',
+            color: statusConfig.color,
+            backgroundColor: statusConfig.bgColor,
+            borderRadius: '6px',
+          }}>
+            {statusConfig.label}
+          </span>
+        </div>
+        <p style={{
+          fontSize: '13px',
+          color: 'var(--text-muted)',
+          margin: 0,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}>
+          {(document.content || '').substring(0, 80).replace(/<[^>]*>/g, '')}
+        </p>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0 }}>
+        {document.project && (
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 14px',
+            fontSize: '13px',
+            fontWeight: '500',
+            color: 'var(--text-secondary)',
+            backgroundColor: 'var(--bg-hover)',
+            borderRadius: '8px',
+          }}>
+            <FolderOpen style={{ width: '14px', height: '14px' }} />
+            {document.project.name}
+          </span>
+        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '80px' }}>
+          <Clock style={{ width: '14px', height: '14px', color: 'var(--text-muted)' }} />
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>
+            {formatDate(document.updatedAt)}
+          </span>
+        </div>
+        <ChevronRight style={{ width: '18px', height: '18px', color: 'var(--text-muted)' }} />
+      </div>
     </div>
   );
 };

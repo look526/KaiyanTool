@@ -19,27 +19,18 @@ const toastIcons: Record<ToastType, React.ReactNode> = {
   info: <Info size={20} />,
 };
 
-const toastColors: Record<ToastType, { bg: string; color: string; border: string }> = {
-  success: {
-    bg: 'rgba(52, 199, 89, 0.15)',
-    color: '#34C759',
-    border: 'rgba(52, 199, 89, 0.3)',
-  },
-  error: {
-    bg: 'rgba(255, 59, 48, 0.15)',
-    color: '#FF3B30',
-    border: 'rgba(255, 59, 48, 0.3)',
-  },
-  warning: {
-    bg: 'rgba(255, 149, 0, 0.15)',
-    color: '#FF9500',
-    border: 'rgba(255, 149, 0, 0.3)',
-  },
-  info: {
-    bg: 'rgba(0, 122, 255, 0.15)',
-    color: '#007AFF',
-    border: 'rgba(0, 122, 255, 0.3)',
-  },
+const toastClasses: Record<ToastType, string> = {
+  success: 'border-l-4 border-green-500',
+  error: 'border-l-4 border-red-500',
+  warning: 'border-l-4 border-yellow-500',
+  info: 'border-l-4 border-blue-500',
+};
+
+const iconBgClasses: Record<ToastType, string> = {
+  success: 'bg-green-50 dark:bg-green-900/20 text-green-500',
+  error: 'bg-red-50 dark:bg-red-900/20 text-red-500',
+  warning: 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-500',
+  info: 'bg-blue-50 dark:bg-blue-900/20 text-blue-500',
 };
 
 export function Toast({ id, type, title, message, duration = 5000, onClose }: ToastProps) {
@@ -52,92 +43,27 @@ export function Toast({ id, type, title, message, duration = 5000, onClose }: To
     }
   }, [id, duration, onClose]);
 
-  const colors = toastColors[type];
-
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: '12px',
-        padding: '16px',
-        backgroundColor: '#FFFFFF',
-        borderRadius: '12px',
-        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
-        border: '1px solid #E5E5EA',
-        borderLeftWidth: '4px',
-        borderLeftColor: colors.color,
-        minWidth: '320px',
-        maxWidth: '420px',
-        animation: 'slideInRight 0.3s ease-out forwards',
-      }}
-    >
-      <div
-        style={{
-          padding: '8px',
-          borderRadius: '8px',
-          backgroundColor: colors.bg,
-          color: colors.color,
-        }}
-      >
+    <div className={`flex items-start gap-3 p-4 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 min-w-[320px] max-w-[420px] animate-in slide-in-from-right duration-300 ease-out ${toastClasses[type]}`}>
+      <div className={`p-2 rounded-lg ${iconBgClasses[type]}`}>
         {toastIcons[type]}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: '14px',
-            fontWeight: 600,
-            color: '#1C1C1E',
-          }}
-        >
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
           {title}
         </div>
         {message && (
-          <div
-            style={{
-              fontSize: '14px',
-              color: '#8E8E93',
-              marginTop: '4px',
-            }}
-          >
+          <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             {message}
           </div>
         )}
       </div>
       <button
         onClick={() => onClose(id)}
-        style={{
-          padding: '4px',
-          borderRadius: '6px',
-          border: 'none',
-          background: 'transparent',
-          color: '#8E8E93',
-          cursor: 'pointer',
-          transition: 'all 0.2s ease',
-        }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLElement).style.background = '#F2F2F7';
-          (e.currentTarget as HTMLElement).style.color = '#1C1C1E';
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLElement).style.background = 'transparent';
-          (e.currentTarget as HTMLElement).style.color = '#8E8E93';
-        }}
+        className="p-1 rounded-md border-none bg-transparent text-gray-500 dark:text-gray-400 cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
       >
         <X size={16} />
       </button>
-      <style>{`
-        @keyframes slideInRight {
-          from {
-            opacity: 0;
-            transform: translateX(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-      `}</style>
     </div>
   );
 }
@@ -153,24 +79,15 @@ export function ToastContainer({
   onClose,
   position = 'bottom-right',
 }: ToastContainerProps) {
-  const positionStyles: Record<string, React.CSSProperties> = {
-    'top-right': { top: '20px', right: '20px' },
-    'top-left': { top: '20px', left: '20px' },
-    'bottom-right': { bottom: '20px', right: '20px' },
-    'bottom-left': { bottom: '20px', left: '20px' },
+  const positionClasses: Record<string, string> = {
+    'top-right': 'top-5 right-5',
+    'top-left': 'top-5 left-5',
+    'bottom-right': 'bottom-5 right-5',
+    'bottom-left': 'bottom-5 left-5',
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        zIndex: 9999,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px',
-        ...positionStyles[position],
-      }}
-    >
+    <div className={`fixed z-50 flex flex-col gap-3 ${positionClasses[position]}`}>
       {toasts.map((toast) => (
         <Toast key={toast.id} {...toast} onClose={onClose} />
       ))}

@@ -9,9 +9,9 @@ router.use(authMiddleware);
 router.post('/analyze', async (req, res) => {
   try {
     const result = await analyzeScript({
-      scriptContent: req.body.scriptContent,
-      targetDuration: req.body.targetDuration,
-      includeShots: req.body.includeShots
+      script_content: req.body.script_content,
+      target_duration: req.body.target_duration,
+      include_shots: req.body.include_shots
     });
     res.json(result);
   } catch (error) {
@@ -22,10 +22,10 @@ router.post('/analyze', async (req, res) => {
 router.post('/prompt', async (req, res) => {
   try {
     const result = await generateVisualPrompt({
-      sceneDescription: req.body.sceneDescription,
+      scene_description: req.body.scene_description,
       characters: req.body.characters,
-      sceneImageId: req.body.sceneImageId,
-      characterImageIds: req.body.characterImageIds
+      scene_image_id: req.body.scene_image_id,
+      character_image_ids: req.body.character_image_ids
     });
     res.json(result);
   } catch (error) {
@@ -33,9 +33,9 @@ router.post('/prompt', async (req, res) => {
   }
 });
 
-router.get('/history/:projectId', async (req, res) => {
+router.get('/history/:project_id', async (req, res) => {
   try {
-    const history = await getAnalysisHistory(req.params.projectId);
+    const history = await getAnalysisHistory(req.params.project_id);
     res.json(history);
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to get history' });

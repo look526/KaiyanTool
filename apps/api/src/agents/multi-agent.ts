@@ -141,7 +141,7 @@ export class StoryAgent extends BaseAgent {
         },
         execute: async (params, ctx) => {
           const chapter = await prisma.novel.findFirst({
-            where: { id: params.chapterId, projectId: ctx.projectId },
+            where: { id: params.chapterId, project_id: ctx.projectId },
           });
           return chapter ? { content: chapter.content, title: chapter.title } : null;
         },
@@ -158,9 +158,9 @@ export class StoryAgent extends BaseAgent {
         },
         execute: async (params, ctx) => {
           const outline = await prisma.outline.findFirst({
-            where: { id: params.outlineId, projectId: ctx.projectId },
+            where: { id: params.outlineId, project_id: ctx.projectId },
           });
-          return outline?.content;
+          return outline;
         },
       },
       {
@@ -175,7 +175,7 @@ export class StoryAgent extends BaseAgent {
         },
         execute: async (params, ctx) => {
           const existing = await prisma.storyline.findFirst({
-            where: { projectId: ctx.projectId } as any,
+            where: { project_id: ctx.projectId } as any,
           });
           if (existing) {
             await prisma.storyline.update({
@@ -185,7 +185,7 @@ export class StoryAgent extends BaseAgent {
           } else {
             await prisma.storyline.create({
               data: {
-                projectId: ctx.projectId,
+                project_id: ctx.projectId,
                 content: params.storyline,
               } as any,
             });
@@ -220,9 +220,9 @@ export class OutlineAgent extends BaseAgent {
         },
         execute: async (_params, ctx) => {
           const storyline = await prisma.storyline.findFirst({
-            where: { projectId: ctx.projectId },
+            where: { project_id: ctx.projectId },
           });
-          return storyline?.content;
+          return storyline?.story;
         },
       },
       {
@@ -234,7 +234,7 @@ export class OutlineAgent extends BaseAgent {
         },
         execute: async (_params, ctx) => {
           const characters = await prisma.character.findMany({
-            where: { projectId: ctx.projectId },
+            where: { project_id: ctx.projectId },
           });
           return characters;
         },
@@ -251,7 +251,7 @@ export class OutlineAgent extends BaseAgent {
         },
         execute: async (params, ctx) => {
           const existingOutline = await prisma.outline.findFirst({
-            where: { projectId: ctx.projectId } as any,
+            where: { project_id: ctx.projectId } as any,
           });
           if (existingOutline) {
             await prisma.outline.update({
@@ -261,7 +261,7 @@ export class OutlineAgent extends BaseAgent {
           } else {
             await prisma.outline.create({
               data: {
-                projectId: ctx.projectId,
+                project_id: ctx.projectId,
                 content: params.outline,
               } as any,
             });
@@ -293,9 +293,9 @@ export class DirectorAgent extends BaseAgent {
         parameters: { type: 'object', properties: {} },
         execute: async (_params, ctx) => {
           const storyline = await prisma.storyline.findFirst({
-            where: { projectId: ctx.projectId },
+            where: { project_id: ctx.projectId },
           });
-          return storyline?.content;
+          return storyline?.story;
         },
       },
       {
@@ -304,9 +304,9 @@ export class DirectorAgent extends BaseAgent {
         parameters: { type: 'object', properties: {} },
         execute: async (_params, ctx) => {
           const outline = await prisma.outline.findFirst({
-            where: { projectId: ctx.projectId },
+            where: { project_id: ctx.projectId },
           });
-          return outline?.content;
+          return outline?.storyline_id;
         },
       },
       {
@@ -321,7 +321,7 @@ export class DirectorAgent extends BaseAgent {
         },
         execute: async (params, ctx) => {
           await prisma.storyline.updateMany({
-            where: { projectId: ctx.projectId } as any,
+            where: { project_id: ctx.projectId } as any,
             data: { content: params.storyline } as any,
           });
           return { success: true };
@@ -339,7 +339,7 @@ export class DirectorAgent extends BaseAgent {
         },
         execute: async (params, ctx) => {
           await prisma.outline.updateMany({
-            where: { projectId: ctx.projectId } as any,
+            where: { project_id: ctx.projectId } as any,
             data: { content: params.outline } as any,
           });
           return { success: true };
@@ -369,9 +369,9 @@ export class StoryboardAgent extends BaseAgent {
         parameters: { type: 'object', properties: {} },
         execute: async (_params, ctx) => {
           const outline = await prisma.outline.findFirst({
-            where: { projectId: ctx.projectId },
+            where: { project_id: ctx.projectId },
           });
-          return outline?.content;
+          return outline?.storyline_id;
         },
       },
       {
@@ -380,7 +380,7 @@ export class StoryboardAgent extends BaseAgent {
         parameters: { type: 'object', properties: {} },
         execute: async (_params, ctx) => {
           return prisma.character.findMany({
-            where: { projectId: ctx.projectId },
+            where: { project_id: ctx.projectId },
           });
         },
       },
@@ -390,7 +390,7 @@ export class StoryboardAgent extends BaseAgent {
         parameters: { type: 'object', properties: {} },
         execute: async (_params, ctx) => {
           return prisma.scene.findMany({
-            where: { projectId: ctx.projectId },
+            where: { project_id: ctx.projectId },
           });
         },
       },
@@ -407,7 +407,7 @@ export class StoryboardAgent extends BaseAgent {
         execute: async (params, ctx) => {
           const shot = await prisma.shot.create({
             data: {
-              projectId: ctx.projectId,
+              project_id: ctx.projectId,
               ...params.shot,
             },
           });
@@ -454,7 +454,7 @@ export class MultiAgentOrchestrator {
   async initialize(): Promise<void> {
     const aiProviders = await prisma.aIProvider.findMany({
       where: { enabled: true },
-      include: { models: true },
+      include: { AIProviderModel: true },
     });
 
     if (aiProviders.length === 0) {
@@ -466,10 +466,10 @@ export class MultiAgentOrchestrator {
 
     providerManager.addProvider({
       id: provider.id,
-      name: provider.name,
+      name: provider.type,
       type: provider.type,
-      apiKey: provider.apiKey,
-      baseUrl: provider.baseUrl || undefined,
+      apiKey: provider.api_key,
+      baseUrl: provider.base_url || undefined,
     });
   }
 

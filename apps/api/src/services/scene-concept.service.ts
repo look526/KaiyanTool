@@ -1,26 +1,31 @@
 import { prisma } from '../lib/prisma';
+import crypto from 'crypto';
 
 export async function createSceneConcept(
-  projectId: string,
+  project_id: string,
   data: {
     name: string;
     description: string;
     prompt?: string;
   }
 ) {
+  const now = new Date();
   return prisma.sceneConcept.create({
     data: {
-      projectId,
+      id: crypto.randomUUID(),
+      project_id,
       name: data.name,
       description: data.description,
       location: '',
-      aiPrompt: data.prompt
+      ai_prompt: data.prompt,
+      created_at: now,
+      updated_at: now
     }
   });
 }
 
 export async function generateSceneConcept(
-  projectId: string,
+  project_id: string,
   sceneDescription: string
 ) {
   const { ScriptAnalysisAgent } = await import('../agents/script-analysis.agent');
@@ -28,32 +33,36 @@ export async function generateSceneConcept(
 
   const prompt = await agent.generateVisualPrompt(sceneDescription, []);
 
+  const now = new Date();
   const concept = await prisma.sceneConcept.create({
     data: {
-      projectId,
+      id: crypto.randomUUID(),
+      project_id,
       name: 'Auto-generated',
       description: sceneDescription,
       location: '',
-      aiPrompt: prompt
+      ai_prompt: prompt,
+      created_at: now,
+      updated_at: now
     }
   });
 
   return { concept, prompt };
 }
 
-export async function getSceneConcepts(projectId: string) {
+export async function getSceneConcepts(project_id: string) {
   return prisma.sceneConcept.findMany({
-    where: { projectId },
-    orderBy: { createdAt: 'desc' }
+    where: { project_id: project_id },
+    orderBy: { created_at: 'desc' }
   });
 }
 
 export async function checkSceneContinuity(
-  sceneConceptId: string,
+  scene_concept_id: string,
   assets: string[]
 ) {
   const concept = await prisma.sceneConcept.findUnique({
-    where: { id: sceneConceptId }
+    where: { id: scene_concept_id }
   });
 
   if (!concept) {
@@ -61,8 +70,8 @@ export async function checkSceneContinuity(
   }
 
   const report = {
-    conceptId: sceneConceptId,
-    prompt: concept.aiPrompt,
+    concept_id: scene_concept_id,
+    prompt: concept.ai_prompt,
     consistency: 0,
     issues: [] as string[],
     recommendations: [] as string[]
@@ -76,9 +85,9 @@ export async function checkSceneContinuity(
     if (!asset) continue;
 
     const assetMetadata = asset.metadata as Record<string, any>;
-    if (concept.aiPrompt && assetMetadata?.prompt) {
+    if (concept.ai_prompt && assetMetadata?.prompt) {
       const similarity = calculateSimilarity(
-        concept.aiPrompt,
+        concept.ai_prompt,
         assetMetadata.prompt
       );
 

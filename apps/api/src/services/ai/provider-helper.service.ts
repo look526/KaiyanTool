@@ -25,12 +25,12 @@ export class AIProviderHelper {
     const whereClause: any = { enabled: true };
     
     if (userId) {
-      whereClause.userId = userId;
+      whereClause.user_id = userId;
     }
 
     const providers = await prisma.aIProvider.findMany({
       where: whereClause,
-      include: { models: true },
+      include: { AIProviderModel: true },
     });
 
     if (providers.length === 0) {
@@ -83,13 +83,13 @@ export class AIProviderHelper {
     console.log('[DEBUG getProviderForUser] userId:', userId, 'modelId:', modelId);
     
     const providers = await prisma.aIProvider.findMany({
-      where: { userId, enabled: true },
-      include: { models: true },
+      where: { user_id: userId, enabled: true },
+      include: { AIProviderModel: true },
     });
 
     console.log('[DEBUG getProviderForUser] providers count:', providers.length);
     providers.forEach((p: any) => {
-      console.log('[DEBUG getProviderForUser] provider:', p.id, p.type, 'models:', p.models?.map((m: any) => m.name));
+      console.log('[DEBUG getProviderForUser] provider:', p.id, p.type, 'models:', p.AIProviderModel?.map((m: any) => m.name));
     });
 
     if (providers.length === 0) {
@@ -131,7 +131,7 @@ export class AIProviderHelper {
     modelId: string
   ): { provider: any; modelName: string } | null {
     for (const provider of providers) {
-      const foundModel = provider.models?.find(
+      const foundModel = provider.AIProviderModel?.find(
         (m: any) => m.id === modelId || m.name === modelId
       );
       if (foundModel) {
@@ -150,14 +150,14 @@ export class AIProviderHelper {
       return existingProvider;
     }
 
-    console.log('[DEBUG ensureProviderRegistered] Adding new provider:', { id: dbProvider.id, type: dbProvider.type, baseUrl: dbProvider.baseUrl });
+    console.log('[DEBUG ensureProviderRegistered] Adding new provider:', { id: dbProvider.id, type: dbProvider.type, baseUrl: dbProvider.base_url });
     
     providerManager.addProvider({
       id: dbProvider.id,
-      name: dbProvider.name || dbProvider.type,
+      name: dbProvider.type,
       type: dbProvider.type,
-      apiKey: dbProvider.apiKey,
-      baseUrl: dbProvider.baseUrl || undefined,
+      apiKey: dbProvider.api_key,
+      baseUrl: dbProvider.base_url || undefined,
     });
 
     const aiProvider = providerManager.getProvider(dbProvider.id);
@@ -182,14 +182,14 @@ export class AIProviderHelper {
     try {
       const defaultModel = await prisma.aIProviderModel.findFirst({
         where: {
-          isAssistantDefault: true,
-          provider: {
-            userId,
+          is_assistant_default: true,
+          AIProvider: {
+            user_id: userId,
             enabled: true,
           },
         },
         include: {
-          provider: true,
+          AIProvider: true,
         },
       });
 

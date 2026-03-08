@@ -58,12 +58,12 @@ router.get('/project/:projectId/preview', async (req, res) => {
     const projectId = req.params.projectId;
     
     const shots = await prisma.shot.findMany({
-      where: { projectId },
-      orderBy: { createdAt: 'asc' }
+      where: { project_id: projectId },
+      orderBy: { created_at: 'asc' }
     });
 
     const assets = await prisma.asset.findMany({
-      where: { projectId }
+      where: { project_id: projectId }
     });
 
     res.json({

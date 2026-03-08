@@ -5,7 +5,7 @@ import logger from '../lib/logger'
 class AuditController {
   async getAuditLogs(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
@@ -13,7 +13,7 @@ class AuditController {
       const { resource, resourceId, action, limit, offset, startDate, endDate } = req.query
 
       const result = await auditService.getAuditLogs({
-        userId: req.userId,
+        userId: req.user_id,
         resource: resource as string,
         resourceId: resourceId as string,
         action: action as string,
@@ -25,14 +25,14 @@ class AuditController {
 
       res.json(result)
     } catch (error) {
-      logger.error('获取审计日志失败', { userId: req.userId, error })
+      logger.error('获取审计日志失败', { userId: req.user_id, error })
       res.status(500).json({ error: 'Failed to get audit logs' })
     }
   }
 
   async getAuditLogStats(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
@@ -40,7 +40,7 @@ class AuditController {
       const { resource, startDate, endDate } = req.query
 
       const stats = await auditService.getAuditLogStats({
-        userId: req.userId,
+        userId: req.user_id,
         resource: resource as string,
         startDate: startDate ? new Date(startDate as string) : undefined,
         endDate: endDate ? new Date(endDate as string) : undefined,
@@ -48,7 +48,7 @@ class AuditController {
 
       res.json(stats)
     } catch (error) {
-      logger.error('获取审计统计失败', { userId: req.userId, error })
+      logger.error('获取审计统计失败', { userId: req.user_id, error })
       res.status(500).json({ error: 'Failed to get audit log stats' })
     }
   }

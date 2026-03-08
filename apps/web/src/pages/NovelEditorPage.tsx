@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Save, Trash2, GripVertical, FileText } from 'lucide-react';
-import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Card } from '../components/ui/card';
 import { ModelSelector } from '../components/ui/ModelSelector';
 import { apiClient } from '../lib/api';
 
@@ -32,6 +30,7 @@ export default function NovelEditorPage() {
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [hoverStates, setHoverStates] = useState<Record<string, boolean>>({});
 
   const [editingTitle, setEditingTitle] = useState('');
   const [editingContent, setEditingContent] = useState('');
@@ -238,19 +237,61 @@ export default function NovelEditorPage() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {selectedChapterId && (
-              <Button variant="outline" size="sm" onClick={() => handleDeleteChapter(selectedChapterId)}>
-                <Trash2 style={{ width: '16px', height: '16px', marginRight: '8px' }} />
+              <button
+                onClick={() => handleDeleteChapter(selectedChapterId)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-primary)',
+                  background: hoverStates['delete'] ? 'var(--bg-hover)' : 'transparent',
+                  color: 'var(--text-secondary)',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={() => setHoverStates(s => ({ ...s, delete: true }))}
+                onMouseLeave={() => setHoverStates(s => ({ ...s, delete: false }))}
+              >
+                <Trash2 style={{ width: '16px', height: '16px' }} />
                 删除章节
-              </Button>
+              </button>
             )}
-            <Button size="sm" onClick={handleSave} disabled={saving || !editingTitle.trim()}>
+            <button
+              onClick={handleSave}
+              disabled={saving || !editingTitle.trim()}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                border: 'none',
+                background: saving || !editingTitle.trim()
+                  ? 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'
+                  : hoverStates['save']
+                    ? 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'
+                    : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                color: 'white',
+                fontSize: '13px',
+                fontWeight: '500',
+                cursor: saving || !editingTitle.trim() ? 'not-allowed' : 'pointer',
+                opacity: saving ? 0.7 : 1,
+                boxShadow: hoverStates['save'] ? '0 4px 12px rgba(99, 102, 241, 0.4)' : '0 2px 8px rgba(99, 102, 241, 0.3)',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={() => setHoverStates(s => ({ ...s, save: true }))}
+              onMouseLeave={() => setHoverStates(s => ({ ...s, save: false }))}
+            >
               {saving ? '保存中...' : (
                 <>
-                  <Save style={{ width: '16px', height: '16px', marginRight: '8px' }} />
+                  <Save style={{ width: '16px', height: '16px' }} />
                   保存
                 </>
               )}
-            </Button>
+            </button>
           </div>
         </header>
 
@@ -263,24 +304,64 @@ export default function NovelEditorPage() {
           }}>
             <div style={{ padding: '16px' }}>
               <div style={{ marginBottom: '16px', display: 'flex', gap: '8px' }}>
-                <Button
-                  variant="outline"
-                  size="sm"
+                <button
                   onClick={() => setShowAddChapter(!showAddChapter)}
-                  style={{ flex: 1, justifyContent: 'flex-start' }}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-primary)',
+                    background: 'transparent',
+                    color: 'var(--text-secondary)',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    justifyContent: 'flex-start',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--bg-hover)';
+                    e.currentTarget.style.color = 'var(--text-primary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = 'var(--text-secondary)';
+                  }}
                 >
-                  <Plus style={{ width: '16px', height: '16px', marginRight: '8px' }} />
+                  <Plus style={{ width: '16px', height: '16px' }} />
                   添加章节
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
+                </button>
+                <button
                   onClick={() => setShowParseNovel(!showParseNovel)}
-                  style={{ flex: 1, justifyContent: 'flex-start' }}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-primary)',
+                    background: 'transparent',
+                    color: 'var(--text-secondary)',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    justifyContent: 'flex-start',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--bg-hover)';
+                    e.currentTarget.style.color = 'var(--text-primary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = 'var(--text-secondary)';
+                  }}
                 >
-                  <FileText style={{ width: '16px', height: '16px', marginRight: '8px' }} />
+                  <FileText style={{ width: '16px', height: '16px' }} />
                   解析小说
-                </Button>
+                </button>
               </div>
 
               {showAddChapter && (
@@ -325,27 +406,59 @@ export default function NovelEditorPage() {
                     />
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <Button
-                      size="sm"
+                    <button
                       onClick={handleParseNovel}
                       disabled={parseLoading || !parseNovelText.trim()}
-                      style={{ flex: 1 }}
+                      style={{
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: parseLoading || !parseNovelText.trim()
+                          ? 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'
+                          : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                        color: 'white',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        cursor: parseLoading || !parseNovelText.trim() ? 'not-allowed' : 'pointer',
+                        opacity: parseLoading ? 0.7 : 1,
+                        transition: 'all 0.2s ease',
+                      }}
                     >
                       {parseLoading ? '解析中...' : (
                         <>
-                          <FileText style={{ width: '16px', height: '16px', marginRight: '8px' }} />
+                          <FileText style={{ width: '16px', height: '16px' }} />
                           开始解析
                         </>
                       )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
+                    </button>
+                    <button
                       onClick={() => setShowParseNovel(false)}
-                      style={{ flex: 1 }}
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-primary)',
+                        background: 'transparent',
+                        color: 'var(--text-secondary)',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'var(--bg-hover)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                      }}
                     >
                       取消
-                    </Button>
+                    </button>
                   </div>
                   
                   {parseResult && (
@@ -363,13 +476,32 @@ export default function NovelEditorPage() {
                           </div>
                         ))}
                       </div>
-                      <Button
-                        size="sm"
+                      <button
                         onClick={handleApplyParseResult}
                         disabled={saving}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          padding: '8px 14px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: saving 
+                            ? 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'
+                            : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                          color: 'white',
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          cursor: saving ? 'not-allowed' : 'pointer',
+                          opacity: saving ? 0.7 : 1,
+                          transition: 'all 0.2s ease',
+                          marginTop: '12px',
+                          width: '100%',
+                        }}
                       >
                         {saving ? '应用中...' : '应用解析结果'}
-                      </Button>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -431,7 +563,14 @@ export default function NovelEditorPage() {
           </div>
 
           <div style={{ flex: 1, padding: '24px', overflowY: 'auto', backgroundColor: 'var(--bg-base)' }}>
-            <Card style={{ padding: '24px', height: '100%', minHeight: '500px' }}>
+            <div style={{
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-primary)',
+              borderRadius: '20px',
+              padding: '24px',
+              height: '100%',
+              minHeight: '500px',
+            }}>
               <div style={{ marginBottom: '16px' }}>
                 <Input
                   placeholder={selectedChapterId ? '章节标题' : '小说标题'}
@@ -458,7 +597,7 @@ export default function NovelEditorPage() {
                   fontFamily: 'Georgia, serif',
                 }}
               />
-            </Card>
+            </div>
           </div>
         </div>
       </div>

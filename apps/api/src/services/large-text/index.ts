@@ -143,13 +143,13 @@ export class LargeTextProcessingService {
       }
 
       if (!providerManager.getProvider(providerDb.id)) {
-        console.log(`[大文本处理] 注册AI提供商: ${providerDb.id} (${providerDb.name})`)
+        console.log(`[大文本处理] 注册AI提供商: ${providerDb.id} (${providerDb.type})`)
         providerManager.addProvider({
           id: providerDb.id,
-          name: providerDb.name,
+          name: providerDb.type,
           type: providerDb.type,
-          apiKey: providerDb.apiKey,
-          baseUrl: providerDb.baseUrl || undefined,
+          apiKey: providerDb.api_key,
+          baseUrl: providerDb.base_url || undefined,
         });
       }
 

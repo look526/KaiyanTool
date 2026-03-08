@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, Eye, EyeOff, ShieldCheck, AlertCircle } from 'lucide-react';
 import { api } from '../../core/api/client';
-import { useAuthStore } from '../../core/store/auth.store';
+import { useAuth } from '../../core/store/auth.store';
 import { Button } from '../../components/ui/button-new';
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
-  const { setUser } = useAuthStore();
+  const { setTokens } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -29,12 +29,12 @@ export default function AdminLoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await api.post<{ user: any }>('/api/admin/auth/login', {
+      const response = await api.post<{ user: any; token: string }>('/api/admin/auth/login', {
         email,
         password,
       });
 
-      setUser(response.user);
+      setTokens(response.token);
       navigate('/admin');
     } catch (err: any) {
       setError(err.message || '登录失败，请检查邮箱和密码');

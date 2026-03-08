@@ -1,4 +1,4 @@
-import { aiProviderService } from '../services/ai/provider.service';
+import { callAIWithPrompt } from '../services/ai/ai-call.service';
 import { SCRIPT_ANALYSIS_AGENT, VISUAL_PROMPT_GENERATOR } from '../prompts/agents';
 
 export interface SceneInfo {
@@ -56,14 +56,7 @@ export class ScriptAnalysisAgent {
       .replace('{{scriptContent}}', scriptContent);
 
     try {
-      const response = await aiProviderService.chat(
-        'default',
-        [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        undefined
-      );
+      const response = await callAIWithPrompt(systemPrompt, userPrompt, undefined);
 
       const parsed = this.parseJsonResponse(response.content);
       return this.structureScript(parsed, targetDuration);
@@ -137,14 +130,7 @@ export class ScriptAnalysisAgent {
       .replace('{{characterImageCount}}', String(context?.characterImages?.length || 0));
 
     try {
-      const response = await aiProviderService.chat(
-        'default',
-        [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        undefined
-      );
+      const response = await callAIWithPrompt(systemPrompt, userPrompt, undefined);
 
       const parsed = this.parseJsonResponse(response.content);
 

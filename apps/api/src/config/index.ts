@@ -41,6 +41,10 @@ export const config = {
       apiKey: process.env.SEEDREAM_API_KEY || '',
       baseUrl: process.env.SEEDREAM_BASE_URL || 'https://api.seedream.com/v1',
     },
+    deepseek: {
+      apiKey: process.env.DEEPSEEK_API_KEY || '',
+      baseUrl: process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1',
+    },
     defaults: {
       model: process.env.AI_DEFAULT_MODEL || 'glm-4',
       temperature: parseFloat(process.env.AI_TEMPERATURE || '0.7'),

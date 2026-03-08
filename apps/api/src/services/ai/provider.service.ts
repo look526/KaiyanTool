@@ -2,6 +2,9 @@ import { AIProvider } from './provider.interface'
 import { OpenAIProvider } from './openai.provider'
 import { GoogleProvider } from './google.provider'
 import { AntSKProvider } from './antsk.provider'
+import { ZhipuProvider } from './zhipu.provider'
+import { SeedreamProvider } from './seedream.provider'
+import { DeepSeekProvider } from './deepseek.provider'
 import { AIProviderConfig, AIChatMessage, AICreateImageRequest, AICreateImageResponse, AICreateVideoRequest, AICreateVideoResponse, AIResponse } from '../../types/ai.types'
 
 class AIProviderService {
@@ -20,6 +23,15 @@ class AIProviderService {
         break
       case 'antsk':
         provider = new AntSKProvider(config.apiKey, config.baseUrl)
+        break
+      case 'zhipu':
+        provider = new ZhipuProvider(config.apiKey, config.baseUrl)
+        break
+      case 'seedream':
+        provider = new SeedreamProvider(config.apiKey, config.baseUrl)
+        break
+      case 'deepseek':
+        provider = new DeepSeekProvider(config.apiKey, config.baseUrl)
         break
 
       default:

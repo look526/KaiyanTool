@@ -6,6 +6,7 @@ import { emitProgress, emitStreamChunk, emitTaskComplete, emitTaskError } from '
 import logger from '../lib/logger';
 import { AIChatMessage } from '../types/ai.types';
 import { AGENT_STREAM_PROMPTS } from '../prompts/routes';
+import crypto from 'crypto';
 
 const router = Router();
 
@@ -141,7 +142,7 @@ async function runOutlineAgentStream(context: StreamContext, userMessage: string
     const parsedResult = parseJsonResponse(response.content || response);
 
     if (parsedResult.storyline) {
-      const existing = await prisma.storyline.findFirst({ where: { projectId } });
+      const existing = await prisma.storyline.findFirst({ where: { project_id: projectId } });
       if (existing) {
         await prisma.storyline.update({
           where: { id: existing.id },
@@ -149,13 +150,13 @@ async function runOutlineAgentStream(context: StreamContext, userMessage: string
         });
       } else {
         await prisma.storyline.create({
-          data: { projectId, content: parsedResult.storyline } as any,
+          data: { project_id: projectId, content: parsedResult.storyline } as any,
         });
       }
     }
 
     if (parsedResult.episodes) {
-      const existingOutline = await prisma.outline.findFirst({ where: { projectId } });
+      const existingOutline = await prisma.outline.findFirst({ where: { project_id: projectId } });
       if (existingOutline) {
         await prisma.outline.update({
           where: { id: existingOutline.id },
@@ -163,7 +164,7 @@ async function runOutlineAgentStream(context: StreamContext, userMessage: string
         });
       } else {
         await prisma.outline.create({
-          data: { projectId, content: parsedResult } as any,
+          data: { project_id: projectId, content: parsedResult } as any,
         });
       }
     }
@@ -186,14 +187,14 @@ async function runStoryboardAgentStream(context: StreamContext, outlineId: strin
     let outline: any = null;
     if (outlineId) {
       const outlineDoc = await prisma.outline.findFirst({
-        where: { id: outlineId, projectId },
+        where: { id: outlineId, project_id: projectId },
       });
-      outline = outlineDoc?.content;
+      outline = outlineDoc ? outlineDoc.episodes : null;
     } else {
       const outlineDoc = await prisma.outline.findFirst({
-        where: { projectId },
+        where: { project_id: projectId },
       });
-      outline = outlineDoc?.content;
+      outline = outlineDoc ? outlineDoc.episodes : null;
     }
 
     const systemPrompt = AGENT_STREAM_PROMPTS.storyboardAgentStream.systemPrompt;
@@ -223,11 +224,13 @@ async function runStoryboardAgentStream(context: StreamContext, outlineId: strin
       for (const shot of parsedResult.shots) {
         await prisma.shot.create({
           data: {
-            projectId,
-            actionSummary: shot.description || '',
-            startPrompt: shot.prompt || '',
+            id: crypto.randomUUID(),
+            project_id: projectId,
+            action_summary: shot.description || '',
+            start_prompt: shot.prompt || '',
             duration: shot.duration || 5,
-            cameraMovement: shot.camera?.movement || null,
+            camera_movement: shot.camera?.movement || null,
+            updated_at: new Date(),
           },
         });
       }

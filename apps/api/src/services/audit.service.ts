@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma'
 import logger from '../lib/logger'
+import crypto from 'crypto'
 
 interface AuditLogOptions {
   userId?: string
@@ -18,15 +19,16 @@ export const auditService = {
     try {
       await prisma.auditLog.create({
         data: {
-          userId: options.userId,
+          id: crypto.randomUUID(),
+          user_id: options.userId,
           action: options.action,
           resource: options.resource,
-          resourceId: options.resourceId,
+          resource_id: options.resourceId,
           metadata: options.metadata,
-          ipAddress: options.ipAddress,
-          userAgent: options.userAgent,
+          ip_address: options.ipAddress,
+          user_agent: options.userAgent,
           success: options.success ?? true,
-          errorMessage: options.errorMessage,
+          error_message: options.errorMessage,
         },
       })
     } catch (error) {
@@ -87,31 +89,31 @@ export const auditService = {
     const where: any = {}
 
     if (options.userId) {
-      where.userId = options.userId
+      where.user_id = options.userId
     }
     if (options.resource) {
       where.resource = options.resource
     }
     if (options.resourceId) {
-      where.resourceId = options.resourceId
+      where.resource_id = options.resourceId
     }
     if (options.action) {
       where.action = options.action
     }
     if (options.startDate || options.endDate) {
-      where.createdAt = {}
+      where.created_at = {}
       if (options.startDate) {
-        where.createdAt.gte = options.startDate
+        where.created_at.gte = options.startDate
       }
       if (options.endDate) {
-        where.createdAt.lte = options.endDate
+        where.created_at.lte = options.endDate
       }
     }
 
     const [logs, total] = await Promise.all([
       prisma.auditLog.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { created_at: 'desc' },
         take: options.limit || 100,
         skip: options.offset || 0,
       }),
@@ -130,18 +132,18 @@ export const auditService = {
     const where: any = {}
 
     if (options.userId) {
-      where.userId = options.userId
+      where.user_id = options.userId
     }
     if (options.resource) {
       where.resource = options.resource
     }
     if (options.startDate || options.endDate) {
-      where.createdAt = {}
+      where.created_at = {}
       if (options.startDate) {
-        where.createdAt.gte = options.startDate
+        where.created_at.gte = options.startDate
       }
       if (options.endDate) {
-        where.createdAt.lte = options.endDate
+        where.created_at.lte = options.endDate
       }
     }
 

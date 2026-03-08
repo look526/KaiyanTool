@@ -67,7 +67,7 @@ export function SceneOptimizer({ isOpen, onClose, scriptContent, onApplyOptimiza
   }, [isOpen]);
 
   const parseScriptIntoScenes = (content: string) => {
-    const sceneRegex = /(?:^|\n)\s*场景\s*(\d+)\s*[:：\-]?\s*([^\n]*)/g;
+    const sceneRegex = /(?:^|\n)\s*场景\s*(\d+)\s*[：:]?\s*([^\n]*)/g;
     const matches = Array.from(content.matchAll(sceneRegex));
     
     if (matches.length === 0) {

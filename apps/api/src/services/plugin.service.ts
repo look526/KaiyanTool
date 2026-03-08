@@ -1,11 +1,12 @@
 import { prisma } from '../lib/prisma';
 import { z } from 'zod';
+import crypto from 'crypto';
 
 const RegisterPluginSchema = z.object({
   name: z.string().min(1).max(100),
   version: z.string(),
   description: z.string().optional(),
-  entryPoint: z.string(),
+  entry_point: z.string(),
   permissions: z.array(z.string()),
   settings: z.record(z.string(), z.any()).optional()
 });
@@ -15,7 +16,7 @@ export interface PluginManifest {
   name: string;
   version: string;
   description?: string;
-  entryPoint: string;
+  entry_point: string;
   permissions: string[];
   settings?: Record<string, any>;
   hooks: PluginHook[];
@@ -36,7 +37,7 @@ export class PluginService {
       where: {
         OR: [
           { name: validated.name },
-          { entryPoint: validated.entryPoint }
+          { entry_point: validated.entry_point }
         ]
       }
     });
@@ -47,20 +48,23 @@ export class PluginService {
 
     const plugin = await prisma.plugin.create({
       data: {
+        id: crypto.randomUUID(),
         name: validated.name,
         version: validated.version,
         description: validated.description,
-        entryPoint: validated.entryPoint,
+        entry_point: validated.entry_point,
         permissions: validated.permissions,
         settings: validated.settings as any,
         manifest: {
           name: validated.name,
           version: validated.version,
-          entryPoint: validated.entryPoint,
+          entry_point: validated.entry_point,
           permissions: validated.permissions
         } as any,
-        createdBy: userId,
-        status: 'pending'
+        created_by: userId,
+        status: 'pending',
+        created_at: new Date(),
+        updated_at: new Date()
       }
     });
 
@@ -75,20 +79,20 @@ export class PluginService {
     }
 
     if (options?.userId) {
-      where.createdBy = options.userId;
+      where.created_by = options.userId;
     }
 
     const plugins = await prisma.plugin.findMany({
       where,
-      orderBy: { createdAt: 'desc' }
+      orderBy: { created_at: 'desc' }
     });
 
     return plugins;
   }
 
-  async getPlugin(pluginId: string) {
+  async getPlugin(plugin_id: string) {
     const plugin = await prisma.plugin.findUnique({
-      where: { id: pluginId }
+      where: { id: plugin_id }
     });
 
     if (!plugin) {
@@ -98,21 +102,21 @@ export class PluginService {
     return plugin;
   }
 
-  async updatePlugin(pluginId: string, userId: string, input: Partial<z.infer<typeof RegisterSchema>>) {
+  async updatePlugin(plugin_id: string, userId: string, input: Partial<z.infer<typeof RegisterSchema>>) {
     const plugin = await prisma.plugin.findUnique({
-      where: { id: pluginId }
+      where: { id: plugin_id }
     });
 
     if (!plugin) {
       throw new Error('Plugin not found');
     }
 
-    if (plugin.createdBy !== userId) {
+    if (plugin.created_by !== userId) {
       throw new Error('Not authorized');
     }
 
     const updated = await prisma.plugin.update({
-      where: { id: pluginId },
+      where: { id: plugin_id },
       data: {
         name: input.name,
         version: input.version,
@@ -125,29 +129,29 @@ export class PluginService {
     return updated;
   }
 
-  async deletePlugin(pluginId: string, userId: string) {
+  async deletePlugin(plugin_id: string, userId: string) {
     const plugin = await prisma.plugin.findUnique({
-      where: { id: pluginId }
+      where: { id: plugin_id }
     });
 
     if (!plugin) {
       throw new Error('Plugin not found');
     }
 
-    if (plugin.createdBy !== userId) {
+    if (plugin.created_by !== userId) {
       throw new Error('Not authorized');
     }
 
     await prisma.plugin.delete({
-      where: { id: pluginId }
+      where: { id: plugin_id }
     });
 
     return { success: true };
   }
 
-  async enablePlugin(pluginId: string) {
+  async enablePlugin(plugin_id: string) {
     const plugin = await prisma.plugin.findUnique({
-      where: { id: pluginId }
+      where: { id: plugin_id }
     });
 
     if (!plugin) {
@@ -155,16 +159,16 @@ export class PluginService {
     }
 
     await prisma.plugin.update({
-      where: { id: pluginId },
+      where: { id: plugin_id },
       data: { status: 'active' }
     });
 
     return { success: true };
   }
 
-  async disablePlugin(pluginId: string) {
+  async disablePlugin(plugin_id: string) {
     const plugin = await prisma.plugin.findUnique({
-      where: { id: pluginId }
+      where: { id: plugin_id }
     });
 
     if (!plugin) {
@@ -172,16 +176,16 @@ export class PluginService {
     }
 
     await prisma.plugin.update({
-      where: { id: pluginId },
+      where: { id: plugin_id },
       data: { status: 'inactive' }
     });
 
     return { success: true };
   }
 
-  async installPlugin(pluginId: string, projectId: string, userId: string) {
+  async installPlugin(plugin_id: string, project_id: string, userId: string) {
     const plugin = await prisma.plugin.findUnique({
-      where: { id: pluginId }
+      where: { id: plugin_id }
     });
 
     if (!plugin) {
@@ -194,8 +198,8 @@ export class PluginService {
 
     const existing = await prisma.projectPlugin.findFirst({
       where: {
-        pluginId,
-        projectId
+        plugin_id,
+        project_id
       }
     });
 
@@ -205,44 +209,47 @@ export class PluginService {
 
     const installation = await prisma.projectPlugin.create({
       data: {
-        pluginId,
-        projectId,
-        installedBy: userId,
-        settings: {}
+        id: crypto.randomUUID(),
+        plugin_id,
+        project_id,
+        installed_by: userId,
+        settings: {},
+        created_at: new Date(),
+        updated_at: new Date()
       }
     });
 
     return installation;
   }
 
-  async uninstallPlugin(pluginId: string, projectId: string) {
+  async uninstallPlugin(plugin_id: string, project_id: string) {
     await prisma.projectPlugin.deleteMany({
       where: {
-        pluginId,
-        projectId
+        plugin_id: plugin_id,
+        project_id: project_id
       }
     });
 
     return { success: true };
   }
 
-  async getProjectPlugins(projectId: string) {
+  async getProjectPlugins(project_id: string) {
     const plugins = await prisma.projectPlugin.findMany({
-      where: { projectId }
+      where: { project_id: project_id }
     });
 
     return plugins;
   }
 
   async configurePlugin(
-    pluginId: string,
-    projectId: string,
+    plugin_id: string,
+    project_id: string,
     settings: Record<string, any>
   ) {
     await prisma.projectPlugin.updateMany({
       where: {
-        pluginId,
-        projectId
+        plugin_id: plugin_id,
+        project_id: project_id
       },
       data: { settings: settings as any }
     });
@@ -250,16 +257,16 @@ export class PluginService {
     return { success: true };
   }
 
-  async getPluginHooks(projectId: string, event: string) {
+  async getPluginHooks(project_id: string, event: string) {
     const projectPlugins = await prisma.projectPlugin.findMany({
-      where: { projectId }
+      where: { project_id: project_id }
     });
 
     const hooks: PluginHook[] = [];
 
     for (const pp of projectPlugins) {
       const plugin = await prisma.plugin.findUnique({
-        where: { id: pp.pluginId }
+        where: { id: pp.plugin_id }
       });
       if (plugin && pp.status === 'active' && plugin.manifest) {
         const manifest = plugin.manifest as any;
@@ -273,14 +280,14 @@ export class PluginService {
   }
 
   async executeHook(
-    projectId: string,
+    project_id: string,
     event: string,
     data: any,
     hook: PluginHook
   ) {
     const result = await this.executePluginFunction(
       hook.handler,
-      { projectId, event, data }
+      { project_id, event, data }
     );
 
     return result;
@@ -297,7 +304,7 @@ export class PluginService {
     const plugins = await prisma.plugin.findMany({
       where: {
         status: 'active',
-        isPublic: true
+        is_public: true
       },
       orderBy: { installations: 'desc' },
       take: 50
@@ -306,19 +313,19 @@ export class PluginService {
     return plugins;
   }
 
-  async publishPlugin(pluginId: string) {
+  async publishPlugin(plugin_id: string) {
     await prisma.plugin.update({
-      where: { id: pluginId },
-      data: { isPublic: true }
+      where: { id: plugin_id },
+      data: { is_public: true }
     });
 
     return { success: true };
   }
 
-  async unpublishPlugin(pluginId: string) {
+  async unpublishPlugin(plugin_id: string) {
     await prisma.plugin.update({
-      where: { id: pluginId },
-      data: { isPublic: false }
+      where: { id: plugin_id },
+      data: { is_public: false }
     });
 
     return { success: true };
@@ -329,7 +336,7 @@ const RegisterSchema = z.object({
   name: z.string().min(1).max(100),
   version: z.string(),
   description: z.string().optional(),
-  entryPoint: z.string(),
+  entry_point: z.string(),
   permissions: z.array(z.string()),
   settings: z.record(z.string(), z.any()).optional()
 });

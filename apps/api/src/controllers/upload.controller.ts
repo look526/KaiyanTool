@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import path from 'path'
 import fs from 'fs/promises'
+import * as crypto from 'crypto'
 import sharp from 'sharp'
 import { ossService } from '../lib/oss'
 import logger from '../lib/logger'
@@ -24,7 +25,7 @@ class UploadController {
 
   async uploadImage(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
@@ -64,16 +65,16 @@ class UploadController {
       }
 
       res.json({ url, filename })
-      logger.info('图片上传成功', { userId: req.userId, filename, size: file.size })
+      logger.info('图片上传成功', { userId: req.user_id, filename, size: file.size })
     } catch (error) {
-      logger.error('上传失败', { userId: req.userId, error })
+      logger.error('上传失败', { userId: req.user_id, error })
       res.status(500).json({ error: '上传失败' })
     }
   }
 
   async uploadCharacterImage(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
@@ -107,16 +108,16 @@ class UploadController {
       }
 
       res.json({ url, filename })
-      logger.info('角色图片上传成功', { userId: req.userId, filename })
+      logger.info('角色图片上传成功', { userId: req.user_id, filename })
     } catch (error) {
-      logger.error('上传失败', { userId: req.userId, error })
+      logger.error('上传失败', { userId: req.user_id, error })
       res.status(500).json({ error: '上传失败' })
     }
   }
 
   async uploadSceneImage(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
@@ -150,16 +151,16 @@ class UploadController {
       }
 
       res.json({ url, filename })
-      logger.info('场景图片上传成功', { userId: req.userId, filename })
+      logger.info('场景图片上传成功', { userId: req.user_id, filename })
     } catch (error) {
-      logger.error('上传失败', { userId: req.userId, error })
+      logger.error('上传失败', { userId: req.user_id, error })
       res.status(500).json({ error: '上传失败' })
     }
   }
 
   async deleteImage(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
@@ -170,20 +171,20 @@ class UploadController {
       try {
         await fs.unlink(filepath)
       } catch (error) {
-        logger.error('删除文件失败', { userId: req.userId, filename, error })
+        logger.error('删除文件失败', { userId: req.user_id, filename, error })
       }
 
       res.json({ message: '图片删除成功' })
-      logger.info('图片删除成功', { userId: req.userId, filename })
+      logger.info('图片删除成功', { userId: req.user_id, filename })
     } catch (error) {
-      logger.error('删除失败', { userId: req.userId, filename: req.params.filename, error })
+      logger.error('删除失败', { userId: req.user_id, filename: req.params.filename, error })
       res.status(500).json({ error: '删除失败' })
     }
   }
 
   async uploadAsset(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
@@ -194,15 +195,15 @@ class UploadController {
         return
       }
 
-      const { projectId } = req.params
+      const { project_id } = req.params
       const { prisma } = await import('../lib/prisma')
 
       const project = await prisma.project.findFirst({
         where: {
-          id: projectId,
+          id: project_id,
           OR: [
-            { ownerId: req.userId },
-            { members: { some: { userId: req.userId } } },
+            { owner_id: req.user_id },
+            { ProjectMember: { some: { user_id: req.user_id } } },
           ],
         },
       })
@@ -231,21 +232,24 @@ class UploadController {
 
       const asset = await prisma.asset.create({
         data: {
+          id: crypto.randomUUID(),
           type: assetType,
           url,
-          projectId,
+          project_id,
           metadata: {
-            originalName: file.originalname,
+            original_name: file.originalname,
             size: file.size,
             mimetype: file.mimetype,
           },
+          created_at: new Date(),
+          updated_at: new Date(),
         },
       })
 
       res.json({ asset, url })
-      logger.info('资产上传成功', { userId: req.userId, projectId, assetId: asset.id })
+      logger.info('资产上传成功', { user_id: req.user_id, project_id, asset_id: asset.id })
     } catch (error) {
-      logger.error('资产上传失败', { userId: req.userId, error })
+      logger.error('资产上传失败', { user_id: req.user_id, error })
       res.status(500).json({ error: '上传失败' })
     }
   }

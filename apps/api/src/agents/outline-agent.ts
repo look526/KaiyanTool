@@ -1,6 +1,7 @@
 import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
 import { OUTLINE_AGENT, OUTLINE_AUX_PROMPTS } from '../prompts/agents';
+import * as crypto from 'crypto';
 
 interface OutlineInput {
   storylineId: string;
@@ -130,7 +131,7 @@ export class OutlineAgent {
 
     const prompt = OUTLINE_AUX_PROMPTS.expandScene.userPromptTemplate
       .replace('{{title}}', sceneId)
-      .replace('{{description}}', scene.description || '')
+      .replace('{{description}}', scene.location || '')
       .replace('{{characters}}', detail);
 
     const response = await aiProviderService.chat(
@@ -189,11 +190,14 @@ export class OutlineAgent {
   async saveOutline(projectId: string, outline: OutlineOutput): Promise<string> {
     const document = await prisma.document.create({
       data: {
-        projectId,
+        id: crypto.randomUUID(),
+        project_id: projectId,
         title: outline.title,
         type: 'outline',
         content: outline as any,
-        status: 'completed'
+        status: 'completed',
+        created_at: new Date(),
+        updated_at: new Date()
       }
     });
 

@@ -150,16 +150,16 @@ export const getScript = asyncHandler(async (req: Request, res: Response) => {
 
 export const continueScript = asyncHandler(async (req: Request, res: Response) => {
   const { content, context, model } = req.body;
-  const userId = req.userId;
+  const user_id = req.user_id;
 
   if (!content || typeof content !== 'string') {
     throw AppError.badRequest('剧本内容不能为空');
   }
 
-  const { aiProvider, modelName, providerId } = await AIProviderHelper.getProvider(userId, model);
+  const { aiProvider, modelName, providerId } = await AIProviderHelper.getProvider(user_id, model);
 
   logger.info('Continue script request', { 
-    userId, 
+    user_id, 
     providerId, 
     modelName, 
     contentLength: content.length 
@@ -194,16 +194,16 @@ export const continueScript = asyncHandler(async (req: Request, res: Response) =
 
 export const rewriteScript = asyncHandler(async (req: Request, res: Response) => {
   const { content, instruction, model } = req.body;
-  const userId = req.userId;
+  const user_id = req.user_id;
 
   if (!content || typeof content !== 'string') {
     throw AppError.badRequest('剧本内容不能为空');
   }
 
-  const { aiProvider, modelName, providerId } = await AIProviderHelper.getProvider(userId, model);
+  const { aiProvider, modelName, providerId } = await AIProviderHelper.getProvider(user_id, model);
 
   logger.info('Rewrite script request', { 
-    userId, 
+    user_id, 
     providerId, 
     modelName, 
     contentLength: content.length,
@@ -238,16 +238,16 @@ export const rewriteScript = asyncHandler(async (req: Request, res: Response) =>
 
 export const optimizeScene = asyncHandler(async (req: Request, res: Response) => {
   const { sceneContent, location, direction } = req.body;
-  const userId = req.userId;
+  const user_id = req.user_id;
 
   if (!sceneContent || typeof sceneContent !== 'string') {
     throw AppError.badRequest('场景内容不能为空');
   }
 
-  const { aiProvider, providerId } = await AIProviderHelper.getProvider(userId);
+  const { aiProvider, providerId } = await AIProviderHelper.getProvider(user_id);
 
   logger.info('Optimize scene request', { 
-    userId, 
+    user_id, 
     providerId, 
     location,
     hasDirection: !!direction
@@ -278,7 +278,7 @@ export const optimizeScene = asyncHandler(async (req: Request, res: Response) =>
     });
   } catch (aiError) {
     logger.warn('AI optimization failed, returning original content', { 
-      userId, 
+      user_id, 
       error: aiError instanceof Error ? aiError.message : String(aiError)
     });
     res.json({
@@ -291,20 +291,20 @@ export const optimizeScene = asyncHandler(async (req: Request, res: Response) =>
 
 export const parseScriptWithAI = asyncHandler(async (req: Request, res: Response) => {
   const { content, model } = req.body;
-  const userId = req.userId;
+  const user_id = req.user_id;
 
   if (!content || typeof content !== 'string') {
     throw AppError.badRequest('剧本内容不能为空');
   }
 
-  if (!userId) {
+  if (!user_id) {
     throw AppError.unauthorized();
   }
 
-  const { modelName, providerId } = await AIProviderHelper.getProviderForUser(userId, model);
+  const { modelName, providerId } = await AIProviderHelper.getProviderForUser(user_id, model);
 
   logger.info('Parse script with AI request', { 
-    userId, 
+    user_id, 
     providerId, 
     modelName, 
     contentLength: content.length 
@@ -314,17 +314,17 @@ export const parseScriptWithAI = asyncHandler(async (req: Request, res: Response
     largeTextProcessingService.setDefaultModel(modelName);
   }
 
-  const result = await scriptParserService.parseScriptWithLargeText(userId, content, {
+  const result = await scriptParserService.parseScriptWithLargeText(user_id, content, {
     useCache: false,
     onProgress: (progress, message) => {
-      logger.debug('Script parsing progress', { userId, progress, message });
+      logger.debug('Script parsing progress', { user_id, progress, message });
     },
     model: modelName,
     providerId: providerId
   });
 
   logger.info('Script parsing completed', { 
-    userId, 
+    user_id, 
     scenesCount: result.scenes.length,
     charactersCount: result.characters.length,
     itemsCount: result.items?.length || 0
@@ -343,16 +343,16 @@ export const parseScriptWithAI = asyncHandler(async (req: Request, res: Response
 
 export const optimizeSceneContent = asyncHandler(async (req: Request, res: Response) => {
   const { prompt, model } = req.body;
-  const userId = req.userId;
+  const user_id = req.user_id;
 
   if (!prompt || typeof prompt !== 'string') {
     throw AppError.badRequest('优化提示词不能为空');
   }
 
-  const { aiProvider, modelName, providerId } = await AIProviderHelper.getProvider(userId, model);
+  const { aiProvider, modelName, providerId } = await AIProviderHelper.getProvider(user_id, model);
 
   logger.info('Optimize scene content request', { 
-    userId, 
+    user_id, 
     providerId, 
     modelName, 
     promptLength: prompt.length 

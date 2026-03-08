@@ -7,9 +7,11 @@ import {
   Network,
   List,
   Sparkles,
+  Search,
+  Bot,
   Zap,
-  Globe,
-  Lock,
+  Coffee,
+  Search as SearchIcon,
 } from 'lucide-react';
 
 import { ContentType, ProviderType } from './types';
@@ -26,22 +28,24 @@ export const CONTENT_TYPES: ContentType[] = [
 ];
 
 export const PROVIDER_TYPES: ProviderType[] = [
-  { value: 'zhipu', label: '智谱 AI', icon: Zap, color: '#6366f1', description: '国产大语言模型领导者' },
   { value: 'openai', label: 'OpenAI', icon: Sparkles, color: '#10b981', description: '全球领先的AI研究实验室' },
-  { value: 'anthropic', label: 'Anthropic', icon: Globe, color: '#f59e0b', description: '安全可靠的AI助手' },
-  { value: 'deepseek', label: 'DeepSeek', icon: Lock, color: '#ec4899', description: '深度求索AI模型' },
+  { value: 'google', label: 'Google AI', icon: Search, color: '#4285f4', description: 'Google 大语言模型' },
+  { value: 'antsk', label: 'AntSK', icon: Bot, color: '#ff6b35', description: '蚂蚁科技AI服务' },
+  { value: 'zhipu', label: '智谱 AI', icon: Zap, color: '#6366f1', description: '国产大语言模型领导者' },
+  { value: 'seedream', label: '豆包', icon: Coffee, color: '#ff8c00', description: '字节跳动AI模型' },
+  { value: 'deepseek', label: 'DeepSeek', icon: SearchIcon, color: '#6b7280', description: '深度求索AI模型' },
 ];
 
 export const INITIAL_PROVIDER_FORM_DATA = {
-  type: 'zhipu',
-  apiKey: '',
-  baseUrl: '',
+  type: 'openai',
+  api_key: '',
+  base_url: '',
   enabled: true,
 };
 
 export const INITIAL_MODEL_FORM_DATA = {
   name: '',
-  modelId: '',
+  model_id: '',
   types: [] as string[],
   description: '',
   capabilities: [] as string[],

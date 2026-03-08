@@ -1,48 +1,52 @@
 import { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import logger from '../lib/logger'
+import * as crypto from 'crypto'
 
 class NovelController {
   async createNovel(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { projectId, title, content } = req.body
+      const { project_id, title, content } = req.body
 
       const novel = await prisma.novel.create({
         data: {
-          projectId,
-          title,
+          id: crypto.randomUUID(),
+          project_id: project_id as string,
+          title: title as string,
           content: content || '',
+          created_at: new Date(),
+          updated_at: new Date(),
         },
       })
 
-      logger.info('小说创建成功', { userId: req.userId, novelId: novel.id })
+      logger.info('小说创建成功', { userId: req.user_id, novel_id: novel.id })
       res.status(201).json(novel)
     } catch (error) {
-      logger.error('创建小说失败', { error, projectId: req.body.projectId })
+      logger.error('创建小说失败', { error, project_id: req.body.project_id })
       res.status(500).json({ error: 'Failed to create novel' })
     }
   }
 
   async getNovelsByProject(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { projectId } = req.params
+      const { project_id } = req.params
 
       const project = await prisma.project.findFirst({
         where: {
-          id: projectId,
+          id: project_id,
           OR: [
-            { ownerId: req.userId },
-            { members: { some: { userId: req.userId } } },
+            { owner_id: req.user_id },
+            { ProjectMember: { some: { user_id: req.user_id } } },
           ],
         },
       })
@@ -53,25 +57,25 @@ class NovelController {
       }
 
       const novels = await prisma.novel.findMany({
-        where: { projectId },
+        where: { project_id: project_id },
         include: {
-          chapters: {
+          Chapter: {
             orderBy: { order: 'asc' },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { created_at: 'desc' },
       })
 
       res.json({ novels })
     } catch (error) {
-      logger.error('获取小说列表失败', { error, projectId: req.params.projectId })
+      logger.error('获取小说列表失败', { error, project_id: req.params.project_id })
       res.status(500).json({ error: 'Failed to get novels' })
     }
   }
 
   async getNovelById(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
@@ -81,15 +85,15 @@ class NovelController {
       const novel = await prisma.novel.findFirst({
         where: {
           id,
-          project: {
+          Project: {
             OR: [
-              { ownerId: req.userId },
-              { members: { some: { userId: req.userId } } },
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id } } },
             ],
           },
         },
         include: {
-          chapters: {
+          Chapter: {
             orderBy: { order: 'asc' },
           },
         },
@@ -102,14 +106,14 @@ class NovelController {
 
       res.json(novel)
     } catch (error) {
-      logger.error('获取小说详情失败', { error, novelId: req.params.id })
+      logger.error('获取小说详情失败', { error, novel_id: req.params.id })
       res.status(500).json({ error: 'Failed to get novel' })
     }
   }
 
   async updateNovel(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
@@ -120,10 +124,10 @@ class NovelController {
       const novel = await prisma.novel.findFirst({
         where: {
           id,
-          project: {
+          Project: {
             OR: [
-              { ownerId: req.userId },
-              { members: { some: { userId: req.userId, role: { in: ['owner', 'editor'] } } } },
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id, role: { in: ['owner', 'editor'] } } } },
             ],
           },
         },
@@ -142,17 +146,17 @@ class NovelController {
         },
       })
 
-      logger.info('小说更新成功', { userId: req.userId, novelId: id })
+      logger.info('小说更新成功', { userId: req.user_id, novel_id: id })
       res.json(updated)
     } catch (error) {
-      logger.error('更新小说失败', { error, novelId: req.params.id })
+      logger.error('更新小说失败', { error, novel_id: req.params.id })
       res.status(500).json({ error: 'Failed to update novel' })
     }
   }
 
   async deleteNovel(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
@@ -162,10 +166,10 @@ class NovelController {
       const novel = await prisma.novel.findFirst({
         where: {
           id,
-          project: {
+          Project: {
             OR: [
-              { ownerId: req.userId },
-              { members: { some: { userId: req.userId, role: { in: ['owner', 'editor'] } } } },
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id, role: { in: ['owner', 'editor'] } } } },
             ],
           },
         },
@@ -180,31 +184,31 @@ class NovelController {
         where: { id },
       })
 
-      logger.info('小说删除成功', { userId: req.userId, novelId: id })
+      logger.info('小说删除成功', { userId: req.user_id, novel_id: id })
       res.json({ message: 'Novel deleted successfully' })
     } catch (error) {
-      logger.error('删除小说失败', { error, novelId: req.params.id })
+      logger.error('删除小说失败', { error, novel_id: req.params.id })
       res.status(500).json({ error: 'Failed to delete novel' })
     }
   }
 
   async createChapter(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { novelId } = req.params
+      const { novel_id } = req.params
       const { title, content } = req.body
 
       const novel = await prisma.novel.findFirst({
         where: {
-          id: novelId,
-          project: {
+          id: novel_id,
+          Project: {
             OR: [
-              { ownerId: req.userId },
-              { members: { some: { userId: req.userId, role: { in: ['owner', 'editor'] } } } },
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id, role: { in: ['owner', 'editor'] } } } },
             ],
           },
         },
@@ -216,44 +220,45 @@ class NovelController {
       }
 
       const maxOrder = await prisma.chapter.findFirst({
-        where: { novelId },
+        where: { novel_id },
         orderBy: { order: 'desc' },
         select: { order: true },
       })
 
       const chapter = await prisma.chapter.create({
         data: {
-          novelId,
+          id: crypto.randomUUID(),
+          novel_id,
           title,
           content: content || '',
           order: (maxOrder?.order ?? 0) + 1,
         },
       })
 
-      logger.info('章节创建成功', { userId: req.userId, chapterId: chapter.id })
+      logger.info('章节创建成功', { userId: req.user_id, chapter_id: chapter.id })
       res.status(201).json(chapter)
     } catch (error) {
-      logger.error('创建章节失败', { error, novelId: req.params.novelId })
+      logger.error('创建章节失败', { error, novel_id: req.params.novel_id })
       res.status(500).json({ error: 'Failed to create chapter' })
     }
   }
 
   async getChaptersByNovel(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { novelId } = req.params
+      const { novel_id } = req.params
 
       const novel = await prisma.novel.findFirst({
         where: {
-          id: novelId,
-          project: {
+          id: novel_id,
+          Project: {
             OR: [
-              { ownerId: req.userId },
-              { members: { some: { userId: req.userId } } },
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id } } },
             ],
           },
         },
@@ -265,34 +270,34 @@ class NovelController {
       }
 
       const chapters = await prisma.chapter.findMany({
-        where: { novelId },
+        where: { novel_id },
         orderBy: { order: 'asc' },
       })
 
       res.json(chapters)
     } catch (error) {
-      logger.error('获取章节列表失败', { error, novelId: req.params.novelId })
+      logger.error('获取章节列表失败', { error, novel_id: req.params.novel_id })
       res.status(500).json({ error: 'Failed to get chapters' })
     }
   }
 
   async updateChapter(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { novelId, id } = req.params
+      const { novel_id, id } = req.params
       const { title, content, order } = req.body
 
       const novel = await prisma.novel.findFirst({
         where: {
-          id: novelId,
-          project: {
+          id: novel_id,
+          Project: {
             OR: [
-              { ownerId: req.userId },
-              { members: { some: { userId: req.userId, role: { in: ['owner', 'editor'] } } } },
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id, role: { in: ['owner', 'editor'] } } } },
             ],
           },
         },
@@ -312,30 +317,30 @@ class NovelController {
         },
       })
 
-      logger.info('章节更新成功', { userId: req.userId, chapterId: id })
+      logger.info('章节更新成功', { userId: req.user_id, chapter_id: id })
       res.json(updated)
     } catch (error) {
-      logger.error('更新章节失败', { error, chapterId: req.params.id })
+      logger.error('更新章节失败', { error, chapter_id: req.params.id })
       res.status(500).json({ error: 'Failed to update chapter' })
     }
   }
 
   async deleteChapter(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { novelId, id } = req.params
+      const { novel_id, id } = req.params
 
       const novel = await prisma.novel.findFirst({
         where: {
-          id: novelId,
-          project: {
+          id: novel_id,
+          Project: {
             OR: [
-              { ownerId: req.userId },
-              { members: { some: { userId: req.userId, role: { in: ['owner', 'editor'] } } } },
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id, role: { in: ['owner', 'editor'] } } } },
             ],
           },
         },
@@ -350,30 +355,30 @@ class NovelController {
         where: { id },
       })
 
-      logger.info('章节删除成功', { userId: req.userId, chapterId: id })
+      logger.info('章节删除成功', { userId: req.user_id, chapter_id: id })
       res.json({ message: 'Chapter deleted successfully' })
     } catch (error) {
-      logger.error('删除章节失败', { error, chapterId: req.params.id })
+      logger.error('删除章节失败', { error, chapter_id: req.params.id })
       res.status(500).json({ error: 'Failed to delete chapter' })
     }
   }
 
   async parseNovel(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { novelId, text } = req.body
+      const { novel_id, text } = req.body
 
       const novel = await prisma.novel.findFirst({
         where: {
-          id: novelId,
-          project: {
+          id: novel_id,
+          Project: {
             OR: [
-              { ownerId: req.userId },
-              { members: { some: { userId: req.userId, role: { in: ['owner', 'editor'] } } } },
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id, role: { in: ['owner', 'editor'] } } } },
             ],
           },
         },
@@ -389,7 +394,7 @@ class NovelController {
 
       // 删除现有章节
       await prisma.chapter.deleteMany({
-        where: { novelId },
+        where: { novel_id },
       })
 
       // 创建新章节
@@ -397,7 +402,8 @@ class NovelController {
       for (let i = 0; i < chapters.length; i++) {
         const chapter = await prisma.chapter.create({
           data: {
-            novelId,
+            id: crypto.randomUUID(),
+            novel_id,
             title: chapters[i].title,
             content: chapters[i].content,
             order: i + 1,
@@ -406,10 +412,10 @@ class NovelController {
         createdChapters.push(chapter)
       }
 
-      logger.info('小说解析成功', { userId: req.userId, novelId, chapterCount: createdChapters.length })
+      logger.info('小说解析成功', { userId: req.user_id, novel_id, chapterCount: createdChapters.length })
       res.status(201).json({ chapters: createdChapters })
     } catch (error) {
-      logger.error('解析小说失败', { error, novelId: req.body.novelId })
+      logger.error('解析小说失败', { error, novel_id: req.body.novel_id })
       res.status(500).json({ error: 'Failed to parse novel' })
     }
   }

@@ -1,32 +1,27 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import { apiClient, User } from '../../lib/api';
+import { apiClient } from '../../lib/api';
 
 interface AuthState {
-  user: User | null;
-  loading: boolean;
+  token: string | null;
+  refreshToken: string | null;
   rememberMe: boolean;
   sessionExpired: boolean;
 }
 
 interface AuthActions {
-  setUser: (user: User | null) => void;
-  setLoading: (loading: boolean) => void;
+  setTokens: (token: string, refreshToken?: string) => void;
   setRememberMe: (rememberMe: boolean) => void;
   setSessionExpired: (expired: boolean) => void;
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;
-  checkAuth: () => Promise<void>;
-  clearSessionExpired: () => void;
+  clearSession: () => void;
 }
 
 const ENABLE_AUTH = true;
 
 const initialState: AuthState = {
-  user: null,
-  loading: true,
+  token: null,
+  refreshToken: null,
   rememberMe: false,
   sessionExpired: false,
 };
@@ -34,80 +29,39 @@ const initialState: AuthState = {
 export const useAuthStore = create<AuthState & AuthActions>()(
   devtools(
     persist(
-      (set, get) => ({
+      (set) => ({
         ...initialState,
 
-        setUser: (user) => set({ user }),
-        setLoading: (loading) => set({ loading }),
+        setTokens: (token, refreshToken) => set({ 
+          token, 
+          refreshToken: refreshToken || null,
+        }),
+        
         setRememberMe: (rememberMe) => set({ rememberMe }),
+        
         setSessionExpired: (sessionExpired) => set({ sessionExpired }),
-
-        clearSessionExpired: () => set({ sessionExpired: false }),
-
-        checkAuth: async () => {
-          if (!ENABLE_AUTH) {
-            const mockUser: User = {
-              id: 'mock-user-id',
-              name: 'Mock User',
-              email: 'mock@example.com',
-              avatarUrl: null,
-              bio: null,
-              role: 'user',
-              plan: 'free',
-              storageUsed: BigInt(0),
-              storageLimit: BigInt(1073741824),
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            };
-            set({ user: mockUser, loading: false });
-            return;
-          }
-
-          try {
-            const response = await apiClient.getCurrentUser();
-            set({
-              user: response.user,
-              rememberMe: response.rememberMe || false,
-              loading: false,
-            });
-          } catch {
-            set({ user: null, rememberMe: false, loading: false });
-          }
-        },
-
-        login: async (email, password, rememberMe) => {
-          const response = await apiClient.login({ email, password, rememberMe });
-          set({ user: response.user, rememberMe: rememberMe || false });
-        },
-
-        register: async (name, email, password) => {
-          const response = await apiClient.register({ name, email, password });
-          set({ user: response.user, rememberMe: false });
-        },
-
+        
         logout: async () => {
           try {
             await apiClient.logout();
           } catch (error) {
             console.error('Logout error:', error);
           } finally {
-            set({ user: null, rememberMe: false });
+            set({ 
+              token: null, 
+              refreshToken: null, 
+              sessionExpired: false 
+            });
             localStorage.removeItem('rememberedEmail');
             localStorage.removeItem('rememberMe');
           }
         },
-
-        refreshUser: async () => {
-          try {
-            const response = await apiClient.getCurrentUser();
-            set({
-              user: response.user,
-              rememberMe: response.rememberMe || false,
-            });
-          } catch {
-            set({ user: null, rememberMe: false });
-          }
-        },
+        
+        clearSession: () => set({ 
+          token: null, 
+          refreshToken: null, 
+          sessionExpired: false 
+        }),
       }),
       {
         name: 'kaiyan-auth',
@@ -123,14 +77,15 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 export const useAuth = () => {
   const store = useAuthStore();
   return {
-    user: store.user,
-    loading: store.loading,
+    token: store.token,
+    refreshToken: store.refreshToken,
     rememberMe: store.rememberMe,
     sessionExpired: store.sessionExpired,
-    login: store.login,
-    register: store.register,
+    isAuthenticated: !!store.token,
+    setTokens: store.setTokens,
+    setRememberMe: store.setRememberMe,
+    setSessionExpired: store.setSessionExpired,
     logout: store.logout,
-    refreshUser: store.refreshUser,
-    clearSessionExpired: store.clearSessionExpired,
+    clearSession: store.clearSession,
   };
 };

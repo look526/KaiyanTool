@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { Mail, Lock, ArrowRight, Sparkles, Eye, EyeOff, ShieldCheck, Moon, Sun, AlertCircle } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
+import { Mail, Lock, ArrowRight, Sparkles, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { Button } from '../components/ui/button-new';
+import { apiClient } from '../lib/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -12,10 +11,10 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [shake, setShake] = useState(false);
+  const [focused, setFocused] = useState<string | null>(null);
+  
   const navigate = useNavigate();
   const location = useLocation();
-  const { theme, toggleTheme } = useTheme();
   const { login, sessionExpired, clearSessionExpired } = useAuth();
 
   useEffect(() => {
@@ -26,14 +25,6 @@ export default function LoginPage() {
       setRememberMe(savedRememberMe);
     }
   }, []);
-
-  useEffect(() => {
-    if (error) {
-      setShake(true);
-      const timer = setTimeout(() => setShake(false), 500);
-      return () => clearTimeout(timer);
-    }
-  }, [error]);
 
   useEffect(() => {
     if (sessionExpired) {
@@ -48,7 +39,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await login(email, password, Boolean(rememberMe));
+      await apiClient.login({ email, password, remember_me: rememberMe });
       
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
@@ -58,8 +49,10 @@ export default function LoginPage() {
         localStorage.removeItem('rememberMe');
       }
       
-      const redirectTo = (location.state as { from?: { pathname?: string } })?.from?.pathname || '/projects';
-      navigate(redirectTo, { replace: true });
+      // 延迟一下再跳转，确保状态更新完成
+      setTimeout(() => {
+        window.location.href = '/projects';
+      }, 100);
     } catch (err) {
       setError(err instanceof Error ? err.message : '登录失败');
     } finally {
@@ -67,487 +60,349 @@ export default function LoginPage() {
     }
   };
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    height: '52px',
-    padding: '0 16px 0 52px',
-    fontSize: '15px',
-    backgroundColor: 'var(--bg-secondary)',
-    border: '2px solid var(--border-primary)',
-    borderRadius: '16px',
-    color: 'var(--text-primary)',
-    outline: 'none',
-    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-    boxSizing: 'border-box',
-    fontFamily: 'var(--font-family-sans)',
-  };
-
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--bg-primary)',
+    <div style={{ 
+      minHeight: '100vh', 
+      background: '#ffffff',
       display: 'flex',
-      position: 'relative',
-      overflow: 'hidden',
     }}>
+      {/* Left Side - Branding */}
       <div style={{
-        position: 'absolute',
-        inset: 0,
-        background: theme === 'dark' 
-          ? 'radial-gradient(ellipse at 20% 0%, rgba(0, 122, 255, 0.15) 0%, transparent 50%), radial-gradient(ellipse at 80% 100%, rgba(88, 86, 214, 0.1) 0%, transparent 50%)'
-          : 'radial-gradient(ellipse at 20% 0%, rgba(0, 122, 255, 0.08) 0%, transparent 50%), radial-gradient(ellipse at 80% 100%, rgba(88, 86, 214, 0.05) 0%, transparent 50%)',
-      }} />
+        flex: 1,
+        background: '#0a0a0a',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        padding: '80px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Subtle pattern */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          opacity: 0.03,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+        }} />
 
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+            marginBottom: '48px',
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Sparkles size={24} color="#fff" />
+            </div>
+            <span style={{
+              fontSize: '24px',
+              fontWeight: 600,
+              color: '#ffffff',
+              letterSpacing: '-0.02em',
+            }}>
+              开演AI
+            </span>
+          </div>
+
+          <h1 style={{
+            fontSize: '48px',
+            fontWeight: 600,
+            color: '#ffffff',
+            lineHeight: 1.2,
+            marginBottom: '24px',
+            letterSpacing: '-0.03em',
+          }}>
+            AI 驱动创作
+          </h1>
+          
+          <p style={{
+            fontSize: '18px',
+            color: '#737373',
+            lineHeight: 1.7,
+            maxWidth: '400px',
+          }}>
+            从剧本到视频的完整创作工作流，让 AI 成为您的创作伙伴
+          </p>
+
+          <div style={{ marginTop: '64px' }}>
+            {['智能剧本生成', '角色一致性', '场景优化', '批量生成'].map((feature, i) => (
+              <div key={i} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '16px',
+                color: '#a3a3a3',
+                fontSize: '15px',
+              }}>
+                <div style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: '#6366f1',
+                }} />
+                {feature}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom text */}
+        <div style={{
+          position: 'absolute',
+          bottom: '40px',
+          left: '80px',
+          color: '#404040',
+          fontSize: '13px',
+        }}>
+          © 2025 开演AI. All rights reserved.
+        </div>
+      </div>
+
+      {/* Right Side - Form */}
       <div style={{
         flex: 1,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '24px',
-        position: 'relative',
-        zIndex: 10,
+        padding: '40px',
+        background: '#ffffff',
       }}>
-        <div style={{ width: '100%', maxWidth: '440px' }}>
-          <button
-            onClick={toggleTheme}
-            aria-label="切换主题"
-            style={{
-              position: 'absolute',
-              top: '24px',
-              right: '24px',
-              width: '48px',
-              height: '48px',
-              borderRadius: '16px',
-              border: '2px solid var(--border-subtle)',
-              background: 'var(--bg-secondary)',
-              color: 'var(--text-tertiary)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--bg-hover)';
-              e.currentTarget.style.color = 'var(--text-primary)';
-              e.currentTarget.style.borderColor = 'var(--color-primary)';
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'var(--bg-secondary)';
-              e.currentTarget.style.color = 'var(--text-tertiary)';
-              e.currentTarget.style.borderColor = 'var(--border-subtle)';
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.06)';
-            }}
-          >
-            {theme === 'dark' ? <Sun size={22} /> : <Moon size={22} />}
-          </button>
+        <div style={{ width: '100%', maxWidth: '400px' }}>
+          <h2 style={{
+            fontSize: '32px',
+            fontWeight: 600,
+            color: '#171717',
+            marginBottom: '8px',
+            letterSpacing: '-0.02em',
+          }}>
+            欢迎回来
+          </h2>
+          <p style={{
+            color: '#737373',
+            fontSize: '15px',
+            marginBottom: '40px',
+          }}>
+            登录您的账户
+          </p>
 
-          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-            <Link to="/" style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '16px',
-              marginBottom: '32px',
-              textDecoration: 'none',
-            }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {error && (
               <div style={{
-                width: '60px',
-                height: '60px',
-                background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 100%)',
-                borderRadius: '20px',
+                padding: '14px 16px',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: '8px',
+                color: '#dc2626',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}>
+                <AlertCircle size={16} />
+                {error}
+              </div>
+            )}
+
+            {/* Email */}
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: '#404040',
+                marginBottom: '8px',
+              }}>
+                邮箱
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Mail size={18} style={{
+                  position: 'absolute',
+                  left: '16px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: focused === 'email' ? '#6366f1' : '#a3a3a3',
+                  transition: 'color 0.2s',
+                  zIndex: 1,
+                }} />
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  onFocus={() => setFocused('email')}
+                  onBlur={() => setFocused(null)}
+                  style={{
+                    width: '100%',
+                    height: '48px',
+                    padding: '0 16px 0 48px',
+                    fontSize: '15px',
+                    background: '#fafafa',
+                    border: focused === 'email' ? '1px solid #6366f1' : '1px solid #e5e5e5',
+                    borderRadius: '8px',
+                    color: '#171717',
+                    outline: 'none',
+                    transition: 'all 0.2s',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: '#404040',
+                marginBottom: '8px',
+              }}>
+                密码
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Lock size={18} style={{
+                  position: 'absolute',
+                  left: '16px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: focused === 'password' ? '#6366f1' : '#a3a3a3',
+                  transition: 'color 0.2s',
+                  zIndex: 1,
+                }} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="输入密码"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  onFocus={() => setFocused('password')}
+                  onBlur={() => setFocused(null)}
+                  style={{
+                    width: '100%',
+                    height: '48px',
+                    padding: '0 48px 0 48px',
+                    fontSize: '15px',
+                    background: '#fafafa',
+                    border: focused === 'password' ? '1px solid #6366f1' : '1px solid #e5e5e5',
+                    borderRadius: '8px',
+                    color: '#171717',
+                    outline: 'none',
+                    transition: 'all 0.2s',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'flex',
+                    color: '#a3a3a3',
+                  }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Remember & Forgot */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                color: '#737373',
+                cursor: 'pointer',
+                fontSize: '14px',
+              }}>
+                <input 
+                  type="checkbox" 
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    accentColor: '#6366f1',
+                  }} 
+                />
+                记住我
+              </label>
+              <Link 
+                to="/forgot-password" 
+                style={{
+                  color: '#6366f1',
+                  textDecoration: 'none',
+                  fontSize: '14px',
+                }}
+              >
+                忘记密码？
+              </Link>
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%',
+                height: '48px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 8px 24px rgba(0, 122, 255, 0.35)',
-              }}>
-                <Sparkles size={30} color="white" />
-              </div>
-              <span style={{
-                fontSize: '26px',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
-                letterSpacing: '-0.02em',
-              }}>
-                开演AI
-              </span>
-            </Link>
-            
-            <h1 style={{
-              fontSize: '32px',
-              fontWeight: 700,
-              color: 'var(--text-primary)',
-              marginBottom: '12px',
-              letterSpacing: '-0.02em',
-            }}>
-              欢迎回来
-            </h1>
-            
-            <p style={{
-              color: 'var(--text-secondary)',
-              fontSize: '16px',
-              lineHeight: 1.6,
-            }}>
-              登录您的账户，继续您的创作之旅
-            </p>
-          </div>
-
-          <div style={{
-            background: 'var(--bg-secondary)',
-            border: '2px solid var(--border-subtle)',
-            borderRadius: '24px',
-            padding: '32px',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-            transform: shake ? 'translateX(8px)' : 'translateX(0)',
-            transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-          }}>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              {error && (
-                <div style={{
-                  padding: '16px',
-                  background: 'rgba(255, 59, 48, 0.1)',
-                  border: '2px solid #FF3B30',
-                  borderRadius: '16px',
-                  color: '#FF3B30',
-                  fontSize: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  fontWeight: 500,
-                }}>
-                  <AlertCircle size={20} style={{ flexShrink: 0 }} />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  color: 'var(--text-primary)',
-                  marginBottom: '10px',
-                }}>
-                  账号
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <div style={{
-                    position: 'absolute',
-                    left: '18px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--text-tertiary)',
-                    transition: 'color 0.2s',
-                  }}>
-                    <Mail size={20} />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="请输入您的账号"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    autoComplete="email"
-                    style={inputStyle}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--color-primary)';
-                      e.currentTarget.style.boxShadow = '0 0 0 4px rgba(0, 122, 255, 0.15)';
-                      const icon = e.currentTarget.previousElementSibling as HTMLElement;
-                      if (icon) icon.style.color = 'var(--color-primary)';
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border-primary)';
-                      e.currentTarget.style.boxShadow = 'none';
-                      const icon = e.currentTarget.previousElementSibling as HTMLElement;
-                      if (icon) icon.style.color = 'var(--text-tertiary)';
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  color: 'var(--text-primary)',
-                  marginBottom: '10px',
-                }}>
-                  密码
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <div style={{
-                    position: 'absolute',
-                    left: '18px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--text-tertiary)',
-                    transition: 'color 0.2s',
-                  }}>
-                    <Lock size={20} />
-                  </div>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="请输入您的密码"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    autoComplete="current-password"
-                    style={{ ...inputStyle, paddingRight: '52px' }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--color-primary)';
-                      e.currentTarget.style.boxShadow = '0 0 0 4px rgba(0, 122, 255, 0.15)';
-                      const icon = e.currentTarget.previousElementSibling as HTMLElement;
-                      if (icon) icon.style.color = 'var(--color-primary)';
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border-primary)';
-                      e.currentTarget.style.boxShadow = 'none';
-                      const icon = e.currentTarget.previousElementSibling as HTMLElement;
-                      if (icon) icon.style.color = 'var(--text-tertiary)';
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? '隐藏密码' : '显示密码'}
-                    style={{
-                      position: 'absolute',
-                      right: '16px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--text-tertiary)',
-                      transition: 'all 0.2s',
-                      borderRadius: '8px',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = 'var(--text-primary)';
-                      e.currentTarget.style.background = 'var(--bg-hover)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = 'var(--text-tertiary)';
-                      e.currentTarget.style.background = 'transparent';
-                    }}
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <label style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  userSelect: 'none',
-                }}>
-                  <input 
-                    type="checkbox" 
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    style={{
-                      width: '18px',
-                      height: '18px',
-                      borderRadius: '6px',
-                      border: '2px solid var(--border-primary)',
-                      cursor: 'pointer',
-                      accentColor: 'var(--color-primary)',
-                    }} 
-                  />
-                  记住我
-                </label>
-                <Link 
-                  to="/forgot-password" 
-                  style={{
-                    color: 'var(--color-primary)',
-                    textDecoration: 'none',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = 'var(--color-primary-hover)';
-                    e.currentTarget.style.textDecoration = 'underline';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = 'var(--color-primary)';
-                    e.currentTarget.style.textDecoration = 'none';
-                  }}
-                >
-                  忘记密码？
-                </Link>
-              </div>
-
-              <Button
-                type="submit"
-                variant="primary"
-                size="xl"
-                fullWidth
-                disabled={loading}
-                loading={loading}
-                icon={loading ? null : <ArrowRight size={18} />}
-                iconPosition="right"
-              >
-                {loading ? '登录中...' : '登录'}
-              </Button>
-
-              <div style={{ 
-                textAlign: 'center', 
-                fontSize: '14px', 
-                color: 'var(--text-secondary)',
-                paddingTop: '16px',
-                borderTop: '1px solid var(--border-subtle)',
-              }}>
-                还没有账户？{' '}
-                <Link 
-                  to="/register" 
-                  style={{
-                    color: 'var(--color-primary)',
-                    textDecoration: 'none',
-                    fontWeight: 600,
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = 'var(--color-primary-hover)';
-                    e.currentTarget.style.textDecoration = 'underline';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = 'var(--color-primary)';
-                    e.currentTarget.style.textDecoration = 'none';
-                  }}
-                >
-                  创建账户
-                </Link>
-              </div>
-            </form>
-          </div>
-
-          <div style={{ marginTop: '32px', textAlign: 'center' }}>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              color: 'var(--text-tertiary)',
-              fontSize: '13px',
-            }}>
-              <ShieldCheck size={16} />
-              您的账户安全是我们的首要任务
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{
-        width: '50%',
-        background: theme === 'dark' 
-          ? 'linear-gradient(135deg, rgba(0, 122, 255, 0.12) 0%, rgba(88, 86, 214, 0.08) 50%, rgba(175, 82, 222, 0.06) 100%)'
-          : 'linear-gradient(135deg, rgba(0, 122, 255, 0.06) 0%, rgba(88, 86, 214, 0.04) 50%, rgba(175, 82, 222, 0.03) 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        <div style={{
-          position: 'absolute',
-          width: '500px',
-          height: '500px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(0, 122, 255, 0.15) 0%, transparent 70%)',
-          top: '10%',
-          right: '5%',
-        }} />
-        <div style={{
-          position: 'absolute',
-          width: '400px',
-          height: '400px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(175, 82, 222, 0.12) 0%, transparent 70%)',
-          bottom: '10%',
-          left: '5%',
-        }} />
-        
-        <div style={{
-          textAlign: 'center',
-          padding: '40px',
-          position: 'relative',
-          zIndex: 1,
-          maxWidth: '480px',
-        }}>
-          <div style={{
-            width: '140px',
-            height: '140px',
-            margin: '0 auto 32px',
-            background: 'linear-gradient(135deg, #007AFF 0%, #5856D6 50%, #AF52DE 100%)',
-            borderRadius: '40px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 20px 60px rgba(0, 122, 255, 0.3)',
-          }}>
-            <Sparkles size={70} color="white" />
-          </div>
-          
-          <h2 style={{
-            fontSize: '36px',
-            fontWeight: 700,
-            color: 'var(--text-primary)',
-            marginBottom: '16px',
-            letterSpacing: '-0.02em',
-          }}>
-            AI 驱动创作
-          </h2>
-          
-          <p style={{
-            fontSize: '18px',
-            color: 'var(--text-secondary)',
-            lineHeight: 1.7,
-            marginBottom: '40px',
-          }}>
-            利用人工智能技术，让您的剧本创作更加高效、专业
-          </p>
-          
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '12px',
-            flexWrap: 'wrap',
-          }}>
-            {['剧本解析', '角色生成', '场景优化', 'AI 续写'].map((feature, index) => (
-              <div key={index} style={{
-                padding: '10px 20px',
-                background: 'var(--bg-secondary)',
-                borderRadius: '100px',
-                fontSize: '14px',
+                gap: '8px',
+                fontSize: '15px',
                 fontWeight: 500,
-                color: 'var(--text-secondary)',
-                border: '1px solid var(--border-subtle)',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-              }}>
-                {feature}
-              </div>
-            ))}
-          </div>
+                borderRadius: '8px',
+                border: 'none',
+                background: loading ? '#a3a3a3' : '#171717',
+                color: '#ffffff',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                marginTop: '8px',
+              }}
+            >
+              {loading ? '登录中...' : (
+                <>
+                  登录
+                  <ArrowRight size={16} />
+                </>
+              )}
+            </button>
+
+            {/* Register */}
+            <div style={{ 
+              textAlign: 'center', 
+              fontSize: '14px', 
+              color: '#737373',
+            }}>
+              还没有账户？{' '}
+              <Link 
+                to="/register" 
+                style={{
+                  color: '#171717',
+                  textDecoration: 'none',
+                  fontWeight: 500,
+                }}
+              >
+                立即注册
+              </Link>
+            </div>
+          </form>
         </div>
       </div>
     </div>

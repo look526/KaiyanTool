@@ -1,4 +1,8 @@
 import { PrismaClient } from '@prisma/client'
+import dotenv from 'dotenv'
+
+// 确保在初始化 Prisma 客户端之前加载环境变量
+dotenv.config({ path: '.env' })
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient }
 

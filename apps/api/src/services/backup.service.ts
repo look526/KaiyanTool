@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { z } from 'zod';
+import crypto from 'crypto';
 import { createBackup, restoreBackup, deleteBackup } from './backup-internal.service';
 
 const CreateBackupSchema = z.object({
@@ -21,7 +22,7 @@ export class BackupService {
       throw new Error('Project not found');
     }
 
-    if (project.ownerId !== userId) {
+    if (project.owner_id !== userId) {
       throw new Error('Only owner can create backups');
     }
 
@@ -33,11 +34,13 @@ export class BackupService {
 
     await prisma.backup.create({
       data: {
-        projectId: validated.projectId,
-        backupId: backup.id,
+        id: crypto.randomUUID(),
+        project_id: validated.projectId,
+        backup_id: backup.id,
         description: validated.description,
         size: backup.size,
-        createdBy: userId
+        created_by: userId,
+        created_at: new Date()
       }
     });
 
@@ -49,12 +52,12 @@ export class BackupService {
 
     const [backups, total] = await Promise.all([
       prisma.backup.findMany({
-        where: { projectId },
-        orderBy: { createdAt: 'desc' },
+        where: { project_id: projectId },
+        orderBy: { created_at: 'desc' },
         take: limit,
         skip: offset
       }),
-      prisma.backup.count({ where: { projectId } })
+      prisma.backup.count({ where: { project_id: projectId } })
     ]);
 
     return { backups, total, hasMore: offset + backups.length < total };
@@ -70,18 +73,18 @@ export class BackupService {
     }
 
     const project = await prisma.project.findUnique({
-      where: { id: backup.projectId }
+      where: { id: backup.project_id }
     });
 
     if (!project) {
       throw new Error('Project not found');
     }
 
-    if (project.ownerId !== userId) {
+    if (project.owner_id !== userId) {
       throw new Error('Only owner can restore backups');
     }
 
-    const result = await restoreBackup(backup.backupId);
+    const result = await restoreBackup(backup.backup_id);
 
     return result;
   }
@@ -96,18 +99,18 @@ export class BackupService {
     }
 
     const project = await prisma.project.findUnique({
-      where: { id: backup.projectId }
+      where: { id: backup.project_id }
     });
 
     if (!project) {
       throw new Error('Project not found');
     }
 
-    if (project.ownerId !== userId) {
+    if (project.owner_id !== userId) {
       throw new Error('Only owner can delete backups');
     }
 
-    await deleteBackup(backup.backupId);
+    await deleteBackup(backup.backup_id);
 
     await prisma.backup.delete({
       where: { id: backupId }
@@ -140,14 +143,17 @@ export class BackupService {
   ) {
     await prisma.backupSchedule.create({
       data: {
-        projectId,
+        id: crypto.randomUUID(),
+        project_id: projectId,
         frequency: schedule.frequency,
         time: schedule.time,
-        includeAssets: schedule.includeAssets,
-        retentionDays: schedule.retentionDays,
-        lastRun: null,
-        nextRun: this.calculateNextRun(schedule),
-        createdBy: userId
+        include_assets: schedule.includeAssets,
+        retention_days: schedule.retentionDays,
+        last_run: null,
+        next_run: this.calculateNextRun(schedule),
+        created_by: userId,
+        created_at: new Date(),
+        updated_at: new Date()
       }
     });
 
@@ -169,11 +175,12 @@ export class BackupService {
     if (schedule.frequency) data.frequency = schedule.frequency;
     if (schedule.time) {
       data.time = schedule.time;
-      data.nextRun = this.calculateNextRun(schedule as any);
+      data.next_run = this.calculateNextRun(schedule as any);
     }
-    if (schedule.includeAssets !== undefined) data.includeAssets = schedule.includeAssets;
-    if (schedule.retentionDays) data.retentionDays = schedule.retentionDays;
+    if (schedule.includeAssets !== undefined) data.include_assets = schedule.includeAssets;
+    if (schedule.retentionDays) data.retention_days = schedule.retentionDays;
     if (schedule.enabled !== undefined) data.enabled = schedule.enabled;
+    data.updated_at = new Date();
 
     await prisma.backupSchedule.update({
       where: { id: scheduleId },
@@ -185,8 +192,8 @@ export class BackupService {
 
   async getBackupSchedules(projectId: string) {
     const schedules = await prisma.backupSchedule.findMany({
-      where: { projectId },
-      orderBy: { createdAt: 'desc' }
+      where: { project_id: projectId },
+      orderBy: { created_at: 'desc' }
     });
 
     return schedules;
@@ -202,23 +209,23 @@ export class BackupService {
 
   async cleanupOldBackups(projectId: string) {
     const schedules = await prisma.backupSchedule.findFirst({
-      where: { projectId, enabled: true }
+      where: { project_id: projectId, enabled: true }
     });
 
     if (!schedules) return { cleaned: 0 };
 
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - schedules.retentionDays);
+    cutoffDate.setDate(cutoffDate.getDate() - schedules.retention_days);
 
     const oldBackups = await prisma.backup.findMany({
       where: {
-        projectId,
-        createdAt: { lt: cutoffDate }
+        project_id: projectId,
+        created_at: { lt: cutoffDate }
       }
     });
 
     for (const backup of oldBackups) {
-      await deleteBackup(backup.backupId);
+      await deleteBackup(backup.backup_id);
       await prisma.backup.delete({ where: { id: backup.id } });
     }
 

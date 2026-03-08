@@ -1,11 +1,12 @@
 import { prisma } from '../lib/prisma';
+import crypto from 'crypto';
 
 interface TaskItem {
   id: string;
   type: 'image' | 'video' | 'video-interpolation';
   priority: number;
   params: any;
-  projectId: string;
+  project_id: string;
 }
 
 class RenderQueueService {
@@ -20,17 +21,21 @@ class RenderQueueService {
   async addTask(
     type: TaskItem['type'],
     params: TaskItem['params'],
-    projectId: string,
+    project_id: string,
     priority: number = 5
   ): Promise<string> {
+    const now = new Date();
     const task = await prisma.renderTask.create({
       data: {
+        id: crypto.randomUUID(),
         type,
         status: 'pending',
         params,
-        projectId,
+        project_id: project_id,
         priority,
-        progress: 0
+        progress: 0,
+        created_at: now,
+        updated_at: now
       }
     });
 
@@ -55,7 +60,7 @@ class RenderQueueService {
       where: {
         status: { in: ['pending', 'processing'] }
       },
-      orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+      orderBy: [{ priority: 'desc' }, { created_at: 'asc' }],
       take: 50
     });
 
@@ -90,10 +95,10 @@ class RenderQueueService {
     });
   }
 
-  async getProjectQueue(projectId: string): Promise<any[]> {
+  async getProjectQueue(project_id: string): Promise<any[]> {
     return prisma.renderTask.findMany({
-      where: { projectId },
-      orderBy: { createdAt: 'desc' }
+      where: { project_id: project_id },
+      orderBy: { created_at: 'desc' }
     });
   }
 
@@ -108,7 +113,7 @@ class RenderQueueService {
 
     const task = await prisma.renderTask.findFirst({
       where: { status: 'pending' },
-      orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }]
+      orderBy: [{ priority: 'desc' }, { created_at: 'asc' }]
     });
 
     if (!task) return;
@@ -118,7 +123,7 @@ class RenderQueueService {
     try {
       await prisma.renderTask.update({
         where: { id: task.id },
-        data: { status: 'processing', startedAt: new Date() }
+        data: { status: 'processing', started_at: new Date() }
       });
 
       await this.executeTask(task);
@@ -127,7 +132,7 @@ class RenderQueueService {
         where: { id: task.id },
         data: {
           status: 'completed',
-          completedAt: new Date(),
+          completed_at: new Date(),
           progress: 100
         }
       });
@@ -172,7 +177,7 @@ class RenderQueueService {
       n: task.params.n || 1,
       image_urls: task.params.image_urls,
       style: task.params.style,
-      projectId: task.projectId
+      project_id: task.project_id
     });
   }
 
@@ -180,12 +185,12 @@ class RenderQueueService {
     const { generateVideo } = await import('./video-generation.service');
 
     await generateVideo({
-      startFrameId: task.params.startFrameId,
-      endFrameId: task.params.endFrameId,
+      start_frame_id: task.params.start_frame_id,
+      end_frame_id: task.params.end_frame_id,
       prompt: task.params.prompt,
       duration: task.params.duration,
-      projectId: task.projectId,
-      shotId: task.params.shotId
+      project_id: task.project_id,
+      shot_id: task.params.shot_id
     });
   }
 
@@ -193,9 +198,9 @@ class RenderQueueService {
     const { interpolateFrames } = await import('./video-generation.service');
 
     await interpolateFrames(
-      task.params.startFrameId,
-      task.params.endFrameId,
-      task.projectId
+      task.params.start_frame_id,
+      task.params.end_frame_id,
+      task.project_id
     );
   }
 

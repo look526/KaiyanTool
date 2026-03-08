@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight, Sparkles, Eye, EyeOff, CheckCircle, Moon, Sun, AlertCircle } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
+import { Mail, Lock, User, ArrowRight, Sparkles, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { Button } from '../components/ui/button-new';
+import { getCsrfToken } from '../lib/csrf';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -16,22 +15,38 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [shake, setShake] = useState(false);
+  const [focused, setFocused] = useState<string | null>(null);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  
   const navigate = useNavigate();
-  const { theme, toggleTheme } = useTheme();
   const { register } = useAuth();
 
   useEffect(() => {
     if (error) {
-      setShake(true);
-      const timer = setTimeout(() => setShake(false), 500);
+      const timer = setTimeout(() => setError(''), 5000);
       return () => clearTimeout(timer);
     }
   }, [error]);
 
+  const passwordStrength = () => {
+    if (!formData.password) return 0;
+    let strength = 0;
+    if (formData.password.length >= 6) strength++;
+    if (formData.password.length >= 8) strength++;
+    if (/[A-Z]/.test(formData.password)) strength++;
+    if (/[0-9]/.test(formData.password)) strength++;
+    if (/[^A-Za-z0-9]/.test(formData.password)) strength++;
+    return strength;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!agreedToTerms) {
+      setError('请同意服务条款和隐私政策');
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError('两次输入的密码不一致');
@@ -51,8 +66,8 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await register(formData.name, formData.email, formData.password);
-      navigate('/projects');
+      await register(formData.email, formData.password, formData.name);
+      navigate('/projects', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : '注册失败');
     } finally {
@@ -60,562 +75,491 @@ export default function RegisterPage() {
     }
   };
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    height: '52px',
-    padding: '0 16px 0 52px',
-    fontSize: '15px',
-    backgroundColor: 'var(--bg-secondary)',
-    border: '2px solid var(--border-primary)',
-    borderRadius: '16px',
-    color: 'var(--text-primary)',
-    outline: 'none',
-    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-    boxSizing: 'border-box',
-    fontFamily: 'var(--font-family-sans)',
-  };
+  const strengthColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#10b981'];
+  const strengthLabels = ['非常弱', '弱', '一般', '强', '非常强'];
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--bg-primary)',
+    <div style={{ 
+      minHeight: '100vh', 
+      background: '#ffffff',
       display: 'flex',
-      position: 'relative',
-      overflow: 'hidden',
     }}>
+      {/* Left Side - Branding */}
       <div style={{
-        position: 'absolute',
-        inset: 0,
-        background: theme === 'dark' 
-          ? 'radial-gradient(ellipse at 20% 0%, rgba(175, 82, 222, 0.15) 0%, transparent 50%), radial-gradient(ellipse at 80% 100%, rgba(0, 122, 255, 0.1) 0%, transparent 50%)'
-          : 'radial-gradient(ellipse at 20% 0%, rgba(175, 82, 222, 0.08) 0%, transparent 50%), radial-gradient(ellipse at 80% 100%, rgba(0, 122, 255, 0.05) 0%, transparent 50%)',
-      }} />
+        flex: 1,
+        background: '#0a0a0a',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        padding: '80px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Subtle pattern */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          opacity: 0.03,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+        }} />
 
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+            marginBottom: '48px',
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Sparkles size={24} color="#fff" />
+            </div>
+            <span style={{
+              fontSize: '24px',
+              fontWeight: 600,
+              color: '#ffffff',
+              letterSpacing: '-0.02em',
+            }}>
+              开演AI
+            </span>
+          </div>
+
+          <h1 style={{
+            fontSize: '48px',
+            fontWeight: 600,
+            color: '#ffffff',
+            lineHeight: 1.2,
+            marginBottom: '24px',
+            letterSpacing: '-0.03em',
+          }}>
+            加入我们
+          </h1>
+          
+          <p style={{
+            fontSize: '18px',
+            color: '#737373',
+            lineHeight: 1.7,
+            maxWidth: '400px',
+          }}>
+            解锁 AI 创作的全部潜力，让您的创意无限延伸
+          </p>
+
+          <div style={{ marginTop: '64px' }}>
+            {['免费试用', '无需信用卡', '随时取消'].map((feature, i) => (
+              <div key={i} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '16px',
+                color: '#a3a3a3',
+                fontSize: '15px',
+              }}>
+                <div style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: '#6366f1',
+                }} />
+                {feature}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom text */}
+        <div style={{
+          position: 'absolute',
+          bottom: '40px',
+          left: '80px',
+          color: '#404040',
+          fontSize: '13px',
+        }}>
+          © 2025 开演AI. All rights reserved.
+        </div>
+      </div>
+
+      {/* Right Side - Form */}
       <div style={{
         flex: 1,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '24px',
-        position: 'relative',
-        zIndex: 10,
+        padding: '40px',
+        background: '#ffffff',
       }}>
-        <div style={{ width: '100%', maxWidth: '440px' }}>
-          <button
-            onClick={toggleTheme}
-            aria-label="切换主题"
-            style={{
-              position: 'absolute',
-              top: '24px',
-              right: '24px',
-              width: '48px',
-              height: '48px',
-              borderRadius: '16px',
-              border: '2px solid var(--border-subtle)',
-              background: 'var(--bg-secondary)',
-              color: 'var(--text-tertiary)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--bg-hover)';
-              e.currentTarget.style.color = 'var(--text-primary)';
-              e.currentTarget.style.borderColor = 'var(--color-primary)';
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'var(--bg-secondary)';
-              e.currentTarget.style.color = 'var(--text-tertiary)';
-              e.currentTarget.style.borderColor = 'var(--border-subtle)';
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.06)';
-            }}
-          >
-            {theme === 'dark' ? <Sun size={22} /> : <Moon size={22} />}
-          </button>
+        <div style={{ width: '100%', maxWidth: '400px' }}>
+          <h2 style={{
+            fontSize: '32px',
+            fontWeight: 600,
+            color: '#171717',
+            marginBottom: '8px',
+            letterSpacing: '-0.02em',
+          }}>
+            创建账户
+          </h2>
+          <p style={{
+            color: '#737373',
+            fontSize: '15px',
+            marginBottom: '32px',
+          }}>
+            开始您的创作之旅
+          </p>
 
-          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-            <Link to="/" style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '16px',
-              marginBottom: '32px',
-              textDecoration: 'none',
-            }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {error && (
               <div style={{
-                width: '60px',
-                height: '60px',
-                background: 'linear-gradient(135deg, #AF52DE 0%, #FF2D55 100%)',
-                borderRadius: '20px',
+                padding: '12px 16px',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: '8px',
+                color: '#dc2626',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}>
+                <AlertCircle size={16} />
+                {error}
+              </div>
+            )}
+
+            {/* Name */}
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: '#404040',
+                marginBottom: '8px',
+              }}>
+                用户名
+              </label>
+              <div style={{ position: 'relative' }}>
+                <User size={18} style={{
+                  position: 'absolute',
+                  left: '16px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: focused === 'name' ? '#6366f1' : '#a3a3a3',
+                  transition: 'color 0.2s',
+                  zIndex: 1,
+                }} />
+                <input
+                  type="text"
+                  placeholder="输入用户名"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  onFocus={() => setFocused('name')}
+                  onBlur={() => setFocused(null)}
+                  style={{
+                    width: '100%',
+                    height: '48px',
+                    padding: '0 16px 0 48px',
+                    fontSize: '15px',
+                    background: '#fafafa',
+                    border: focused === 'name' ? '1px solid #6366f1' : '1px solid #e5e5e5',
+                    borderRadius: '8px',
+                    color: '#171717',
+                    outline: 'none',
+                    transition: 'all 0.2s',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Email */}
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: '#404040',
+                marginBottom: '8px',
+              }}>
+                邮箱
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Mail size={18} style={{
+                  position: 'absolute',
+                  left: '16px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: focused === 'email' ? '#6366f1' : '#a3a3a3',
+                  transition: 'color 0.2s',
+                  zIndex: 1,
+                }} />
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  onFocus={() => setFocused('email')}
+                  onBlur={() => setFocused(null)}
+                  style={{
+                    width: '100%',
+                    height: '48px',
+                    padding: '0 16px 0 48px',
+                    fontSize: '15px',
+                    background: '#fafafa',
+                    border: focused === 'email' ? '1px solid #6366f1' : '1px solid #e5e5e5',
+                    borderRadius: '8px',
+                    color: '#171717',
+                    outline: 'none',
+                    transition: 'all 0.2s',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: '#404040',
+                marginBottom: '8px',
+              }}>
+                密码
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Lock size={18} style={{
+                  position: 'absolute',
+                  left: '16px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: focused === 'password' ? '#6366f1' : '#a3a3a3',
+                  transition: 'color 0.2s',
+                  zIndex: 1,
+                }} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="输入密码"
+                  value={formData.password}
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  onFocus={() => setFocused('password')}
+                  onBlur={() => setFocused(null)}
+                  style={{
+                    width: '100%',
+                    height: '48px',
+                    padding: '0 48px 0 48px',
+                    fontSize: '15px',
+                    background: '#fafafa',
+                    border: focused === 'password' ? '1px solid #6366f1' : '1px solid #e5e5e5',
+                    borderRadius: '8px',
+                    color: '#171717',
+                    outline: 'none',
+                    transition: 'all 0.2s',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'flex',
+                    color: '#a3a3a3',
+                  }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              
+              {/* Password Strength */}
+              {formData.password && (
+                <div style={{ marginTop: '8px' }}>
+                  <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
+                    {[1, 2, 3, 4, 5].map((level) => (
+                      <div key={level} style={{
+                        flex: 1,
+                        height: '4px',
+                        borderRadius: '2px',
+                        background: passwordStrength() >= level 
+                          ? strengthColors[passwordStrength() - 1] 
+                          : '#e5e5e5',
+                        transition: 'background 0.3s ease',
+                      }} />
+                    ))}
+                  </div>
+                  <div style={{
+                    fontSize: '12px',
+                    color: passwordStrength() > 0 
+                      ? strengthColors[passwordStrength() - 1] 
+                      : '#9ca3af',
+                    fontWeight: 500,
+                  }}>
+                    密码强度: {passwordStrength() > 0 ? strengthLabels[passwordStrength() - 1] : '请输入密码'}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: '#404040',
+                marginBottom: '8px',
+              }}>
+                确认密码
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Lock size={18} style={{
+                  position: 'absolute',
+                  left: '16px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: focused === 'confirmPassword' ? '#6366f1' : '#a3a3a3',
+                  transition: 'color 0.2s',
+                  zIndex: 1,
+                }} />
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  placeholder="再次输入密码"
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                  onFocus={() => setFocused('confirmPassword')}
+                  onBlur={() => setFocused(null)}
+                  style={{
+                    width: '100%',
+                    height: '48px',
+                    padding: '0 48px 0 48px',
+                    fontSize: '15px',
+                    background: '#fafafa',
+                    border: formData.confirmPassword && formData.password !== formData.confirmPassword 
+                      ? '1px solid #ef4444' 
+                      : focused === 'confirmPassword' ? '1px solid #6366f1' : '1px solid #e5e5e5',
+                    borderRadius: '8px',
+                    color: '#171717',
+                    outline: 'none',
+                    transition: 'all 0.2s',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'flex',
+                    color: '#a3a3a3',
+                  }}
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                <div style={{ marginTop: '6px', fontSize: '12px', color: '#ef4444' }}>
+                  两次密码输入不一致
+                </div>
+              )}
+            </div>
+
+            {/* Terms */}
+            <label style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              color: '#737373',
+              lineHeight: 1.5,
+            }}>
+              <input 
+                type="checkbox" 
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  marginTop: '2px',
+                  accentColor: '#6366f1',
+                  flexShrink: 0,
+                }} 
+              />
+              <span>
+                我同意{' '}
+                <Link to="/terms" style={{ color: '#171717', textDecoration: 'none', fontWeight: 500 }}>
+                  服务条款
+                </Link>
+                {' '}和{' '}
+                <Link to="/privacy" style={{ color: '#171717', textDecoration: 'none', fontWeight: 500 }}>
+                  隐私政策
+                </Link>
+              </span>
+            </label>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading || !agreedToTerms}
+              style={{
+                width: '100%',
+                height: '48px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 8px 24px rgba(175, 82, 222, 0.35)',
-              }}>
-                <Sparkles size={30} color="white" />
-              </div>
-              <span style={{
-                fontSize: '26px',
-                fontWeight: 700,
-                color: 'var(--text-primary)',
-                letterSpacing: '-0.02em',
-              }}>
-                开演AI
-              </span>
-            </Link>
-            
-            <h1 style={{
-              fontSize: '32px',
-              fontWeight: 700,
-              color: 'var(--text-primary)',
-              marginBottom: '12px',
-              letterSpacing: '-0.02em',
-            }}>
-              创建账户
-            </h1>
-            
-            <p style={{
-              color: 'var(--text-secondary)',
-              fontSize: '16px',
-              lineHeight: 1.6,
-            }}>
-              开始您的AI创作之旅
-            </p>
-          </div>
-
-          <div style={{
-            background: 'var(--bg-secondary)',
-            border: '2px solid var(--border-subtle)',
-            borderRadius: '24px',
-            padding: '32px',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-            transform: shake ? 'translateX(8px)' : 'translateX(0)',
-            transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-          }}>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {error && (
-                <div style={{
-                  padding: '16px',
-                  background: 'rgba(255, 59, 48, 0.1)',
-                  border: '2px solid #FF3B30',
-                  borderRadius: '16px',
-                  color: '#FF3B30',
-                  fontSize: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  fontWeight: 500,
-                }}>
-                  <AlertCircle size={20} style={{ flexShrink: 0 }} />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  color: 'var(--text-primary)',
-                  marginBottom: '10px',
-                }}>
-                  用户名
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <div style={{
-                    position: 'absolute',
-                    left: '18px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--text-tertiary)',
-                    transition: 'color 0.2s',
-                  }}>
-                    <User size={20} />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="请输入用户名"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                    style={inputStyle}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--color-primary)';
-                      e.currentTarget.style.boxShadow = '0 0 0 4px rgba(0, 122, 255, 0.15)';
-                      const icon = e.currentTarget.previousElementSibling as HTMLElement;
-                      if (icon) icon.style.color = 'var(--color-primary)';
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border-primary)';
-                      e.currentTarget.style.boxShadow = 'none';
-                      const icon = e.currentTarget.previousElementSibling as HTMLElement;
-                      if (icon) icon.style.color = 'var(--text-tertiary)';
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  color: 'var(--text-primary)',
-                  marginBottom: '10px',
-                }}>
-                  邮箱
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <div style={{
-                    position: 'absolute',
-                    left: '18px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--text-tertiary)',
-                    transition: 'color 0.2s',
-                  }}>
-                    <Mail size={20} />
-                  </div>
-                  <input
-                    type="email"
-                    placeholder="请输入邮箱地址"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
-                    style={inputStyle}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--color-primary)';
-                      e.currentTarget.style.boxShadow = '0 0 0 4px rgba(0, 122, 255, 0.15)';
-                      const icon = e.currentTarget.previousElementSibling as HTMLElement;
-                      if (icon) icon.style.color = 'var(--color-primary)';
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border-primary)';
-                      e.currentTarget.style.boxShadow = 'none';
-                      const icon = e.currentTarget.previousElementSibling as HTMLElement;
-                      if (icon) icon.style.color = 'var(--text-tertiary)';
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  color: 'var(--text-primary)',
-                  marginBottom: '10px',
-                }}>
-                  密码
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <div style={{
-                    position: 'absolute',
-                    left: '18px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--text-tertiary)',
-                    transition: 'color 0.2s',
-                  }}>
-                    <Lock size={20} />
-                  </div>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="请输入密码（至少6位）"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required
-                    style={{ ...inputStyle, paddingRight: '52px' }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--color-primary)';
-                      e.currentTarget.style.boxShadow = '0 0 0 4px rgba(0, 122, 255, 0.15)';
-                      const icon = e.currentTarget.previousElementSibling as HTMLElement;
-                      if (icon) icon.style.color = 'var(--color-primary)';
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border-primary)';
-                      e.currentTarget.style.boxShadow = 'none';
-                      const icon = e.currentTarget.previousElementSibling as HTMLElement;
-                      if (icon) icon.style.color = 'var(--text-tertiary)';
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? '隐藏密码' : '显示密码'}
-                    style={{
-                      position: 'absolute',
-                      right: '16px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--text-tertiary)',
-                      transition: 'all 0.2s',
-                      borderRadius: '8px',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = 'var(--text-primary)';
-                      e.currentTarget.style.background = 'var(--bg-hover)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = 'var(--text-tertiary)';
-                      e.currentTarget.style.background = 'transparent';
-                    }}
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  color: 'var(--text-primary)',
-                  marginBottom: '10px',
-                }}>
-                  确认密码
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <div style={{
-                    position: 'absolute',
-                    left: '18px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--text-tertiary)',
-                    transition: 'color 0.2s',
-                  }}>
-                    <Lock size={20} />
-                  </div>
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    placeholder="请再次输入密码"
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    required
-                    style={{ ...inputStyle, paddingRight: '52px' }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--color-primary)';
-                      e.currentTarget.style.boxShadow = '0 0 0 4px rgba(0, 122, 255, 0.15)';
-                      const icon = e.currentTarget.previousElementSibling as HTMLElement;
-                      if (icon) icon.style.color = 'var(--color-primary)';
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border-primary)';
-                      e.currentTarget.style.boxShadow = 'none';
-                      const icon = e.currentTarget.previousElementSibling as HTMLElement;
-                      if (icon) icon.style.color = 'var(--text-tertiary)';
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    aria-label={showConfirmPassword ? '隐藏密码' : '显示密码'}
-                    style={{
-                      position: 'absolute',
-                      right: '16px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--text-tertiary)',
-                      transition: 'all 0.2s',
-                      borderRadius: '8px',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = 'var(--text-primary)';
-                      e.currentTarget.style.background = 'var(--bg-hover)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = 'var(--text-tertiary)';
-                      e.currentTarget.style.background = 'transparent';
-                    }}
-                  >
-                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                variant="primary"
-                size="xl"
-                fullWidth
-                disabled={loading}
-                loading={loading}
-                icon={loading ? null : <ArrowRight size={18} />}
-                iconPosition="right"
-              >
-                {loading ? '注册中...' : '创建账户'}
-              </Button>
-
-              <div style={{ 
-                textAlign: 'center', 
-                fontSize: '14px', 
-                color: 'var(--text-secondary)',
-                paddingTop: '16px',
-                borderTop: '1px solid var(--border-subtle)',
-              }}>
-                已有账户？{' '}
-                <Link 
-                  to="/login" 
-                  style={{
-                    color: 'var(--color-primary)',
-                    textDecoration: 'none',
-                    fontWeight: 600,
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = 'var(--color-primary-hover)';
-                    e.currentTarget.style.textDecoration = 'underline';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = 'var(--color-primary)';
-                    e.currentTarget.style.textDecoration = 'none';
-                  }}
-                >
-                  立即登录
-                </Link>
-              </div>
-            </form>
-          </div>
-
-          <div style={{ marginTop: '32px', textAlign: 'center' }}>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              color: 'var(--text-tertiary)',
-              fontSize: '13px',
-            }}>
-              <CheckCircle size={16} />
-              注册即表示您同意我们的服务条款
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{
-        width: '50%',
-        background: theme === 'dark' 
-          ? 'linear-gradient(135deg, rgba(175, 82, 222, 0.12) 0%, rgba(255, 45, 85, 0.08) 50%, rgba(0, 122, 255, 0.06) 100%)'
-          : 'linear-gradient(135deg, rgba(175, 82, 222, 0.06) 0%, rgba(255, 45, 85, 0.04) 50%, rgba(0, 122, 255, 0.03) 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        <div style={{
-          position: 'absolute',
-          width: '500px',
-          height: '500px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(175, 82, 222, 0.15) 0%, transparent 70%)',
-          top: '10%',
-          left: '5%',
-        }} />
-        <div style={{
-          position: 'absolute',
-          width: '400px',
-          height: '400px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(0, 122, 255, 0.12) 0%, transparent 70%)',
-          bottom: '10%',
-          right: '5%',
-        }} />
-        
-        <div style={{
-          textAlign: 'center',
-          padding: '40px',
-          position: 'relative',
-          zIndex: 1,
-          maxWidth: '480px',
-        }}>
-          <div style={{
-            width: '140px',
-            height: '140px',
-            margin: '0 auto 32px',
-            background: 'linear-gradient(135deg, #AF52DE 0%, #FF2D55 50%, #FF9500 100%)',
-            borderRadius: '40px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 20px 60px rgba(175, 82, 222, 0.3)',
-          }}>
-            <Sparkles size={70} color="white" />
-          </div>
-          
-          <h2 style={{
-            fontSize: '36px',
-            fontWeight: 700,
-            color: 'var(--text-primary)',
-            marginBottom: '16px',
-            letterSpacing: '-0.02em',
-          }}>
-            开启创作之旅
-          </h2>
-          
-          <p style={{
-            fontSize: '18px',
-            color: 'var(--text-secondary)',
-            lineHeight: 1.7,
-            marginBottom: '40px',
-          }}>
-            加入我们，体验AI驱动的剧本创作新方式
-          </p>
-          
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '12px',
-            flexWrap: 'wrap',
-          }}>
-            {['免费注册', '无限创作', '云端存储', '团队协作'].map((feature, index) => (
-              <div key={index} style={{
-                padding: '10px 20px',
-                background: 'var(--bg-secondary)',
-                borderRadius: '100px',
-                fontSize: '14px',
+                gap: '8px',
+                fontSize: '15px',
                 fontWeight: 500,
-                color: 'var(--text-secondary)',
-                border: '1px solid var(--border-subtle)',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-              }}>
-                {feature}
-              </div>
-            ))}
-          </div>
+                borderRadius: '8px',
+                border: 'none',
+                background: loading || !agreedToTerms ? '#a3a3a3' : '#171717',
+                color: '#ffffff',
+                cursor: loading || !agreedToTerms ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                marginTop: '8px',
+              }}
+            >
+              {loading ? '注册中...' : (
+                <>
+                  注册
+                  <ArrowRight size={16} />
+                </>
+              )}
+            </button>
+
+            {/* Login */}
+            <div style={{ 
+              textAlign: 'center', 
+              fontSize: '14px', 
+              color: '#737373',
+            }}>
+              已有账户？{' '}
+              <Link 
+                to="/login" 
+                style={{
+                  color: '#171717',
+                  textDecoration: 'none',
+                  fontWeight: 500,
+                }}
+              >
+                立即登录
+              </Link>
+            </div>
+          </form>
         </div>
       </div>
     </div>

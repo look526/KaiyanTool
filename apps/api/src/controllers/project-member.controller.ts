@@ -20,7 +20,7 @@ export class ProjectMemberController {
         return
       }
 
-      if (project.ownerId !== requesterId) {
+      if (project.owner_id !== requesterId) {
         logger.warn('无权限添加成员', { requesterId, projectId, userId })
         res.status(403).json({ error: '只有项目所有者可以添加成员' })
         return
@@ -28,9 +28,9 @@ export class ProjectMemberController {
 
       const existingMember = await prisma.projectMember.findUnique({
         where: {
-          projectId_userId: {
-            projectId,
-            userId,
+          project_id_user_id: {
+            project_id: projectId,
+            user_id: userId,
           },
         },
       })
@@ -43,17 +43,17 @@ export class ProjectMemberController {
 
       const member = await prisma.projectMember.create({
         data: {
-          projectId,
-          userId,
+          project_id: projectId,
+          user_id: userId,
           role: role as MemberRole,
         },
         include: {
-          user: {
+          User: {
             select: {
               id: true,
               email: true,
               name: true,
-              avatarUrl: true,
+              avatar_url: true,
             },
           },
         },
@@ -82,7 +82,7 @@ export class ProjectMemberController {
         return
       }
 
-      if (project.ownerId !== requesterId && userId !== requesterId) {
+      if (project.owner_id !== requesterId && userId !== requesterId) {
         logger.warn('无权限移除成员', { requesterId, projectId, userId })
         res.status(403).json({ error: '无权限移除此成员' })
         return
@@ -90,9 +90,9 @@ export class ProjectMemberController {
 
       await prisma.projectMember.delete({
         where: {
-          projectId_userId: {
-            projectId,
-            userId,
+          project_id_user_id: {
+            project_id: projectId,
+            user_id: userId,
           },
         },
       })
@@ -121,7 +121,7 @@ export class ProjectMemberController {
         return
       }
 
-      if (project.ownerId !== requesterId) {
+      if (project.owner_id !== requesterId) {
         logger.warn('无权限更新成员角色', { requesterId, projectId, userId })
         res.status(403).json({ error: '只有项目所有者可以更新成员角色' })
         return
@@ -135,21 +135,21 @@ export class ProjectMemberController {
 
       const member = await prisma.projectMember.update({
         where: {
-          projectId_userId: {
-            projectId,
-            userId,
+          project_id_user_id: {
+            project_id: projectId,
+            user_id: userId,
           },
         },
         data: {
           role: role as MemberRole,
         },
         include: {
-          user: {
+          User: {
             select: {
               id: true,
               email: true,
               name: true,
-              avatarUrl: true,
+              avatar_url: true,
             },
           },
         },
@@ -169,20 +169,20 @@ export class ProjectMemberController {
 
       const members = await prisma.projectMember.findMany({
         where: {
-          projectId,
+          project_id: projectId,
         },
         include: {
-          user: {
+          User: {
             select: {
               id: true,
               email: true,
               name: true,
-              avatarUrl: true,
+              avatar_url: true,
             },
           },
         },
         orderBy: {
-          joinedAt: 'asc',
+          joined_at: 'asc',
         },
       })
 
@@ -223,7 +223,7 @@ export class ProjectMemberController {
           id: true,
           email: true,
           name: true,
-          avatarUrl: true,
+          avatar_url: true,
         },
         take: 10,
       })

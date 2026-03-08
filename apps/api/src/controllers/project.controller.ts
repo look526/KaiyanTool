@@ -1,7 +1,10 @@
 import { Request, Response } from 'express';
+import crypto from 'crypto';
 import logger from '../lib/logger';
 import { auditService, AuditAction, AuditResource } from '../services/audit.service';
 import { prisma } from '../lib/prisma';
+// 直接使用 any 类型，避免循环引用
+import { ProjectResponseDTO } from '../types/dto/response/project.dto';
 
 const ProjectTypeValues = ['script', 'novel', 'mixed'] as const;
 
@@ -11,58 +14,76 @@ export const createProject = async (req: Request, res: Response) => {
 
   try {
     if (!name) {
-      return res.status(400).json({ error: '项目名称是必填项' });
+      return res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: '项目名称是必填项' } });
     }
 
     if (!currentUser) {
-      return res.status(401).json({ error: '未授权' });
+      return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: '未授权' } });
     }
 
     type = type?.toLowerCase();
     
     if (type && !ProjectTypeValues.includes(type as any)) {
-      return res.status(400).json({ error: '无效的项目类型' });
+      return res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: '无效的项目类型' } });
     }
 
     const project = await prisma.project.create({
       data: {
+        id: crypto.randomUUID(),
         name,
         description: description || '',
         type: type || 'script',
-        owner: { connect: { id: currentUser } },
+        owner_id: currentUser,
+        updated_at: new Date(),
       },
-      include: {
-        owner: {
-          select: { id: true, email: true, name: true },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        type: true,
+        status: true,
+        thumbnail_url: true,
+        created_at: true,
+        updated_at: true,
+        User: {
+          select: { id: true, name: true },
+        },
+        _count: {
+          select: { Shot: true, Character: true },
         },
       },
     });
 
-    res.status(201).json(project);
+    const response = ProjectResponseDTO.fromProjectListItem(project);
+    res.status(201).json({ success: true, data: response });
     logger.info('项目创建成功', { userId: currentUser, projectId: project.id, name });
   } catch (error) {
     logger.error('创建项目失败', { userId: currentUser, error });
-    res.status(500).json({ error: '创建项目失败' });
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: '创建项目失败' } });
   }
 };
 
 export const getProjects = async (req: Request, res: Response) => {
-  const currentUser = req.user?.id;
+  console.log('=== getProjects 被调用 ===');
+  const currentUser = (req as any).userId || req.user?.id;
+  console.log('currentUser:', currentUser);
   let { page = '1', limit = '10', search, type } = req.query;
 
   try {
     if (!currentUser) {
-      return res.status(401).json({ error: '未授权' });
+      return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: '未授权' } });
     }
 
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
 
+    console.log('开始获取项目列表', { currentUser, pageNum, limitNum, skip });
+
     const where: any = {
       OR: [
-        { ownerId: currentUser },
-        { members: { some: { userId: currentUser } } },
+        { owner_id: currentUser },
+        { ProjectMember: { some: { user_id: currentUser } } },
       ],
     };
 
@@ -76,96 +97,122 @@ export const getProjects = async (req: Request, res: Response) => {
       where.type = type;
     }
 
-    const [projects, total] = await Promise.all([
+    try {
+      const [projects, total] = await Promise.all([
       prisma.project.findMany({
         where,
         skip,
         take: limitNum,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          owner: {
-            select: { id: true, email: true, name: true },
-          },
-          members: {
-            include: {
-              user: {
-                select: { id: true, email: true, name: true },
-              },
-            },
+        orderBy: { created_at: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          type: true,
+          status: true,
+          thumbnail_url: true,
+          created_at: true,
+          updated_at: true,
+          User: {
+            select: { id: true, name: true },
           },
           _count: {
-            select: { shots: true, characters: true },
+            select: { Shot: true, Character: true },
           },
         },
       }),
       prisma.project.count({ where }),
     ]);
 
-    res.json({
+    console.log('查询完成:', { projectsCount: projects?.length, total });
+    logger.info('查询完成', { userId: currentUser, projectsCount: projects?.length, total });
+
+    const response = ProjectResponseDTO.toListResponse(
       projects,
-      pagination: {
-        page: pageNum,
-        limit: limitNum,
-        total,
-        totalPages: Math.ceil(total / limitNum),
-      },
-    });
+      total,
+      pageNum,
+      limitNum
+    );
+    console.log('转换完成，准备返回');
+    logger.info('获取项目列表成功', { userId: currentUser, count: projects.length, total });
+    res.json(response);
+    } catch (transformError) {
+      logger.error('查询或转换项目数据失败', { 
+        userId: currentUser, 
+        transformError: transformError instanceof Error ? transformError.message : String(transformError),
+        transformStack: transformError instanceof Error ? transformError.stack : undefined,
+        transformErrorType: transformError?.constructor?.name,
+        transformErrorKeys: transformError ? Object.keys(transformError) : []
+      });
+      res.status(500).json({ success: false, error: { code: 'TRANSFORM_ERROR', message: '获取项目列表失败' } });
+    }
   } catch (error) {
-    logger.error('获取项目列表失败', { userId: currentUser, error });
-    res.status(500).json({ error: '获取项目列表失败' });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    const errorType = error?.constructor?.name;
+    
+    console.error('=== 获取项目列表失败 ===');
+    console.error('errorMessage:', errorMessage);
+    console.error('errorStack:', errorStack);
+    console.error('errorType:', errorType);
+    
+    logger.error('获取项目列表失败', { 
+      userId: currentUser, 
+      errorMessage,
+      errorType,
+      stack: errorStack
+    });
+    
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: errorMessage } });
   }
 };
 
 export const getProject = async (req: Request, res: Response) => {
-  const currentUser = req.user?.id;
+  const currentUser = (req as any).userId || req.user?.id;
   const { id } = req.params;
 
   try {
     if (!currentUser) {
-      return res.status(401).json({ error: '未授权' });
+      return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: '未授权' } });
     }
 
     const project = await prisma.project.findFirst({
       where: {
         id,
         OR: [
-          { ownerId: currentUser },
-          { members: { some: { userId: currentUser } } },
+          { owner_id: currentUser },
+          { ProjectMember: { some: { user_id: currentUser } } },
         ],
       },
-      include: {
-        owner: {
-          select: { id: true, email: true, name: true },
-        },
-        members: {
-          include: {
-            user: {
-              select: { id: true, email: true, name: true },
-            },
-          },
-        },
-        shots: {
-          orderBy: { createdAt: 'asc' },
-          take: 10,
-        },
-        characters: {
-          take: 10,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        type: true,
+        status: true,
+        settings: true,
+        thumbnail_url: true,
+        created_at: true,
+        updated_at: true,
+        User: {
+          select: { id: true, name: true },
         },
         _count: {
-          select: { shots: true, characters: true, members: true },
+          select: { Shot: true, Character: true, ProjectMember: true },
         },
       },
     });
 
     if (!project) {
       logger.warn('项目不存在', { userId: currentUser, projectId: id });
-      return res.status(404).json({ error: '项目不存在' });
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: '项目不存在' } });
     }
 
-    res.json(project);
+    const response = ProjectResponseDTO.fromProjectListItem(project);
+    res.json({ success: true, data: response });
   } catch (error) {
     logger.error('获取项目详情失败', { userId: currentUser, projectId: id, error });
-    res.status(500).json({ error: '获取项目详情失败' });
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: '获取项目详情失败' } });
   }
 };
 
@@ -176,22 +223,22 @@ export const updateProject = async (req: Request, res: Response) => {
 
   try {
     if (!currentUser) {
-      return res.status(401).json({ error: '未授权' });
+      return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: '未授权' } });
     }
 
     const project = await prisma.project.findFirst({
-      where: { id, ownerId: currentUser },
+      where: { id, owner_id: currentUser },
     });
 
     if (!project) {
       logger.warn('项目不存在或无权限', { userId: currentUser, projectId: id });
-      return res.status(404).json({ error: '项目不存在或无权限' });
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: '项目不存在或无权限' } });
     }
 
     type = type?.toLowerCase();
     
     if (type && !ProjectTypeValues.includes(type as any)) {
-      return res.status(400).json({ error: '无效的项目类型' });
+      return res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: '无效的项目类型' } });
     }
 
     const updatedProject = await prisma.project.update({
@@ -201,49 +248,61 @@ export const updateProject = async (req: Request, res: Response) => {
         ...(description !== undefined && { description }),
         ...(type && { type }),
       },
-      include: {
-        owner: {
-          select: { id: true, email: true, name: true },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        type: true,
+        status: true,
+        thumbnail_url: true,
+        created_at: true,
+        updated_at: true,
+        User: {
+          select: { id: true, name: true },
+        },
+        _count: {
+          select: { Shot: true, Character: true },
         },
       },
     });
 
-    res.json(updatedProject);
+    const response = ProjectResponseDTO.fromProjectListItem(updatedProject);
+    res.json({ success: true, data: response });
     logger.info('项目更新成功', { userId: currentUser, projectId: id });
   } catch (error) {
     logger.error('更新项目失败', { userId: currentUser, projectId: id, error });
-    res.status(500).json({ error: '更新项目失败' });
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: '更新项目失败' } });
   }
 };
 
 export const deleteProject = async (req: Request, res: Response) => {
-  const currentUser = req.user?.id;
+  const currentUser = (req as any).userId || req.user?.id;
   const { id } = req.params;
 
   try {
     if (!currentUser) {
-      return res.status(401).json({ error: '未授权' });
+      return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: '未授权' } });
     }
 
     const project = await prisma.project.findFirst({
-      where: { id, ownerId: currentUser },
+      where: { id, owner_id: currentUser },
     });
 
     if (!project) {
       logger.warn('项目不存在或无权限', { userId: currentUser, projectId: id });
-      return res.status(404).json({ error: '项目不存在或无权限' });
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: '项目不存在或无权限' } });
     }
 
     await prisma.project.delete({
       where: { id },
     });
 
-    res.json({ message: '项目已删除' });
+    res.json({ success: true, data: { message: '项目已删除' } });
     logger.info('项目删除成功', { userId: currentUser, projectId: id });
     await auditService.logAction(req, AuditAction.DELETE, AuditResource.PROJECT, id, { name: project.name });
   } catch (error) {
     logger.error('删除项目失败', { userId: currentUser, projectId: id, error });
     await auditService.logError(req, AuditAction.DELETE, AuditResource.PROJECT, '删除项目失败', id, { error });
-    res.status(500).json({ error: '删除项目失败' });
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: '删除项目失败' } });
   }
 };

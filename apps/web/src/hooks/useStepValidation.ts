@@ -71,8 +71,8 @@ export function useStepValidation(projectId: string | undefined) {
       }
       
       const scenesWithReference = scenes.filter(
-        (scene: { referenceImages?: string[] }) => 
-          scene.referenceImages && scene.referenceImages.length > 0
+        (scene: { reference_images?: string[] }) =>
+          scene.reference_images && scene.reference_images.length > 0
       );
       
       const percentage = scenes.length > 0
@@ -99,10 +99,10 @@ export function useStepValidation(projectId: string | undefined) {
       }
       
       const shotsWithVideo = shots.filter(
-        (shot: { videoUrl?: string }) => shot.videoUrl
+        (shot: { video_url?: string }) => shot.video_url
       );
       const shotsWithImages = shots.filter(
-        (shot: { startImageUrl?: string }) => shot.startImageUrl
+        (shot: { start_image_url?: string }) => shot.start_image_url
       );
       
       let percentage = 0;

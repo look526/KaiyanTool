@@ -1,4 +1,5 @@
 import type { User, Project, Content, AIProvider, Session } from '../types'
+import { getCsrfToken, clearCsrfToken, refreshCsrfToken } from './csrf'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
@@ -11,32 +12,77 @@ export class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    retryCount: number = 0
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`
 
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...options.headers as Record<string, string>,
+    }
+
+    const method = (options.method || 'GET').toUpperCase()
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+      const token = await getCsrfToken()
+      if (token) {
+        headers['X-CSRF-Token'] = token
+      }
+    }
+
     const response = await fetch(url, {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers,
       credentials: 'include',
     })
 
     if (!response.ok) {
       const errorText = await response.text()
       let errorMessage = errorText || 'Request failed'
+      let isCsrfError = false
       try {
         const errorJson = JSON.parse(errorText)
-        errorMessage = errorJson.error || errorMessage
-      } catch {}
+        if (typeof errorJson.error === 'string') {
+          errorMessage = errorJson.error
+        } else if (errorJson.error && typeof errorJson.error === 'object') {
+          errorMessage = errorJson.error.message || JSON.stringify(errorJson.error)
+          if (errorJson.error?.code === 'CSRF_TOKEN_INVALID' || 
+              errorJson.error?.code === 'CSRF_TOKEN_EXPIRED') {
+            isCsrfError = true
+          }
+        } else if (errorJson.message) {
+          errorMessage = errorJson.message
+        } else {
+          errorMessage = JSON.stringify(errorJson)
+        }
+        
+        if (response.status === 403 && isCsrfError) {
+          clearCsrfToken()
+          if (retryCount < 1) {
+            await refreshCsrfToken()
+            return this.request<T>(endpoint, options, retryCount + 1)
+          }
+        }
+      } catch {
+        if (errorText.startsWith('{') || errorText.startsWith('[')) {
+          errorMessage = `Request failed with status ${response.status}`
+        }
+      }
       const error = new Error(errorMessage) as any
       error.response = { status: response.status, data: errorText }
       throw error
     }
 
+    const csrfToken = response.headers.get('X-CSRF-Token')
+    if (csrfToken) {
+      this.saveCsrfToken(csrfToken)
+    }
+
     return response.json()
+  }
+
+  private saveCsrfToken(token: string): void {
+    localStorage.setItem('csrfToken', token)
   }
 
   async get<T>(endpoint: string): Promise<T> {
@@ -69,7 +115,7 @@ export class ApiClient {
   }
 
   // Auth endpoints
-  async login(data: { email: string; password: string; rememberMe?: boolean }) {
+  async login(data: { email: string; password: string; remember_me?: boolean }) {
     return this.post<{ user: User; token: string }>('/auth/login', data)
   }
 
@@ -86,20 +132,34 @@ export class ApiClient {
   }
 
   // Project endpoints
-  async getProjects() {
-    return this.get<Project[]>('/projects')
+  async getProjects(params?: { page?: number; limit?: number; search?: string; type?: string; status?: string }) {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.search) query.set('search', params.search);
+    if (params?.type) query.set('type', params.type);
+    if (params?.status) query.set('status', params.status);
+    const queryString = query.toString();
+    const response = await this.get<{ success: boolean; data: Project[]; meta: { page: number; limit: number; total: number; totalPages: number } }>(`/projects${queryString ? '?' + queryString : ''}`);
+    return {
+      projects: response.data,
+      pagination: response.meta,
+    };
   }
 
   async getProject(id: string) {
-    return this.get<Project>(`/projects/${id}`)
+    const response = await this.get<{ success: boolean; data: Project }>(`/projects/${id}`);
+    return response.data;
   }
 
   async createProject(data: Partial<Project>) {
-    return this.post<Project>('/projects', data)
+    const response = await this.post<{ success: boolean; data: Project }>('/projects', data);
+    return response.data;
   }
 
   async updateProject(id: string, data: Partial<Project>) {
-    return this.put<Project>(`/projects/${id}`, data)
+    const response = await this.put<{ success: boolean; data: Project }>(`/projects/${id}`, data);
+    return response.data;
   }
 
   async deleteProject(id: string) {
@@ -139,16 +199,16 @@ export class ApiClient {
     return this.post<{ message: string }>(`/ai-providers/models/${modelId}/unset-assistant-default`)
   }
 
-  async createAIProviderModel(providerId: string, data: any) {
-    return this.post<any>(`/ai-providers/${providerId}/models`, data)
+  async createAIProviderModel(provider_id: string, data: any) {
+    return this.post<any>(`/ai-providers/${provider_id}/models`, data)
   }
 
-  async updateAIProviderModel(providerId: string, modelId: string, data: any) {
-    return this.put<any>(`/ai-providers/${providerId}/models/${modelId}`, data)
+  async updateAIProviderModel(provider_id: string, model_id: string, data: any) {
+    return this.put<any>(`/ai-providers/${provider_id}/models/${model_id}`, data)
   }
 
-  async deleteAIProviderModel(providerId: string, modelId: string) {
-    return this.delete(`/ai-providers/${providerId}/models/${modelId}`)
+  async deleteAIProviderModel(provider_id: string, model_id: string) {
+    return this.delete(`/ai-providers/${provider_id}/models/${model_id}`)
   }
   // Document endpoints
   async getDocuments() {
@@ -372,9 +432,16 @@ export class ApiClient {
     const formData = new FormData()
     formData.append('file', file)
     
+    const token = await getCsrfToken()
+    const headers: Record<string, string> = {}
+    if (token) {
+      headers['X-CSRF-Token'] = token
+    }
+    
     const response = await fetch(`${this.baseUrl}/upload/assets`, {
       method: 'POST',
       body: formData,
+      headers,
       credentials: 'include',
     })
     
@@ -395,9 +462,16 @@ export class ApiClient {
       formData.append('projectId', projectId)
     }
     
+    const token = await getCsrfToken()
+    const headers: Record<string, string> = {}
+    if (token) {
+      headers['X-CSRF-Token'] = token
+    }
+    
     const response = await fetch(`${this.baseUrl}/upload/assets`, {
       method: 'POST',
       body: formData,
+      headers,
       credentials: 'include',
     })
     
@@ -428,9 +502,16 @@ export class ApiClient {
     formData.append('file', file)
     formData.append('type', type)
     
+    const token = await getCsrfToken()
+    const headers: Record<string, string> = {}
+    if (token) {
+      headers['X-CSRF-Token'] = token
+    }
+    
     const response = await fetch(`${this.baseUrl}/upload/projects/${projectId}/assets`, {
       method: 'POST',
       body: formData,
+      headers,
       credentials: 'include',
     })
     
@@ -535,6 +616,10 @@ export class ApiClient {
 
   async getUsageStats() {
     return this.get<any>('/analytics/usage')
+  }
+
+  async getModelUsageAnalytics() {
+    return this.get<any>('/model-preferences/analytics')
   }
 
   async changePassword(currentPassword: string, newPassword: string) {

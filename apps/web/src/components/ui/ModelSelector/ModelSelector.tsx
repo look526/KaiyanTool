@@ -137,19 +137,19 @@ export function ModelSelector({
       const shouldUseCache = !forceRefresh && cachedData && !cacheUtils.getCacheInfo().preferences.expired
       
       if (shouldUseCache) {
-        setDefaultModels(cachedData!.defaultModels)
-        setLastUsedModels(cachedData!.lastUsedModels)
+        setDefaultModels(cachedData!.defaultModels || {})
+        setLastUsedModels(cachedData!.lastUsedModels || {})
         return
       }
       
       const prefs = await apiClient.getModelPreferences()
-      setDefaultModels(prefs.defaultModels)
-      setLastUsedModels(prefs.lastUsedModels)
+      setDefaultModels(prefs.defaultModels || {})
+      setLastUsedModels(prefs.lastUsedModels || {})
       
       cacheUtils.setPreferences({
-        defaultModels: prefs.defaultModels,
-        lastUsedModels: prefs.lastUsedModels,
-        modelParameters: prefs.modelParameters,
+        defaultModels: prefs.defaultModels || {},
+        lastUsedModels: prefs.lastUsedModels || {},
+        modelParameters: prefs.modelParameters || {},
         lastUpdated: Date.now(),
       })
     } catch (error) {
@@ -187,6 +187,8 @@ export function ModelSelector({
       modelId,
       contentType,
       success: true
+    }).catch(err => {
+      console.error('[ModelSelector] Failed to record model usage:', err)
     })
   }
 
@@ -633,7 +635,7 @@ function ModelSelectorSpecialItem({
     >
       {icon}
       <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: 500, fontSize: '13px' }}>{model.name}</div>
+        <div style={{ fontWeight: 500, fontSize: '13px', color: 'var(--text-primary)' }}>{model.name}</div>
         <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{label}</div>
       </div>
       {isSelected && <Check style={{ width: '16px', height: '16px', color: 'var(--accent)' }} />}
@@ -685,7 +687,7 @@ function ModelSelectorItem({
     >
       <div style={{ flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontWeight: 500, fontSize: '14px' }}>{model.name}</span>
+          <span style={{ fontWeight: 500, fontSize: '14px', color: 'var(--text-primary)' }}>{model.name}</span>
           {model.capabilities && model.capabilities.length > 0 && (
             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
               {model.capabilities.slice(0, 2).map((cap, i) => (

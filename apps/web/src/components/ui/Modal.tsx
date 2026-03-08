@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { X } from 'lucide-react';
+import { cn } from '../../design-system';
 
 export interface ModalProps {
   open: boolean;
@@ -13,12 +14,12 @@ export interface ModalProps {
   className?: string;
 }
 
-const sizeStyles: Record<string, string> = {
-  sm: '400px',
-  md: '500px',
-  lg: '600px',
-  xl: '800px',
-  full: '90vw',
+const sizeClasses: Record<string, string> = {
+  sm: 'max-w-sm',
+  md: 'max-w-md',
+  lg: 'max-w-lg',
+  xl: 'max-w-xl',
+  full: 'max-w-[90vw]',
 };
 
 export function Modal({
@@ -53,74 +54,23 @@ export function Modal({
   if (!open) return null;
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 'var(--z-modal)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 'var(--spacing-4)',
-      }}
-      onClick={closeOnOverlayClick ? onClose : undefined}
-    >
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundColor: 'var(--bg-overlay)',
-          backdropFilter: 'blur(4px)',
-        }}
-      />
-      <div
-        className={className}
-        style={{
-          position: 'relative',
-          backgroundColor: 'var(--bg-elevated)',
-          borderRadius: 'var(--radius-2xl)',
-          boxShadow: 'var(--shadow-2xl)',
-          maxWidth: sizeStyles[size],
-          width: '100%',
-          maxHeight: '90vh',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          animation: 'scaleIn 0.2s var(--ease-out) forwards',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={closeOnOverlayClick ? onClose : undefined}>
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div className={cn(
+        'relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200',
+        sizeClasses[size],
+        className
+      )} onClick={(e) => e.stopPropagation()}>
         {(title || showClose) && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: 'var(--spacing-5) var(--spacing-6)',
-              borderBottom: '1px solid var(--border-secondary)',
-            }}
-          >
+          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-800">
             <div>
               {title && (
-                <h2
-                  style={{
-                    fontSize: 'var(--font-size-lg)',
-                    fontWeight: 600,
-                    color: 'var(--text-primary)',
-                    margin: 0,
-                  }}
-                >
+                <h2 className="text-lg font-semibold text-primary-900 dark:text-primary-100">
                   {title}
                 </h2>
               )}
               {description && (
-                <p
-                  style={{
-                    fontSize: 'var(--font-size-sm)',
-                    color: 'var(--text-secondary)',
-                    margin: 'var(--spacing-1) 0 0 0',
-                  }}
-                >
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                   {description}
                 </p>
               )}
@@ -128,36 +78,14 @@ export function Modal({
             {showClose && (
               <button
                 onClick={onClose}
-                style={{
-                  padding: 'var(--spacing-2)',
-                  borderRadius: 'var(--radius-md)',
-                  border: 'none',
-                  background: 'transparent',
-                  color: 'var(--text-tertiary)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--bg-secondary)';
-                  e.currentTarget.style.color = 'var(--text-primary)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.color = 'var(--text-tertiary)';
-                }}
+                className="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
                 <X size={20} />
               </button>
             )}
           </div>
         )}
-        <div
-          style={{
-            flex: 1,
-            overflow: 'auto',
-            padding: 'var(--spacing-6)',
-          }}
-        >
+        <div className="flex-1 overflow-auto p-6">
           {children}
         </div>
       </div>

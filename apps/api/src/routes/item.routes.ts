@@ -12,8 +12,8 @@ router.get('/projects/:projectId/items', async (req: Request, res: Response) => 
   try {
     const { projectId } = req.params;
     const items = await (prisma as any).item?.findMany({
-      where: { projectId },
-      orderBy: { createdAt: 'desc' },
+      where: { project_id: projectId },
+      orderBy: { created_at: 'desc' },
     }) || [];
     res.json(items);
   } catch (error) {
@@ -32,7 +32,7 @@ router.post('/projects/:projectId/items', async (req: Request, res: Response) =>
     }
 
     const item = await (prisma as any).item?.create({
-      data: { name, type, image, description, prompt, projectId },
+      data: { name, type, image, description, prompt, project_id: projectId },
     });
     res.json(item);
   } catch (error) {

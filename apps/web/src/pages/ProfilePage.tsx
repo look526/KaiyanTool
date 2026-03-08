@@ -9,9 +9,8 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
+  Calendar,
 } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Card } from '../components/ui/card';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../lib/api-client';
 import { uiConfig } from '../config';
@@ -22,11 +21,12 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [backHover, setBackHover] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    avatarUrl: '',
+    avatar_url: '',
     bio: '',
   });
 
@@ -35,7 +35,7 @@ export default function ProfilePage() {
       setFormData({
         name: user.name || '',
         email: user.email || '',
-        avatarUrl: user.avatarUrl || '',
+        avatar_url: user.avatar_url || '',
         bio: user.bio || '',
       });
     }
@@ -47,7 +47,7 @@ export default function ProfilePage() {
       setError(null);
       await apiClient.updateProfile({
         name: formData.name,
-        avatarUrl: formData.avatarUrl,
+        avatar_url: formData.avatar_url,
         bio: formData.bio,
       });
       setSuccess('个人资料已更新');
@@ -69,7 +69,7 @@ export default function ProfilePage() {
         try {
           setLoading(true);
           const result = await apiClient.uploadAvatar(file);
-          setFormData(prev => ({ ...prev, avatarUrl: result.url }));
+          setFormData(prev => ({ ...prev, avatar_url: result.url }));
         } catch (err) {
           setError('上传头像失败');
         } finally {
@@ -81,284 +81,269 @@ export default function ProfilePage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <header style={{
-          height: '64px',
-          borderBottom: '1px solid var(--border-primary)',
-          backgroundColor: 'var(--bg-elevated)',
-          padding: '0 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexShrink: 0,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <Link to="/settings" style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              textDecoration: 'none',
-              color: 'var(--text-muted)',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
-              e.currentTarget.style.color = 'var(--text-primary)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = 'var(--text-muted)';
-            }}
-            >
-              <ArrowLeft style={{ width: '16px', height: '16px' }} />
-            </Link>
-            <div>
-              <h1 style={{
-                fontSize: '20px',
-                fontWeight: '700',
-                color: 'var(--text-primary)',
-                margin: '0 0 4px 0',
-              }}>个人资料</h1>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                管理您的账户信息
-              </div>
-            </div>
-          </div>
-
-          <Button
-            onClick={handleSave}
-            disabled={saving}
+    <div style={{
+      minHeight: '100vh',
+      background: 'var(--bg-base)',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+    }}>
+      <header style={{
+        height: '72px',
+        background: 'var(--bg-elevated)',
+        borderBottom: '1px solid var(--border-primary)',
+        padding: '0 32px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexShrink: 0,
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <Link
+            to="/settings"
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
+              justifyContent: 'center',
+              width: '40px',
               height: '40px',
-              padding: '0 20px',
-              background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%)',
-              border: 'none',
               borderRadius: '10px',
-              color: 'white',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer',
+              textDecoration: 'none',
+              color: backHover ? '#fff' : 'var(--text-muted)',
+              background: backHover ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' : 'transparent',
+              border: '1px solid var(--border-primary)',
+              transition: 'all 0.2s ease',
             }}
+            onMouseEnter={() => setBackHover(true)}
+            onMouseLeave={() => setBackHover(false)}
           >
-            {saving ? (
-              <>
-                <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                保存中...
-              </>
-            ) : (
-              <>
-                <Save style={{ width: '16px', height: '16px' }} />
-                保存更改
-              </>
-            )}
-          </Button>
-        </header>
+            <ArrowLeft style={{ width: '18px', height: '18px' }} />
+          </Link>
+          <div>
+            <h1 style={{
+              fontSize: '20px',
+              fontWeight: '700',
+              color: 'var(--text-primary)',
+              margin: '0 0 2px 0',
+              letterSpacing: '-0.01em',
+            }}>
+              个人资料
+            </h1>
+            <p style={{
+              fontSize: '12px',
+              color: 'var(--text-muted)',
+              margin: 0,
+            }}>
+              管理您的账户信息
+            </p>
+          </div>
+        </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '32px' }}>
-          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-            {error && (
-              <div style={{
-                marginBottom: '24px',
-                padding: '14px 18px',
-                backgroundColor: 'var(--error-bg)',
-                border: '1px solid var(--error)',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                color: 'var(--error)',
-              }}>
-                <AlertCircle style={{ width: '18px', height: '18px' }} />
-                {error}
-              </div>
-            )}
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 20px',
+            borderRadius: '10px',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: saving ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s ease',
+            border: 'none',
+            background: saving 
+              ? 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'
+              : 'linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%)',
+            color: '#ffffff',
+            boxShadow: '0 4px 14px rgba(139, 92, 246, 0.3)',
+            opacity: saving ? 0.7 : 1,
+          }}
+          onMouseEnter={(e) => {
+            if (!saving) {
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(139, 92, 246, 0.4)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!saving) {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 14px rgba(139, 92, 246, 0.3)';
+            }
+          }}
+        >
+          {saving ? (
+            <>
+              <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+              保存中...
+            </>
+          ) : (
+            <>
+              <Save style={{ width: '16px', height: '16px' }} />
+              保存更改
+            </>
+          )}
+        </button>
+      </header>
 
-            {success && (
-              <div style={{
-                marginBottom: '24px',
-                padding: '14px 18px',
-                backgroundColor: 'var(--success-bg)',
-                border: '1px solid var(--success)',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                color: 'var(--success)',
-              }}>
-                <CheckCircle style={{ width: '18px', height: '18px' }} />
-                {success}
-              </div>
-            )}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        padding: '32px',
+      }}>
+        <div style={{ maxWidth: '700px', margin: '0 auto' }}>
+          {error && (
+            <div style={{
+              marginBottom: '20px',
+              padding: '12px 16px',
+              backgroundColor: 'var(--error-bg)',
+              border: '1px solid var(--error)',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              color: 'var(--error)',
+              fontSize: '14px',
+            }}>
+              <AlertCircle style={{ width: '16px', height: '16px', flexShrink: 0 }} />
+              {error}
+            </div>
+          )}
 
-            <Card style={{ padding: '32px', marginBottom: '24px' }}>
-              <h2 style={{
-                fontSize: '16px',
-                fontWeight: '600',
-                color: 'var(--text-primary)',
-                margin: '0 0 24px 0',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-              }}>
-                <User style={{ width: '18px', height: '18px', color: 'var(--accent)' }} />
-                基本信息
-              </h2>
+          {success && (
+            <div style={{
+              marginBottom: '20px',
+              padding: '12px 16px',
+              backgroundColor: 'var(--success-bg)',
+              border: '1px solid var(--success)',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              color: 'var(--success)',
+              fontSize: '14px',
+            }}>
+              <CheckCircle style={{ width: '16px', height: '16px', flexShrink: 0 }} />
+              {success}
+            </div>
+          )}
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-                  <div style={{ position: 'relative' }}>
-                    <div style={{
-                      width: '100px',
-                      height: '100px',
+          <div style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-primary)',
+            borderRadius: '16px',
+            padding: '28px',
+            marginBottom: '20px',
+          }}>
+            <h2 style={{
+              fontSize: '16px',
+              fontWeight: '600',
+              color: 'var(--text-primary)',
+              margin: '0 0 24px 0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}>
+              <User style={{ width: '18px', height: '18px', color: 'var(--accent)' }} />
+              基本信息
+            </h2>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <div style={{ position: 'relative' }}>
+                  <div style={{
+                    width: '96px',
+                    height: '96px',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--bg-hover)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden',
+                    border: '3px solid var(--border-primary)',
+                  }}>
+                    {formData.avatar_url ? (
+                      <img
+                        src={formData.avatar_url}
+                        alt="头像"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <User style={{ width: '40px', height: '40px', color: 'var(--text-muted)' }} />
+                    )}
+                  </div>
+                  <button
+                    onClick={handleAvatarChange}
+                    disabled={loading}
+                    style={{
+                      position: 'absolute',
+                      bottom: '0',
+                      right: '0',
+                      width: '32px',
+                      height: '32px',
                       borderRadius: '50%',
-                      backgroundColor: 'var(--bg-hover)',
+                      backgroundColor: 'var(--accent)',
+                      border: '3px solid var(--bg-elevated)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      overflow: 'hidden',
-                      border: '3px solid var(--border-primary)',
-                    }}>
-                      {formData.avatarUrl ? (
-                        <img
-                          src={formData.avatarUrl}
-                          alt="头像"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                      ) : (
-                        <User style={{ width: '40px', height: '40px', color: 'var(--text-muted)' }} />
-                      )}
-                    </div>
-                    <button
-                      onClick={handleAvatarChange}
-                      disabled={loading}
-                      style={{
-                        position: 'absolute',
-                        bottom: '0',
-                        right: '0',
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        backgroundColor: 'var(--accent)',
-                        border: '3px solid var(--bg-elevated)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        color: 'white',
-                      }}
-                    >
-                      <Camera style={{ width: '14px', height: '14px' }} />
-                    </button>
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      color: 'white',
+                      opacity: loading ? 0.5 : 1,
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!loading) {
+                        e.currentTarget.style.transform = 'scale(1.1)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                  >
+                    <Camera style={{ width: '14px', height: '14px' }} />
+                  </button>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                    更换头像
                   </div>
-                  <div>
-                    <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
-                      更换头像
-                    </div>
-                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                      支持 JPG、PNG 格式，建议尺寸 200x200 像素
-                    </div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                    支持 JPG、PNG 格式，建议尺寸 200x200 像素
                   </div>
                 </div>
+              </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: 'var(--text-primary)',
-                      marginBottom: '8px',
-                    }}>
-                      用户名
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="输入用户名"
-                      style={{
-                        width: '100%',
-                        height: '48px',
-                        padding: '0 16px',
-                        backgroundColor: 'var(--bg-surface)',
-                        border: '1px solid var(--border-primary)',
-                        borderRadius: '10px',
-                        color: 'var(--text-primary)',
-                        fontSize: '14px',
-                        outline: 'none',
-                        transition: 'border-color 0.2s ease',
-                      }}
-                      onFocus={(e) => {
-                        e.currentTarget.style.borderColor = 'var(--accent)';
-                      }}
-                      onBlur={(e) => {
-                        e.currentTarget.style.borderColor = 'var(--border-primary)';
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: 'var(--text-primary)',
-                      marginBottom: '8px',
-                    }}>
-                      邮箱地址
-                    </label>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      height: '48px',
-                      padding: '0 16px',
-                      backgroundColor: 'var(--bg-hover)',
-                      border: '1px solid var(--border-primary)',
-                      borderRadius: '10px',
-                      color: 'var(--text-muted)',
-                      fontSize: '14px',
-                    }}>
-                      <Mail style={{ width: '16px', height: '16px', marginRight: '10px' }} />
-                      {formData.email}
-                    </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '6px' }}>
-                      邮箱地址不可修改
-                    </div>
-                  </div>
-                </div>
-
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={{
                     display: 'block',
-                    fontSize: '14px',
+                    fontSize: '13px',
                     fontWeight: '500',
                     color: 'var(--text-primary)',
-                    marginBottom: '8px',
+                    marginBottom: '6px',
                   }}>
-                    个人简介
+                    用户名
                   </label>
-                  <textarea
-                    value={formData.bio}
-                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                    placeholder="介绍一下自己..."
-                    rows={4}
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="输入用户名"
                     style={{
                       width: '100%',
-                      padding: '14px 16px',
-                      backgroundColor: 'var(--bg-surface)',
+                      height: '42px',
+                      padding: '0 14px',
+                      backgroundColor: 'var(--bg-input)',
                       border: '1px solid var(--border-primary)',
                       borderRadius: '10px',
                       color: 'var(--text-primary)',
                       fontSize: '14px',
                       outline: 'none',
-                      resize: 'vertical',
-                      fontFamily: 'inherit',
                       transition: 'border-color 0.2s ease',
                     }}
                     onFocus={(e) => {
@@ -369,42 +354,130 @@ export default function ProfilePage() {
                     }}
                   />
                 </div>
-              </div>
-            </Card>
 
-            <Card style={{ padding: '24px' }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    color: 'var(--text-primary)',
+                    marginBottom: '6px',
+                  }}>
+                    邮箱地址
+                  </label>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    height: '42px',
+                    padding: '0 14px',
+                    backgroundColor: 'var(--bg-hover)',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '10px',
+                    color: 'var(--text-muted)',
+                    fontSize: '14px',
+                  }}>
+                    <Mail style={{ width: '16px', height: '16px', marginRight: '10px', flexShrink: 0 }} />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {formData.email}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    邮箱地址不可修改
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  color: 'var(--text-primary)',
+                  marginBottom: '6px',
+                }}>
+                  个人简介
+                </label>
+                <textarea
+                  value={formData.bio}
+                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                  placeholder="介绍一下自己..."
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    backgroundColor: 'var(--bg-input)',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '10px',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                    outline: 'none',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    lineHeight: '1.5',
+                    transition: 'border-color 0.2s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--accent)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-primary)',
+            borderRadius: '16px',
+            padding: '20px',
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <Calendar style={{ width: '20px', height: '20px', color: 'white' }} />
+                </div>
                 <div>
                   <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
                     账户创建时间
                   </div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('zh-CN', {
+                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                    {user?.created_at ? new Date(user.created_at).toLocaleDateString('zh-CN', {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric',
                     }) : '未知'}
                   </div>
                 </div>
-                <div style={{
-                  padding: '8px 16px',
-                  backgroundColor: 'var(--success-bg)',
-                  borderRadius: '20px',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  color: 'var(--success)',
-                }}>
-                  活跃账户
-                </div>
               </div>
-            </Card>
+              <div style={{
+                padding: '6px 14px',
+                backgroundColor: 'var(--success-bg)',
+                borderRadius: '20px',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: 'var(--success)',
+              }}>
+                活跃账户
+              </div>
+            </div>
           </div>
         </div>
-      </main>
+      </div>
 
       <style>{`
         @keyframes spin {

@@ -3,216 +3,223 @@ import { prisma } from '../lib/prisma'
 import { aiProviderService } from '../services/ai/provider.service'
 import logger from '../lib/logger'
 import { buildCharacterImagePrompt } from '../config/prompt-templates'
+import crypto from 'crypto'
 
 class ShotGenerationController {
   async generateStartImage(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
       const { id } = req.params
-      const { providerId, style, quality } = req.body
+      const { provider_id, style, quality } = req.body
 
       const shot = await prisma.shot.findFirst({
         where: {
           id,
-          project: {
+          Project: {
             OR: [
-              { ownerId: req.userId },
-              { members: { some: { userId: req.userId } } },
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id } } },
             ],
           },
         },
         include: {
-          scene: true,
-          character: true,
+          Scene: true,
+          Character: true,
         },
       })
 
       if (!shot) {
-        logger.warn('分镜不存在', { userId: req.userId, shotId: id })
+        logger.warn('分镜不存在', { user_id: req.user_id, shot_id: id })
         res.status(404).json({ error: 'Shot not found' })
         return
       }
 
-      if (!providerId) {
+      if (!provider_id) {
         res.status(400).json({ error: 'Provider ID is required' })
         return
       }
 
-      const prompt = shot.startPrompt || this.buildImagePrompt(shot, 'start', style)
+      const prompt = shot.start_prompt || this.buildImagePrompt(shot, 'start', style)
 
-      const response = await aiProviderService.createImage(providerId, {
+      const response = await aiProviderService.createImage(provider_id, {
         prompt,
-        size: shot.aspectRatio === '16:9' ? '1920x1080' : shot.aspectRatio === '4:3' ? '1536x1024' : '1024x1792',
+        size: shot.aspect_ratio === '16:9' ? '1920x1080' : shot.aspect_ratio === '4:3' ? '1536x1024' : '1024x1792',
         quality: quality || 'standard',
         style: 'vivid',
       })
 
       const updatedShot = await prisma.shot.update({
         where: { id },
-        data: { startImageUrl: response.url },
+        data: { start_image_url: response.url },
       })
 
       await prisma.asset.create({
         data: {
+          id: crypto.randomUUID(),
           type: 'image',
           url: response.url,
-          projectId: shot.projectId,
+          project_id: shot.project_id,
           metadata: {
-            name: `起始帧 - ${shot.actionSummary.substring(0, 30)}...`,
+            name: `起始帧 - ${shot.action_summary.substring(0, 30)}...`,
             prompt,
-            revisedPrompt: response.revisedPrompt,
-            shotId: id,
-            frameType: 'start',
+            revised_prompt: response.revisedPrompt,
+            shot_id: id,
+            frame_type: 'start',
             type: 'shot-frame'
           },
+          created_at: new Date(),
+          updated_at: new Date(),
         },
       })
 
       res.json({
         imageUrl: response.url,
-        revisedPrompt: response.revisedPrompt,
+        revised_prompt: response.revisedPrompt,
         shot: updatedShot,
       })
-      logger.info('起始帧生成成功', { userId: req.userId, shotId: id, providerId })
+      logger.info('起始帧生成成功', { user_id: req.user_id, shot_id: id, provider_id })
     } catch (error) {
-      logger.error('生成起始帧失败', { userId: req.userId, shotId: req.params.id, error })
+      logger.error('生成起始帧失败', { user_id: req.user_id, shot_id: req.params.id, error })
       res.status(500).json({ error: 'Failed to generate start image' })
     }
   }
 
   async generateEndImage(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
       const { id } = req.params
-      const { providerId, style, quality } = req.body
+      const { provider_id, style, quality } = req.body
 
       const shot = await prisma.shot.findFirst({
         where: {
           id,
-          project: {
+          Project: {
             OR: [
-              { ownerId: req.userId },
-              { members: { some: { userId: req.userId } } },
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id } } },
             ],
           },
         },
         include: {
-          scene: true,
-          character: true,
+          Scene: true,
+          Character: true,
         },
       })
 
       if (!shot) {
-        logger.warn('分镜不存在', { userId: req.userId, shotId: id })
+        logger.warn('分镜不存在', { user_id: req.user_id, shot_id: id })
         res.status(404).json({ error: 'Shot not found' })
         return
       }
 
-      if (!providerId) {
+      if (!provider_id) {
         res.status(400).json({ error: 'Provider ID is required' })
         return
       }
 
-      const prompt = shot.endPrompt || this.buildImagePrompt(shot, 'end', style)
+      const prompt = shot.end_prompt || this.buildImagePrompt(shot, 'end', style)
 
-      const response = await aiProviderService.createImage(providerId, {
+      const response = await aiProviderService.createImage(provider_id, {
         prompt,
-        size: shot.aspectRatio === '16:9' ? '1920x1080' : shot.aspectRatio === '4:3' ? '1536x1024' : '1024x1792',
+        size: shot.aspect_ratio === '16:9' ? '1920x1080' : shot.aspect_ratio === '4:3' ? '1536x1024' : '1024x1792',
         quality: quality || 'standard',
         style: 'vivid',
       })
 
       const updatedShot = await prisma.shot.update({
         where: { id },
-        data: { endImageUrl: response.url },
+        data: { end_image_url: response.url },
       })
 
       await prisma.asset.create({
         data: {
+          id: crypto.randomUUID(),
           type: 'image',
           url: response.url,
-          projectId: shot.projectId,
+          project_id: shot.project_id,
           metadata: {
-            name: `结束帧 - ${shot.actionSummary.substring(0, 30)}...`,
+            name: `结束帧 - ${shot.action_summary.substring(0, 30)}...`,
             prompt,
-            revisedPrompt: response.revisedPrompt,
-            shotId: id,
-            frameType: 'end',
+            revised_prompt: response.revisedPrompt,
+            shot_id: id,
+            frame_type: 'end',
             type: 'shot-frame'
           },
+          created_at: new Date(),
+          updated_at: new Date(),
         },
       })
 
       res.json({
         imageUrl: response.url,
-        revisedPrompt: response.revisedPrompt,
+        revised_prompt: response.revisedPrompt,
         shot: updatedShot,
       })
-      logger.info('结束帧生成成功', { userId: req.userId, shotId: id, providerId })
+      logger.info('结束帧生成成功', { user_id: req.user_id, shot_id: id, provider_id })
     } catch (error) {
-      logger.error('生成结束帧失败', { userId: req.userId, shotId: req.params.id, error })
+      logger.error('生成结束帧失败', { user_id: req.user_id, shot_id: req.params.id, error })
       res.status(500).json({ error: 'Failed to generate end image' })
     }
   }
 
   async generateBothImages(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
       const { id } = req.params
-      const { providerId, style, quality } = req.body
+      const { provider_id, style, quality } = req.body
 
       const shot = await prisma.shot.findFirst({
         where: {
           id,
-          project: {
+          Project: {
             OR: [
-              { ownerId: req.userId },
-              { members: { some: { userId: req.userId } } },
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id } } },
             ],
           },
         },
         include: {
-          scene: true,
-          character: true,
+          Scene: true,
+          Character: true,
         },
       })
 
       if (!shot) {
-        logger.warn('分镜不存在', { userId: req.userId, shotId: id })
+        logger.warn('分镜不存在', { user_id: req.user_id, shot_id: id })
         res.status(404).json({ error: 'Shot not found' })
         return
       }
 
-      if (!providerId) {
+      if (!provider_id) {
         res.status(400).json({ error: 'Provider ID is required' })
         return
       }
 
-      const startPrompt = shot.startPrompt || this.buildImagePrompt(shot, 'start', style)
-      const endPrompt = shot.endPrompt || this.buildImagePrompt(shot, 'end', style)
+      const start_prompt = shot.start_prompt || this.buildImagePrompt(shot, 'start', style)
+      const end_prompt = shot.end_prompt || this.buildImagePrompt(shot, 'end', style)
       
       const [startResponse, endResponse] = await Promise.all([
-        aiProviderService.createImage(providerId, {
-          prompt: startPrompt,
-          size: shot.aspectRatio === '16:9' ? '1920x1080' : shot.aspectRatio === '4:3' ? '1536x1024' : '1024x1792',
+        aiProviderService.createImage(provider_id, {
+          prompt: start_prompt,
+          size: shot.aspect_ratio === '16:9' ? '1920x1080' : shot.aspect_ratio === '4:3' ? '1536x1024' : '1024x1792',
           quality: quality || 'standard',
           style: 'vivid',
         }),
-        aiProviderService.createImage(providerId, {
-          prompt: endPrompt,
-          size: shot.aspectRatio === '16:9' ? '1920x1080' : shot.aspectRatio === '4:3' ? '1536x1024' : '1024x1792',
+        aiProviderService.createImage(provider_id, {
+          prompt: end_prompt,
+          size: shot.aspect_ratio === '16:9' ? '1920x1080' : shot.aspect_ratio === '4:3' ? '1536x1024' : '1024x1792',
           quality: quality || 'standard',
           style: 'vivid',
         }),
@@ -221,40 +228,46 @@ class ShotGenerationController {
       const updatedShot = await prisma.shot.update({
         where: { id },
         data: {
-          startImageUrl: startResponse.url,
-          endImageUrl: endResponse.url,
+          start_image_url: startResponse.url,
+          end_image_url: endResponse.url,
         },
       })
 
       await Promise.all([
         prisma.asset.create({
           data: {
+            id: crypto.randomUUID(),
             type: 'image',
             url: startResponse.url,
-            projectId: shot.projectId,
+            project_id: shot.project_id,
             metadata: {
-              name: `起始帧 - ${shot.actionSummary.substring(0, 30)}...`,
-              prompt: startPrompt,
-              revisedPrompt: startResponse.revisedPrompt,
-              shotId: id,
-              frameType: 'start',
+              name: `起始帧 - ${shot.action_summary.substring(0, 30)}...`,
+              prompt: start_prompt,
+              revised_prompt: startResponse.revisedPrompt,
+              shot_id: id,
+              frame_type: 'start',
               type: 'shot-frame'
             },
+            created_at: new Date(),
+            updated_at: new Date(),
           },
         }),
         prisma.asset.create({
           data: {
+            id: crypto.randomUUID(),
             type: 'image',
             url: endResponse.url,
-            projectId: shot.projectId,
+            project_id: shot.project_id,
             metadata: {
-              name: `结束帧 - ${shot.actionSummary.substring(0, 30)}...`,
-              prompt: endPrompt,
-              revisedPrompt: endResponse.revisedPrompt,
-              shotId: id,
-              frameType: 'end',
+              name: `结束帧 - ${shot.action_summary.substring(0, 30)}...`,
+              prompt: end_prompt,
+              revised_prompt: endResponse.revisedPrompt,
+              shot_id: id,
+              frame_type: 'end',
               type: 'shot-frame'
             },
+            created_at: new Date(),
+            updated_at: new Date(),
           },
         })
       ])
@@ -264,81 +277,81 @@ class ShotGenerationController {
         endImage: endResponse.url,
         shot: updatedShot,
       })
-      logger.info('双帧生成成功', { userId: req.userId, shotId: id, providerId })
+      logger.info('双帧生成成功', { user_id: req.user_id, shot_id: id, provider_id })
     } catch (error) {
-      logger.error('生成双帧失败', { userId: req.userId, shotId: req.params.id, error })
+      logger.error('生成双帧失败', { user_id: req.user_id, shot_id: req.params.id, error })
       res.status(500).json({ error: 'Failed to generate images' })
     }
   }
 
   async generateVideo(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
       const { id } = req.params
-      const { providerId } = req.body
+      const { provider_id } = req.body
 
       const shot = await prisma.shot.findFirst({
         where: {
           id,
-          project: {
+          Project: {
             OR: [
-              { ownerId: req.userId },
-              { members: { some: { userId: req.userId } } },
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id } } },
             ],
           },
         },
       })
 
       if (!shot) {
-        logger.warn('分镜不存在', { userId: req.userId, shotId: id })
+        logger.warn('分镜不存在', { user_id: req.user_id, shot_id: id })
         res.status(404).json({ error: 'Shot not found' })
         return
       }
 
-      if (!shot.startImageUrl || !shot.endImageUrl) {
+      if (!shot.start_image_url || !shot.end_image_url) {
         res.status(400).json({ error: 'Start and end images must be generated first' })
         return
       }
 
-      if (!providerId) {
+      if (!provider_id) {
         res.status(400).json({ error: 'Provider ID is required' })
         return
       }
 
-      const response = await aiProviderService.createVideo(providerId, {
-        imageUrl: shot.startImageUrl,
-        prompt: shot.actionSummary,
+      const response = await aiProviderService.createVideo(provider_id, {
+        imageUrl: shot.start_image_url,
+        prompt: shot.action_summary,
         duration: shot.duration,
-        aspectRatio: shot.aspectRatio,
+        aspectRatio: shot.aspect_ratio,
       })
 
       const updatedShot = await prisma.shot.update({
         where: { id },
-        data: { videoUrl: response.url },
+        data: { video_url: response.url },
       })
 
       res.json({
-        videoUrl: response.url,
+        video_url: response.url,
         duration: response.duration,
         resolution: response.resolution,
         shot: updatedShot,
       })
-      logger.info('视频生成成功', { userId: req.userId, shotId: id, providerId })
+      logger.info('视频生成成功', { user_id: req.user_id, shot_id: id, provider_id })
     } catch (error) {
-      logger.error('生成视频失败', { userId: req.userId, shotId: req.params.id, error })
+      logger.error('生成视频失败', { user_id: req.user_id, shot_id: req.params.id, error })
       res.status(500).json({ error: 'Failed to generate video' })
     }
   }
 
   private buildImagePrompt(shot: any, type: 'start' | 'end', style?: string): string {
-    const character = shot?.character?.name || ''
-    const scene = shot?.scene?.location || ''
-    const action = shot?.actionSummary || ''
-    const camera = shot?.cameraMovement || ''
+    const character = shot?.Character?.name || ''
+    const scene = shot?.Scene?.location || ''
+    const action = shot?.action_summary || ''
+    const camera = shot?.camera_movement || ''
     const selectedStyle = style || 'cinematic'
 
     let prompt = buildCharacterImagePrompt(character, scene, action, camera, selectedStyle)

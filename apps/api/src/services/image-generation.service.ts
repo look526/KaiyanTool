@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma';
 import { buildCharacterImagePrompt, buildThreeViewPrompt } from '../config/prompt-templates';
 import { ASSET_CATEGORIES, ASSET_SOURCES, AssetCategory } from '../constants/asset-categories';
 import { getResolutionSize } from '../types/seedream.types';
+import crypto from 'crypto';
 
 const ImageGenerationSchema = z.object({
   prompt: z.string().min(10),
@@ -15,13 +16,13 @@ const ImageGenerationSchema = z.object({
   style: z.string().optional(),
   n: z.number().min(1).max(15).optional(),
   image_urls: z.array(z.string()).optional(),
-  characterRefImageId: z.string().optional(),
-  sceneRefImageId: z.string().optional(),
-  projectId: z.string(),
+  character_ref_image_id: z.string().optional(),
+  scene_ref_image_id: z.string().optional(),
+  project_id: z.string(),
   model: z.string().optional(),
   category: z.string().optional(),
   source: z.string().optional(),
-  threeView: z.boolean().optional()
+  three_view: z.boolean().optional()
 });
 
 export async function generateImage(input: z.infer<typeof ImageGenerationSchema>) {
@@ -43,24 +44,27 @@ export async function generateImage(input: z.infer<typeof ImageGenerationSchema>
 
   const task = await prisma.renderTask.create({
     data: {
+      id: crypto.randomUUID(),
       type: 'image',
       status: 'pending',
       params: { ...validated, width: finalWidth, height: finalHeight },
-      projectId: validated.projectId
+      project_id: validated.project_id,
+      created_at: new Date(),
+      updated_at: new Date()
     }
   });
 
   try {
     const aiProviders = await prisma.aIProvider.findMany({
       where: { enabled: true },
-      include: { models: true },
+      include: { AIProviderModel: true },
     });
 
     let provider: any;
 
     if (validated.model) {
       for (const p of aiProviders) {
-        const foundModel = p.models?.find((m: any) => m.id === validated.model || m.name === validated.model);
+        const foundModel = p.AIProviderModel?.find((m: any) => m.id === validated.model || m.name === validated.model);
         if (foundModel) {
           provider = p;
           break;
@@ -74,13 +78,13 @@ export async function generateImage(input: z.infer<typeof ImageGenerationSchema>
 
     providerManager.addProvider({
       id: provider.id,
-      name: provider.name,
+      name: provider.type,
       type: provider.type as any,
-      apiKey: provider.apiKey,
-      baseUrl: provider.baseUrl || undefined,
+      apiKey: provider.api_key,
+      baseUrl: provider.base_url || undefined,
     });
 
-    console.log('[ImageGeneration] Provider added:', { id: provider.id, type: provider.type, name: provider.name });
+    console.log('[ImageGeneration] Provider added:', { id: provider.id, type: provider.type });
 
     const aiProvider = providerManager.getProvider(provider.id);
     console.log('[ImageGeneration] Got provider:', aiProvider, 'type:', aiProvider?.constructor?.name);
@@ -101,24 +105,27 @@ export async function generateImage(input: z.infer<typeof ImageGenerationSchema>
     const source = validated.source || ASSET_SOURCES.AI_GENERATION;
 
     const asset = await prisma.asset.create({
-      data: {
-        type: 'image',
-        url: result.url,
-        metadata: {
-          name: `图片生成 - ${enhancedPrompt.substring(0, 30)}...`,
-          width: finalWidth,
-          height: finalHeight,
-          taskId: task.id,
-          prompt: enhancedPrompt,
-          thumbnailUrl: result.thumbnailUrl || result.url,
-          size: validated.size,
-          resolution: validated.resolution,
-        },
-        projectId: validated.projectId,
-        category,
-        source
-      }
-    });
+    data: {
+      id: crypto.randomUUID(),
+      type: 'image',
+      url: result.url,
+      metadata: {
+        name: `图片生成 - ${enhancedPrompt.substring(0, 30)}...`,
+        width: finalWidth,
+        height: finalHeight,
+        taskId: task.id,
+        prompt: enhancedPrompt,
+        thumbnailUrl: result.thumbnailUrl || result.url,
+        size: validated.size,
+        resolution: validated.resolution,
+      },
+      project_id: validated.project_id,
+      category,
+      source,
+      created_at: new Date(),
+      updated_at: new Date()
+    }
+  });
 
     await prisma.renderTask.update({
       where: { id: task.id },
@@ -173,9 +180,9 @@ function inferCategoryFromPrompt(prompt: string): AssetCategory {
 async function buildEnhancedPrompt(input: z.infer<typeof ImageGenerationSchema>): Promise<string> {
   const style = input.style || 'cinematic';
   
-  console.log('[DEBUG] buildEnhancedPrompt input:', { prompt: input.prompt, threeView: input.threeView, style });
+  console.log('[DEBUG] buildEnhancedPrompt input:', { prompt: input.prompt, threeView: input.three_view, style });
   
-  if (input.threeView) {
+  if (input.three_view) {
     console.log('[DEBUG] Using buildThreeViewPrompt with style:', style);
     return buildThreeViewPrompt(input.prompt, style);
   }
@@ -219,14 +226,14 @@ export async function getTaskStatus(taskId: string) {
 }
 
 export async function generateCharacterImage(
-  projectId: string,
+  project_id: string,
   characterDescription: string,
   style: string = 'cinematic',
   model?: string
 ) {
   return generateImage({
     prompt: characterDescription,
-    projectId,
+    project_id,
     style,
     model,
     n: 1,
@@ -238,14 +245,14 @@ export async function generateCharacterImage(
 }
 
 export async function generateItemImage(
-  projectId: string,
+  project_id: string,
   itemDescription: string,
   style: string = 'cinematic',
   model?: string
 ) {
   return generateImage({
     prompt: itemDescription,
-    projectId,
+    project_id,
     style,
     model,
     n: 1,
@@ -257,14 +264,14 @@ export async function generateItemImage(
 }
 
 export async function generateSceneImage(
-  projectId: string,
+  project_id: string,
   sceneDescription: string,
   style: string = 'cinematic',
   model?: string
 ) {
   return generateImage({
     prompt: sceneDescription,
-    projectId,
+    project_id,
     style,
     model,
     n: 1,

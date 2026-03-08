@@ -11,8 +11,8 @@ interface TeamMember {
   email: string;
   role: MemberRole;
   status: MemberStatus;
-  joinedAt: string;
-  avatarUrl?: string;
+  joined_at: string;
+  avatar_url?: string;
 }
 
 const roleConfig: Record<MemberRole, { label: string; color: string; bgColor: string; borderColor: string; icon: typeof Crown; gradient: string }> = {
@@ -72,7 +72,7 @@ export default function TeamPage() {
       if (Array.isArray(parsed)) {
         setMembers(parsed);
       }
-    } catch {
+    } catch { // eslint-disable-line no-empty
     }
   }, []);
 
@@ -82,7 +82,7 @@ export default function TeamPage() {
       if (prev.some((member) => member.email === user.email)) {
         return prev;
       }
-      const createdAt = user.createdAt instanceof Date ? user.createdAt : new Date(user.createdAt);
+      const created_at = user.created_at instanceof Date ? user.created_at : (user.created_at ? new Date(user.created_at) : new Date());
       return [
         {
           id: user.id,
@@ -90,8 +90,8 @@ export default function TeamPage() {
           email: user.email,
           role: 'owner',
           status: 'active',
-          joinedAt: createdAt.toISOString(),
-          avatarUrl: user.avatarUrl || undefined,
+          joined_at: created_at.toISOString(),
+          avatar_url: user.avatar_url || undefined,
         },
         ...prev,
       ];
@@ -140,7 +140,7 @@ export default function TeamPage() {
         email: email,
         role: role,
         status: 'invited',
-        joinedAt: now,
+        joined_at: now,
       },
       ...prev,
     ]);
@@ -457,9 +457,9 @@ export default function TeamPage() {
                     onMouseLeave={() => setHoveredMember(null)}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      {member.avatarUrl ? (
-                        <img
-                          src={member.avatarUrl}
+                      {member.avatar_url ? (
+                          <img
+                            src={member.avatar_url}
                           alt={member.name}
                           style={{
                             width: '42px',
@@ -563,7 +563,7 @@ export default function TeamPage() {
                         color: 'var(--text-muted)',
                       }}>
                         <Clock style={{ width: '12px', height: '12px' }} />
-                        {formatDate(member.joinedAt)}
+                        {formatDate(member.joined_at)}
                       </span>
                     </div>
 

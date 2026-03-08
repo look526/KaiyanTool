@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../../lib/prisma';
 import { AppError, asyncHandler } from '../../middleware/error.middleware';
 import logger from '../../lib/logger';
-import { randomBytes } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 
 const router = Router();
 
@@ -20,9 +20,9 @@ router.post('/login', asyncHandler(async (req: Request, res: Response) => {
       id: true,
       email: true,
       name: true,
-      passwordHash: true,
+      password_hash: true,
       role: true,
-      avatarUrl: true,
+      avatar_url: true,
     },
   });
   
@@ -34,19 +34,20 @@ router.post('/login', asyncHandler(async (req: Request, res: Response) => {
     throw AppError.forbidden('需要管理员权限');
   }
   
-  const isValid = await bcrypt.compare(password, user.passwordHash);
+  const isValid = await bcrypt.compare(password, user.password_hash);
   if (!isValid) {
     await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        action: 'admin_login_failed',
-        resource: 'admin_auth',
-        ipAddress: req.ip,
-        userAgent: req.headers['user-agent'],
-        success: false,
-        errorMessage: '密码错误',
-      },
-    });
+    data: {
+      id: randomUUID(),
+      user_id: user.id,
+      action: 'admin_login_failed',
+      resource: 'admin_auth',
+      ip_address: req.ip,
+      user_agent: req.headers['user-agent'],
+      success: false,
+      error_message: '密码错误',
+    },
+  });
     throw AppError.unauthorized('邮箱或密码错误');
   }
   
@@ -55,24 +56,26 @@ router.post('/login', asyncHandler(async (req: Request, res: Response) => {
   
   await prisma.session.create({
     data: {
+      id: randomUUID(),
       token: sessionToken,
-      userId: user.id,
-      expiresAt: sessionExpiresAt,
+      user_id: user.id,
+      expires_at: sessionExpiresAt,
     },
   });
   
   await prisma.user.update({
     where: { id: user.id },
-    data: { lastLoginAt: new Date() },
+    data: { last_login_at: new Date() },
   });
   
   await prisma.auditLog.create({
     data: {
-      userId: user.id,
+      id: randomUUID(),
+      user_id: user.id,
       action: 'admin_login',
       resource: 'admin_auth',
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
+      ip_address: req.ip,
+      user_agent: req.headers['user-agent'],
     },
   });
   
@@ -92,13 +95,13 @@ router.post('/login', asyncHandler(async (req: Request, res: Response) => {
       email: user.email,
       name: user.name,
       role: user.role,
-      avatarUrl: user.avatarUrl,
+      avatar_url: user.avatar_url,
     },
   });
 }));
 
 router.get('/me', asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.userId;
+  const userId = req.user_id;
   if (!userId) {
     throw AppError.unauthorized();
   }
@@ -110,9 +113,9 @@ router.get('/me', asyncHandler(async (req: Request, res: Response) => {
       email: true,
       name: true,
       role: true,
-      avatarUrl: true,
-      createdAt: true,
-      lastLoginAt: true,
+      avatar_url: true,
+      created_at: true,
+      last_login_at: true,
     },
   });
   
@@ -124,7 +127,7 @@ router.get('/me', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 router.get('/stats', asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.userId;
+  const userId = req.user_id;
   if (!userId) {
     throw AppError.unauthorized();
   }
@@ -150,7 +153,7 @@ router.get('/stats', asyncHandler(async (req: Request, res: Response) => {
     prisma.asset.count(),
     prisma.session.count({
       where: {
-        createdAt: {
+        created_at: {
           gte: new Date(new Date().setHours(0, 0, 0, 0)),
         },
       },
@@ -161,7 +164,7 @@ router.get('/stats', asyncHandler(async (req: Request, res: Response) => {
     }),
   ]);
   
-  const userIds = [...new Set(recentLogs.filter(l => l.userId).map(l => l.userId))] as string[];
+  const userIds = [...new Set(recentLogs.filter(l => l.user_id).map(l => l.user_id))] as string[];
   const users = await prisma.user.findMany({
     where: { id: { in: userIds } },
     select: { id: true, name: true, email: true },
@@ -170,7 +173,7 @@ router.get('/stats', asyncHandler(async (req: Request, res: Response) => {
   
   const logsWithUsers = recentLogs.map(log => ({
     ...log,
-    user: log.userId ? userMap.get(log.userId) : null,
+    user: log.user_id ? userMap.get(log.user_id) : null,
   }));
   
   res.json({

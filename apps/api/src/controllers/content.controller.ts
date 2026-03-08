@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
 import logger from '../lib/logger';
 import { prisma } from '../lib/prisma';
+import { randomBytes } from 'crypto';
 
 export const createScript = async (req: Request, res: Response) => {
-  const currentUser = req.user?.id;
+  const currentUser = req.user_id;
   const { projectId, title, content } = req.body;
 
   try {
@@ -19,8 +20,8 @@ export const createScript = async (req: Request, res: Response) => {
       where: {
         id: projectId,
         OR: [
-          { ownerId: currentUser },
-          { members: { some: { userId: currentUser } } },
+          { owner_id: currentUser },
+          { ProjectMember: { some: { user_id: currentUser } } },
         ],
       },
     });
@@ -32,12 +33,15 @@ export const createScript = async (req: Request, res: Response) => {
 
     const script = await prisma.script.create({
       data: {
+        id: randomBytes(16).toString('hex'),
         title,
         content,
-        project: { connect: { id: projectId } },
+        project_id: projectId,
+        created_at: new Date(),
+        updated_at: new Date(),
       },
       include: {
-        scenes: true,
+        Scene: true,
       },
     });
 
@@ -51,7 +55,7 @@ export const createScript = async (req: Request, res: Response) => {
 
 export const getScripts = async (req: Request, res: Response) => {
   try {
-    const currentUser = (req as any).userId || req.user?.id;
+    const currentUser = req.user_id || req.user_id;
     const { projectId } = req.params;
 
     if (!currentUser) {
@@ -62,8 +66,8 @@ export const getScripts = async (req: Request, res: Response) => {
       where: {
         id: projectId,
         OR: [
-          { ownerId: currentUser },
-          { members: { some: { userId: currentUser } } },
+          { owner_id: currentUser },
+          { ProjectMember: { some: { user_id: currentUser } } },
         ],
       },
     });
@@ -74,10 +78,10 @@ export const getScripts = async (req: Request, res: Response) => {
     }
 
     const scripts = await prisma.script.findMany({
-      where: { projectId },
-      orderBy: { createdAt: 'desc' },
+      where: { project_id: projectId },
+      orderBy: { created_at: 'desc' },
       include: {
-        scenes: true,
+        Scene: true,
       },
     });
 
@@ -173,7 +177,7 @@ export const parseScript = async (req: Request, res: Response) => {
 };
 
 export const updateScript = async (req: Request, res: Response) => {
-  const currentUser = (req as any).userId || req.user?.id;
+  const currentUser = req.user_id || req.user_id;
   const { id } = req.params;
   const { title, content } = req.body;
 
@@ -185,10 +189,10 @@ export const updateScript = async (req: Request, res: Response) => {
     const script = await prisma.script.findFirst({
       where: {
         id,
-        project: {
+        Project: {
           OR: [
-            { ownerId: currentUser },
-            { members: { some: { userId: currentUser } } },
+            { owner_id: currentUser },
+            { ProjectMember: { some: { user_id: currentUser } } },
           ],
         },
       },
@@ -216,7 +220,7 @@ export const updateScript = async (req: Request, res: Response) => {
 };
 
 export const deleteScript = async (req: Request, res: Response) => {
-  const currentUser = (req as any).userId || req.user?.id;
+  const currentUser = req.user_id || req.user_id;
   const { id } = req.params;
 
   try {
@@ -227,10 +231,10 @@ export const deleteScript = async (req: Request, res: Response) => {
     const script = await prisma.script.findFirst({
       where: {
         id,
-        project: {
+        Project: {
           OR: [
-            { ownerId: currentUser },
-            { members: { some: { userId: currentUser } } },
+            { owner_id: currentUser },
+            { ProjectMember: { some: { user_id: currentUser } } },
           ],
         },
       },
@@ -254,7 +258,7 @@ export const deleteScript = async (req: Request, res: Response) => {
 };
 
 export const getScript = async (req: Request, res: Response) => {
-  const currentUser = (req as any).userId || req.user?.id;
+  const currentUser = req.user_id || req.user_id;
   const { id } = req.params;
 
   try {
@@ -265,15 +269,15 @@ export const getScript = async (req: Request, res: Response) => {
     const script = await prisma.script.findFirst({
       where: {
         id,
-        project: {
+        Project: {
           OR: [
-            { ownerId: currentUser },
-            { members: { some: { userId: currentUser } } },
+            { owner_id: currentUser },
+            { ProjectMember: { some: { user_id: currentUser } } },
           ],
         },
       },
       include: {
-        scenes: true,
+        Scene: true,
       },
     });
 
@@ -290,7 +294,7 @@ export const getScript = async (req: Request, res: Response) => {
 };
 
 export const createNovel = async (req: Request, res: Response) => {
-  const currentUser = (req as any).userId || req.user?.id;
+  const currentUser = req.user_id || req.user_id;
   const { projectId, title, content } = req.body;
 
   try {
@@ -306,8 +310,8 @@ export const createNovel = async (req: Request, res: Response) => {
       where: {
         id: projectId,
         OR: [
-          { ownerId: currentUser },
-          { members: { some: { userId: currentUser } } },
+          { owner_id: currentUser },
+          { ProjectMember: { some: { user_id: currentUser } } },
         ],
       },
     });
@@ -319,9 +323,12 @@ export const createNovel = async (req: Request, res: Response) => {
 
     const novel = await prisma.novel.create({
       data: {
+        id: randomBytes(16).toString('hex'),
         title,
         content,
-        project: { connect: { id: projectId } },
+        project_id: projectId,
+        created_at: new Date(),
+        updated_at: new Date(),
       },
     });
 
@@ -334,7 +341,7 @@ export const createNovel = async (req: Request, res: Response) => {
 };
 
 export const getNovels = async (req: Request, res: Response) => {
-  const currentUser = req.user?.id;
+  const currentUser = req.user_id;
   const { projectId } = req.params;
 
   try {
@@ -346,8 +353,8 @@ export const getNovels = async (req: Request, res: Response) => {
       where: {
         id: projectId,
         OR: [
-          { ownerId: currentUser },
-          { members: { some: { userId: currentUser } } },
+          { owner_id: currentUser },
+          { ProjectMember: { some: { user_id: currentUser } } },
         ],
       },
     });
@@ -358,8 +365,8 @@ export const getNovels = async (req: Request, res: Response) => {
     }
 
     const novels = await prisma.novel.findMany({
-      where: { projectId },
-      orderBy: { createdAt: 'desc' },
+      where: { project_id: projectId },
+      orderBy: { created_at: 'desc' },
     });
 
     res.json({ novels });

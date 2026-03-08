@@ -1,20 +1,21 @@
 import { prisma } from '../lib/prisma';
+import crypto from 'crypto';
 import { z } from 'zod';
 
 const CreateSnapshotSchema = z.object({
-  projectId: z.string(),
+  project_id: z.string(),
   name: z.string().optional(),
   description: z.string().optional(),
   tags: z.array(z.string()).optional()
 });
 
 const DiffSchema = z.object({
-  versionId1: z.string(),
-  versionId2: z.string()
+  version_id_1: z.string(),
+  version_id_2: z.string()
 });
 
 const RevertSchema = z.object({
-  versionId: z.string()
+  version_id: z.string()
 });
 
 export class VersionControlService {
@@ -22,12 +23,12 @@ export class VersionControlService {
     const validated = CreateSnapshotSchema.parse(input);
 
     const project = await prisma.project.findUnique({
-      where: { id: validated.projectId },
+      where: { id: validated.project_id },
       include: {
-        shots: true,
-        characters: true,
-        scenes: true,
-        documents: true
+        Shot: true,
+        Character: true,
+        Scene: true,
+        Document: true
       }
     });
 
@@ -42,32 +43,41 @@ export class VersionControlService {
         description: project.description,
         settings: project.settings as Record<string, any>
       },
-      shots: project.shots.map(shot => ({
+      shots: project.Shot.map(shot => ({
         id: shot.id,
-        sequence: shot.sequence,
-        title: shot.title,
-        description: shot.description,
-        prompt: (shot as any).prompt,
+        scene_id: shot.scene_id,
+        character_id: shot.character_id,
+        chapter_number: shot.chapter_number,
+        episode_number: shot.episode_number,
+        segment_id: shot.segment_id,
+        cell_id: shot.cell_id,
+        action_summary: shot.action_summary,
+        camera_movement: shot.camera_movement,
+        start_prompt: shot.start_prompt,
+        end_prompt: shot.end_prompt,
+        start_image_url: shot.start_image_url,
+        end_image_url: shot.end_image_url,
+        video_url: shot.video_url,
         duration: shot.duration,
-        status: shot.status,
-        metadata: shot.metadata as Record<string, any>
+        aspect_ratio: shot.aspect_ratio,
+        visual_style: shot.visual_style
       })),
-      characters: project.characters.map(char => ({
+      characters: project.Character.map(char => ({
         id: char.id,
         name: char.name,
-        description: char.description,
+        age: char.age,
+        gender: char.gender,
         appearance: char.appearance,
-        metadata: char.metadata as Record<string, any>
+        reference_images: char.reference_images
       })),
-      scenes: project.scenes.map(scene => ({
+      scenes: project.Scene.map(scene => ({
         id: scene.id,
-        name: scene.name,
-        description: scene.description,
         location: scene.location,
-        timeOfDay: scene.timeOfDay,
-        metadata: scene.metadata as Record<string, any>
+        time: scene.time,
+        atmosphere: scene.atmosphere,
+        reference_images: scene.reference_images
       })),
-      documents: project.documents.map(doc => ({
+      documents: project.Document.map(doc => ({
         id: doc.id,
         title: doc.title,
         type: doc.type,
@@ -76,37 +86,39 @@ export class VersionControlService {
     };
 
     const latestVersion = await prisma.projectVersion.findFirst({
-      where: { projectId: validated.projectId },
+      where: { project_id: validated.project_id },
       orderBy: { version: 'desc' }
     });
 
     const snapshot = await prisma.projectVersion.create({
       data: {
-        projectId: validated.projectId,
+        id: crypto.randomUUID(),
+        project_id: validated.project_id,
         version: (latestVersion?.version || 0) + 1,
         name: validated.name || `Version ${((latestVersion?.version || 0) + 1)}`,
         description: validated.description,
         tags: validated.tags || [],
         snapshot: snapshotData as any,
-        createdBy: validated.projectId
+        created_by: 'system',
+        created_at: new Date()
       }
     });
 
     return snapshot;
   }
 
-  async getVersionHistory(projectId: string, options?: { limit?: number; offset?: number }) {
+  async getVersionHistory(project_id: string, options?: { limit?: number; offset?: number }) {
     const { limit = 50, offset = 0 } = options || {};
 
     const versions = await prisma.projectVersion.findMany({
-      where: { projectId },
+      where: { project_id: project_id },
       orderBy: { version: 'desc' },
       take: limit,
       skip: offset
     });
 
     const total = await prisma.projectVersion.count({
-      where: { projectId }
+      where: { project_id: project_id }
     });
 
     return { versions, total, hasMore: offset + versions.length < total };
@@ -126,8 +138,8 @@ export class VersionControlService {
 
   async compareVersions(input: z.infer<typeof DiffSchema>) {
     const [version1, version2] = await Promise.all([
-      this.getVersion(input.versionId1),
-      this.getVersion(input.versionId2)
+      this.getVersion(input.version_id_1),
+      this.getVersion(input.version_id_2)
     ]);
 
     const data1 = version1.snapshot as any;
@@ -150,40 +162,47 @@ export class VersionControlService {
   }
 
   async revertToVersion(input: z.infer<typeof RevertSchema>) {
-    const targetVersion = await this.getVersion(input.versionId);
+    const targetVersion = await this.getVersion(input.version_id);
 
     if (!targetVersion.snapshot) {
       throw new Error('Version data not found');
     }
 
     const data = targetVersion.snapshot as any;
-    const projectId = targetVersion.projectId;
+    const projectId = targetVersion.project_id;
 
     await prisma.$transaction([
       prisma.shot.deleteMany({
-        where: { projectId }
+        where: { project_id: projectId }
       }),
 
       prisma.character.deleteMany({
-        where: { projectId }
+        where: { project_id: projectId }
       }),
 
       prisma.scene.deleteMany({
-        where: { projectId }
+        where: { project_id: projectId }
       })
     ]);
 
     if (data.shots?.length) {
       await prisma.shot.createMany({
         data: data.shots.map((shot: any) => ({
-          projectId,
-          sequence: shot.sequence,
-          title: shot.title,
-          description: shot.description,
-          prompt: shot.prompt,
+          project_id: projectId,
+          chapter_number: shot.chapter_number,
+          episode_number: shot.episode_number,
+          segment_id: shot.segment_id,
+          cell_id: shot.cell_id,
+          action_summary: shot.action_summary,
+          camera_movement: shot.camera_movement,
+          start_prompt: shot.start_prompt,
+          end_prompt: shot.end_prompt,
+          start_image_url: shot.start_image_url,
+          end_image_url: shot.end_image_url,
+          video_url: shot.video_url,
           duration: shot.duration,
-          status: shot.status,
-          metadata: shot.metadata
+          aspect_ratio: shot.aspect_ratio,
+          visual_style: shot.visual_style
         }))
       });
     }
@@ -191,11 +210,12 @@ export class VersionControlService {
     if (data.characters?.length) {
       await prisma.character.createMany({
         data: data.characters.map((char: any) => ({
-          projectId,
+          project_id: projectId,
           name: char.name,
-          description: char.description,
+          age: char.age,
+          gender: char.gender,
           appearance: char.appearance,
-          metadata: char.metadata
+          reference_images: char.reference_images
         }))
       });
     }
@@ -203,12 +223,11 @@ export class VersionControlService {
     if (data.scenes?.length) {
       await prisma.scene.createMany({
         data: data.scenes.map((scene: any) => ({
-          projectId,
-          name: scene.name,
-          description: scene.description,
+          project_id: projectId,
           location: scene.location,
-          timeOfDay: scene.timeOfDay,
-          metadata: scene.metadata
+          time: scene.time,
+          atmosphere: scene.atmosphere,
+          reference_images: scene.reference_images
         }))
       });
     }
@@ -223,7 +242,7 @@ export class VersionControlService {
     }
 
     await this.createSnapshot({
-      projectId,
+      project_id: projectId,
       name: `Revert to v${targetVersion.version}`,
       description: `Reverted from current version to v${targetVersion.version}`
     });
@@ -241,7 +260,7 @@ export class VersionControlService {
     }
 
     const versionCount = await prisma.projectVersion.count({
-      where: { projectId: version.projectId }
+      where: { project_id: version.project_id }
     });
 
     if (versionCount <= 1) {

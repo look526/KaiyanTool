@@ -157,7 +157,7 @@ export function Modal({
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 9999,
-        padding: '24px',
+        padding: '48px 24px',
         animation: isAnimating ? 'modal-overlay-enter 0.2s ease-out' : 'modal-overlay-exit 0.2s ease-out',
       }}
     >
@@ -168,7 +168,8 @@ export function Modal({
           borderRadius: '16px',
           maxWidth: sizeConfig.maxWidth,
           width: '100%',
-          maxHeight: 'calc(100vh - 48px)',
+          maxHeight: 'calc(100vh - 96px)',
+          margin: '48px auto',
           overflow: 'auto',
           padding: sizeConfig.padding,
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',

@@ -57,12 +57,12 @@ export class PremiereExportService {
 
   private async loadProject(projectId: string): Promise<ProjectData> {
     const shots = await prisma.shot.findMany({
-      where: { projectId },
-      orderBy: { createdAt: 'asc' }
+      where: { project_id: projectId },
+      orderBy: { created_at: 'asc' }
     });
 
     const assets = await prisma.asset.findMany({
-      where: { projectId }
+      where: { project_id: projectId }
     });
 
     const totalDuration = shots.reduce((acc, shot) => acc + (shot.duration || 5), 0);
@@ -82,10 +82,10 @@ export class PremiereExportService {
         id: asset.id,
         type: asset.type as 'image' | 'video' | 'audio',
         url: asset.url,
-        name: asset.name || `Asset_${asset.id}`,
-        duration: asset.metadata?.duration,
-        width: asset.metadata?.width,
-        height: asset.metadata?.height
+        name: `Asset_${asset.id}`,
+        duration: asset.metadata ? (asset.metadata as any).duration : undefined,
+        width: asset.metadata ? (asset.metadata as any).width : undefined,
+        height: asset.metadata ? (asset.metadata as any).height : undefined
       })),
       duration: totalDuration
     };

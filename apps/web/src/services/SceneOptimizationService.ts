@@ -1,4 +1,3 @@
-import { apiClient } from '../lib/api-client';
 import { ParsedScene } from '../utils/SceneParser';
 import type { 
   OptimizationDirection, 

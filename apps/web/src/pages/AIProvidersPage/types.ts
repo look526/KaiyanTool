@@ -1,26 +1,7 @@
-import { LucideIcon } from 'lucide-react';
+import type { AIProvider, AIProviderModel } from '../../types';
+import type { LucideIcon } from 'lucide-react';
 
-export interface AIProviderModel {
-  id: string;
-  name: string;
-  modelId: string;
-  types: string[];
-  description?: string;
-  capabilities: string[];
-  enabled: boolean;
-  isAssistantDefault?: boolean;
-}
-
-export interface AIProvider {
-  id: string;
-  type: string;
-  apiKey: string;
-  baseUrl: string | null;
-  enabled: boolean;
-  models: AIProviderModel[];
-  createdAt: string;
-  updatedAt: string;
-}
+export type { AIProvider, AIProviderModel };
 
 export interface ProviderType {
   value: string;
@@ -39,14 +20,14 @@ export interface ContentType {
 
 export interface ProviderFormData {
   type: string;
-  apiKey: string;
-  baseUrl: string;
+  api_key: string;
+  base_url: string;
   enabled: boolean;
 }
 
 export interface ModelFormData {
   name: string;
-  modelId: string;
+  model_id: string;
   types: string[];
   description: string;
   capabilities: string[];
@@ -73,6 +54,19 @@ export interface ProviderCardProps {
   testingModel: string | null;
   isMobile: boolean;
   isTablet: boolean;
+  isDark?: boolean;
+  colors?: {
+    bgPrimary: string;
+    bgSecondary: string;
+    bgGlass: string;
+    bgGlassHover: string;
+    textPrimary: string;
+    textSecondary: string;
+    textMuted: string;
+    border: string;
+    borderHover: string;
+  };
+  accentColor?: string;
 }
 
 export interface ProviderModalProps {
@@ -84,6 +78,19 @@ export interface ProviderModalProps {
   saving: boolean;
   isEdit?: boolean;
   isMobile: boolean;
+  isDark?: boolean;
+  colors?: {
+    bgPrimary: string;
+    bgSecondary: string;
+    bgGlass: string;
+    bgGlassHover: string;
+    textPrimary: string;
+    textSecondary: string;
+    textMuted: string;
+    border: string;
+    borderHover: string;
+  };
+  accentColor?: string;
 }
 
 export interface ModelModalProps {
@@ -94,4 +101,18 @@ export interface ModelModalProps {
   onModelFormDataChange: (data: ModelFormData) => void;
   saving: boolean;
   isEdit: boolean;
+  providerType: string;
+  isDark?: boolean;
+  colors?: {
+    bgPrimary: string;
+    bgSecondary: string;
+    bgGlass: string;
+    bgGlassHover: string;
+    textPrimary: string;
+    textSecondary: string;
+    textMuted: string;
+    border: string;
+    borderHover: string;
+  };
+  accentColor?: string;
 }

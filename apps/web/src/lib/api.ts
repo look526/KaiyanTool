@@ -28,8 +28,8 @@ export const setAuthErrorHandler = originalSetAuthErrorHandler;
 
 // 定义 API 客户端接口
 export interface ApiClientInterface {
-  register(data: RegisterData): Promise<AuthResponse>;
-  login(data: LoginData): Promise<AuthResponse>;
+  register(data: RegisterData): Promise<AuthResponse & { token?: string }>;
+  login(data: LoginData): Promise<AuthResponse & { token?: string }>;
   logout(): Promise<{ message: string }>;
   changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }>;
   logoutAll(): Promise<{ message: string }>;

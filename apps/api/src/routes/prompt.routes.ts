@@ -23,7 +23,7 @@ Optimized English prompt:`;
 
 router.post('/optimize', asyncHandler(async (req, res) => {
   const { prompt, model } = req.body;
-  const userId = req.userId;
+  const userId = req.user_id;
 
   if (!prompt || prompt.length < 2) {
     throw AppError.badRequest('Prompt is required');

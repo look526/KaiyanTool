@@ -1,6 +1,7 @@
 import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
 import { NOVEL_ANALYSIS_PROMPTS } from '../prompts/services';
+import crypto from 'crypto';
 
 interface NovelInput {
   title: string;
@@ -205,21 +206,25 @@ export class NovelAnalysisService {
     }
   }
 
-  async saveNovelAnalysis(projectId: string, analysis: NovelAnalysis): Promise<string> {
+  async saveNovelAnalysis(project_id: string, analysis: NovelAnalysis): Promise<string> {
     const novel = await prisma.document.create({
       data: {
-        projectId,
+        id: crypto.randomUUID(),
+        project_id,
         title: analysis.title,
         type: 'novel_analysis',
         content: analysis as any,
-        status: 'completed'
+        status: 'completed',
+        created_at: new Date(),
+        updated_at: new Date()
       }
     });
 
     for (const character of analysis.characters) {
       await prisma.character.create({
         data: {
-          projectId,
+          id: crypto.randomUUID(),
+          project_id,
           name: character.name,
           appearance: JSON.stringify({
             role: character.role,
@@ -228,7 +233,9 @@ export class NovelAnalysisService {
             personality: character.personality,
             arc: character.arc,
             relationships: character.relationships
-          })
+          }),
+          created_at: new Date(),
+          updated_at: new Date()
         }
       });
     }
@@ -236,10 +243,13 @@ export class NovelAnalysisService {
     for (const chapter of analysis.chapters) {
       await prisma.scene.create({
         data: {
-          projectId,
+          id: crypto.randomUUID(),
+          project_id,
           location: chapter.locations[0],
           time: chapter.tone,
-          atmosphere: ''
+          atmosphere: '',
+          created_at: new Date(),
+          updated_at: new Date()
         }
       });
     }
@@ -248,7 +258,7 @@ export class NovelAnalysisService {
   }
 
   async importFromFile(
-    projectId: string,
+    project_id: string,
     fileContent: string,
     fileType: string
   ): Promise<string> {
@@ -274,7 +284,7 @@ export class NovelAnalysisService {
       content: novelData.content || fileContent
     });
 
-    return this.saveNovelAnalysis(projectId, analysis);
+    return this.saveNovelAnalysis(project_id, analysis);
   }
 
   private async parseTextFile(content: string): Promise<Partial<NovelInput>> {

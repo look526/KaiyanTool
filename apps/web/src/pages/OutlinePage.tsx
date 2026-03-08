@@ -12,15 +12,9 @@ import {
   PlayCircle,
   ChevronDown,
   ChevronUp,
-  Edit3
 } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Card } from '../components/ui/card';
-import { Input } from '../components/ui/input';
-import { Select } from '../components/ui/Select';
-import { LoadingSpinner } from '../components/ui/LoadingSpinner';
-import { ModelSelector } from '../components/ui/ModelSelector';
-import { apiClient } from '../lib/api-client';
+import { Button } from '../components/ui/button-new';
+import { apiClient } from '../lib/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../components/ui/Toast';
 
@@ -83,16 +77,43 @@ const GENRE_OPTIONS = [
 const OutlinePage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
   const { addToast } = useToast();
+
+  const isDark = resolvedTheme === 'dark';
+
+  const accentColor = '#8b5cf6';
+  const accentLight = '#a78bfa';
+
+  const colors = isDark ? {
+    bgPrimary: 'rgba(5, 5, 10, 0.95)',
+    bgSecondary: 'rgba(255, 255, 255, 0.03)',
+    bgGlass: 'rgba(255, 255, 255, 0.04)',
+    bgGlassHover: 'rgba(255, 255, 255, 0.06)',
+    textPrimary: '#fafafa',
+    textSecondary: 'rgba(250, 250, 250, 0.6)',
+    textMuted: 'rgba(250, 250, 250, 0.4)',
+    border: 'rgba(255, 255, 255, 0.06)',
+    borderHover: 'rgba(139, 92, 246, 0.25)',
+  } : {
+    bgPrimary: 'rgba(255, 255, 255, 0.92)',
+    bgSecondary: 'rgba(0, 0, 0, 0.02)',
+    bgGlass: 'rgba(0, 0, 0, 0.02)',
+    bgGlassHover: 'rgba(0, 0, 0, 0.04)',
+    textPrimary: '#18181b',
+    textSecondary: 'rgba(24, 24, 27, 0.6)',
+    textMuted: 'rgba(24, 24, 27, 0.4)',
+    border: 'rgba(0, 0, 0, 0.06)',
+    borderHover: 'rgba(139, 92, 246, 0.25)',
+  };
 
   const [step, setStep] = useState<'select' | 'generating' | 'result'>('select');
   const [outline, setOutline] = useState<Outline | null>(null);
+  const [loading, setLoading] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [storylines, setStorylines] = useState<Storyline[]>([]);
   const [selectedStorylineId, setSelectedStorylineId] = useState<string>('');
   const [expandedEpisodes, setExpandedEpisodes] = useState<Set<number>>(new Set());
-  const [selectedModel, setSelectedModel] = useState<string>('');
 
   const [formData, setFormData] = useState<{
     title: string;
@@ -108,13 +129,6 @@ const OutlinePage: React.FC = () => {
     additionalNotes: '',
   });
 
-  const textColor = theme === 'dark' ? '#ffffff' : '#0f172a';
-  const mutedTextColor = theme === 'dark' ? '#a1a1aa' : '#64748b';
-  const cardBg = theme === 'dark' ? '#18181b' : '#ffffff';
-  const borderColor = theme === 'dark' ? '#27272a' : '#e2e8f0';
-  const inputBg = theme === 'dark' ? '#09090b' : '#f8fafc';
-  const accentColor = '#6366f1';
-
   useEffect(() => {
     loadStorylines();
   }, [projectId]);
@@ -124,7 +138,7 @@ const OutlinePage: React.FC = () => {
 
     try {
       const documents = await apiClient.getProjectDocuments(projectId);
-      const storylineDocs = documents.filter((d) => d.type === 'storyline') as any[];
+      const storylineDocs = documents.filter((d) => (d as any).type === 'storyline') as any[];
       setStorylines(storylineDocs);
       if (storylineDocs.length > 0 && !selectedStorylineId) {
         setSelectedStorylineId(storylineDocs[0].id);
@@ -140,24 +154,23 @@ const OutlinePage: React.FC = () => {
   const handleGenerate = async () => {
     if (!selectedStorylineId || !formData.title) {
       addToast({
-        type: 'error',
-        title: '信息不完整',
-        message: '请选择故事线并填写标题',
+        type: 'warning',
+        title: '请选择剧情线',
+        message: '请先选择一个剧情线并填写标题',
       });
       return;
     }
 
-    setStep('generating');
-
     try {
-      const result = await apiClient.generateOutline({
+      setLoading(true);
+      const result = await (apiClient as any).generateOutline({
         storylineId: selectedStorylineId,
         title: formData.title,
         genre: formData.genre,
         targetDuration: formData.targetDuration,
         style: formData.style,
         additionalNotes: formData.additionalNotes,
-      });
+      }) as Outline;
       setOutline(result);
       setStep('result');
       addToast({
@@ -180,7 +193,7 @@ const OutlinePage: React.FC = () => {
     if (!outline || !projectId) return;
 
     try {
-      const result = await apiClient.saveOutline(projectId, outline);
+      const result = await (apiClient as any).saveOutline(projectId, outline) as { id: string };
       setSavedId(result.id);
       addToast({
         type: 'success',
@@ -215,87 +228,196 @@ const OutlinePage: React.FC = () => {
   const renderSelectStep = () => (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
       <div style={{ marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: '600', color: textColor, marginBottom: '8px' }}>
+        <h2 style={{ fontSize: '24px', fontWeight: '600', color: colors.textPrimary, marginBottom: '8px' }}>
           创建大纲
         </h2>
-        <p style={{ color: mutedTextColor }}>
+        <p style={{ color: colors.textMuted }}>
           基于故事线生成详细的大纲
         </p>
       </div>
 
-      <Card style={{ padding: '24px', backgroundColor: cardBg, border: `1px solid ${borderColor}` }}>
+      <div style={{
+        background: colors.bgGlass,
+        borderRadius: '24px',
+        padding: '24px',
+        border: `1px solid ${colors.border}`,
+        backdropFilter: 'blur(20px)',
+      }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: textColor, marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: colors.textPrimary, marginBottom: '8px' }}>
               选择故事线 *
             </label>
-            <Select
-              options={storylines.map(s => ({
-                value: s.id,
-                label: s.content.title,
-              }))}
+            <select
               value={selectedStorylineId}
-              onChange={(value) => {
-                setSelectedStorylineId(typeof value === 'string' ? value : value[0]);
-                const selected = storylines.find(s => s.id === (typeof value === 'string' ? value : value[0]));
+              onChange={(e) => {
+                setSelectedStorylineId(e.target.value);
+                const selected = storylines.find(s => s.id === e.target.value);
                 if (selected) {
                   setFormData({ ...formData, title: selected.content.title, style: selected.content.suggestedStyle });
                 }
               }}
-              placeholder="选择故事线"
-            />
+              style={{
+                width: '100%',
+                height: '44px',
+                padding: '0 14px',
+                border: `1px solid ${colors.border}`,
+                borderRadius: '12px',
+                background: colors.bgSecondary,
+                color: colors.textPrimary,
+                fontSize: '14px',
+                outline: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.25s ease',
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = accentColor;
+                e.currentTarget.style.boxShadow = `0 0 0 3px ${accentColor}20`;
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = colors.border;
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              <option value="">选择故事线</option>
+              {storylines.map(s => (
+                <option key={s.id} value={s.id}>{s.content.title}</option>
+              ))}
+            </select>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: textColor, marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: colors.textPrimary, marginBottom: '8px' }}>
               大纲标题 *
             </label>
-            <Input
+            <input
+              type="text"
               placeholder="输入大纲标题..."
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              style={{ backgroundColor: inputBg }}
+              style={{
+                width: '100%',
+                height: '44px',
+                padding: '0 14px',
+                border: `1px solid ${colors.border}`,
+                borderRadius: '12px',
+                background: colors.bgSecondary,
+                color: colors.textPrimary,
+                fontSize: '14px',
+                outline: 'none',
+                transition: 'all 0.25s ease',
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = accentColor;
+                e.currentTarget.style.boxShadow = `0 0 0 3px ${accentColor}20`;
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = colors.border;
+                e.currentTarget.style.boxShadow = 'none';
+              }}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: textColor, marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: colors.textPrimary, marginBottom: '8px' }}>
               类型 *
             </label>
-            <Select
-              options={GENRE_OPTIONS.map(g => ({ value: g.value, label: g.label }))}
+            <select
               value={formData.genre}
-              onChange={(value) => setFormData({ ...formData, genre: typeof value === 'string' ? value : value[0] })}
-              placeholder="选择类型"
-            />
+              onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
+              style={{
+                width: '100%',
+                height: '44px',
+                padding: '0 14px',
+                border: `1px solid ${colors.border}`,
+                borderRadius: '12px',
+                background: colors.bgSecondary,
+                color: colors.textPrimary,
+                fontSize: '14px',
+                outline: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.25s ease',
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = accentColor;
+                e.currentTarget.style.boxShadow = `0 0 0 3px ${accentColor}20`;
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = colors.border;
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              {GENRE_OPTIONS.map(g => (
+                <option key={g.value} value={g.value}>{g.label}</option>
+              ))}
+            </select>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: textColor, marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: colors.textPrimary, marginBottom: '8px' }}>
               目标时长（分钟）
             </label>
-            <Input
+            <input
               type="number"
               value={formData.targetDuration}
               onChange={(e) => setFormData({ ...formData, targetDuration: parseInt(e.target.value) || 15 })}
-              style={{ backgroundColor: inputBg }}
+              style={{
+                width: '100%',
+                height: '44px',
+                padding: '0 14px',
+                border: `1px solid ${colors.border}`,
+                borderRadius: '12px',
+                background: colors.bgSecondary,
+                color: colors.textPrimary,
+                fontSize: '14px',
+                outline: 'none',
+                transition: 'all 0.25s ease',
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = accentColor;
+                e.currentTarget.style.boxShadow = `0 0 0 3px ${accentColor}20`;
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = colors.border;
+                e.currentTarget.style.boxShadow = 'none';
+              }}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: textColor, marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: colors.textPrimary, marginBottom: '8px' }}>
               风格参考（可选）
             </label>
-            <Input
+            <input
+              type="text"
               value={formData.style}
               onChange={(e) => setFormData({ ...formData, style: e.target.value })}
               placeholder="如：宫崎骏风格、赛博朋克..."
-              style={{ backgroundColor: inputBg }}
+              style={{
+                width: '100%',
+                height: '44px',
+                padding: '0 14px',
+                border: `1px solid ${colors.border}`,
+                borderRadius: '12px',
+                background: colors.bgSecondary,
+                color: colors.textPrimary,
+                fontSize: '14px',
+                outline: 'none',
+                transition: 'all 0.25s ease',
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = accentColor;
+                e.currentTarget.style.boxShadow = `0 0 0 3px ${accentColor}20`;
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = colors.border;
+                e.currentTarget.style.boxShadow = 'none';
+              }}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: textColor, marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: colors.textPrimary, marginBottom: '8px' }}>
               额外备注（可选）
             </label>
             <textarea
@@ -305,33 +427,43 @@ const OutlinePage: React.FC = () => {
               style={{
                 width: '100%',
                 minHeight: '100px',
-                backgroundColor: inputBg,
-                border: `1px solid ${borderColor}`,
-                borderRadius: '8px',
+                background: colors.bgSecondary,
+                border: `1px solid ${colors.border}`,
+                borderRadius: '12px',
                 padding: '12px',
                 fontSize: '14px',
-                color: textColor,
-                resize: 'vertical'
+                color: colors.textPrimary,
+                resize: 'vertical',
+                outline: 'none',
+                transition: 'all 0.25s ease',
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = accentColor;
+                e.currentTarget.style.boxShadow = `0 0 0 3px ${accentColor}20`;
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = colors.border;
+                e.currentTarget.style.boxShadow = 'none';
               }}
             />
           </div>
 
           <Button
+            variant="primary"
             onClick={handleGenerate}
             style={{
               marginTop: '8px',
-              backgroundColor: accentColor,
-              color: 'white',
-              padding: '14px 24px',
+              height: '48px',
+              background: `linear-gradient(135deg, ${accentColor} 0%, ${accentLight} 100%)`,
               fontSize: '16px',
               fontWeight: '500',
             }}
           >
-            <Sparkles style={{ width: '18px', height: '18px', marginRight: '8px' }} />
+            <Sparkles style={{ width: '18px', height: '18px' }} />
             生成大纲
           </Button>
         </div>
-      </Card>
+      </div>
     </div>
   );
 
@@ -344,11 +476,22 @@ const OutlinePage: React.FC = () => {
       padding: '64px 24px',
       textAlign: 'center'
     }}>
-      <LoadingSpinner size="large" />
-      <h3 style={{ fontSize: '20px', fontWeight: '600', color: textColor, marginTop: '24px', marginBottom: '8px' }}>
+      <div style={{
+        width: '64px',
+        height: '64px',
+        borderRadius: '16px',
+        background: `linear-gradient(135deg, ${accentColor} 0%, ${accentLight} 100%)`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        animation: 'pulse 2s ease-in-out infinite',
+      }}>
+        <Sparkles style={{ width: '32px', height: '32px', color: 'white' }} />
+      </div>
+      <h3 style={{ fontSize: '20px', fontWeight: '600', color: colors.textPrimary, marginTop: '24px', marginBottom: '8px' }}>
         AI 正在创作中...
       </h3>
-      <p style={{ color: mutedTextColor, maxWidth: '400px' }}>
+      <p style={{ color: colors.textMuted, maxWidth: '400px' }}>
         大纲生成可能需要一些时间，请稍候...
       </p>
     </div>
@@ -366,9 +509,8 @@ const OutlinePage: React.FC = () => {
           marginBottom: '24px'
         }}>
           <Button
-            variant="outline"
+            variant="secondary"
             onClick={() => setStep('select')}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
           >
             <ArrowLeft style={{ width: '16px', height: '16px' }} />
             重新选择
@@ -376,21 +518,17 @@ const OutlinePage: React.FC = () => {
 
           <div style={{ display: 'flex', gap: '12px' }}>
             <Button
-              variant="outline"
+              variant="secondary"
               onClick={handleGenerate}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             >
               <RefreshCw style={{ width: '16px', height: '16px' }} />
               再次生成
             </Button>
             <Button
+              variant="primary"
               onClick={handleSave}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                backgroundColor: savedId ? '#22c55e' : accentColor,
-                color: 'white'
+                background: savedId ? '#22c55e' : `linear-gradient(135deg, ${accentColor} 0%, ${accentLight} 100%)`,
               }}
             >
               <Save style={{ width: '16px', height: '16px' }} />
@@ -400,17 +538,29 @@ const OutlinePage: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <Card style={{ padding: '24px', backgroundColor: cardBg, border: `1px solid ${borderColor}` }}>
-            <h2 style={{ fontSize: '24px', fontWeight: '600', color: textColor, marginBottom: '16px' }}>
+          <div style={{
+            background: colors.bgGlass,
+            borderRadius: '24px',
+            padding: '24px',
+            border: `1px solid ${colors.border}`,
+            backdropFilter: 'blur(20px)',
+          }}>
+            <h2 style={{ fontSize: '24px', fontWeight: '600', color: colors.textPrimary, marginBottom: '16px' }}>
               {outline.title}
             </h2>
-            <p style={{ fontSize: '16px', color: mutedTextColor, lineHeight: '1.6' }}>
+            <p style={{ fontSize: '16px', color: colors.textSecondary, lineHeight: '1.6' }}>
               {outline.summary}
             </p>
-          </Card>
+          </div>
 
-          <Card style={{ padding: '24px', backgroundColor: cardBg, border: `1px solid ${borderColor}` }}>
-            <h3 style={{ fontSize: '18px', fontWeight: '600', color: textColor, marginBottom: '16px' }}>
+          <div style={{
+            background: colors.bgGlass,
+            borderRadius: '24px',
+            padding: '24px',
+            border: `1px solid ${colors.border}`,
+            backdropFilter: 'blur(20px)',
+          }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '600', color: colors.textPrimary, marginBottom: '16px' }}>
               概览
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
@@ -419,7 +569,7 @@ const OutlinePage: React.FC = () => {
                   width: '48px',
                   height: '48px',
                   borderRadius: '12px',
-                  backgroundColor: `${accentColor}15`,
+                  background: `linear-gradient(135deg, ${accentColor}20 0%, ${accentLight}20 100%)`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -427,10 +577,10 @@ const OutlinePage: React.FC = () => {
                   <FileText style={{ width: '24px', height: '24px', color: accentColor }} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '24px', fontWeight: '700', color: textColor }}>
+                  <div style={{ fontSize: '24px', fontWeight: '700', color: colors.textPrimary }}>
                     {outline.episodes.length}
                   </div>
-                  <div style={{ fontSize: '14px', color: mutedTextColor }}>集数</div>
+                  <div style={{ fontSize: '14px', color: colors.textMuted }}>集数</div>
                 </div>
               </div>
 
@@ -439,7 +589,7 @@ const OutlinePage: React.FC = () => {
                   width: '48px',
                   height: '48px',
                   borderRadius: '12px',
-                  backgroundColor: `${accentColor}15`,
+                  background: `linear-gradient(135deg, ${accentColor}20 0%, ${accentLight}20 100%)`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -447,10 +597,10 @@ const OutlinePage: React.FC = () => {
                   <PlayCircle style={{ width: '24px', height: '24px', color: accentColor }} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '24px', fontWeight: '700', color: textColor }}>
+                  <div style={{ fontSize: '24px', fontWeight: '700', color: colors.textPrimary }}>
                     {outline.totalScenes}
                   </div>
-                  <div style={{ fontSize: '14px', color: mutedTextColor }}>场景</div>
+                  <div style={{ fontSize: '14px', color: colors.textMuted }}>场景</div>
                 </div>
               </div>
 
@@ -459,7 +609,7 @@ const OutlinePage: React.FC = () => {
                   width: '48px',
                   height: '48px',
                   borderRadius: '12px',
-                  backgroundColor: `${accentColor}15`,
+                  background: `linear-gradient(135deg, ${accentColor}20 0%, ${accentLight}20 100%)`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -467,30 +617,33 @@ const OutlinePage: React.FC = () => {
                   <Clock style={{ width: '24px', height: '24px', color: accentColor }} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '24px', fontWeight: '700', color: textColor }}>
+                  <div style={{ fontSize: '24px', fontWeight: '700', color: colors.textPrimary }}>
                     {formatDuration(outline.estimatedDuration)}
                   </div>
-                  <div style={{ fontSize: '14px', color: mutedTextColor }}>总时长</div>
+                  <div style={{ fontSize: '14px', color: colors.textMuted }}>总时长</div>
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
 
           <div>
-            <h3 style={{ fontSize: '18px', fontWeight: '600', color: textColor, marginBottom: '16px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '600', color: colors.textPrimary, marginBottom: '16px' }}>
               分集详情
             </h3>
 
             {outline.episodes.map((episode, index) => {
               const isExpanded = expandedEpisodes.has(episode.id);
               return (
-                <Card
+                <div
                   key={episode.id}
                   style={{
+                    background: colors.bgGlass,
+                    borderRadius: '18px',
                     padding: '20px',
-                    backgroundColor: cardBg,
-                    border: `1px solid ${borderColor}`,
+                    border: `1px solid ${colors.border}`,
                     marginBottom: '16px',
+                    backdropFilter: 'blur(20px)',
+                    transition: 'all 0.25s ease',
                   }}
                 >
                   <div
@@ -508,8 +661,8 @@ const OutlinePage: React.FC = () => {
                           width: '32px',
                           height: '32px',
                           borderRadius: '8px',
-                          backgroundColor: `${accentColor}20`,
-                          color: accentColor,
+                          background: `linear-gradient(135deg, ${accentColor} 0%, ${accentLight} 100%)`,
+                          color: '#fff',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -518,14 +671,14 @@ const OutlinePage: React.FC = () => {
                         }}>
                           {index + 1}
                         </span>
-                        <h4 style={{ fontSize: '18px', fontWeight: '600', color: textColor, margin: 0 }}>
+                        <h4 style={{ fontSize: '18px', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
                           {episode.title}
                         </h4>
                       </div>
-                      <p style={{ fontSize: '14px', color: mutedTextColor, margin: 0, lineHeight: '1.6' }}>
+                      <p style={{ fontSize: '14px', color: colors.textSecondary, margin: 0, lineHeight: '1.6' }}>
                         {episode.summary}
                       </p>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '12px', fontSize: '13px', color: mutedTextColor }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '12px', fontSize: '13px', color: colors.textMuted }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <PlayCircle style={{ width: '14px', height: '14px' }} />
                           {episode.scenes.length} 场
@@ -537,40 +690,40 @@ const OutlinePage: React.FC = () => {
                       </div>
                     </div>
                     {isExpanded ? (
-                      <ChevronUp style={{ width: '20px', height: '20px', color: mutedTextColor }} />
+                      <ChevronUp style={{ width: '20px', height: '20px', color: colors.textMuted }} />
                     ) : (
-                      <ChevronDown style={{ width: '20px', height: '20px', color: mutedTextColor }} />
+                      <ChevronDown style={{ width: '20px', height: '20px', color: colors.textMuted }} />
                     )}
                   </div>
 
                   {isExpanded && (
-                    <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: `1px solid ${borderColor}` }}>
+                    <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: `1px solid ${colors.border}` }}>
                       {episode.scenes.map((scene) => (
                         <div
                           key={scene.id}
                           style={{
                             padding: '16px',
-                            backgroundColor: inputBg,
-                            borderRadius: '8px',
+                            background: colors.bgSecondary,
+                            borderRadius: '12px',
                             marginBottom: '12px',
                             borderLeft: `3px solid ${accentColor}`,
                           }}
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                            <h5 style={{ fontSize: '15px', fontWeight: '600', color: textColor, margin: 0 }}>
+                            <h5 style={{ fontSize: '15px', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
                               {scene.title}
                             </h5>
                             <span style={{
                               fontSize: '12px',
                               padding: '4px 8px',
-                              backgroundColor: `${accentColor}15`,
+                              background: `${accentColor}15`,
                               color: accentColor,
-                              borderRadius: '4px',
+                              borderRadius: '6px',
                             }}>
                               {formatDuration(scene.duration)}
                             </span>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px', fontSize: '13px', color: mutedTextColor }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px', fontSize: '13px', color: colors.textMuted }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <MapPin style={{ width: '14px', height: '14px' }} />
                               {scene.location}
@@ -582,20 +735,20 @@ const OutlinePage: React.FC = () => {
                           </div>
                           {scene.characters.length > 0 && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
-                              <Users style={{ width: '14px', height: '14px', color: mutedTextColor }} />
-                              <span style={{ fontSize: '13px', color: mutedTextColor }}>
+                              <Users style={{ width: '14px', height: '14px', color: colors.textMuted }} />
+                              <span style={{ fontSize: '13px', color: colors.textMuted }}>
                                 {scene.characters.join(', ')}
                               </span>
                             </div>
                           )}
-                          <p style={{ fontSize: '14px', color: textColor, margin: 0, lineHeight: '1.6' }}>
+                          <p style={{ fontSize: '14px', color: colors.textPrimary, margin: 0, lineHeight: '1.6' }}>
                             {scene.description}
                           </p>
                         </div>
                       ))}
                     </div>
                   )}
-                </Card>
+                </div>
               );
             })}
           </div>
@@ -605,16 +758,39 @@ const OutlinePage: React.FC = () => {
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ 
+      flex: 1, 
+      display: 'flex', 
+      flexDirection: 'column',
+      minHeight: '100vh',
+      background: isDark 
+        ? 'linear-gradient(180deg, #05050a 0%, #0a0a12 50%, #0f0f1a 100%)'
+        : 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 50%)',
+        pointerEvents: 'none',
+      }} />
+
       <header style={{
           height: '64px',
-          borderBottom: `1px solid ${borderColor}`,
-          backgroundColor: cardBg,
+          borderBottom: `1px solid ${colors.border}`,
+          background: colors.bgPrimary,
+          backdropFilter: 'blur(40px)',
           padding: '0 24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexShrink: 0,
+          position: 'relative',
+          zIndex: 1,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <button
@@ -624,35 +800,38 @@ const OutlinePage: React.FC = () => {
                 alignItems: 'center',
                 gap: '8px',
                 padding: '8px 12px',
-                borderRadius: '8px',
+                borderRadius: '10px',
                 textDecoration: 'none',
-                color: mutedTextColor,
-                border: 'none',
-                background: 'transparent',
+                color: colors.textSecondary,
+                border: `1px solid ${colors.border}`,
+                background: colors.bgSecondary,
                 cursor: 'pointer',
+                transition: 'all 0.2s ease',
               }}
             >
               <ArrowLeft style={{ width: '16px', height: '16px' }} />
               <span style={{ fontSize: '14px' }}>返回项目</span>
             </button>
-            <h1 style={{ fontSize: '18px', fontWeight: '600', color: textColor }}>
+            <h1 style={{ fontSize: '18px', fontWeight: '600', color: colors.textPrimary }}>
               大纲生成
             </h1>
           </div>
-          <ModelSelector
-            contentType="outline"
-            value={selectedModel}
-            onChange={setSelectedModel}
-            placeholder="选择大纲模型"
-            style={{ width: '240px' }}
-          />
         </header>
 
-        <div style={{ flex: 1, padding: '24px', overflowY: 'auto' }}>
+        <div style={{ flex: 1, padding: '24px', overflowY: 'auto', position: 'relative', zIndex: 1 }}>
           {step === 'select' && renderSelectStep()}
           {step === 'generating' && renderGeneratingStep()}
           {step === 'result' && renderResultStep()}
         </div>
+
+        <style>
+          {`
+            @keyframes pulse {
+              0%, 100% { opacity: 1; transform: scale(1); }
+              50% { opacity: 0.7; transform: scale(1.05); }
+            }
+          `}
+        </style>
     </div>
   );
 };

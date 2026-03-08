@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma'
 import logger from '../../lib/logger'
+import crypto from 'crypto'
 
 export interface TextQualityScore {
   relevance: number
@@ -105,16 +106,18 @@ export class QualityScoringService {
     try {
       await prisma.qualityReport.create({
         data: {
-          userId,
-          type: report.type,
-          targetId: report.id,
-          score: report.type === 'text'
-            ? JSON.stringify(report.score)
-            : JSON.stringify(report.score),
-          metadata: JSON.stringify({
-            timestamp: report.timestamp
-          })
-        },
+        id: crypto.randomUUID(),
+        user_id: userId,
+        type: report.type,
+        target_id: report.id,
+        score: report.type === 'text'
+          ? JSON.stringify(report.score)
+          : JSON.stringify(report.score),
+        metadata: JSON.stringify({
+          timestamp: report.timestamp
+        }),
+        created_at: new Date()
+      },
       })
       logger.info('质量报告已保存', { userId, type: report.type, id: report.id })
     } catch (error) {
@@ -130,19 +133,19 @@ export class QualityScoringService {
     try {
       const reports = await prisma.qualityReport.findMany({
         where: {
-          userId,
+          user_id: userId,
           type,
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { created_at: 'desc' },
         take: limit,
       })
 
       return reports.map((r) => ({
-        type: r.type,
-        id: r.targetId,
-        userId: r.userId,
-        score: JSON.parse(r.score),
-        timestamp: r.timestamp,
+        type: r.type as 'image' | 'text',
+        id: r.target_id,
+        userId: r.user_id,
+        score: JSON.parse(r.score) as TextQualityScore | ImageQualityScore,
+        timestamp: r.created_at,
       }))
     } catch (error) {
       logger.error('获取质量历史失败', { userId, type, error })

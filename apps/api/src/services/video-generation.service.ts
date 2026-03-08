@@ -1,39 +1,48 @@
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
+import crypto from 'crypto';
 
 const VideoGenerationSchema = z.object({
-  startFrameId: z.string().optional(),
-  endFrameId: z.string().optional(),
+  start_frame_id: z.string().optional(),
+  end_frame_id: z.string().optional(),
   prompt: z.string().optional(),
   duration: z.number().optional().default(5),
-  projectId: z.string(),
-  shotId: z.string().optional()
+  project_id: z.string(),
+  shot_id: z.string().optional()
 });
 
 export async function generateVideo(input: z.infer<typeof VideoGenerationSchema>) {
   const validated = VideoGenerationSchema.parse(input);
 
+  const now = new Date();
   const task = await prisma.renderTask.create({
     data: {
+      id: crypto.randomUUID(),
       type: 'video',
       status: 'pending',
       params: validated as any,
-      projectId: validated.projectId
+      project_id: validated.project_id,
+      created_at: now,
+      updated_at: now
     }
   });
 
   try {
+    const now = new Date();
     const asset = await prisma.asset.create({
       data: {
+        id: crypto.randomUUID(),
         type: 'video',
         url: '',
         metadata: {
           taskId: task.id,
-          startFrameId: validated.startFrameId,
-          endFrameId: validated.endFrameId,
+          start_frame_id: validated.start_frame_id,
+          end_frame_id: validated.end_frame_id,
           duration: validated.duration
         },
-        projectId: validated.projectId
+        project_id: validated.project_id,
+        created_at: now,
+        updated_at: now
       }
     });
 
@@ -60,41 +69,49 @@ export async function generateVideo(input: z.infer<typeof VideoGenerationSchema>
 }
 
 export async function interpolateFrames(
-  startFrameId: string,
-  endFrameId: string,
-  projectId: string
+  start_frame_id: string,
+  end_frame_id: string,
+  project_id: string
 ) {
   const startAsset = await prisma.asset.findUnique({
-    where: { id: startFrameId }
+    where: { id: start_frame_id }
   });
 
   const endAsset = await prisma.asset.findUnique({
-    where: { id: endFrameId }
+    where: { id: end_frame_id }
   });
 
   if (!startAsset || !endAsset) {
     throw new Error('Frame assets not found');
   }
 
+  const now = new Date();
   const task = await prisma.renderTask.create({
     data: {
+      id: crypto.randomUUID(),
       type: 'video-interpolation',
       status: 'pending',
-      params: { startFrameId, endFrameId },
-      projectId
+      params: { start_frame_id, end_frame_id },
+      project_id,
+      created_at: now,
+      updated_at: now
     }
   });
 
   try {
+    const now = new Date();
     const asset = await prisma.asset.create({
       data: {
+        id: crypto.randomUUID(),
         type: 'video',
         url: '',
         metadata: {
           taskId: task.id,
           interpolation: true
         },
-        projectId
+        project_id: project_id,
+        created_at: now,
+        updated_at: now
       }
     });
 

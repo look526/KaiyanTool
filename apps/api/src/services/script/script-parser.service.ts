@@ -64,7 +64,7 @@ export class ScriptParserService {
       }
 
       const provider = await prisma.aIProvider.findFirst({
-        where: { userId, enabled: true },
+        where: { user_id: userId, enabled: true },
       })
 
       if (!provider) {
@@ -206,16 +206,17 @@ ${scriptContent}
 
       const parsed = JSON.parse(jsonMatch[0])
       return {
-        title: parsed.title || undefined,
-        scenes: parsed.scenes || [],
-        characters: parsed.characters || [],
-        metadata: parsed.metadata || {
-          totalScenes: 0,
-          totalCharacters: 0,
-          totalDialogues: 0,
-          estimatedDuration: 0,
-        },
-      }
+      title: parsed.title || undefined,
+      scenes: parsed.scenes || [],
+      characters: parsed.characters || [],
+      items: parsed.items || [],
+      metadata: parsed.metadata || {
+        totalScenes: 0,
+        totalCharacters: 0,
+        totalDialogues: 0,
+        estimatedDuration: 0,
+      },
+    }
     } catch (error) {
       logger.error('解析 AI 响应失败', { error, content })
       throw new Error('剧本解析失败')
@@ -358,6 +359,7 @@ ${scriptContent}
       title: undefined,
       scenes,
       characters: characterArray,
+      items: [],
       metadata: {
         totalScenes: scenes.length,
         totalCharacters: characterArray.length,

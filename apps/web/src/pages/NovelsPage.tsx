@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '../components/ui/button-new';
-import { Card } from '../components/ui/card';
 import MonacoEditor from '../components/MonacoEditor';
 import { apiClient } from '../lib/api';
 import { Plus, Edit, Trash2, FileText, PlusCircle, ArrowLeft } from 'lucide-react';
@@ -389,7 +388,13 @@ export default function NovelsPage() {
 
           <div style={{ flex: 1, padding: '24px', overflowY: 'auto' }}>
             {selectedChapter ? (
-              <Card style={{ padding: '24px', height: '100%' }}>
+              <div style={{
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-primary)',
+                borderRadius: '20px',
+                padding: '24px',
+                height: '100%',
+              }}>
                 <div style={{ marginBottom: '16px' }}>
                   <h2 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 8px 0' }}>{selectedChapter.title}</h2>
                   <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
@@ -412,7 +417,7 @@ export default function NovelsPage() {
                     }}
                   />
                 </div>
-              </Card>
+              </div>
             ) : (
               <div style={{
                 display: 'flex',
@@ -442,11 +447,13 @@ export default function NovelsPage() {
         }}
         onClick={() => setShowNovelModal(false)}
         >
-          <Card style={{
+          <div style={{
             padding: '24px',
             width: '100%',
             maxWidth: '500px',
-            backgroundColor: 'var(--bg-primary)',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-primary)',
+            borderRadius: '20px',
           }}
           onClick={(e) => e.stopPropagation()}
           >
@@ -526,7 +533,7 @@ export default function NovelsPage() {
                 </button>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
       )}
 
@@ -542,11 +549,13 @@ export default function NovelsPage() {
         }}
         onClick={() => setShowChapterModal(false)}
         >
-          <Card style={{
+          <div style={{
             padding: '24px',
             width: '100%',
             maxWidth: '500px',
-            backgroundColor: 'var(--bg-primary)',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-primary)',
+            borderRadius: '20px',
           }}
           onClick={(e) => e.stopPropagation()}
           >
@@ -605,7 +614,7 @@ export default function NovelsPage() {
                 </button>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
       )}
     </div>

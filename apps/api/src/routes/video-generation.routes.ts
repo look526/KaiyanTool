@@ -10,12 +10,12 @@ router.use(authMiddleware);
 router.post('/generate', async (req, res) => {
   try {
     const result = await generateVideo({
-      startFrameId: req.body.startFrameId,
-      endFrameId: req.body.endFrameId,
+      start_frame_id: req.body.start_frame_id,
+      end_frame_id: req.body.end_frame_id,
       prompt: req.body.prompt,
       duration: req.body.duration,
-      projectId: req.body.projectId,
-      shotId: req.body.shotId
+      project_id: req.body.project_id,
+      shot_id: req.body.shot_id
     });
     res.json(result);
   } catch (error) {
@@ -26,9 +26,9 @@ router.post('/generate', async (req, res) => {
 router.post('/interpolate', async (req, res) => {
   try {
     const result = await interpolateFrames(
-      req.body.startFrameId,
-      req.body.endFrameId,
-      req.body.projectId
+      req.body.start_frame_id,
+      req.body.end_frame_id,
+      req.body.project_id
     );
     res.json(result);
   } catch (error) {
@@ -45,9 +45,9 @@ router.get('/queue', async (_req, res) => {
   }
 });
 
-router.get('/queue/project/:projectId', async (req, res) => {
+router.get('/queue/project/:project_id', async (req, res) => {
   try {
-    const tasks = await renderQueueService.getProjectQueue(req.params.projectId);
+    const tasks = await renderQueueService.getProjectQueue(req.params.project_id);
     res.json(tasks);
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to get project queue' });

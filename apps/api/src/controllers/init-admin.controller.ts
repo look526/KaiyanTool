@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '../lib/prisma'
 import logger from '../lib/logger'
 import { config } from '../config'
+import * as crypto from 'crypto'
 
 export class InitAdminController {
   async initAdmin(_req: Request, res: Response): Promise<void> {
@@ -31,12 +32,15 @@ export class InitAdminController {
 
       const admin = await prisma.user.create({
         data: {
+          id: crypto.randomUUID(),
           email: adminEmail,
-          passwordHash,
+          password_hash: passwordHash,
           name: '超级管理员',
           role: 'admin',
           plan: 'premium',
-          storageLimit: BigInt(107374182400),
+          storage_limit: BigInt(107374182400),
+          created_at: new Date(),
+          updated_at: new Date(),
         },
       })
 

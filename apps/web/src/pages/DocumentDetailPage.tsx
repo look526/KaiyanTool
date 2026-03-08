@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button } from '../components/ui/button';
-import { Card } from '../components/ui/card';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { EmptyState } from '../components/ui/EmptyState';
 import { apiClient } from '../lib/api-client';
@@ -463,7 +461,13 @@ const DocumentDetailPage: React.FC = () => {
         <div style={{ padding: '32px', overflowY: 'auto' }}>
           <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 280px', gap: '24px' }}>
             <div>
-              <Card style={{ padding: '32px', marginBottom: '24px' }}>
+              <div style={{
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-primary)',
+                borderRadius: '20px',
+                padding: '32px',
+                marginBottom: '24px',
+              }}>
                 <div style={{ marginBottom: '24px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                     <FileText style={{ width: '18px', height: '18px', color: 'var(--accent)' }} />
@@ -511,11 +515,19 @@ const DocumentDetailPage: React.FC = () => {
                     {document.content || '暂无内容'}
                   </div>
                 )}
-              </Card>
+              </div>
             </div>
 
             <div>
-              <Card style={{ padding: '24px', marginBottom: '20px', position: 'sticky', top: '120px' }}>
+              <div style={{
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-primary)',
+                borderRadius: '20px',
+                padding: '24px',
+                marginBottom: '20px',
+                position: 'sticky',
+                top: '120px',
+              }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
                   <Sparkles style={{ width: '16px', height: '16px', color: 'var(--accent)' }} />
                   <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
@@ -606,9 +618,14 @@ const DocumentDetailPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              </Card>
+              </div>
 
-              <Card style={{ padding: '24px' }}>
+              <div style={{
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-primary)',
+                borderRadius: '20px',
+                padding: '24px',
+              }}>
                 <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', margin: '0 0 16px 0' }}>
                   快捷操作
                 </h3>
@@ -728,7 +745,7 @@ const DocumentDetailPage: React.FC = () => {
                     导出
                   </button>
                 </div>
-              </Card>
+              </div>
             </div>
           </div>
         </div>
@@ -746,11 +763,14 @@ const DocumentDetailPage: React.FC = () => {
           justifyContent: 'center',
           zIndex: 1000,
         }}>
-          <Card style={{
+          <div style={{
             width: '100%',
             maxWidth: '440px',
             padding: '28px',
             margin: '20px',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-primary)',
+            borderRadius: '20px',
           }}>
             <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', margin: '0 0 8px 0' }}>
               删除文档
@@ -804,7 +824,7 @@ const DocumentDetailPage: React.FC = () => {
                 ) : '确认删除'}
               </button>
             </div>
-          </Card>
+          </div>
         </div>
       )}
     </div>

@@ -15,7 +15,7 @@ interface ErrorHandlerOptions {
 interface ErrorHandlerReturn {
   handleError: (error: any) => void;
   handleAsyncError: (promise: Promise<any>, options?: ErrorHandlerOptions) => Promise<any>;
-  withErrorHandling: <T extends any>(fn: () => Promise<T>, options?: ErrorHandlerOptions) => Promise<T>;
+  withErrorHandling: <T>(fn: () => Promise<T>, options?: ErrorHandlerOptions) => Promise<T>;
   wrapComponent: <P extends object>(Component: React.ComponentType<P>, props: P) => JSX.Element;
 }
 
@@ -92,7 +92,7 @@ export function useErrorHandler(defaultOptions: ErrorHandlerOptions = {}) {
     return null;
   }, [handleError, defaultOptions]);
 
-  const withErrorHandling = useCallback(<T extends any,>(fn: (...args: any[]) => Promise<T>, options: ErrorHandlerOptions = {}) => {
+  const withErrorHandling = useCallback(<T,>(fn: (...args: any[]) => Promise<T>, options: ErrorHandlerOptions = {}) => {
     return async (...args: any[]) => {
       try {
         return await fn(...args);

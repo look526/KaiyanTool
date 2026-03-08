@@ -30,7 +30,7 @@ router.get('/tasks', async (req: Request, res: Response) => {
       where.type = Array.isArray(type) ? { in: type } : type;
     }
     if (projectId) {
-      where.projectId = projectId;
+      where.project_id = projectId;
     }
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
@@ -39,7 +39,7 @@ router.get('/tasks', async (req: Request, res: Response) => {
     const [tasks, total] = await Promise.all([
       prisma.renderTask.findMany({
         where,
-        orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
+        orderBy: [{ priority: 'desc' }, { created_at: 'desc' }],
         skip,
         take,
       }),
@@ -202,16 +202,16 @@ router.get('/stats', async (_req: Request, res: Response) => {
       prisma.renderTask.count({ where: { status: 'pending' } }),
       prisma.renderTask.count({ where: { status: 'processing' } }),
       prisma.renderTask.count({
-        where: { status: 'completed', completedAt: { gte: today } },
+        where: { status: 'completed', completed_at: { gte: today } },
       }),
       prisma.renderTask.count({
-        where: { status: 'failed', updatedAt: { gte: today } },
+        where: { status: 'failed', updated_at: { gte: today } },
       }),
       prisma.renderTask.aggregate({
         where: {
           status: 'completed',
-          startedAt: { not: null },
-          completedAt: { not: null },
+          started_at: { not: null },
+          completed_at: { not: null },
         },
         _avg: {
           processingTime: true,

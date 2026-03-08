@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { uploadController } from '../controllers/upload.controller'
 import { authMiddleware } from '../middleware/auth.middleware'
 import multer from 'multer'
+import crypto from 'crypto'
 import { prisma } from '../lib/prisma'
 import { ASSET_CATEGORIES, ASSET_SOURCES, ASSET_CATEGORY_LABELS, ASSET_SOURCE_LABELS } from '../constants/asset-categories'
 
@@ -43,7 +44,7 @@ router.get('/categories', (_req, res) => {
 
 router.get('/assets', async (req, res) => {
   try {
-    if (!req.userId) {
+    if (!req.user_id) {
       res.status(401).json({ error: 'Unauthorized' })
       return
     }
@@ -53,8 +54,8 @@ router.get('/assets', async (req, res) => {
     const userProjects = await prisma.project.findMany({
       where: {
         OR: [
-          { ownerId: req.userId },
-          { members: { some: { userId: req.userId } } },
+          { owner_id: req.user_id },
+          { ProjectMember: { some: { user_id: req.user_id } } },
         ],
       },
       select: { id: true },
@@ -64,8 +65,8 @@ router.get('/assets', async (req, res) => {
     projectIds.push('00000000-0000-0000-0000-000000000000')
 
     const assets = await prisma.asset.findMany({
-      where: { projectId: { in: projectIds } },
-      orderBy: { createdAt: 'desc' },
+      where: { project_id: { in: projectIds } },
+      orderBy: { created_at: 'desc' },
     })
 
     const assetsWithName = assets.map(asset => ({
@@ -77,48 +78,48 @@ router.get('/assets', async (req, res) => {
     }))
 
     const characters = await prisma.character.findMany({
-      where: { projectId: { in: projectIds } },
-      select: { id: true, name: true, referenceImages: true, projectId: true },
+      where: { project_id: { in: projectIds } },
+      select: { id: true, reference_images: true, project_id: true },
     })
 
     const scenes = await prisma.scene.findMany({
-      where: { projectId: { in: projectIds } },
-      select: { id: true, location: true, referenceImages: true, projectId: true },
+      where: { project_id: { in: projectIds } },
+      select: { id: true, location: true, reference_images: true, project_id: true },
     })
 
     const characterImages = characters.flatMap(char => 
-      (char.referenceImages || []).map((url, idx) => ({
+      (char.reference_images || []).map((url, idx) => ({
         id: `char-${char.id}-${idx}`,
         type: 'character',
         url,
         thumbnailUrl: url,
-        name: `${char.name} - 参考图 ${idx + 1}`,
-        projectId: char.projectId,
+        name: `角色参考图 ${idx + 1}`,
+        project_id: char.project_id,
         category: ASSET_CATEGORIES.CHARACTER,
         source: ASSET_SOURCES.CHARACTER_GENERATION,
         categoryLabel: ASSET_CATEGORY_LABELS.character,
         sourceLabel: ASSET_SOURCE_LABELS.character_generation,
-        metadata: { characterId: char.id, characterName: char.name },
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        metadata: { characterId: char.id },
+        created_at: new Date(),
+        updated_at: new Date(),
       }))
     )
 
     const sceneImages = scenes.flatMap(scene => 
-      (scene.referenceImages || []).map((url, idx) => ({
+      (scene.reference_images || []).map((url, idx) => ({
         id: `scene-${scene.id}-${idx}`,
         type: 'scene',
         url,
         thumbnailUrl: url,
         name: `${scene.location} - 参考图 ${idx + 1}`,
-        projectId: scene.projectId,
+        project_id: scene.project_id,
         category: ASSET_CATEGORIES.SCENE,
         source: ASSET_SOURCES.SCENE_GENERATION,
         categoryLabel: ASSET_CATEGORY_LABELS.scene,
         sourceLabel: ASSET_SOURCE_LABELS.scene_generation,
         metadata: { sceneId: scene.id, sceneLocation: scene.location },
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
       }))
     )
 
@@ -149,7 +150,7 @@ router.get('/assets', async (req, res) => {
       )
     }
 
-    allAssets.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    allAssets.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
     res.json(allAssets)
   } catch (error) {
@@ -160,7 +161,7 @@ router.get('/assets', async (req, res) => {
 
 router.post('/assets', upload.single('file'), async (req, res) => {
   try {
-    if (!req.userId) {
+    if (!req.user_id) {
       res.status(401).json({ error: 'Unauthorized' })
       return
     }
@@ -174,7 +175,7 @@ router.post('/assets', upload.single('file'), async (req, res) => {
     const { uploadToStorage } = await import('../lib/storage')
     
     const safeName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')
-    const filename = `assets/${req.userId}/${Date.now()}-${safeName}`
+    const filename = `assets/${req.user_id}/${Date.now()}-${safeName}`
     const url = await uploadToStorage(file.buffer, filename, file.mimetype)
 
     const category = req.body.category || ASSET_CATEGORIES.GENERAL
@@ -182,21 +183,23 @@ router.post('/assets', upload.single('file'), async (req, res) => {
 
     const asset = await prisma.asset.create({
       data: {
+        id: crypto.randomUUID(),
         type: file.mimetype.startsWith('image/') ? 'image' : 
               file.mimetype.startsWith('video/') ? 'video' : 
               file.mimetype.startsWith('audio/') ? 'audio' : 'document',
         url,
-        projectId: req.body.projectId || '00000000-0000-0000-0000-000000000000',
+        project_id: req.body.project_id || '00000000-0000-0000-0000-000000000000',
         category,
         source,
         metadata: {
           originalName: file.originalname,
           size: file.size,
           mimetype: file.mimetype,
-          userId: req.userId,
+          userId: req.user_id,
           name: file.originalname,
           thumbnailUrl: url,
         },
+        updated_at: new Date(),
       },
     })
 
@@ -213,7 +216,7 @@ router.post('/assets', upload.single('file'), async (req, res) => {
 
 router.patch('/assets/:id/category', async (req, res) => {
   try {
-    if (!req.userId) {
+    if (!req.user_id) {
       res.status(401).json({ error: 'Unauthorized' })
       return
     }
@@ -237,10 +240,10 @@ router.patch('/assets/:id/category', async (req, res) => {
 
     const project = await prisma.project.findFirst({
       where: {
-        id: asset.projectId,
+        id: asset.project_id,
         OR: [
-          { ownerId: req.userId },
-          { members: { some: { userId: req.userId } } },
+          { owner_id: req.user_id },
+          { ProjectMember: { some: { user_id: req.user_id } } },
         ],
       },
     })
@@ -265,22 +268,22 @@ router.patch('/assets/:id/category', async (req, res) => {
   }
 })
 
-router.get('/projects/:projectId/assets', async (req, res) => {
+router.get('/projects/:project_id/assets', async (req, res) => {
   try {
-    if (!req.userId) {
+    if (!req.user_id) {
       res.status(401).json({ error: 'Unauthorized' })
       return
     }
 
-    const { projectId } = req.params
+    const { project_id } = req.params
     const { type, search, category, source } = req.query
     
     const project = await prisma.project.findFirst({
       where: {
-        id: projectId,
+        id: project_id,
         OR: [
-          { ownerId: req.userId },
-          { members: { some: { userId: req.userId } } },
+          { owner_id: req.user_id },
+          { ProjectMember: { some: { user_id: req.user_id } } },
         ],
       },
     })
@@ -291,8 +294,8 @@ router.get('/projects/:projectId/assets', async (req, res) => {
     }
 
     const assets = await prisma.asset.findMany({
-      where: { projectId },
-      orderBy: { createdAt: 'desc' },
+      where: { project_id: project_id },
+      orderBy: { created_at: 'desc' },
     })
 
     const assetsWithName = assets.map(asset => ({
@@ -304,48 +307,48 @@ router.get('/projects/:projectId/assets', async (req, res) => {
     }))
 
     const characters = await prisma.character.findMany({
-      where: { projectId },
-      select: { id: true, name: true, referenceImages: true },
+      where: { project_id: project_id },
+      select: { id: true, name: true, reference_images: true },
     })
 
     const scenes = await prisma.scene.findMany({
-      where: { projectId },
-      select: { id: true, location: true, referenceImages: true },
+      where: { project_id: project_id },
+      select: { id: true, location: true, reference_images: true },
     })
 
     const characterImages = characters.flatMap(char => 
-      (char.referenceImages || []).map((url, idx) => ({
+      (char.reference_images || []).map((url, idx) => ({
         id: `char-${char.id}-${idx}`,
         type: 'character',
         url,
         thumbnailUrl: url,
         name: `${char.name} - 参考图 ${idx + 1}`,
-        projectId,
+        project_id: project_id,
         category: ASSET_CATEGORIES.CHARACTER,
         source: ASSET_SOURCES.CHARACTER_GENERATION,
         categoryLabel: ASSET_CATEGORY_LABELS.character,
         sourceLabel: ASSET_SOURCE_LABELS.character_generation,
         metadata: { characterId: char.id, characterName: char.name },
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
       }))
     )
 
     const sceneImages = scenes.flatMap(scene => 
-      (scene.referenceImages || []).map((url, idx) => ({
+      (scene.reference_images || []).map((url, idx) => ({
         id: `scene-${scene.id}-${idx}`,
         type: 'scene',
         url,
         thumbnailUrl: url,
         name: `${scene.location} - 参考图 ${idx + 1}`,
-        projectId,
+        project_id: project_id,
         category: ASSET_CATEGORIES.SCENE,
         source: ASSET_SOURCES.SCENE_GENERATION,
         categoryLabel: ASSET_CATEGORY_LABELS.scene,
         sourceLabel: ASSET_SOURCE_LABELS.scene_generation,
         metadata: { sceneId: scene.id, sceneLocation: scene.location },
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
       }))
     )
 
@@ -376,7 +379,7 @@ router.get('/projects/:projectId/assets', async (req, res) => {
       )
     }
 
-    allAssets.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    allAssets.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
     res.json(allAssets)
   } catch (error) {
@@ -385,11 +388,11 @@ router.get('/projects/:projectId/assets', async (req, res) => {
   }
 })
 
-router.post('/projects/:projectId/assets', upload.single('file'), uploadController.uploadAsset.bind(uploadController))
+router.post('/projects/:project_id/assets', upload.single('file'), uploadController.uploadAsset.bind(uploadController))
 
 router.delete('/assets/:id', async (req, res) => {
   try {
-    if (!req.userId) {
+    if (!req.user_id) {
       res.status(401).json({ error: 'Unauthorized' })
       return
     }
@@ -407,10 +410,10 @@ router.delete('/assets/:id', async (req, res) => {
       return
     }
 
-    console.log('[DELETE ASSET] Found asset:', { id: asset.id, projectId: asset.projectId, url: asset.url });
+    console.log('[DELETE ASSET] Found asset:', { id: asset.id, projectId: asset.project_id, url: asset.url });
 
-    const isGlobalAsset = asset.projectId === '00000000-0000-0000-0000-000000000000'
-    const isOwner = (asset.metadata as any)?.userId === req.userId
+    const isGlobalAsset = asset.project_id === '00000000-0000-0000-0000-000000000000'
+    const isOwner = (asset.metadata as any)?.userId === req.user_id
 
     if (isGlobalAsset) {
       if (!isOwner) {
@@ -421,10 +424,10 @@ router.delete('/assets/:id', async (req, res) => {
     } else {
       const project = await prisma.project.findFirst({
         where: {
-          id: asset.projectId,
+          id: asset.project_id,
           OR: [
-            { ownerId: req.userId },
-            { members: { some: { userId: req.userId } } },
+            { owner_id: req.user_id },
+            { ProjectMember: { some: { user_id: req.user_id } } },
           ],
         },
       })

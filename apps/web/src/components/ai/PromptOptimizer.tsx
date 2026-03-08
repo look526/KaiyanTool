@@ -92,7 +92,7 @@ export function PromptOptimizer({ initialPrompt = '', onOptimize, onSave }: Prom
     return matchesSearch && matchesCategory;
   });
 
-  const useTemplate = (template: PromptTemplate) => {
+  const applyTemplate = (template: PromptTemplate) => {
     setPrompt(template.content);
     setTemplates(prev =>
       prev.map(t =>
@@ -436,7 +436,7 @@ export function PromptOptimizer({ initialPrompt = '', onOptimize, onSave }: Prom
                       {template.usageCount}次
                     </span>
                     <button
-                      onClick={() => useTemplate(template)}
+                      onClick={() => applyTemplate(template)}
                       onMouseEnter={() => setUseButtonHover(template.id)}
                       onMouseLeave={() => setUseButtonHover(null)}
                       style={{

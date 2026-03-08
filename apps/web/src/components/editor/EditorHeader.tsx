@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Clock, Type, Upload, FileDown, Save, ChevronDown, LucideIcon } from 'lucide-react';
+import { ArrowLeft, Clock, Type, Upload, FileDown, Save, ChevronDown, LucideIcon, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button-new';
 
 interface EditorHeaderProps {
@@ -204,16 +204,48 @@ export function EditorHeader({
         <IconButton icon={Upload} hover={importHover} setHover={setImportHover} onClick={onImport} />
         <IconButton icon={FileDown} hover={exportHover} setHover={setExportHover} onClick={onExport} />
 
-        <Button 
-          variant="primary" 
-          size="sm" 
-          onClick={onSave} 
-          disabled={isSaving || !title} 
-          loading={isSaving} 
-          icon={isSaving ? null : <Save size={16} />}
+        <button
+          onClick={onSave}
+          disabled={isSaving}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 24px',
+            borderRadius: '12px',
+            border: 'none',
+            background: isSaving 
+              ? 'rgba(99, 102, 241, 0.5)' 
+              : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+            color: '#fff',
+            cursor: isSaving ? 'not-allowed' : 'pointer',
+            fontSize: '14px',
+            fontWeight: '600',
+            boxShadow: isSaving ? 'none' : '0 4px 14px rgba(99, 102, 241, 0.3)',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            if (!isSaving) {
+              e.currentTarget.style.background = 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(99, 102, 241, 0.4)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isSaving) {
+              e.currentTarget.style.background = 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)';
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 14px rgba(99, 102, 241, 0.3)';
+            }
+          }}
         >
+          {isSaving ? (
+            <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+          ) : (
+            <Save style={{ width: '16px', height: '16px' }} />
+          )}
           {isSaving ? '保存中...' : '保存'}
-        </Button>
+        </button>
       </div>
     </header>
   );

@@ -69,7 +69,7 @@ export default function ProjectMembersPage() {
     const searchUsersFn = async () => {
       if (searchQuery.length >= 2) {
         try {
-          const data = await apiClient.searchUsers(searchQuery);
+          const data = await apiClient.searchUsers(searchQuery) as SearchUser[];
           setSearchResults(data);
         } catch (err) {
           console.error('搜索用户失败:', err);
@@ -88,7 +88,7 @@ export default function ProjectMembersPage() {
 
     try {
       setLoading(true);
-      const data = await apiClient.getProjectMembers(projectId);
+      const data = await apiClient.getProjectMembers(projectId) as Member[];
       setMembers(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : '加载失败');

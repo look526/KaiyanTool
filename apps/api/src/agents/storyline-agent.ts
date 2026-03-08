@@ -2,6 +2,7 @@ import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
 import logger from '../lib/logger';
 import { STORYLINE_AGENT } from '../prompts/agents';
+import * as crypto from 'crypto';
 
 interface StoryInput {
   title: string;
@@ -181,11 +182,14 @@ ${feedback}
   async saveStoryline(projectId: string, storyline: StorylineOutput): Promise<string> {
     const document = await prisma.document.create({
       data: {
-        projectId,
+        id: crypto.randomUUID(),
+        project_id: projectId,
         title: storyline.title,
         type: 'storyline',
         content: storyline as any,
-        status: 'completed'
+        status: 'completed',
+        created_at: new Date(),
+        updated_at: new Date()
       }
     });
 

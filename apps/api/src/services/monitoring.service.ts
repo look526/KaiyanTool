@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma';
+import crypto from 'crypto';
 
 interface MetricValue {
   name: string;
@@ -22,6 +23,7 @@ export class MonitoringService {
   async recordMetric(data: MetricValue): Promise<void> {
     await prisma.metrics.create({
       data: {
+        id: crypto.randomUUID(),
         name: data.name,
         value: data.value,
         unit: data.unit,
@@ -169,13 +171,16 @@ export class MonitoringService {
   async createAlertRule(data: Omit<AlertRule, 'id'>): Promise<AlertRule> {
     const rule = await prisma.alertRule.create({
       data: {
+        id: crypto.randomUUID(),
         name: data.name,
         metric: data.metric,
         condition: data.condition,
         threshold: data.threshold,
         severity: data.severity,
         enabled: data.enabled,
-        channels: data.channels
+        channels: data.channels,
+        created_at: new Date(),
+        updated_at: new Date()
       }
     });
 
@@ -184,22 +189,22 @@ export class MonitoringService {
 
   async getAlertRules(): Promise<AlertRule[]> {
     return prisma.alertRule.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { created_at: 'desc' }
     }) as any;
   }
 
-  async updateAlertRule(ruleId: string, data: Partial<AlertRule>): Promise<AlertRule> {
+  async updateAlertRule(rule_id: string, data: Partial<AlertRule>): Promise<AlertRule> {
     const rule = await prisma.alertRule.update({
-      where: { id: ruleId },
+      where: { id: rule_id },
       data: data as any
     });
 
     return rule as any;
   }
 
-  async deleteAlertRule(ruleId: string): Promise<void> {
+  async deleteAlertRule(rule_id: string): Promise<void> {
     await prisma.alertRule.delete({
-      where: { id: ruleId }
+      where: { id: rule_id }
     });
   }
 
@@ -257,10 +262,12 @@ export class MonitoringService {
 
     await prisma.alertRecord.create({
       data: {
-        ruleId: rule.id,
+        id: crypto.randomUUID(),
+        rule_id: rule.id,
         severity: rule.severity,
         message: `${rule.name}: ${rule.metric} is ${currentValue} (threshold: ${rule.condition} ${rule.threshold})`,
-        channels: rule.channels
+        channels: rule.channels,
+        created_at: new Date()
       }
     });
   }
@@ -274,13 +281,13 @@ export class MonitoringService {
     const { from, to, severity, limit = 100 } = options || {};
 
     const where: any = {};
-    if (from) where.createdAt = { ...where.createdAt, gte: from };
-    if (to) where.createdAt = { ...where.createdAt, lte: to };
+    if (from) where.created_at = { ...where.created_at, gte: from };
+    if (to) where.created_at = { ...where.created_at, lte: to };
     if (severity) where.severity = severity;
 
     return prisma.alertRecord.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { created_at: 'desc' },
       take: limit
     });
   }

@@ -9,12 +9,12 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "paths": {
-      "@": ["../../"],
-      "@shared": ["../../packages/shared"],
-      "@ui": ["../../packages/ui"],
-      "@/lib": ["./src/lib"],
-      "@/components": ["./src/components"],
-      "@/utils": ["./src/utils"]
+      "@/*": ["src/*"],
+      "@shared/*": ["../../packages/shared/src/*"],
+      "@ui/*": ["../../packages/ui/src/*"],
+      "@/lib/*": ["src/lib/*"],
+      "@/components/*": ["src/components/*"],
+      "@/utils/*": ["src/utils/*"]
     }
   },
   "include": ["src"],

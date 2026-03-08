@@ -1,0 +1,846 @@
+{
+  "version": "6.0",
+  "nxVersion": "22.5.3",
+  "pathMappings": {},
+  "nxJsonPlugins": [],
+  "fileMap": {
+    "nonProjectFiles": [],
+    "projectFileMap": {
+      "kaiyan-api": [
+        {
+          "file": ".env.example",
+          "hash": "6911211593488869829"
+        },
+        {
+          "file": ".eslintignore",
+          "hash": "8305469506057653145"
+        },
+        {
+          "file": "Dockerfile",
+          "hash": "5645922900532994990"
+        },
+        {
+          "file": "check-analytics.ts",
+          "hash": "8801105095580114720"
+        },
+        {
+          "file": "check-projects.ts",
+          "hash": "12410597657589470578"
+        },
+        {
+          "file": "check-session.ts",
+          "hash": "4549495570644449212"
+        },
+        {
+          "file": "dev/null",
+          "hash": "17629948802145019424"
+        },
+        {
+          "file": "fix-fields.js",
+          "hash": "12099930788331846191"
+        },
+        {
+          "file": "jest.config.js",
+          "hash": "9845754479508159870"
+        },
+        {
+          "file": "jest.setup.ts",
+          "hash": "4448569801572533973"
+        },
+        {
+          "file": "lint-output.txt",
+          "hash": "14270411297988550475"
+        },
+        {
+          "file": "nx.json",
+          "hash": "18336426213955174907"
+        },
+        {
+          "file": "package.json",
+          "hash": "10429783053772261835"
+        },
+        {
+          "file": "prisma/migrations/20260212025722_/migration.sql",
+          "hash": "12433611977334040243"
+        },
+        {
+          "file": "prisma/migrations/20260212061138_add_bio_field/migration.sql",
+          "hash": "9268508817731622871"
+        },
+        {
+          "file": "prisma/migrations/20260212110155_remove_ai_provider_name/migration.sql",
+          "hash": "4080586532073023557"
+        },
+        {
+          "file": "prisma/migrations/20260221073846_test/migration.sql",
+          "hash": "996040935944283688"
+        },
+        {
+          "file": "prisma/migrations/20260221145113_add_ai_provider_models/migration.sql",
+          "hash": "7409572885352570935"
+        },
+        {
+          "file": "prisma/migrations/20260223084540_add_user_preferences_and_model_parameters/migration.sql",
+          "hash": "16937698633414282025"
+        },
+        {
+          "file": "prisma/migrations/20260223093546_add_configuration_history/migration.sql",
+          "hash": "4872834761689308953"
+        },
+        {
+          "file": "prisma/migrations/20260223142130_add_multiple_types_to_models/migration.sql",
+          "hash": "3408864990456634420"
+        },
+        {
+          "file": "prisma/migrations/20260224063807_add_asset_fields/migration.sql",
+          "hash": "10042658267333990129"
+        },
+        {
+          "file": "prisma/migrations/20260224085719_add_model_usage/migration.sql",
+          "hash": "13712383068727434477"
+        },
+        {
+          "file": "prisma/migrations/20260224105810_add_is_assistant_default/migration.sql",
+          "hash": "6339451914006658313"
+        },
+        {
+          "file": "prisma/migrations/20260224164752_add_model_id/migration.sql",
+          "hash": "276994633229842005"
+        },
+        {
+          "file": "prisma/migrations/20260225000000_add_style_fields/migration.sql",
+          "hash": "284264365842920479"
+        },
+        {
+          "file": "prisma/migrations/migrate-asset-categories.ts",
+          "hash": "14043791660439581183"
+        },
+        {
+          "file": "prisma/migrations/migration_lock.toml",
+          "hash": "11493296588214560035"
+        },
+        {
+          "file": "prisma/schema.prisma",
+          "hash": "10580759472239971351"
+        },
+        {
+          "file": "prisma/seed.ts",
+          "hash": "17274544050767970794"
+        },
+        {
+          "file": "src/agents/UPGRADE_SUMMARY.md",
+          "hash": "18207556150982030512"
+        },
+        {
+          "file": "src/agents/architecture.md",
+          "hash": "14605040550685157054"
+        },
+        {
+          "file": "src/agents/base-agent-v2.ts",
+          "hash": "3544184197379454626"
+        },
+        {
+          "file": "src/agents/director.agent.ts",
+          "hash": "3809521413585733392"
+        },
+        {
+          "file": "src/agents/multi-agent.ts",
+          "hash": "9047763771953402842"
+        },
+        {
+          "file": "src/agents/orchestrator-v2.ts",
+          "hash": "704005280885952524"
+        },
+        {
+          "file": "src/agents/outline-agent.ts",
+          "hash": "6028013882690621331"
+        },
+        {
+          "file": "src/agents/script-analysis.agent.ts",
+          "hash": "6627750479590653747"
+        },
+        {
+          "file": "src/agents/storyboard-agent.ts",
+          "hash": "5459810257581887333"
+        },
+        {
+          "file": "src/agents/storyline-agent.ts",
+          "hash": "17417529121726073718"
+        },
+        {
+          "file": "src/config/index.ts",
+          "hash": "10113326669205267857"
+        },
+        {
+          "file": "src/config/opentelemetry.ts",
+          "hash": "15805636113883545083"
+        },
+        {
+          "file": "src/config/prompt-templates.ts",
+          "hash": "9717921479686924613"
+        },
+        {
+          "file": "src/config/swagger.ts",
+          "hash": "4334343423985810954"
+        },
+        {
+          "file": "src/constants/asset-categories.ts",
+          "hash": "10988572835111119211"
+        },
+        {
+          "file": "src/controllers/ai-provider.controller.ts",
+          "hash": "3990823247843129865"
+        },
+        {
+          "file": "src/controllers/asset.controller.ts",
+          "hash": "456157047945782869"
+        },
+        {
+          "file": "src/controllers/assistant.controller.ts",
+          "hash": "2621999027441739169"
+        },
+        {
+          "file": "src/controllers/audit.controller.ts",
+          "hash": "2292413917185307522"
+        },
+        {
+          "file": "src/controllers/auth.controller.ts",
+          "hash": "13212395761309522524"
+        },
+        {
+          "file": "src/controllers/content.controller.ts",
+          "hash": "12511327090926996604"
+        },
+        {
+          "file": "src/controllers/director.controller.ts",
+          "hash": "16825839846371686660"
+        },
+        {
+          "file": "src/controllers/document.controller.ts",
+          "hash": "5792452584783318558"
+        },
+        {
+          "file": "src/controllers/export.controller.ts",
+          "hash": "2519269513162412239"
+        },
+        {
+          "file": "src/controllers/init-admin.controller.ts",
+          "hash": "15519647290572363177"
+        },
+        {
+          "file": "src/controllers/migration.controller.ts",
+          "hash": "16425296875348025596"
+        },
+        {
+          "file": "src/controllers/model-preference.controller.ts",
+          "hash": "4400148720877999957"
+        },
+        {
+          "file": "src/controllers/ninegrid.controller.ts",
+          "hash": "6792216452497813364"
+        },
+        {
+          "file": "src/controllers/novel.controller.ts",
+          "hash": "1953895257837573343"
+        },
+        {
+          "file": "src/controllers/panel-generation.controller.ts",
+          "hash": "13513306323603140900"
+        },
+        {
+          "file": "src/controllers/panel.controller.ts",
+          "hash": "13111288829577944630"
+        },
+        {
+          "file": "src/controllers/project-member.controller.ts",
+          "hash": "427017515068525020"
+        },
+        {
+          "file": "src/controllers/project.controller.ts",
+          "hash": "3098258667893499793"
+        },
+        {
+          "file": "src/controllers/script.controller.ts",
+          "hash": "7594537154001095344"
+        },
+        {
+          "file": "src/controllers/shot-generation.controller.ts",
+          "hash": "18426517383725551909"
+        },
+        {
+          "file": "src/controllers/shot.controller.ts",
+          "hash": "13805809067560932462"
+        },
+        {
+          "file": "src/controllers/upload.controller.ts",
+          "hash": "16435161140696545284"
+        },
+        {
+          "file": "src/controllers/video-generation.controller.ts",
+          "hash": "6858338953408363456"
+        },
+        {
+          "file": "src/index.ts",
+          "hash": "10612013279034933039"
+        },
+        {
+          "file": "src/lib/encryption.ts",
+          "hash": "4025916498284291354"
+        },
+        {
+          "file": "src/lib/logger.ts",
+          "hash": "1363189345390930883"
+        },
+        {
+          "file": "src/lib/metrics.ts",
+          "hash": "10481708033280045476"
+        },
+        {
+          "file": "src/lib/oss.ts",
+          "hash": "8032368951020425036"
+        },
+        {
+          "file": "src/lib/prisma.ts",
+          "hash": "5485726879733796194"
+        },
+        {
+          "file": "src/lib/sentry.ts",
+          "hash": "8591845904727986026"
+        },
+        {
+          "file": "src/lib/storage.ts",
+          "hash": "983282169232777514"
+        },
+        {
+          "file": "src/lib/swagger.ts",
+          "hash": "14625174833303874575"
+        },
+        {
+          "file": "src/lib/websocket.ts",
+          "hash": "7539083060251709317"
+        },
+        {
+          "file": "src/middleware/auth.middleware.ts",
+          "hash": "2893701678081470076"
+        },
+        {
+          "file": "src/middleware/error.middleware.ts",
+          "hash": "14490773302515427913"
+        },
+        {
+          "file": "src/middleware/metrics.middleware.ts",
+          "hash": "12852485660752670741"
+        },
+        {
+          "file": "src/middleware/permission.middleware.ts",
+          "hash": "8366869178445874405"
+        },
+        {
+          "file": "src/migrations/add-render-tasks.ts",
+          "hash": "15080330579249946587"
+        },
+        {
+          "file": "src/migrations/migration-manager.ts",
+          "hash": "599862898129980521"
+        },
+        {
+          "file": "src/prompts/agents/index.ts",
+          "hash": "18313318900459577207"
+        },
+        {
+          "file": "src/prompts/index.ts",
+          "hash": "452086625642769720"
+        },
+        {
+          "file": "src/prompts/loader.ts",
+          "hash": "1042385776284902841"
+        },
+        {
+          "file": "src/prompts/routes/index.ts",
+          "hash": "8041578313168374769"
+        },
+        {
+          "file": "src/prompts/routes/polish-prompts.ts",
+          "hash": "5164327205199920359"
+        },
+        {
+          "file": "src/prompts/services/index.ts",
+          "hash": "12257301801283604472"
+        },
+        {
+          "file": "src/prompts/templates/index.ts",
+          "hash": "11546033104065764094"
+        },
+        {
+          "file": "src/prompts/templates/style-templates.ts",
+          "hash": "8650749647359346741"
+        },
+        {
+          "file": "src/prompts/types.ts",
+          "hash": "3033167605958287048"
+        },
+        {
+          "file": "src/routes/admin/assets.routes.ts",
+          "hash": "16653809801580770637"
+        },
+        {
+          "file": "src/routes/admin/auth.routes.ts",
+          "hash": "13929844450208599029"
+        },
+        {
+          "file": "src/routes/admin/index.ts",
+          "hash": "1457733623749810214"
+        },
+        {
+          "file": "src/routes/admin/logs.routes.ts",
+          "hash": "12166925422046640551"
+        },
+        {
+          "file": "src/routes/admin/users.routes.ts",
+          "hash": "16204297071065066495"
+        },
+        {
+          "file": "src/routes/agent-stream.routes.ts",
+          "hash": "5579577445602175846"
+        },
+        {
+          "file": "src/routes/agent.routes.ts",
+          "hash": "5429469055312410124"
+        },
+        {
+          "file": "src/routes/ai-provider.routes.ts",
+          "hash": "4923142781318653294"
+        },
+        {
+          "file": "src/routes/analytics.routes.ts",
+          "hash": "18375192575493332627"
+        },
+        {
+          "file": "src/routes/asset.routes.ts",
+          "hash": "9625862572342241952"
+        },
+        {
+          "file": "src/routes/assistant.routes.ts",
+          "hash": "324086916952530486"
+        },
+        {
+          "file": "src/routes/audit.routes.ts",
+          "hash": "13716051774265706400"
+        },
+        {
+          "file": "src/routes/auth.routes.ts",
+          "hash": "675112115354036816"
+        },
+        {
+          "file": "src/routes/chat-history.routes.ts",
+          "hash": "12261186829670949160"
+        },
+        {
+          "file": "src/routes/clothing-variant.routes.ts",
+          "hash": "12242934549474671032"
+        },
+        {
+          "file": "src/routes/content-process.routes.ts",
+          "hash": "6013552623619559382"
+        },
+        {
+          "file": "src/routes/content.routes.ts",
+          "hash": "7292094304422525463"
+        },
+        {
+          "file": "src/routes/director.routes.ts",
+          "hash": "2107482531549117747"
+        },
+        {
+          "file": "src/routes/document.routes.ts",
+          "hash": "8567676523672153818"
+        },
+        {
+          "file": "src/routes/export-routes.ts",
+          "hash": "15997403687054410671"
+        },
+        {
+          "file": "src/routes/export.routes.ts",
+          "hash": "1390957936556616722"
+        },
+        {
+          "file": "src/routes/health.routes.ts",
+          "hash": "8143011250825696212"
+        },
+        {
+          "file": "src/routes/image-enhancement.routes.ts",
+          "hash": "812942207856503418"
+        },
+        {
+          "file": "src/routes/image-generation.routes.ts",
+          "hash": "15741759185458080513"
+        },
+        {
+          "file": "src/routes/image-split.routes.ts",
+          "hash": "923402444659832136"
+        },
+        {
+          "file": "src/routes/image-super-resolution.routes.ts",
+          "hash": "11060993460032174348"
+        },
+        {
+          "file": "src/routes/item.routes.ts",
+          "hash": "10243575195548977893"
+        },
+        {
+          "file": "src/routes/migration.routes.ts",
+          "hash": "7999262599696602135"
+        },
+        {
+          "file": "src/routes/model-preference.routes.ts",
+          "hash": "10126606511226355901"
+        },
+        {
+          "file": "src/routes/ninegrid.routes.ts",
+          "hash": "12460215460038940340"
+        },
+        {
+          "file": "src/routes/novel.routes.ts",
+          "hash": "2315942331246679123"
+        },
+        {
+          "file": "src/routes/outline.routes.ts",
+          "hash": "7771227874434829187"
+        },
+        {
+          "file": "src/routes/panel-generation.routes.ts",
+          "hash": "5925448060960885046"
+        },
+        {
+          "file": "src/routes/panel.routes.ts",
+          "hash": "5538845729160085531"
+        },
+        {
+          "file": "src/routes/project-member.routes.ts",
+          "hash": "11791281240780884170"
+        },
+        {
+          "file": "src/routes/project-settings.routes.ts",
+          "hash": "11220327623320904435"
+        },
+        {
+          "file": "src/routes/project.routes.ts",
+          "hash": "17197624930561268614"
+        },
+        {
+          "file": "src/routes/prompt-polish.routes.ts",
+          "hash": "16198087772216792761"
+        },
+        {
+          "file": "src/routes/prompt-template.routes.ts",
+          "hash": "15024659344164676059"
+        },
+        {
+          "file": "src/routes/prompt.routes.ts",
+          "hash": "7285157268944882655"
+        },
+        {
+          "file": "src/routes/script-analysis.routes.ts",
+          "hash": "7938015051242649834"
+        },
+        {
+          "file": "src/routes/script.routes.ts",
+          "hash": "5047593818467669173"
+        },
+        {
+          "file": "src/routes/shot-generation.routes.ts",
+          "hash": "9974192948354499118"
+        },
+        {
+          "file": "src/routes/shot.routes.ts",
+          "hash": "11591327807637307008"
+        },
+        {
+          "file": "src/routes/storyboard.routes.ts",
+          "hash": "14947069276827502707"
+        },
+        {
+          "file": "src/routes/storyline.routes.ts",
+          "hash": "5597333325502105374"
+        },
+        {
+          "file": "src/routes/system-logs.routes.ts",
+          "hash": "9413625506916824609"
+        },
+        {
+          "file": "src/routes/task-queue.routes.ts",
+          "hash": "17531819608513049801"
+        },
+        {
+          "file": "src/routes/upload.routes.ts",
+          "hash": "3722117515254750959"
+        },
+        {
+          "file": "src/routes/version-control.routes.ts",
+          "hash": "14481123308678717668"
+        },
+        {
+          "file": "src/routes/video-config.routes.ts",
+          "hash": "16151522815603225033"
+        },
+        {
+          "file": "src/routes/video-generation.routes.ts",
+          "hash": "6472033770906032334"
+        },
+        {
+          "file": "src/routes/video-tutorial.routes.ts",
+          "hash": "14539275600791135218"
+        },
+        {
+          "file": "src/routes/workflow.routes.ts",
+          "hash": "17168588859488021432"
+        },
+        {
+          "file": "src/scripts/migrate.ts",
+          "hash": "14148616595554801427"
+        },
+        {
+          "file": "src/services/ai/antsk.provider.ts",
+          "hash": "87594771246829953"
+        },
+        {
+          "file": "src/services/ai/google.provider.ts",
+          "hash": "15746545939865864109"
+        },
+        {
+          "file": "src/services/ai/openai.provider.ts",
+          "hash": "7213861098977611330"
+        },
+        {
+          "file": "src/services/ai/provider-helper.service.ts",
+          "hash": "1243551338901014235"
+        },
+        {
+          "file": "src/services/ai/provider.interface.ts",
+          "hash": "1649535418389218068"
+        },
+        {
+          "file": "src/services/ai/provider.manager.ts",
+          "hash": "14536540562237369568"
+        },
+        {
+          "file": "src/services/ai/provider.service.ts",
+          "hash": "6113046740681687570"
+        },
+        {
+          "file": "src/services/ai/seedream.provider.ts",
+          "hash": "14356136201352567218"
+        },
+        {
+          "file": "src/services/ai/seedream.task-manager.ts",
+          "hash": "2833010416285448137"
+        },
+        {
+          "file": "src/services/ai/zhipu.provider.ts",
+          "hash": "7002625898676059705"
+        },
+        {
+          "file": "src/services/analytics.service.ts",
+          "hash": "11385438702391618135"
+        },
+        {
+          "file": "src/services/audit.service.ts",
+          "hash": "637422681895882437"
+        },
+        {
+          "file": "src/services/auth.service.ts",
+          "hash": "4128034079889190608"
+        },
+        {
+          "file": "src/services/backup-internal.service.ts",
+          "hash": "15840286299086146475"
+        },
+        {
+          "file": "src/services/backup.service.ts",
+          "hash": "9623286627598198531"
+        },
+        {
+          "file": "src/services/cache/cache.service.ts",
+          "hash": "1140451958402002726"
+        },
+        {
+          "file": "src/services/character-consistency.service.ts",
+          "hash": "13364518067534014372"
+        },
+        {
+          "file": "src/services/clothing-variant.service.ts",
+          "hash": "16858370570113562284"
+        },
+        {
+          "file": "src/services/collaboration.service.ts",
+          "hash": "14178630340014728454"
+        },
+        {
+          "file": "src/services/data-migration.service.ts",
+          "hash": "3403929530995308045"
+        },
+        {
+          "file": "src/services/export.service.ts",
+          "hash": "15175181145756229907"
+        },
+        {
+          "file": "src/services/image-enhancement.service.ts",
+          "hash": "5242570633833984466"
+        },
+        {
+          "file": "src/services/image-generation.service.ts",
+          "hash": "3991186159596249985"
+        },
+        {
+          "file": "src/services/large-text/ai-processor.ts",
+          "hash": "5990139572368476853"
+        },
+        {
+          "file": "src/services/large-text/index.ts",
+          "hash": "18272581908007974628"
+        },
+        {
+          "file": "src/services/large-text/intelligent-segmenter.ts",
+          "hash": "7522853760737658796"
+        },
+        {
+          "file": "src/services/large-text/parallel-processor.ts",
+          "hash": "10382917714518011936"
+        },
+        {
+          "file": "src/services/large-text/result-merger.ts",
+          "hash": "11415095947802540096"
+        },
+        {
+          "file": "src/services/monitoring.service.ts",
+          "hash": "11039264321697088858"
+        },
+        {
+          "file": "src/services/novel-analysis.service.ts",
+          "hash": "5933809989780782221"
+        },
+        {
+          "file": "src/services/permission.service.ts",
+          "hash": "6999600087820769385"
+        },
+        {
+          "file": "src/services/plugin.service.ts",
+          "hash": "17835118849163259720"
+        },
+        {
+          "file": "src/services/premiere-export.service.ts",
+          "hash": "7119117383018769628"
+        },
+        {
+          "file": "src/services/project-template.service.ts",
+          "hash": "5857334688731518839"
+        },
+        {
+          "file": "src/services/quality/quality-scoring.service.ts",
+          "hash": "631026351329708899"
+        },
+        {
+          "file": "src/services/queue/inference-queue.service.ts",
+          "hash": "743596118575411078"
+        },
+        {
+          "file": "src/services/render-queue.service.ts",
+          "hash": "605516561506517414"
+        },
+        {
+          "file": "src/services/scene-concept.service.ts",
+          "hash": "6310576332009196183"
+        },
+        {
+          "file": "src/services/script-analysis.service.ts",
+          "hash": "15124033996466327317"
+        },
+        {
+          "file": "src/services/script/script-parser.service.ts",
+          "hash": "7515577169891851645"
+        },
+        {
+          "file": "src/services/version-control.service.ts",
+          "hash": "14143574260747763765"
+        },
+        {
+          "file": "src/services/video-generation.service.ts",
+          "hash": "17348258825273149391"
+        },
+        {
+          "file": "src/services/video-transcoder.service.ts",
+          "hash": "6525963341189892686"
+        },
+        {
+          "file": "src/services/video-tutorial.service.ts",
+          "hash": "6777247731574996691"
+        },
+        {
+          "file": "src/services/workflow.service.ts",
+          "hash": "9515337470168045961"
+        },
+        {
+          "file": "src/tests/agents/multi-agent.test.ts",
+          "hash": "5108505435837715112"
+        },
+        {
+          "file": "src/tests/auth.test.ts",
+          "hash": "4126530926845763814"
+        },
+        {
+          "file": "src/tests/integration/model-preference-integration.test.ts",
+          "hash": "5063623490144189923"
+        },
+        {
+          "file": "src/tests/middleware/error-middleware.test.ts",
+          "hash": "18286607010833375596"
+        },
+        {
+          "file": "src/tests/model-preference.test.ts",
+          "hash": "7744476546962530805"
+        },
+        {
+          "file": "src/tests/performance/benchmark.ts",
+          "hash": "14647565060031010266"
+        },
+        {
+          "file": "src/tests/performance/load-test.ts",
+          "hash": "8165390069488312732"
+        },
+        {
+          "file": "src/tests/permission.test.ts",
+          "hash": "2243027359064919735"
+        },
+        {
+          "file": "src/tests/project.test.ts",
+          "hash": "12789950069940136206"
+        },
+        {
+          "file": "src/tests/services/ai-provider-helper.test.ts",
+          "hash": "7705897286608953904"
+        },
+        {
+          "file": "src/types/ai.types.ts",
+          "hash": "5659016398663966768"
+        },
+        {
+          "file": "src/types/express.d.ts",
+          "hash": "14288316115655733085"
+        },
+        {
+          "file": "src/types/seedream.types.ts",
+          "hash": "15376621516025891924"
+        },
+        {
+          "file": "test-api.ts",
+          "hash": "17250859289411454567"
+        },
+        {
+          "file": "tsconfig.json",
+          "hash": "9585746273296584344"
+        }
+      ]
+    }
+  },
+  "externalNodesHash": "3244421341483603138"
+}

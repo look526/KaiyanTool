@@ -39,8 +39,8 @@ router.get('/:projectId', async (req: Request, res: Response) => {
       where: {
         id: projectId,
         OR: [
-          { ownerId: userId },
-          { members: { some: { userId } } },
+          { owner_id: userId },
+          { ProjectMember: { some: { user_id: userId } } },
         ],
       },
     });
@@ -85,7 +85,7 @@ router.put('/:projectId', async (req: Request, res: Response) => {
     const project = await prisma.project.findFirst({
       where: {
         id: projectId,
-        ownerId: userId,
+        owner_id: userId,
       },
     });
 
@@ -140,7 +140,7 @@ router.post('/:projectId/token-key', async (req: Request, res: Response) => {
     const project = await prisma.project.findFirst({
       where: {
         id: projectId,
-        ownerId: userId,
+        owner_id: userId,
       },
     });
 
@@ -179,7 +179,7 @@ router.get('/:projectId/token-key', async (req: Request, res: Response) => {
     const project = await prisma.project.findFirst({
       where: {
         id: projectId,
-        ownerId: userId,
+        owner_id: userId,
       },
     });
 
@@ -210,7 +210,7 @@ router.delete('/:projectId/token-key', async (req: Request, res: Response) => {
     const project = await prisma.project.findFirst({
       where: {
         id: projectId,
-        ownerId: userId,
+        owner_id: userId,
       },
     });
 
@@ -241,7 +241,7 @@ router.post('/:projectId/generate-token-key', async (req: Request, res: Response
     const project = await prisma.project.findFirst({
       where: {
         id: projectId,
-        ownerId: userId,
+        owner_id: userId,
       },
     });
 

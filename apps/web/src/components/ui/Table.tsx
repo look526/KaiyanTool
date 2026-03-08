@@ -96,7 +96,7 @@ export function Table<T extends Record<string, any>>({
   }, [rowKey]);
 
   const sortedData = useMemo(() => {
-    let result = [...data];
+    const result = [...data];
 
     if (sorter.columnKey && sorter.direction) {
       result.sort((a, b) => {

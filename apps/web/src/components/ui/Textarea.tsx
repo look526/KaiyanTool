@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../../design-system';
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
@@ -8,56 +9,27 @@ interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement
 
 export function Textarea({ label, error, glass = true, className = '', ...props }: TextareaProps) {
   return (
-    <div className="textarea-wrapper" style={{ width: '100%' }}>
+    <div className="w-full">
       {label && (
-        <label style={{
-          display: 'block',
-          marginBottom: '8px',
-          fontSize: '14px',
-          fontWeight: '600',
-          color: 'var(--text-secondary)',
-          letterSpacing: '-0.01em',
-        }}>
+        <label className="block mb-2 text-sm font-semibold text-primary-900 dark:text-primary-100">
           {label}
         </label>
       )}
       <textarea
-        className={`textarea ${className}`}
-        style={{
-          width: '100%',
-          minHeight: '140px',
-          padding: '14px 16px',
-          border: `1px solid ${error ? 'var(--error)' : glass ? 'rgba(255, 255, 255, 0.1)' : 'var(--border-primary)'}`,
-          borderRadius: '14px',
-          fontSize: '14px',
-          color: 'var(--text-primary)',
-          backgroundColor: glass ? 'rgba(255, 255, 255, 0.05)' : 'var(--bg-secondary)',
-          resize: 'vertical',
-          fontFamily: 'inherit',
-          outline: 'none',
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          backdropFilter: glass ? 'blur(20px)' : 'none',
-          WebkitBackdropFilter: glass ? 'blur(20px)' : 'none',
-        }}
-        onFocus={(e) => {
-          e.currentTarget.style.borderColor = error ? 'var(--error)' : 'var(--accent)';
-          e.currentTarget.style.boxShadow = error ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : '0 0 0 3px rgba(99, 102, 241, 0.1)';
-          e.currentTarget.style.backgroundColor = glass ? 'rgba(255, 255, 255, 0.08)' : 'var(--bg-secondary)';
-        }}
-        onBlur={(e) => {
-          e.currentTarget.style.borderColor = error ? 'var(--error)' : glass ? 'rgba(255, 255, 255, 0.1)' : 'var(--border-primary)';
-          e.currentTarget.style.boxShadow = 'none';
-          e.currentTarget.style.backgroundColor = glass ? 'rgba(255, 255, 255, 0.05)' : 'var(--bg-secondary)';
-        }}
+        className={cn(
+          'w-full min-h-36 p-4 rounded-md border text-sm text-primary-900 dark:text-primary-100 resize-vertical font-sans outline-none transition-all duration-300',
+          glass 
+            ? 'bg-white/5 dark:bg-gray-900/5 border-white/10 dark:border-gray-800 backdrop-blur-md' 
+            : 'bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700',
+          error 
+            ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' 
+            : 'focus:border-primary-500 focus:ring-primary-500/20 hover:border-gray-400 dark:hover:border-gray-600',
+          className
+        )}
         {...props}
       />
       {error && (
-        <span style={{
-          display: 'block',
-          marginTop: '6px',
-          fontSize: '13px',
-          color: 'var(--error)',
-        }}>
+        <span className="block mt-1.5 text-xs text-red-500">
           {error}
         </span>
       )}

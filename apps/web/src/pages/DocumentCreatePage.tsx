@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '../components/ui/button';
-import { Card } from '../components/ui/card';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { apiClient } from '../lib/api-client';
 import {
@@ -125,7 +123,7 @@ const DocumentCreatePage: React.FC = () => {
       setLoading(true);
       setError(null);
       const response = await apiClient.getProjects();
-      setProjects(response || []);
+      setProjects(response.projects || []);
     } catch (err) {
       setError('Failed to load projects');
       console.error('Error fetching projects:', err);
@@ -299,7 +297,26 @@ const DocumentCreatePage: React.FC = () => {
             <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px' }}>
               {error}
             </p>
-            <Button onClick={fetchProjects}>重试</Button>
+            <button
+              onClick={fetchProjects}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '10px 18px',
+                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                border: 'none',
+                borderRadius: '10px',
+                color: 'white',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              重试
+            </button>
           </div>
         </div>
       </div>
@@ -432,7 +449,13 @@ const DocumentCreatePage: React.FC = () => {
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '32px' }}>
             <div>
-              <Card style={{ padding: '32px', marginBottom: '24px' }}>
+              <div style={{
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-primary)',
+                borderRadius: '20px',
+                padding: '32px',
+                marginBottom: '24px',
+              }}>
                 <div style={{ marginBottom: '28px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                     <FolderOpen style={{ width: '18px', height: '18px', color: 'var(--accent)' }} />
@@ -809,9 +832,14 @@ const DocumentCreatePage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              </Card>
+              </div>
 
-              <Card style={{ padding: '32px' }}>
+              <div style={{
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-primary)',
+                borderRadius: '20px',
+                padding: '32px',
+              }}>
                 <div style={{ marginBottom: '20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -868,11 +896,19 @@ const DocumentCreatePage: React.FC = () => {
                     {validationErrors.content}
                   </p>
                 )}
-              </Card>
+              </div>
             </div>
 
             <div>
-              <Card style={{ padding: '24px', marginBottom: '20px', position: 'sticky', top: '120px' }}>
+              <div style={{
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-primary)',
+                borderRadius: '20px',
+                padding: '24px',
+                marginBottom: '20px',
+                position: 'sticky',
+                top: '120px',
+              }}>
                 <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', margin: '0 0 16px 0' }}>
                   文档预览
                 </h3>
@@ -961,9 +997,15 @@ const DocumentCreatePage: React.FC = () => {
                     </span>
                   </div>
                 </div>
-              </Card>
+              </div>
 
-              <Card style={{ padding: '24px', marginBottom: '20px' }}>
+              <div style={{
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-primary)',
+                borderRadius: '20px',
+                padding: '24px',
+                marginBottom: '20px',
+              }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                   <Wand2 style={{ width: '16px', height: '16px', color: 'var(--accent)' }} />
                   <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
@@ -1003,7 +1045,7 @@ const DocumentCreatePage: React.FC = () => {
                   <Sparkles style={{ width: '16px', height: '16px' }} />
                   AI 生成内容
                 </button>
-              </Card>
+              </div>
 
               <div style={{
                 padding: '16px',

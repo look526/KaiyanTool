@@ -1,22 +1,23 @@
 import { Request, Response } from 'express'
+import * as crypto from 'crypto'
 import { prisma } from '../lib/prisma'
 
 export class AssetController {
   async listCharacters(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { projectId } = req.params
+      const { project_id } = req.params
 
       const project = await prisma.project.findFirst({
         where: {
-          id: projectId,
+          id: project_id,
           OR: [
-            { ownerId: req.userId },
-            { members: { some: { userId: req.userId } } },
+            { owner_id: req.user_id },
+            { ProjectMember: { some: { user_id: req.user_id } } },
           ],
         },
       })
@@ -27,14 +28,14 @@ export class AssetController {
       }
 
       const characters = await prisma.character.findMany({
-        where: { projectId },
+        where: { project_id: project_id },
         include: {
-          wardrobes: true,
+          Wardrobe: true,
           _count: {
-            select: { shots: true },
+            select: { Shot: true },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { created_at: 'desc' },
       })
 
       res.json(characters)
@@ -45,13 +46,13 @@ export class AssetController {
 
   async createCharacter(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { projectId } = req.params
-      const { name, age, gender, appearance, referenceImages } = req.body
+      const { project_id } = req.params
+      const { name, age, gender, appearance, reference_images } = req.body
 
       if (!name || !appearance) {
         res.status(400).json({ error: 'Name and appearance are required' })
@@ -60,8 +61,8 @@ export class AssetController {
 
       const project = await prisma.project.findFirst({
         where: {
-          id: projectId,
-          ownerId: req.userId,
+          id: project_id,
+          owner_id: req.user_id,
         },
       })
 
@@ -72,38 +73,42 @@ export class AssetController {
 
       const character = await prisma.character.create({
         data: {
-          projectId,
+          id: crypto.randomUUID(),
+          project_id: project_id,
           name,
           age,
           gender,
           appearance,
-          referenceImages: referenceImages || [],
+          reference_images: reference_images || [],
+          created_at: new Date(),
+          updated_at: new Date(),
         },
       })
 
       res.status(201).json(character)
     } catch (error) {
-      res.status(500).json({ error: 'Internal server error' })
+      console.error('Create character error:', error)
+      res.status(500).json({ error: 'Internal server error', details: error instanceof Error ? error.message : String(error) })
     }
   }
 
   async updateCharacter(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
       const { id } = req.params
-      const { name, age, gender, appearance, referenceImages } = req.body
+      const { name, age, gender, appearance, reference_images } = req.body
 
       const character = await prisma.character.findFirst({
         where: {
           id,
-          project: {
+          Project: {
             OR: [
-              { ownerId: req.userId },
-              { members: { some: { userId: req.userId } } },
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id } } },
             ],
           },
         },
@@ -121,19 +126,20 @@ export class AssetController {
           age,
           gender,
           appearance,
-          referenceImages,
+          reference_images,
         },
       })
 
       res.json(updated)
     } catch (error) {
-      res.status(500).json({ error: 'Internal server error' })
+      console.error('Update character error:', error)
+      res.status(500).json({ error: 'Internal server error', details: error instanceof Error ? error.message : String(error) })
     }
   }
 
   async deleteCharacter(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
@@ -143,10 +149,10 @@ export class AssetController {
       const character = await prisma.character.findFirst({
         where: {
           id,
-          project: {
+          Project: {
             OR: [
-              { ownerId: req.userId },
-              { members: { some: { userId: req.userId } } },
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id } } },
             ],
           },
         },
@@ -169,19 +175,19 @@ export class AssetController {
 
   async listScenes(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { projectId } = req.params
+      const { project_id } = req.params
 
       const project = await prisma.project.findFirst({
         where: {
-          id: projectId,
+          id: project_id,
           OR: [
-            { ownerId: req.userId },
-            { members: { some: { userId: req.userId } } },
+            { owner_id: req.user_id },
+            { ProjectMember: { some: { user_id: req.user_id } } },
           ],
         },
       })
@@ -192,13 +198,13 @@ export class AssetController {
       }
 
       const scenes = await prisma.scene.findMany({
-        where: { projectId },
+        where: { project_id: project_id },
         include: {
           _count: {
-            select: { shots: true },
+            select: { Shot: true },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { created_at: 'desc' },
       })
 
       res.json(scenes)
@@ -209,13 +215,13 @@ export class AssetController {
 
   async createScene(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { projectId } = req.params
-      const { location, time, atmosphere, referenceImages } = req.body
+      const { project_id } = req.params
+      const { location, time, atmosphere, reference_images } = req.body
 
       if (!location || !time) {
         res.status(400).json({ error: 'Location and time are required' })
@@ -224,8 +230,8 @@ export class AssetController {
 
       const project = await prisma.project.findFirst({
         where: {
-          id: projectId,
-          ownerId: req.userId,
+          id: project_id,
+          owner_id: req.user_id,
         },
       })
 
@@ -236,11 +242,14 @@ export class AssetController {
 
       const scene = await prisma.scene.create({
         data: {
-          projectId,
+          id: crypto.randomUUID(),
+          project_id: project_id,
           location,
           time,
           atmosphere,
-          referenceImages: referenceImages || [],
+          reference_images: reference_images || [],
+          created_at: new Date(),
+          updated_at: new Date(),
         },
       })
 
@@ -252,19 +261,22 @@ export class AssetController {
 
   async updateScene(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
       const { id } = req.params
-      const { location, time, atmosphere, referenceImages } = req.body
+      const { location, time, atmosphere, reference_images, description } = req.body
 
       const scene = await prisma.scene.findFirst({
         where: {
           id,
-          project: {
-            ownerId: req.userId,
+          Project: {
+            OR: [
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id } } },
+            ],
           },
         },
       })
@@ -280,19 +292,20 @@ export class AssetController {
           location,
           time,
           atmosphere,
-          referenceImages,
+          reference_images,
         },
       })
 
       res.json(updated)
     } catch (error) {
+      console.error('Update scene error:', error)
       res.status(500).json({ error: 'Internal server error' })
     }
   }
 
   async deleteScene(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
@@ -302,8 +315,11 @@ export class AssetController {
       const scene = await prisma.scene.findFirst({
         where: {
           id,
-          project: {
-            ownerId: req.userId,
+          Project: {
+            OR: [
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id } } },
+            ],
           },
         },
       })
@@ -317,21 +333,22 @@ export class AssetController {
         where: { id },
       })
 
-      res.json({ message: 'Scene deleted successfully' })
+      res.json({ success: true, message: 'Scene deleted successfully' })
     } catch (error) {
-      res.status(500).json({ error: 'Internal server error' })
+      console.error('Delete scene error:', error)
+      res.status(500).json({ error: 'Internal server error', details: error instanceof Error ? error.message : String(error) })
     }
   }
 
   async createWardrobe(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { characterId } = req.params
-      const { name, description, referenceImage } = req.body
+      const { character_id } = req.params
+      const { name, description, reference_image } = req.body
 
       if (!name) {
         res.status(400).json({ error: 'Name is required' })
@@ -340,9 +357,9 @@ export class AssetController {
 
       const character = await prisma.character.findFirst({
         where: {
-          id: characterId,
-          project: {
-            ownerId: req.userId,
+          id: character_id,
+          Project: {
+            owner_id: req.user_id,
           },
         },
       })
@@ -354,22 +371,24 @@ export class AssetController {
 
       const wardrobe = await prisma.wardrobe.create({
         data: {
-          characterId,
+          id: crypto.randomUUID(),
+          character_id: character_id,
           name,
           description,
-          referenceImage,
+          reference_image,
         },
       })
 
       res.status(201).json(wardrobe)
     } catch (error) {
-      res.status(500).json({ error: 'Internal server error' })
+      console.error('Create wardrobe error:', error)
+      res.status(500).json({ error: 'Internal server error', details: error instanceof Error ? error.message : String(error) })
     }
   }
 
   async deleteWardrobe(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
@@ -379,9 +398,9 @@ export class AssetController {
       const wardrobe = await prisma.wardrobe.findFirst({
         where: {
           id,
-          character: {
-            project: {
-              ownerId: req.userId,
+          Character: {
+            Project: {
+              owner_id: req.user_id,
             },
           },
         },

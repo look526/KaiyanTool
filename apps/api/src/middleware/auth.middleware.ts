@@ -5,11 +5,17 @@ import logger from '../lib/logger'
 const ENABLE_AUTH = true
 
 export interface AuthRequest extends Request {
-  userId: string;
-  user: {
+  user_id?: string;
+  user?: {
     id: string;
     email: string;
     name: string;
+  };
+  session?: {
+    id: string;
+    user_id: string;
+    token: string;
+    expires_at: Date;
   };
 }
 
@@ -20,24 +26,30 @@ export const authMiddleware = async (
 ): Promise<void> => {
   try {
     if (!ENABLE_AUTH) {
-      req.userId = '00000000-0000-0000-0000-000000000001'
+      req.user_id = '00000000-0000-0000-0000-000000000001'
       req.user = { id: '00000000-0000-0000-0000-000000000001', email: 'dev@example.com', name: 'Dev User' }
       next()
       return
     }
 
-    const sessionToken = req.cookies?.sessionId as string | undefined
+    const session_token = req.cookies?.sessionId as string | undefined
 
-    if (!sessionToken) {
+    // 对于GET请求，如果没有session token，允许继续执行（用于获取CSRF token）
+    if (!session_token && req.method === 'GET') {
+      next()
+      return
+    }
+
+    if (!session_token) {
       logger.debug('No session token provided', { path: req.path })
       res.status(401).json({ error: '未登录' })
       return
     }
 
     const session = await prisma.session.findUnique({
-      where: { token: sessionToken },
+      where: { token: session_token },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             email: true,
@@ -47,10 +59,10 @@ export const authMiddleware = async (
       },
     })
 
-    if (!session || session.expiresAt < new Date()) {
+    if (!session || session.expires_at < new Date()) {
       logger.info('Session expired or invalid', { 
         hasSession: !!session,
-        expired: session ? session.expiresAt < new Date() : false 
+        expired: session ? session.expires_at < new Date() : false 
       })
       res.clearCookie('sessionId', {
         httpOnly: true,
@@ -62,9 +74,14 @@ export const authMiddleware = async (
       return
     }
 
-    req.userId = session.userId
-    req.user = session.user
-    req.session = session
+    req.user_id = session.user_id
+    req.user = session.User
+    req.session = {
+      id: session.id,
+      user_id: session.user_id,
+      token: session.token,
+      expires_at: session.expires_at
+    }
     next()
   } catch (error) {
     logger.error('Auth middleware error', { 
@@ -81,13 +98,13 @@ export const optionalAuthMiddleware = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const sessionToken = req.cookies?.sessionId as string | undefined
+    const session_token = req.cookies?.sessionId as string | undefined
 
-    if (sessionToken) {
+    if (session_token) {
       const session = await prisma.session.findUnique({
-        where: { token: sessionToken },
+        where: { token: session_token },
         include: {
-          user: {
+          User: {
             select: {
               id: true,
               email: true,
@@ -97,10 +114,15 @@ export const optionalAuthMiddleware = async (
         },
       })
 
-      if (session && session.expiresAt >= new Date()) {
-        req.userId = session.userId
-        req.user = session.user
-        req.session = session
+      if (session && session.expires_at >= new Date()) {
+        req.user_id = session.user_id
+        req.user = session.User
+        req.session = {
+          id: session.id,
+          user_id: session.user_id,
+          token: session.token,
+          expires_at: session.expires_at
+        }
       }
     }
 

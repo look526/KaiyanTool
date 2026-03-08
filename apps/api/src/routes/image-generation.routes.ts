@@ -18,11 +18,11 @@ router.post('/generate', async (req, res) => {
       n: req.body.n || 1,
       image_urls: req.body.image_urls,
       style: req.body.style,
-      characterRefImageId: req.body.characterRefImageId,
-      sceneRefImageId: req.body.sceneRefImageId,
-      projectId: req.body.projectId,
+      character_ref_image_id: req.body.character_ref_image_id,
+      scene_ref_image_id: req.body.scene_ref_image_id,
+      project_id: req.body.project_id,
       model: req.body.model,
-      threeView: req.body.threeView,
+      three_view: req.body.three_view,
     });
     res.json(result);
   } catch (error) {

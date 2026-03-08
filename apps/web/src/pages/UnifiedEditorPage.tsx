@@ -100,7 +100,14 @@ function UnifiedEditorContent() {
   }, [title, content, autoSaveEnabled, mode, saveToLocalStorage]);
 
   const handleSave = async () => {
-    if (!title.trim() || !content.trim()) return;
+    if (!title.trim()) {
+      addToast({ type: 'warning', title: '标题不能为空', message: '请输入项目标题' });
+      return;
+    }
+    if (!content.trim()) {
+      addToast({ type: 'warning', title: '内容不能为空', message: '请输入编辑器内容' });
+      return;
+    }
     try {
       setIsSaving(true);
       await apiClient.saveScript(projectIdStr, title, content);

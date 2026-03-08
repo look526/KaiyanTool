@@ -1,0 +1,179 @@
+{
+  "nodes": {
+    "kaiyan-api": {
+      "name": "kaiyan-api",
+      "type": "app",
+      "data": {
+        "root": ".",
+        "name": "kaiyan-api",
+        "tags": [
+          "npm:private"
+        ],
+        "metadata": {
+          "targetGroups": {
+            "NPM Scripts": [
+              "dev",
+              "build",
+              "start",
+              "seed",
+              "lint",
+              "format",
+              "test",
+              "test:watch",
+              "migrate",
+              "test:perf",
+              "test:benchmark"
+            ]
+          },
+          "js": {
+            "packageName": "kaiyan-api",
+            "packageVersion": "1.0.0",
+            "isInPackageManagerWorkspaces": true
+          }
+        },
+        "targets": {
+          "dev": {
+            "executor": "nx:run-script",
+            "options": {
+              "script": "dev"
+            },
+            "metadata": {
+              "scriptContent": "tsx watch src/index.ts",
+              "runCommand": "npm run dev"
+            },
+            "configurations": {},
+            "parallelism": true
+          },
+          "build": {
+            "executor": "nx:run-script",
+            "options": {
+              "script": "build"
+            },
+            "metadata": {
+              "scriptContent": "tsc",
+              "runCommand": "npm run build"
+            },
+            "configurations": {},
+            "parallelism": true
+          },
+          "start": {
+            "executor": "nx:run-script",
+            "options": {
+              "script": "start"
+            },
+            "metadata": {
+              "scriptContent": "node dist/index.js",
+              "runCommand": "npm run start"
+            },
+            "configurations": {},
+            "parallelism": true
+          },
+          "seed": {
+            "executor": "nx:run-script",
+            "options": {
+              "script": "seed"
+            },
+            "metadata": {
+              "scriptContent": "tsx prisma/seed.ts",
+              "runCommand": "npm run seed"
+            },
+            "configurations": {},
+            "parallelism": true
+          },
+          "lint": {
+            "executor": "nx:run-script",
+            "options": {
+              "script": "lint"
+            },
+            "metadata": {
+              "scriptContent": "eslint . --ext ts --report-unused-disable-directives --max-warnings 0",
+              "runCommand": "npm run lint"
+            },
+            "configurations": {},
+            "parallelism": true
+          },
+          "format": {
+            "executor": "nx:run-script",
+            "options": {
+              "script": "format"
+            },
+            "metadata": {
+              "scriptContent": "prettier --write \"src/**/*.ts\"",
+              "runCommand": "npm run format"
+            },
+            "configurations": {},
+            "parallelism": true
+          },
+          "test": {
+            "executor": "nx:run-script",
+            "options": {
+              "script": "test"
+            },
+            "metadata": {
+              "scriptContent": "jest --coverage",
+              "runCommand": "npm run test"
+            },
+            "configurations": {},
+            "parallelism": true
+          },
+          "test:watch": {
+            "executor": "nx:run-script",
+            "options": {
+              "script": "test:watch"
+            },
+            "metadata": {
+              "scriptContent": "jest --watch",
+              "runCommand": "npm run test:watch"
+            },
+            "configurations": {},
+            "parallelism": true
+          },
+          "migrate": {
+            "executor": "nx:run-script",
+            "options": {
+              "script": "migrate"
+            },
+            "metadata": {
+              "scriptContent": "tsx src/scripts/migrate.ts",
+              "runCommand": "npm run migrate"
+            },
+            "configurations": {},
+            "parallelism": true
+          },
+          "test:perf": {
+            "executor": "nx:run-script",
+            "options": {
+              "script": "test:perf"
+            },
+            "metadata": {
+              "scriptContent": "tsx src/tests/performance/load-test.ts",
+              "runCommand": "npm run test:perf"
+            },
+            "configurations": {},
+            "parallelism": true
+          },
+          "test:benchmark": {
+            "executor": "nx:run-script",
+            "options": {
+              "script": "test:benchmark"
+            },
+            "metadata": {
+              "scriptContent": "tsx src/tests/performance/benchmark.ts",
+              "runCommand": "npm run test:benchmark"
+            },
+            "configurations": {},
+            "parallelism": true
+          }
+        },
+        "implicitDependencies": []
+      }
+    }
+  },
+  "externalNodes": {},
+  "dependencies": {
+    "kaiyan-api": []
+  },
+  "version": "6.0",
+  "errors": [],
+  "computedAt": 1772561066723
+}

@@ -20,10 +20,11 @@ import {
   List,
   PackageOpen,
 } from 'lucide-react';
-import { Button } from '../components/ui/button-new';
+
 import { ImageSelector } from '../components/ImageSelector';
 import { apiClient } from '../lib/api-client';
 import { useToast } from '../components/ui/Toast';
+import { ItemCard } from '../components/ItemCard';
 
 interface Item {
   id: string;
@@ -61,7 +62,6 @@ export default function ItemsPageSimple() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
-  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const { addToast } = useToast();
 
   const toggleSelect = (id: string) => {
@@ -100,11 +100,11 @@ export default function ItemsPageSimple() {
     if (!projectId || generating || !user) return;
     try {
       setGenerating(true);
-      const result = await apiClient.generateItemsFromScript(projectId);
+      const result = await apiClient.generateItemsFromScript(projectId) as { message?: string };
       addToast({
         type: 'success',
         title: '生成成功',
-        message: result.message,
+        message: result?.message || '生成成功',
       });
       await loadItems();
     } catch (error: any) {
@@ -123,7 +123,7 @@ export default function ItemsPageSimple() {
     if (!projectId || authLoading || !user) return;
     try {
       setLoading(true);
-      const data = await apiClient.getItems(projectId);
+      const data = await apiClient.getItems(projectId) as Item[];
       setItems(data);
     } catch (error) {
       console.error('Failed to load items:', error);
@@ -411,8 +411,7 @@ export default function ItemsPageSimple() {
                   </button>
                 </>
               )}
-              <Button
-                variant="primary"
+              <button
                 onClick={() => handleOpenModal()}
                 style={{
                   height: '44px',
@@ -421,15 +420,27 @@ export default function ItemsPageSimple() {
                   borderRadius: '12px',
                   fontSize: '14px',
                   fontWeight: '600',
+                  color: '#fff',
+                  border: 'none',
+                  cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
                   boxShadow: '0 4px 14px rgba(249, 115, 22, 0.3)',
+                  transition: 'all 0.25s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(249, 115, 22, 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(249, 115, 22, 0.3)';
                 }}
               >
                 <Plus style={{ width: '18px', height: '18px' }} />
                 添加物品
-              </Button>
+              </button>
             </div>
           </div>
         </div>
@@ -675,10 +686,35 @@ export default function ItemsPageSimple() {
               {searchQuery || filterType !== 'all' ? '尝试调整搜索条件或筛选器' : '点击右上角添加您的第一个物品'}
             </p>
             {!searchQuery && filterType === 'all' && (
-              <Button variant="primary" onClick={() => handleOpenModal()}>
-                <Plus style={{ width: '16px', height: '16px', marginRight: '6px' }} />
+              <button
+                onClick={() => handleOpenModal()}
+                style={{
+                  padding: '12px 24px',
+                  borderRadius: '14px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#fff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                  boxShadow: '0 4px 14px rgba(249, 115, 22, 0.3)',
+                  transition: 'all 0.25s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(249, 115, 22, 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(249, 115, 22, 0.3)';
+                }}
+              >
+                <Plus style={{ width: '16px', height: '16px' }} />
                 添加物品
-              </Button>
+              </button>
             )}
           </div>
         ) : (
@@ -687,196 +723,17 @@ export default function ItemsPageSimple() {
             gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
             gap: '16px',
           }}>
-            {filteredItems.map((item) => {
-              const typeInfo = getTypeInfo(item.type);
-              const TypeIcon = typeInfo.icon;
-              const isHovered = hoveredCard === item.id;
-
-              return (
-                <div
-                  key={item.id}
-                  style={{
-                    background: 'var(--bg-card)',
-                    borderRadius: '16px',
-                    border: selectedIds.has(item.id) ? '2px solid #f97316' : '1px solid var(--border-primary)',
-                    overflow: 'hidden',
-                    transition: 'all 0.2s ease',
-                    transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
-                    boxShadow: isHovered ? 'var(--shadow-lg)' : 'none',
-                  }}
-                  onMouseEnter={() => setHoveredCard(item.id)}
-                  onMouseLeave={() => setHoveredCard(null)}
-                >
-                  {item.image ? (
-                    <div style={{
-                      aspectRatio: '16/9',
-                      overflow: 'hidden',
-                      position: 'relative',
-                    }}>
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                        }}
-                      />
-                      <div style={{
-                        position: 'absolute',
-                        top: '12px',
-                        left: '12px',
-                        display: 'flex',
-                        gap: '8px',
-                      }}>
-                        <div
-                          onClick={(e) => { e.stopPropagation(); toggleSelect(item.id); }}
-                          style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '8px',
-                            background: selectedIds.has(item.id) ? '#f97316' : 'rgba(0, 0, 0, 0.5)',
-                            backdropFilter: 'blur(8px)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {selectedIds.has(item.id) ? (
-                            <CheckSquare style={{ width: '16px', height: '16px', color: 'white' }} />
-                          ) : (
-                            <Square style={{ width: '16px', height: '16px', color: 'white' }} />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{
-                      aspectRatio: '16/9',
-                      background: typeInfo.bgColor,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      position: 'relative',
-                    }}>
-                      <TypeIcon style={{ width: '48px', height: '48px', color: typeInfo.color }} />
-                      <div style={{
-                        position: 'absolute',
-                        top: '12px',
-                        left: '12px',
-                      }}>
-                        <div
-                          onClick={(e) => { e.stopPropagation(); toggleSelect(item.id); }}
-                          style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '8px',
-                            background: selectedIds.has(item.id) ? '#f97316' : 'rgba(0, 0, 0, 0.3)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {selectedIds.has(item.id) ? (
-                            <CheckSquare style={{ width: '16px', height: '16px', color: 'white' }} />
-                          ) : (
-                            <Square style={{ width: '16px', height: '16px', color: 'white' }} />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div style={{ padding: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <h3 style={{
-                          fontSize: '15px',
-                          fontWeight: '600',
-                          color: 'var(--text-primary)',
-                          margin: '0 0 6px 0',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}>
-                          {item.name}
-                        </h3>
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '3px 10px',
-                          borderRadius: '6px',
-                          backgroundColor: typeInfo.bgColor,
-                          border: `1px solid ${typeInfo.borderColor}`,
-                          color: typeInfo.color,
-                          fontSize: '11px',
-                          fontWeight: '600',
-                        }}>
-                          <TypeIcon style={{ width: '12px', height: '12px' }} />
-                          {typeInfo.name}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', gap: '4px', marginLeft: '8px' }}>
-                        <button
-                          onClick={() => handleOpenModal(item)}
-                          style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            background: 'transparent',
-                            color: 'var(--text-muted)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'all 0.2s ease',
-                          }}
-                        >
-                          <Edit2 style={{ width: '16px', height: '16px' }} />
-                        </button>
-                        <button
-                          onClick={() => setShowDeleteConfirm(item.id)}
-                          style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            background: 'transparent',
-                            color: 'var(--text-muted)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'all 0.2s ease',
-                          }}
-                        >
-                          <Trash2 style={{ width: '16px', height: '16px' }} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {item.description && (
-                      <p style={{
-                        fontSize: '13px',
-                        color: 'var(--text-secondary)',
-                        lineHeight: '1.5',
-                        margin: 0,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}>
-                        {item.description}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {filteredItems.map((item) => (
+              <ItemCard
+                key={item.id}
+                item={item}
+                isSelected={selectedIds.has(item.id)}
+                onSelect={toggleSelect}
+                onEdit={handleOpenModal}
+                onDelete={setShowDeleteConfirm}
+                getTypeInfo={getTypeInfo}
+              />
+            ))}
           </div>
         )}
       </div>

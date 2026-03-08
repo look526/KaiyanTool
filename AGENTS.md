@@ -1,282 +1,145 @@
 <!-- OPENSPEC:START -->
 # OpenSpec Instructions
 
-These instructions are for AI assistants working in this project.
-
-Always open `@/openspec/AGENTS.md` when the request:
-- Mentions planning or proposals (words like proposal, spec, change, plan)
-- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
-- Sounds ambiguous and you need the authoritative spec before coding
-
-Use `@/openspec/AGENTS.md` to learn:
-- How to create and apply change proposals
-- Spec format and conventions
-- Project structure and guidelines
-
-Keep this managed block so 'openspec update' can refresh the instructions.
+AI assistants should reference `@/openspec/AGENTS.md` when:
+- Proposing plans, specs, or changes
+- Introducing breaking changes or architecture shifts
+- Needing authoritative specs before coding
 
 <!-- OPENSPEC:END -->
 
-# Prompt Management Guidelines
+# Project Best Practices
 
-## Directory Structure
+## Project Structure
 
-All prompts are centralized in `apps/api/src/prompts/`:
+```
+kaiyanTool/
+├── apps/
+│   ├── api/          # Express + Prisma + TypeScript
+│   └── web/          # React 19 + Vite + Tailwind
+└── packages/         # Shared code
+```
+
+## Prompt Management
+
+**所有提示词必须放在 `apps/api/src/prompts/`**
 
 ```
 prompts/
-├── index.ts              # Main entry point
-├── types.ts              # Type definitions
-├── loader.ts             # Prompt loader utility
-├── templates/            # Style templates
-│   ├── index.ts
-│   └── style-templates.ts
-├── agents/               # Agent prompts
-│   └── index.ts
-├── routes/               # Route prompts
-│   └── polish-prompts.ts
-└── services/             # Service prompts
-    └── index.ts
+├── agents/           # Agent prompts (STORYLINE_AGENT, etc.)
+├── routes/          # Route prompts
+├── services/         # Service prompts
+└── templates/        # Style templates
 ```
 
-## Naming Conventions
+**规则:**
+- 使用 `{{variableName}}` 语法
+- 常量命名: `UPPER_SNAKE_CASE`
+- 永远不要在 agent/service 文件中硬编码 prompt
 
-1. **Files**: Use `[module]-prompts.ts` format (e.g., `polish-prompts.ts`)
-2. **Constants**: Use UPPER_SNAKE_CASE (e.g., `STORYLINE_AGENT`, `POLISH_PROMPTS`)
-3. **Variables**: Use `{{variableName}}` syntax for template variables
+## AI Provider 调用
 
-## Categories
-
-| Category | Directory | Description |
-|----------|-----------|-------------|
-| `template` | `templates/` | Style templates, visual styles |
-| `agent` | `agents/` | AI agent system/user prompts |
-| `route` | `routes/` | API route prompts |
-| `service` | `services/` | Service layer prompts |
-
-## Adding New Prompts
-
-1. Identify the correct category directory
-2. Create or update the appropriate file
-3. Export from the category's `index.ts`
-4. Export from main `prompts/index.ts`
-5. Import and use in your code
-
-### Example
+**必须使用 `providerManager`，禁止使用旧的 `aiProviderService`**
 
 ```typescript
-// In prompts/agents/index.ts
-export const NEW_AGENT: AgentPromptConfig = {
-  systemPrompt: `You are a helpful assistant...`,
-  userPromptTemplate: `Please help with {{task}}...`
-};
-
-// In your code
-import { NEW_AGENT } from '../prompts/agents';
-
-const prompt = NEW_AGENT.systemPrompt;
-```
-
-## Modification Rules
-
-1. **Always modify prompts in the `prompts/` directory**, not in agent/service files
-2. **Use template variables** for dynamic content: `{{variable}}`
-3. **Keep prompts organized** by category
-4. **Update exports** when adding new prompts
-5. **Maintain backward compatibility** when possible
-
-## Template Variable Syntax
-
-```typescript
-// Define prompt with variables
-const prompt = `Hello {{name}}, your task is {{task}}`;
-
-// Replace variables
-const rendered = prompt
-  .replace('{{name}}', userName)
-  .replace('{{task}}', taskDescription);
-```
-
-## Import Paths
-
-From different locations:
-
-| From | Import Path |
-|------|-------------|
-| `apps/api/src/agents/` | `../prompts/agents` |
-| `apps/api/src/routes/` | `../prompts/routes` |
-| `apps/api/src/services/` | `../prompts/services` or `../../prompts/services` |
-| `apps/api/src/controllers/` | `../prompts/services` |
-| `apps/api/src/config/` | `../prompts/templates` |
-
----
-
-# AI Provider 调用规范
-
-## 概述
-
-本项目使用 `providerManager` 管理 AI Provider，正确调用 AI 需要遵循以下流程：
-
-## 正确的调用方式
-
-### 1. 从数据库获取 Provider 配置
-
-```typescript
-import { providerManager } from '../services/ai/provider.manager';
-import { prisma } from '../lib/prisma';
-
-router.post('/your-endpoint', async (req, res) => {
-  const { model } = req.body; // 前端传递的模型 ID
-
-  // 1. 从数据库获取启用的 AI Provider
-  const aiProviders = await prisma.aIProvider.findMany({
-    where: { enabled: true },
-    include: { models: true },
-  });
-
-  if (aiProviders.length === 0) {
-    res.status(400).json({ error: 'No AI provider available' });
-    return;
-  }
-
-  // 2. 查找匹配的模型
-  let selectedProvider = aiProviders[0];
-  let modelName: string | undefined;
-
-  if (model) {
-    for (const p of aiProviders) {
-      const foundModel = p.models?.find((m: any) => m.id === model || m.name === model);
-      if (foundModel) {
-        selectedProvider = p;
-        modelName = foundModel.name;
-        break;
-      }
-    }
-  }
-
-  // 3. 添加 Provider 到 manager
-  providerManager.addProvider({
-    id: selectedProvider.id,
-    name: selectedProvider.name,
-    type: selectedProvider.type as any, // 'openai' | 'zhipu' | 'google' | 'antsk'
-    apiKey: selectedProvider.apiKey,
-    baseUrl: selectedProvider.baseUrl || undefined,
-  });
-
-  // 4. 获取 Provider 实例
-  const aiProvider = providerManager.getProvider(selectedProvider.id);
-  if (!aiProvider) {
-    throw new Error('Failed to initialize AI provider');
-  }
-
-  // 5. 调用 AI
-  const messages = [
-    { role: 'system', content: 'You are a helpful assistant.' },
-    { role: 'user', content: 'Hello' },
-  ];
-
-  const result = await aiProvider.chat(
-    messages,
-    modelName ? { model: modelName } : undefined
-  );
-
-  res.json({ content: result.content });
+// 1. 从数据库获取配置
+const providers = await prisma.aIProvider.findMany({
+  where: { enabled: true },
+  include: { models: true },
 });
+
+// 2. 添加到 manager
+providerManager.addProvider({
+  id: provider.id,
+  type: provider.type, // 'openai' | 'zhipu' | 'google' | 'antsk'
+  apiKey: provider.apiKey,
+  baseUrl: provider.baseUrl || undefined,
+});
+
+// 3. 调用 AI (传递 model 参数!)
+const result = await aiProvider.chat(messages, { model: modelName });
 ```
 
-### 2. 前端调用方式
+**前端必须传递 `model` 参数:**
+```typescript
+apiClient.optimizePrompt(prompt, selectedModel);
+```
 
-前端需要传递 `selectedModel` 参数：
+## Anti-Patterns (禁止)
+
+| 错误 | 正确 |
+|------|------|
+| 硬编码模型名 `{ model: 'glm-4' }` | 从数据库读取模型 |
+| 直接使用 `aiProviderService` | 使用 `providerManager` |
+| 前端不传 model 参数 | 传递 `selectedModel` |
+| 在 agent 文件中写 prompt | 放在 `prompts/` 目录 |
+| 内联样式 | 使用 design tokens |
+| UI 重构不用 skill | 使用 `ui-refactor` skill |
+
+## UI 重构规范
+
+**所有 UI 重构或修改必须使用 `ui-refactor` skill**
+
+```bash
+# 使用 Skill tool 调用
+Skill(name="ui-refactor")
+```
+
+该 skill 提供：
+- 标准化 UI 重构流程
+- 主题适配指南
+- 交互优化建议
+- 样式问题修复
+
+## API Response 格式
 
 ```typescript
-// api-client.ts
-async optimizePrompt(prompt: string, model?: string) {
-  return this.post('/prompt/optimize', { prompt, model });
-}
+// 成功
+{ success: true, data: T }
 
-// 页面调用时
-const result = await apiClient.optimizePrompt(prompt, selectedModel);
+// 错误
+{ success: false, error: { code: string, message: string } }
 ```
 
-## 常见错误及避免方法
+## State Management
 
-### ❌ 错误 1: 硬编码模型名称
+- **Server State**: React Query (服务器数据)
+- **Client State**: Zustand (用户偏好、UI状态)
+- **禁止**: 在 Zustand 中存储服务器数据
 
-```typescript
-// 错误 - 硬编码模型
-const result = await provider.chat(messages, { model: 'glm-4' });
+## API 命名规范（统一 snake_case）
 
-// 正确 - 从数据库获取
-const result = await aiProvider.chat(messages, modelName ? { model: modelName } : undefined);
+### 概述
+
+项目统一使用 snake_case 命名规范：
+- **前端**: 使用 snake_case
+- **后端数据库**: 使用 snake_case
+- **转换**: 禁用自动大小写转换，直接使用 snake_case
+
+### 转换中间件
+
+| 文件 | 职责 |
+|------|------|
+| `apps/api/src/utils/case-transform.ts` | 转换工具函数（保留备用） |
+| `apps/api/src/middleware/case-transform.middleware.ts` | 请求体转换 (camelCase → snake_case)（已禁用） |
+| `apps/api/src/middleware/response-case-transform.middleware.ts` | 响应转换 (snake_case → camelCase)（已禁用） |
+
+### 工作原理
+
+- **禁用自动转换**: 通过设置 `CASE_TRANSFORM_ENABLED=false` 禁用大小写转换
+- **统一命名**: 前后端直接使用 snake_case 命名规范
+- **数据库交互**: 直接使用 snake_case 与 Prisma/数据库交互
+
+### 使用规则
+
+- **控制器**: 直接使用 snake_case 与 Prisma/数据库交互
+- **前端**: 使用 snake_case 与 API 交互
+- **禁止**: 使用 camelCase 命名规范
+
+### 环境变量
+
+```bash
+CASE_TRANSFORM_ENABLED=false  # 禁用转换（统一使用 snake_case）
 ```
 
-### ❌ 错误 2: 不传递 model 参数
-
-```typescript
-// 错误 - 前端不传 model
-const result = await apiClient.optimizePrompt(prompt);
-
-// 正确 - 传递 model
-const result = await apiClient.optimizePrompt(prompt, selectedModel);
-```
-
-### ❌ 错误 3: 使用旧的 aiProviderService
-
-```typescript
-// 错误 - 使用旧的 service
-import { aiProviderService } from '../services/ai/provider.service';
-const result = await aiProviderService.chat(provider.id, messages);
-
-// 正确 - 使用 providerManager
-import { providerManager } from '../services/ai/provider.manager';
-providerManager.addProvider({...});
-const provider = providerManager.getProvider(id);
-const result = await provider.chat(messages, options);
-```
-
-### ❌ 错误 4: 不注册路由
-
-```typescript
-// 错误 - 路由文件未注册到 index.ts
-import promptRoutes from './routes/prompt.routes';
-
-// 正确 - 在 index.ts 中注册
-import promptRoutes from './routes/prompt.routes';
-app.use('/api/prompt', promptRoutes);
-```
-
-## Provider 配置结构
-
-数据库 `AIProvider` 表结构：
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | string | Provider ID |
-| name | string | Provider 名称 |
-| type | string | 类型: 'openai' \| 'zhipu' \| 'google' \| 'antsk' |
-| apiKey | string | API Key |
-| baseUrl | string | 自定义 API 地址（可选） |
-| enabled | boolean | 是否启用 |
-
-数据库 `AIModel` 表结构：
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | string | 模型 ID |
-| name | string | 模型名称（如 glm-4, glm-4-plus） |
-| providerId | string | 关联的 Provider ID |
-
-## Zhipu Provider 特殊说明
-
-Zhipu Provider 默认模型定义在 `config/index.ts`：
-
-```typescript
-zhipu: {
-  apiKey: process.env.ZHIPU_API_KEY || '',
-  baseUrl: process.env.ZHIPU_BASE_URL || 'https://open.bigmodel.cn/api/paas/v4',
-}
-```
-
-但实际使用的模型应该从数据库的 `AIModel` 表中读取，而不是硬编码。
-
-所有的prompts提示词，都要放在[text](apps/api/src/prompts)这个文件下
+每次修改和重构，必须要保证没有编译错误，不会影响其他相关功能，否则不能视为完成

@@ -129,7 +129,7 @@ const ScriptViewerPage = () => {
         const text = characterMatch[2].trim();
         charactersSet.add(character);
 
-        let lastDialogue = currentScene.dialogue[currentScene.dialogue.length - 1];
+        const lastDialogue = currentScene.dialogue[currentScene.dialogue.length - 1];
         if (lastDialogue && lastDialogue.character === character) {
           lastDialogue.lines.push(text);
         } else {

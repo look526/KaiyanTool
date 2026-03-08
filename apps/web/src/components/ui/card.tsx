@@ -21,12 +21,12 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
   }, ref) => {
     const variantStyles: Record<string, React.CSSProperties> = {
       default: {
-        backgroundColor: 'var(--card-bg)',
-        border: '1px solid var(--card-border)',
-        boxShadow: 'var(--card-shadow)',
+        backgroundColor: 'var(--bg-surface)',
+        border: '1px solid var(--border-primary)',
+        boxShadow: 'none',
       },
       elevated: {
-        backgroundColor: 'var(--card-bg-solid)',
+        backgroundColor: 'var(--bg-elevated)',
         border: 'none',
         boxShadow: 'var(--shadow-lg)',
       },
@@ -66,7 +66,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
         onMouseEnter={(e) => {
           if (interactive) {
             e.currentTarget.style.transform = 'translateY(-4px) scale(1.01)';
-            e.currentTarget.style.boxShadow = 'var(--card-shadow-hover)';
+            e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
           }
         }}
         onMouseLeave={(e) => {

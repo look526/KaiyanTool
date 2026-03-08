@@ -2,9 +2,10 @@ import { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { z } from 'zod'
 import logger from '../lib/logger'
+import crypto from 'crypto'
 
 const setDefaultModelsSchema = z.object({
-  defaultModels: z.object({
+  default_models: z.object({
     text: z.string().optional(),
     image: z.string().optional(),
     video: z.string().optional(),
@@ -17,41 +18,43 @@ const setDefaultModelsSchema = z.object({
 })
 
 const recordUsageSchema = z.object({
-  modelId: z.string(),
-  contentType: z.enum(['text', 'image', 'video', 'audio', 'script', 'novel', 'storyline', 'outline']),
+  model_id: z.string(),
+  content_type: z.enum(['text', 'image', 'video', 'audio', 'script', 'novel', 'storyline', 'outline']),
   success: z.boolean().optional(),
   duration: z.number().optional(),
-  tokensUsed: z.number().optional()
+  tokens_used: z.number().optional()
 })
 
 
 
 const setParametersSchema = z.object({
-  contentType: z.enum(['text', 'image', 'video', 'audio', 'script', 'novel', 'storyline', 'outline']),
+  content_type: z.enum(['text', 'image', 'video', 'audio', 'script', 'novel', 'storyline', 'outline']),
   parameters: z.record(z.string(), z.any())
 })
 
 const testModelSchema = z.object({
-  modelId: z.string(),
-  testPrompt: z.string().optional()
+  model_id: z.string(),
+  test_prompt: z.string().optional()
 })
 
 export class ModelPreferenceController {
-  private async recordHistory(userId: string, changeType: string, changeDetails: any, previousValue: any, newValue: any): Promise<void> {
+  private async recordHistory(userId: string, change_type: string, change_details: any, previous_value: any, new_value: any): Promise<void> {
     try {
       await prisma.configurationHistory.create({
         data: {
-          userId,
-          changeType,
-          changeDetails,
-          previousValue,
-          newValue
+          id: crypto.randomUUID(),
+          user_id: userId,
+          change_type: change_type,
+          change_details: change_details,
+          previous_value: previous_value,
+          new_value: new_value,
+          created_at: new Date()
         }
       })
     } catch (error: any) {
       logger.error('Failed to record configuration history', { 
         userId, 
-        changeType, 
+        change_type, 
         error: error.message || error.toString(),
         stack: error.stack 
       })
@@ -60,7 +63,7 @@ export class ModelPreferenceController {
 
   async getHistory(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
@@ -69,8 +72,8 @@ export class ModelPreferenceController {
       const offset = parseInt(req.query.offset as string) || 0
 
       const history = await prisma.configurationHistory.findMany({
-        where: { userId: req.userId },
-        orderBy: { createdAt: 'desc' },
+        where: { user_id: req.user_id },
+        orderBy: { created_at: 'desc' },
         take: limit,
         skip: offset
       })
@@ -78,7 +81,7 @@ export class ModelPreferenceController {
       res.json({ history, total: history.length })
     } catch (error: any) {
       logger.error('Failed to get configuration history', { 
-        userId: req.userId, 
+        user_id: req.user_id, 
         error: error?.message || error?.toString() || String(error) 
       })
       res.status(500).json({ error: 'Failed to get configuration history' })
@@ -87,36 +90,43 @@ export class ModelPreferenceController {
 
   async getPreferences(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
       let preferences = await prisma.userPreferences.findUnique({
-        where: { userId: req.userId }
+        where: { user_id: req.user_id }
       })
 
       if (!preferences) {
         preferences = await prisma.userPreferences.create({
-          data: { userId: req.userId }
+          data: {
+            id: crypto.randomUUID(),
+            user_id: req.user_id,
+            default_models: {},
+            last_used_models: {},
+            created_at: new Date(),
+            updated_at: new Date()
+          }
         })
       }
 
-      const modelParameters = await prisma.modelParameters.findMany({
-        where: { userId: req.userId }
+      const model_parameters = await prisma.modelParameters.findMany({
+        where: { user_id: req.user_id }
       })
 
       res.json({
-        defaultModels: preferences.defaultModels as Record<string, string>,
-        lastUsedModels: preferences.lastUsedModels as Record<string, string>,
-        modelParameters: modelParameters.reduce((acc, mp) => {
-          acc[mp.contentType] = mp.parameters as Record<string, any>
+        default_models: preferences.default_models as Record<string, string>,
+        last_used_models: preferences.last_used_models as Record<string, string>,
+        model_parameters: model_parameters.reduce((acc, mp) => {
+          acc[mp.content_type] = mp.parameters as Record<string, any>
           return acc
         }, {} as Record<string, any>)
       })
     } catch (error: any) {
       logger.error('Failed to get user preferences', { 
-        userId: req.userId, 
+        user_id: req.user_id, 
         error: error?.message || error?.toString() || String(error) 
       })
       res.status(500).json({ error: 'Failed to get user preferences' })
@@ -125,43 +135,47 @@ export class ModelPreferenceController {
 
   async setDefaultModels(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { defaultModels } = setDefaultModelsSchema.parse(req.body)
+      const { default_models } = setDefaultModelsSchema.parse(req.body)
 
       const existingPreferences = await prisma.userPreferences.findUnique({
-        where: { userId: req.userId }
+        where: { user_id: req.user_id }
       })
 
       const preferences = await prisma.userPreferences.upsert({
-        where: { userId: req.userId },
-        update: { defaultModels },
+        where: { user_id: req.user_id },
+        update: { default_models },
         create: {
-          userId: req.userId,
-          defaultModels
+          id: crypto.randomUUID(),
+          user_id: req.user_id,
+          default_models,
+          last_used_models: {},
+          created_at: new Date(),
+          updated_at: new Date()
         }
       })
 
       await this.recordHistory(
-        req.userId,
+        req.user_id,
         'default_models',
-        { contentType: 'all' },
-        existingPreferences?.defaultModels || {},
-        defaultModels
+        { content_type: 'all' },
+        existingPreferences?.default_models || {},
+        default_models
       )
 
-      res.json({ defaultModels: preferences.defaultModels })
-      logger.info('Default models updated', { userId: req.userId, defaultModels })
+      res.json({ default_models: preferences.default_models })
+      logger.info('Default models updated', { user_id: req.user_id, default_models })
     } catch (error: any) {
       if (error.name === 'ZodError') {
         res.status(400).json({ error: 'Validation failed', details: error.errors })
         return
       }
       logger.error('Failed to set default models', { 
-        userId: req.userId, 
+        user_id: req.user_id, 
         error: error?.message || error?.toString() || String(error) 
       })
       res.status(500).json({ error: 'Failed to set default models' })
@@ -170,33 +184,47 @@ export class ModelPreferenceController {
 
   async recordUsage(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { modelId, contentType, success } = recordUsageSchema.parse(req.body)
+      const { model_id, content_type, success } = recordUsageSchema.parse(req.body)
+
+      logger.debug('Recording model usage', { user_id: req.user_id, model_id, content_type })
+
+      const existingPreferences = await prisma.userPreferences.findUnique({
+        where: { user_id: req.user_id }
+      })
+
+      const currentLastUsed = (existingPreferences?.last_used_models as Record<string, string> || {})
+      const updatedLastUsed = {
+        ...currentLastUsed,
+        [content_type]: model_id
+      }
 
       const preferences = await prisma.userPreferences.upsert({
-        where: { userId: req.userId },
+        where: { user_id: req.user_id },
         update: {
-          lastUsedModels: {
-            ...((await prisma.userPreferences.findUnique({ where: { userId: req.userId } }))?.lastUsedModels as Record<string, any> || {}),
-            [contentType]: modelId
-          }
+          last_used_models: updatedLastUsed
         },
         create: {
-          userId: req.userId,
-          lastUsedModels: { [contentType]: modelId }
+          id: crypto.randomUUID(),
+          user_id: req.user_id,
+          last_used_models: { [content_type]: model_id },
+          default_models: {},
+          created_at: new Date(),
+          updated_at: new Date()
         }
       })
 
-      res.json({ lastUsedModels: preferences.lastUsedModels })
-      logger.info('Model usage recorded', { userId: req.userId, modelId, contentType, success })
+      res.json({ last_used_models: preferences.last_used_models })
+      logger.info('Model usage recorded', { user_id: req.user_id, model_id, content_type, success })
     } catch (error: any) {
       logger.error('Failed to record model usage', { 
-        userId: req.userId, 
-        error: error?.message || error?.toString() || String(error) 
+        user_id: req.user_id, 
+        error: error?.message || error?.toString() || String(error),
+        stack: error.stack
       })
       res.status(500).json({ error: 'Failed to record model usage' })
     }
@@ -204,18 +232,18 @@ export class ModelPreferenceController {
 
   async getParameters(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { contentType } = req.params
+      const { content_type } = req.params
 
       const modelParams = await prisma.modelParameters.findUnique({
         where: {
-          userId_contentType: {
-            userId: req.userId,
-            contentType: contentType as any
+          user_id_content_type: {
+            user_id: req.user_id,
+            content_type: content_type as any
           }
         }
       })
@@ -223,7 +251,7 @@ export class ModelPreferenceController {
       res.json({ parameters: modelParams?.parameters || {} })
     } catch (error: any) {
       logger.error('Failed to get model parameters', { 
-        userId: req.userId, 
+        user_id: req.user_id, 
         error: error?.message || error?.toString() || String(error) 
       })
       res.status(500).json({ error: 'Failed to get model parameters' })
@@ -232,51 +260,54 @@ export class ModelPreferenceController {
 
   async setParameters(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { contentType, parameters } = setParametersSchema.parse(req.body)
+      const { content_type, parameters } = setParametersSchema.parse(req.body)
 
       const existingParams = await prisma.modelParameters.findUnique({
         where: {
-          userId_contentType: {
-            userId: req.userId,
-            contentType
+          user_id_content_type: {
+            user_id: req.user_id,
+            content_type
           }
         }
       })
 
       const modelParams = await prisma.modelParameters.upsert({
         where: {
-          userId_contentType: {
-            userId: req.userId,
-            contentType
+          user_id_content_type: {
+            user_id: req.user_id,
+            content_type
           }
         },
         update: { parameters },
         create: {
-          userId: req.userId,
-          contentType,
-          parameters
+          id: crypto.randomUUID(),
+          user_id: req.user_id,
+          content_type,
+          parameters,
+          created_at: new Date(),
+          updated_at: new Date()
         }
       })
 
       await this.recordHistory(
-        req.userId,
+        req.user_id,
         'model_parameters',
-        { contentType },
+        { content_type },
         existingParams?.parameters || {},
         parameters
       )
 
       res.json({ parameters: modelParams.parameters })
-      logger.info('Model parameters updated', { userId: req.userId, contentType })
+      logger.info('Model parameters updated', { user_id: req.user_id, content_type })
     } catch (error: any) {
       if (error.name === 'ZodError') {
         logger.error('Zod validation error', { 
-          userId: req.userId, 
+          user_id: req.user_id, 
           errors: error.errors,
           requestBody: req.body 
         })
@@ -284,7 +315,7 @@ export class ModelPreferenceController {
         return
       }
       logger.error('Failed to set model parameters', { 
-        userId: req.userId, 
+        user_id: req.user_id, 
         error: error?.message || error?.toString() || String(error) 
       })
       res.status(500).json({ error: 'Failed to set model parameters' })
@@ -293,22 +324,22 @@ export class ModelPreferenceController {
 
   async testModel(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { modelId } = testModelSchema.parse(req.body)
+      const { model_id } = testModelSchema.parse(req.body)
 
       const model = await prisma.aIProviderModel.findFirst({
         where: {
-          id: modelId,
-          provider: {
-            userId: req.userId
+          id: model_id,
+          AIProvider: {
+            user_id: req.user_id
           }
         },
         include: {
-          provider: true
+          AIProvider: true
         }
       })
 
@@ -323,14 +354,14 @@ export class ModelPreferenceController {
         model: {
           id: model.id,
           name: model.name,
-          type: model.type,
+          type: model.types[0] || 'unknown',
           capabilities: model.capabilities
         }
       })
-      logger.info('Model tested successfully', { userId: req.userId, modelId })
+      logger.info('Model tested successfully', { user_id: req.user_id, model_id })
     } catch (error: any) {
       logger.error('Failed to test model', { 
-        userId: req.userId, 
+        user_id: req.user_id, 
         error: error?.message || error?.toString() || String(error) 
       })
       res.status(500).json({ error: 'Failed to test model' })
@@ -339,38 +370,38 @@ export class ModelPreferenceController {
 
   async getUsageStats(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
       const preferences = await prisma.userPreferences.findUnique({
-        where: { userId: req.userId }
+        where: { user_id: req.user_id }
       })
 
       const models = await prisma.aIProviderModel.findMany({
         where: {
-          provider: {
-            userId: req.userId
+          AIProvider: {
+            user_id: req.user_id
           }
         }
       })
 
-      const lastUsedModels = preferences?.lastUsedModels as Record<string, string> || {}
-      const defaultModels = preferences?.defaultModels as Record<string, string> || {}
+      const last_used_models = preferences?.last_used_models as Record<string, string> || {}
+      const default_models = preferences?.default_models as Record<string, string> || {}
 
       res.json({
-        defaultModels,
-        lastUsedModels,
+        default_models,
+        last_used_models,
         modelCount: models.length,
         modelsByType: models.reduce((acc, model) => {
-          acc[model.type] = (acc[model.type] || 0) + 1
+          acc[model.types[0] || 'unknown'] = (acc[model.types[0] || 'unknown'] || 0) + 1
           return acc
         }, {} as Record<string, number>)
       })
     } catch (error: any) {
       logger.error('Failed to get usage stats', { 
-        userId: req.userId, 
+        user_id: req.user_id, 
         error: error?.message || error?.toString() || String(error) 
       })
       res.status(500).json({ error: 'Failed to get usage stats' })
@@ -379,66 +410,66 @@ export class ModelPreferenceController {
 
   async getDetailedAnalytics(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
       const preferences = await prisma.userPreferences.findUnique({
-        where: { userId: req.userId }
+        where: { user_id: req.user_id }
       })
 
       const models = await prisma.aIProviderModel.findMany({
         where: {
-          provider: {
-            userId: req.userId
+          AIProvider: {
+            user_id: req.user_id
           }
         },
         include: {
-          provider: true
+          AIProvider: true
         }
       })
 
       const history = await prisma.configurationHistory.findMany({
-        where: { userId: req.userId },
-        orderBy: { createdAt: 'desc' },
+        where: { user_id: req.user_id },
+        orderBy: { created_at: 'desc' },
         take: 100
       })
 
-      const lastUsedModels = preferences?.lastUsedModels as Record<string, string> || {}
-      const defaultModels = preferences?.defaultModels as Record<string, string> || {}
+      const last_used_models = preferences?.last_used_models as Record<string, string> || {}
+      const default_models = preferences?.default_models as Record<string, string> || {}
 
       const modelUsageCount: Record<string, number> = {}
-      Object.values(lastUsedModels).forEach(modelId => {
-        modelUsageCount[modelId] = (modelUsageCount[modelId] || 0) + 1
+      Object.values(last_used_models).forEach(model_id => {
+        modelUsageCount[model_id] = (modelUsageCount[model_id] || 0) + 1
       })
 
       const typeUsageCount: Record<string, number> = {}
-      Object.entries(lastUsedModels).forEach(([type, _]) => {
+      Object.entries(last_used_models).forEach(([type, _]) => {
         typeUsageCount[type] = (typeUsageCount[type] || 0) + 1
       })
 
       const historyByType: Record<string, number> = {}
       history.forEach(h => {
-        historyByType[h.changeType] = (historyByType[h.changeType] || 0) + 1
+        historyByType[h.change_type] = (historyByType[h.change_type] || 0) + 1
       })
 
       const recentActivity = history.slice(0, 10).map(h => ({
         id: h.id,
-        type: h.changeType,
-        timestamp: h.createdAt,
-        details: h.changeDetails
+        type: h.change_type,
+        timestamp: h.created_at,
+        details: h.change_details
       }))
 
       const topUsedModels = Object.entries(modelUsageCount)
         .sort(([, a], [, b]) => b - a)
         .slice(0, 5)
-        .map(([modelId, count]) => {
-          const model = models.find(m => m.id === modelId)
+        .map(([model_id, count]) => {
+          const model = models.find(m => m.id === model_id)
           return {
-            id: modelId,
+            id: model_id,
             name: model?.name || 'Unknown',
-            type: model?.type || 'unknown',
+            type: model?.types[0] || 'unknown',
             count
           }
         })
@@ -446,24 +477,24 @@ export class ModelPreferenceController {
       const modelDetails = models.map(model => ({
         id: model.id,
         name: model.name,
-        type: model.type,
-        provider: model.provider.type,
+        type: model.types[0] || 'unknown',
+        provider: model.AIProvider.type,
         capabilities: model.capabilities,
-        isDefault: Object.values(defaultModels).includes(model.id),
-        isLastUsed: Object.values(lastUsedModels).includes(model.id),
+        isDefault: Object.values(default_models).includes(model.id),
+        isLastUsed: Object.values(last_used_models).includes(model.id),
         usageCount: modelUsageCount[model.id] || 0
       }))
 
       res.json({
         summary: {
           totalModels: models.length,
-          configuredDefaults: Object.keys(defaultModels).length,
-          activeUsage: Object.keys(lastUsedModels).length,
+          configuredDefaults: Object.keys(default_models).length,
+          activeUsage: Object.keys(last_used_models).length,
           totalChanges: history.length
         },
         byType: {
           distribution: models.reduce((acc, model) => {
-            acc[model.type] = (acc[model.type] || 0) + 1
+            acc[model.types[0] || 'unknown'] = (acc[model.types[0] || 'unknown'] || 0) + 1
             return acc
           }, {} as Record<string, number>),
           usage: typeUsageCount
@@ -479,7 +510,7 @@ export class ModelPreferenceController {
       })
     } catch (error: any) {
       logger.error('Failed to get detailed analytics', { 
-        userId: req.userId, 
+        user_id: req.user_id, 
         error: error?.message || error?.toString() || String(error) 
       })
       res.status(500).json({ error: 'Failed to get detailed analytics' })

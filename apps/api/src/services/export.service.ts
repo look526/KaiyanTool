@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma';
 import JSZip from 'jszip';
 import logger from '../lib/logger';
+import crypto from 'crypto';
 
 interface ProjectExportData {
   project: any;
@@ -18,8 +19,8 @@ class ExportService {
       where: {
         id: projectId,
         OR: [
-          { ownerId: userId },
-          { members: { some: { userId } } },
+          { owner_id: userId },
+          { ProjectMember: { some: { user_id: userId } } },
         ],
       },
     });
@@ -29,33 +30,33 @@ class ExportService {
     }
 
     const characters = await prisma.character.findMany({
-      where: { projectId },
+      where: { project_id: projectId },
     });
 
     const scenes = await prisma.scene.findMany({
-      where: { projectId },
+      where: { project_id: projectId },
     });
 
     const shots = await prisma.shot.findMany({
-      where: { projectId },
+      where: { project_id: projectId },
       include: {
-        scene: true,
-        character: true,
+        Scene: true,
+        Character: true,
       },
     });
 
     const nineGridPanels = await prisma.nineGridPanel.findMany({
-      where: { shot: { projectId } },
+      where: { Shot: { project_id: projectId } },
     });
 
     const documents = await prisma.document.findMany({
-      where: { projectId },
+      where: { project_id: projectId },
     });
 
     const members = await prisma.projectMember.findMany({
-      where: { projectId },
+      where: { project_id: projectId },
       include: {
-        user: {
+        User: {
           select: {
             id: true,
             email: true,
@@ -71,8 +72,8 @@ class ExportService {
         name: project.name,
         description: project.description,
         type: project.type,
-        createdAt: project.createdAt,
-        updatedAt: project.updatedAt,
+        createdAt: project.created_at,
+        updatedAt: project.updated_at,
       },
       characters,
       scenes,
@@ -108,10 +109,13 @@ class ExportService {
 
     const project = await prisma.project.create({
       data: {
-        ownerId: userId,
+        id: crypto.randomUUID(),
+        owner_id: userId,
         name: `${exportData.project.name} (Imported)`,
         description: exportData.project.description,
         type: exportData.project.type,
+        created_at: new Date(),
+        updated_at: new Date(),
       },
     });
 
@@ -119,10 +123,13 @@ class ExportService {
     for (const character of exportData.characters) {
       const created = await prisma.character.create({
         data: {
-          projectId: project.id,
+          id: crypto.randomUUID(),
+          project_id: project.id,
           name: character.name,
           appearance: character.appearance,
-          referenceImages: character.referenceImages || []
+          reference_images: character.referenceImages || [],
+          created_at: new Date(),
+          updated_at: new Date(),
         },
       });
       characterMap.set(character.id, created.id);
@@ -132,11 +139,14 @@ class ExportService {
     for (const scene of exportData.scenes) {
       const created = await prisma.scene.create({
         data: {
-          projectId: project.id,
+          id: crypto.randomUUID(),
+          project_id: project.id,
           location: scene.location,
           time: scene.time,
           atmosphere: scene.mood || '',
-          referenceImages: scene.referenceImages || []
+          reference_images: scene.referenceImages || [],
+          created_at: new Date(),
+          updated_at: new Date(),
         },
       });
       sceneMap.set(scene.id, created.id);
@@ -145,23 +155,26 @@ class ExportService {
     for (const shot of exportData.shots) {
       await prisma.shot.create({
         data: {
-          projectId: project.id,
-          sceneId: sceneMap.get(shot.sceneId),
-          characterId: shot.characterId ? characterMap.get(shot.characterId) : null,
-          chapterNumber: shot.chapterNumber,
-          episodeNumber: shot.episodeNumber,
-          segmentId: shot.segmentId,
-          cellId: shot.cellId,
-          actionSummary: shot.actionSummary,
-          cameraMovement: shot.cameraMovement,
-          startPrompt: shot.startPrompt,
-          endPrompt: shot.endPrompt,
-          startImageUrl: shot.startImageUrl,
-          endImageUrl: shot.endImageUrl,
+          id: crypto.randomUUID(),
+          project_id: project.id,
+          scene_id: sceneMap.get(shot.sceneId),
+          character_id: shot.characterId ? characterMap.get(shot.characterId) : null,
+          chapter_number: shot.chapterNumber,
+          episode_number: shot.episodeNumber,
+          segment_id: shot.segmentId,
+          cell_id: shot.cellId,
+          action_summary: shot.actionSummary,
+          camera_movement: shot.cameraMovement,
+          start_prompt: shot.startPrompt,
+          end_prompt: shot.endPrompt,
+          start_image_url: shot.startImageUrl,
+          end_image_url: shot.endImageUrl,
           duration: shot.duration,
-          aspectRatio: shot.aspectRatio,
-          visualStyle: shot.visualStyle,
-          videoUrl: shot.videoUrl,
+          aspect_ratio: shot.aspectRatio,
+          visual_style: shot.visualStyle,
+          video_url: shot.videoUrl,
+          created_at: new Date(),
+          updated_at: new Date(),
         },
       });
     }
@@ -169,10 +182,13 @@ class ExportService {
     for (const document of exportData.documents) {
       await prisma.document.create({
         data: {
-          projectId: project.id,
+          id: crypto.randomUUID(),
+          project_id: project.id,
           title: document.title,
           content: document.content,
           type: document.type,
+          created_at: new Date(),
+          updated_at: new Date(),
         },
       });
     }

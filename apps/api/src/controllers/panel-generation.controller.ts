@@ -2,55 +2,56 @@ import { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { aiProviderService } from '../services/ai/provider.service'
 import logger from '../lib/logger'
+import crypto from 'crypto'
 import { buildCharacterImagePrompt } from '../config/prompt-templates'
 
 class PanelGenerationController {
   async generatePanelImage(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
       const { id } = req.params
-      const { providerId } = req.body
+      const { provider_id } = req.body
 
       const panel = await prisma.nineGridPanel.findFirst({
         where: {
           id,
-          shot: {
-            project: {
+          Shot: {
+            Project: {
               OR: [
-                { ownerId: req.userId },
-                { members: { some: { userId: req.userId } } },
+                { owner_id: req.user_id },
+                { ProjectMember: { some: { user_id: req.user_id } } },
               ],
             },
           },
         },
         include: {
-          shot: {
+          Shot: {
             include: {
-              scene: true,
-              character: true,
+              Scene: true,
+              Character: true,
             },
           },
         },
       })
 
       if (!panel) {
-        logger.warn('九宫格不存在', { userId: req.userId, panelId: id })
+        logger.warn('九宫格不存在', { user_id: req.user_id, panel_id: id })
         res.status(404).json({ error: 'Panel not found' })
         return
       }
 
-      if (!providerId) {
+      if (!provider_id) {
         res.status(400).json({ error: 'Provider ID is required' })
         return
       }
 
       const prompt = panel.prompt || this.buildImagePrompt(panel)
 
-      const response = await aiProviderService.createImage(providerId, {
+      const response = await aiProviderService.createImage(provider_id, {
         prompt,
         size: '1024x1024',
         quality: 'standard',
@@ -59,78 +60,81 @@ class PanelGenerationController {
 
       const updatedPanel = await prisma.nineGridPanel.update({
         where: { id },
-        data: { imageUrl: response.url },
+        data: { image_url: response.url },
       })
 
       await prisma.asset.create({
         data: {
+          id: crypto.randomUUID(),
           type: 'image',
           url: response.url,
-          projectId: panel.shot.projectId,
+          project_id: panel.shot_id,
           metadata: {
             name: `九宫格 - 第 ${panel.position} 格`,
             prompt,
-            revisedPrompt: response.revisedPrompt,
-            panelId: id,
-            shotId: panel.shotId,
+            revised_prompt: response.revisedPrompt,
+            panel_id: id,
+            shot_id: panel.shot_id,
             type: 'nine-grid-panel'
           },
+          created_at: new Date(),
+          updated_at: new Date(),
         },
       })
 
       res.json({
-        imageUrl: response.url,
-        revisedPrompt: response.revisedPrompt,
+        image_url: response.url,
+        revised_prompt: response.revisedPrompt,
         panel: updatedPanel,
       })
-      logger.info('九宫格图像生成成功', { userId: req.userId, panelId: id, providerId })
+      logger.info('九宫格图像生成成功', { user_id: req.user_id, panel_id: id, provider_id })
     } catch (error) {
-      logger.error('生成九宫格图像失败', { userId: req.userId, panelId: req.params.id, error })
+      logger.error('生成九宫格图像失败', { user_id: req.user_id, panel_id: req.params.id, error })
       res.status(500).json({ error: 'Failed to generate panel image' })
     }
   }
 
   async generateBatchImages(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { shotId } = req.params
-      const { providerId } = req.body
+      const { shot_id } = req.params
+      const { provider_id } = req.body
 
       const shot = await prisma.shot.findFirst({
         where: {
-          id: shotId,
-          project: {
+          id: shot_id,
+          Project: {
             OR: [
-              { ownerId: req.userId },
-              { members: { some: { userId: req.userId } } },
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id } } },
             ],
           },
         },
         include: {
-          scene: true,
-          character: true,
-          panels: {
-            orderBy: { position: 'asc' },
-          },
+          Scene: true,
+          Character: true,
         },
       })
 
       if (!shot) {
-        logger.warn('分镜不存在', { userId: req.userId, shotId })
+        logger.warn('分镜不存在', { user_id: req.user_id, shot_id })
         res.status(404).json({ error: 'Shot not found' })
         return
       }
 
-      if (!providerId) {
+      if (!provider_id) {
         res.status(400).json({ error: 'Provider ID is required' })
         return
       }
 
-      const panels = shot.panels || []
+      const panels = await prisma.nineGridPanel.findMany({
+        where: { shot_id },
+        orderBy: { position: 'asc' },
+      })
 
       if (panels.length === 0) {
         res.status(400).json({ error: 'No panels found for this shot' })
@@ -139,7 +143,7 @@ class PanelGenerationController {
 
       const generatePromises = panels.map((panel: any) => {
         const prompt = panel.prompt || this.buildImagePrompt(panel, shot)
-        return aiProviderService.createImage(providerId, {
+        return aiProviderService.createImage(provider_id, {
           prompt,
           size: '1024x1024',
           quality: 'standard',
@@ -152,21 +156,24 @@ class PanelGenerationController {
       const updateAndAssetPromises = results.map(({ response, panel, prompt }) => [
         prisma.nineGridPanel.update({
           where: { id: panel.id },
-          data: { imageUrl: response.url },
+          data: { image_url: response.url },
         }),
         prisma.asset.create({
           data: {
+            id: crypto.randomUUID(),
             type: 'image',
             url: response.url,
-            projectId: shot.projectId,
+            project_id: shot.project_id,
             metadata: {
               name: `九宫格 - 第 ${panel.position} 格`,
               prompt,
-              revisedPrompt: response.revisedPrompt,
-              panelId: panel.id,
-              shotId: shot.id,
+              revised_prompt: response.revisedPrompt,
+              panel_id: panel.id,
+              shot_id: shot.id,
               type: 'nine-grid-panel'
             },
+            created_at: new Date(),
+            updated_at: new Date(),
           },
         })
       ]).flat()
@@ -174,32 +181,32 @@ class PanelGenerationController {
       await Promise.all(updateAndAssetPromises)
 
       const updatedPanels = await prisma.nineGridPanel.findMany({
-        where: { shotId },
+        where: { shot_id },
         orderBy: { position: 'asc' },
       })
 
       res.json({
-        images: results.map(r => r.url),
+        images: results.map(r => r.response.url),
         panels: updatedPanels,
       })
-      logger.info('批量生成九宫格图像成功', { userId: req.userId, shotId, count: panels.length, providerId })
+      logger.info('批量生成九宫格图像成功', { user_id: req.user_id, shot_id, count: panels.length, provider_id })
     } catch (error) {
-      logger.error('批量生成九宫格图像失败', { userId: req.userId, shotId: req.params.shotId, error })
+      logger.error('批量生成九宫格图像失败', { user_id: req.user_id, shot_id: req.params.shot_id, error })
       res.status(500).json({ error: 'Failed to generate batch images' })
     }
   }
 
   async exportNineGrid(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.userId) {
+      if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
         return
       }
 
-      const { shotId } = req.params
+      const { shot_id } = req.params
 
       const panels = await prisma.nineGridPanel.findMany({
-        where: { shotId },
+        where: { shot_id },
         orderBy: { position: 'asc' },
       })
 
@@ -213,16 +220,16 @@ class PanelGenerationController {
         message: 'Nine-grid export will be available in a future update'
       })
     } catch (error) {
-      logger.error('导出九宫格失败', { userId: req.userId, shotId: req.params.shotId, error })
+      logger.error('导出九宫格失败', { user_id: req.user_id, shot_id: req.params.shot_id, error })
       res.status(500).json({ error: 'Failed to export nine-grid' })
     }
   }
 
   private buildImagePrompt(panel: any, shot?: any): string {
-    const character = shot?.character?.name || ''
-    const scene = shot?.scene?.location || ''
-    const action = panel.prompt || shot?.actionSummary || ''
-    const camera = shot?.cameraMovement || ''
+    const character = shot?.Character?.name || ''
+    const scene = shot?.Scene?.location || ''
+    const action = panel.prompt || shot?.action_summary || ''
+    const camera = shot?.camera_movement || ''
 
     return buildCharacterImagePrompt(character, scene, action, camera, 'cinematic')
   }

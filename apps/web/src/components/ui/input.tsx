@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { cn } from '../../lib/utils';
+import { cn } from '../../design-system';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: boolean;
@@ -23,17 +23,16 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     };
 
     const variantStyles = {
-      default: 'bg-[var(--input-bg)] border border-[var(--input-border)]',
-      filled: 'bg-[var(--bg-secondary)] border border-transparent',
-      ghost: 'bg-transparent border-b border-[var(--border-primary)] rounded-none',
+      default: 'bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700',
+      filled: 'bg-gray-100 dark:bg-gray-900 border border-transparent',
+      ghost: 'bg-transparent border-b border-gray-300 dark:border-gray-700 rounded-none',
     };
 
     return (
       <div className="relative w-full">
         {leftIcon && (
           <div 
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] transition-colors duration-200"
-            style={{ color: isFocused ? 'var(--color-primary-500)' : undefined }}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 transition-colors duration-200"
           >
             {leftIcon}
           </div>
@@ -41,16 +40,16 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           type={type}
           className={cn(
-            'w-full text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none transition-all duration-200',
+            'w-full text-sm text-primary-900 dark:text-primary-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 outline-none transition-all duration-200',
             variantStyles[variant],
-            'focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-500)]/20',
-            'hover:border-[var(--border-focus)]',
+            'focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20',
+            'hover:border-gray-400 dark:hover:border-gray-600',
             error
-              ? 'border-[var(--color-error)] focus:border-[var(--color-error)] focus:ring-[var(--color-error)]/20'
+              ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
               : '',
             leftIcon ? 'pl-11' : 'pl-4',
             rightIcon ? 'pr-11' : 'pr-4',
-            variant !== 'ghost' ? 'rounded-[var(--radius-lg)]' : '',
+            variant !== 'ghost' ? 'rounded-md' : '',
             'py-3',
             className,
           )}
@@ -60,7 +59,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {rightIcon && (
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] transition-colors duration-200">
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 transition-colors duration-200">
             {rightIcon}
           </div>
         )}

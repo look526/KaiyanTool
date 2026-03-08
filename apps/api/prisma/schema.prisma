@@ -26,6 +26,7 @@ model AIProviderModel {
   id                   String     @id @db.Uuid
   ai_provider_id       String     @db.Uuid
   name                 String
+  model_id             String?
   description          String?
   capabilities         String[]
   created_at           DateTime   @default(now())
@@ -35,6 +36,7 @@ model AIProviderModel {
   AIProvider           AIProvider @relation(fields: [ai_provider_id], references: [id], onDelete: Cascade)
 
   @@index([ai_provider_id])
+  @@index([model_id])
 }
 
 model AgentTask {
@@ -798,6 +800,19 @@ model WorkflowTemplate {
   updated_at         DateTime
 
   @@index([category])
+}
+
+model LoginAttempt {
+  id            String    @id @db.Uuid
+  identifier    String
+  ip            String
+  attempts      Int
+  locked_until  DateTime?
+  first_attempt DateTime
+  created_at    DateTime  @default(now())
+
+  @@index([identifier])
+  @@index([ip])
 }
 
 enum AgentType {

@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import { randomUUID } from 'crypto'
 import { prisma } from '../lib/prisma'
 import { config } from '../config'
 
@@ -19,7 +20,7 @@ interface AuthResponse {
     id: string
     email: string
     name: string | null
-    avatarUrl: string | null
+    avatar_url: string | null
     plan: string
   }
   token: string
@@ -46,9 +47,12 @@ export class AuthService {
 
     const user = await prisma.user.create({
       data: {
+        id: crypto.randomUUID(),
         email: input.email,
-        passwordHash,
+        password_hash: passwordHash,
         name: input.name,
+        created_at: new Date(),
+        updated_at: new Date(),
       },
     })
 
@@ -59,7 +63,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
-        avatarUrl: user.avatarUrl,
+        avatar_url: user.avatar_url,
         plan: user.plan,
       },
       token,
@@ -75,7 +79,7 @@ export class AuthService {
       throw new Error('Invalid credentials')
     }
 
-    const isValidPassword = await bcrypt.compare(input.password, user.passwordHash)
+    const isValidPassword = await bcrypt.compare(input.password, user.password_hash)
 
     if (!isValidPassword) {
       throw new Error('Invalid credentials')
@@ -83,7 +87,7 @@ export class AuthService {
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { lastLoginAt: new Date() },
+      data: { last_login_at: new Date() },
     })
 
     const token = await this.generateToken(user.id)
@@ -93,7 +97,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
-        avatarUrl: user.avatarUrl,
+        avatar_url: user.avatar_url,
         plan: user.plan,
       },
       token,
@@ -112,19 +116,19 @@ export class AuthService {
 
       const session = await prisma.session.findUnique({
         where: { token },
-        include: { user: true },
+        include: { User: true },
       })
 
-      if (!session || session.expiresAt < new Date()) {
+      if (!session || session.expires_at < new Date()) {
         return null
       }
 
       return {
-        id: session.user.id,
-        email: session.user.email,
-        name: session.user.name,
-        avatarUrl: session.user.avatarUrl,
-        plan: session.user.plan,
+        id: session.User.id,
+        email: session.User.email,
+        name: session.User.name,
+        avatar_url: session.User.avatar_url,
+        plan: (session.User as any).plan,
       }
     } catch (error) {
       return null
@@ -136,9 +140,10 @@ export class AuthService {
 
     await prisma.session.create({
       data: {
-        userId,
+        id: randomUUID(),
+        user_id: userId,
         token,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
     })
 
