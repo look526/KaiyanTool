@@ -38,6 +38,8 @@
 - 🤖 **AI-Powered** - Smart parsing, generation, and optimization
 - ⚡ **Lightning Fast** - Generate storyboards in seconds, not hours
 - 🎨 **Professional Quality** - Cinema-grade output for your projects
+- 🎬 **3-Tier Management** - Episode → Scene → Shot hierarchy for organized workflow
+- 💾 **Smart Drafts** - Auto-save and version control for your shots
 
 </td>
 <td width="50%">
@@ -48,9 +50,11 @@
 
 **核心优势：**
 - 🎯 **一站式解决方案** - 剧本、分镜、图像、视频一站式完成
-- 🤖 **AI驱动** - 智能解析、生成和优化
+- 🤖 **AI 驱动** - 智能解析、生成和优化
 - ⚡ **极速创作** - 秒级生成分镜，告别繁琐工作
 - 🎨 **专业品质** - 电影级输出质量
+- 🎬 **三层管理体系** - 剧集 → 场景 → 分镜，结构化工作流
+- 💾 **智能草稿** - 自动保存和版本控制
 
 </td>
 </tr>
@@ -74,28 +78,30 @@
 - Smart character detection
 - Template library
 
-**Monaco编辑器**
-- AI场景解析
+**Monaco 编辑器**
+- AI 场景解析
 - 角色智能识别
 - 丰富模板库
 
 </td>
 <td width="33%" valign="top">
 
-### 🎬 Shot Panel
-### 分镜系统
+### 🎬 Shot Management
+### 分镜管理
 
 ![Shot](https://img.shields.io/badge/Feature-Shot-green)
 
+- Episode-Scene-Shot hierarchy
 - Auto-generate from script
-- 9-grid visual layout
-- Drag & drop reorder
-- AI prompt optimization
+- Shot drafts & alternatives
+- Visual timeline editor
+- Multi-status tracking
 
-**一键生成分镜**
-- 九宫格可视化
-- 拖拽排序
-- 提示词优化
+**剧集 - 场景 - 分镜三层结构**
+- 剧本智能生成分镜
+- 草稿与备选视频
+- 可视化时间线
+- 多状态追踪
 
 </td>
 <td width="33%" valign="top">
@@ -110,7 +116,7 @@
 - Video from keyframes
 - Multi-format export
 
-**多AI提供商**
+**多 AI 提供商**
 - 批量图像生成
 - 关键帧生成视频
 - 多格式导出
@@ -210,13 +216,27 @@ kaiyan-tool/
 ├── 📂 apps/
 │   ├── 🔌 api/          # Backend API service
 │   │   ├── controllers/ # Request handlers
+│   │   │   ├── episode.controller.ts      # Episode management
+│   │   │   ├── scene.controller.ts        # Scene management
+│   │   │   ├── shot.controller.ts         # Shot management
+│   │   │   ├── shot-alternative.controller.ts  # Shot alternatives
+│   │   │   └── shot-draft.controller.ts   # Shot drafts
 │   │   ├── services/    # Business logic
 │   │   ├── agents/      # AI agents
 │   │   └── prisma/      # Database schema
 │   │
 │   └── 🌐 web/          # Frontend application
 │       ├── pages/       # Page components
+│       │   ├── EpisodesPage.tsx         # Episode list
+│       │   ├── EpisodeDetailPage.tsx    # Shot detail view
+│       │   └── ...
 │       ├── components/  # UI components
+│       │   └── episode/ # Episode-related components
+│       │       ├── EpisodeCard.tsx
+│       │       ├── EpisodeModal.tsx
+│       │       ├── ShotItem.tsx
+│       │       ├── ScriptPanel.tsx
+│       │       └── ShotsPanel.tsx
 │       └── hooks/       # Custom hooks
 │
 ├── 📚 docs/             # Documentation
@@ -261,13 +281,17 @@ git push origin feature/amazing-feature
 
 - [x] Script editor with AI parsing
 - [x] Character management system
-- [x] AI-powered shot generation
+- [x] Episode-Scene-Shot hierarchy system
+- [x] Shot draft & alternative system
+- [x] Auto-generate from script
 - [x] Multi-provider image generation
 - [x] Video export functionality
+- [x] UI/UX optimization (Glassmorphism design)
 - [ ] Real-time collaboration
 - [ ] Mobile app support
 - [ ] Cloud deployment templates
 - [ ] Plugin system
+- [ ] Advanced AI scene composition
 
 ---
 
