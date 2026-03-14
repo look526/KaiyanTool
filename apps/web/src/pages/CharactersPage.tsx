@@ -20,6 +20,8 @@ import { apiClient, Character } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import { useTheme } from '../contexts/ThemeContext';
 import { CharacterCard } from '../components/CharacterCard';
+import { PageHeader } from '../components/ui/PageHeader';
+import { GlassButton } from '../components/ui/GlassButton';
 
 interface CharacterFormData {
   name: string;
@@ -330,7 +332,6 @@ export default function CharactersPage() {
       background: isDark 
         ? 'linear-gradient(180deg, #05050a 0%, #0a0a12 50%, #0f0f1a 100%)'
         : 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
-      padding: '24px',
       position: 'relative',
       overflow: 'hidden',
     }}>
@@ -344,21 +345,21 @@ export default function CharactersPage() {
         pointerEvents: 'none',
       }} />
       
-      <div style={{ maxWidth: '1400px', margin: '0 auto', position: 'relative' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
-          <div style={{
-            padding: '12px',
-            borderRadius: '16px',
-            background: `linear-gradient(135deg, ${accentColor} 0%, ${accentLight} 100%)`,
-            boxShadow: `0 8px 24px ${accentColor}40`,
-          }}>
-            <Users style={{ width: '28px', height: '28px', color: 'white' }} />
-          </div>
-          <div>
-            <h1 style={{ fontSize: '28px', fontWeight: '700', color: colors.textPrimary, margin: 0 }}>角色管理</h1>
-            <p style={{ fontSize: '14px', color: colors.textMuted, margin: '4px 0 0 0' }}>管理项目中的所有角色和服装</p>
-          </div>
-        </div>
+      <PageHeader
+        title="角色管理"
+        subtitle="管理项目中的所有角色和服装"
+        actions={
+          <GlassButton
+            variant="primary"
+            icon={<Plus style={{ width: '18px', height: '18px' }} />}
+            onClick={() => handleOpenCharacterModal()}
+          >
+            添加角色
+          </GlassButton>
+        }
+      />
+      
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px', position: 'relative' }}>
 
         <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

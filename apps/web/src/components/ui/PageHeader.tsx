@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export interface PageHeaderProps {
   title: string;
@@ -17,15 +18,37 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   showBackButton = false,
   onBackClick,
 }) => {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  
+  const colors = isDark ? {
+    bgHeader: 'rgba(5, 5, 10, 0.8)',
+    textPrimary: '#fafafa',
+    textSecondary: 'rgba(250, 250, 250, 0.6)',
+    textMuted: 'rgba(250, 250, 250, 0.4)',
+    border: 'rgba(255, 255, 255, 0.06)',
+    bgGlass: 'rgba(255, 255, 255, 0.04)',
+    bgGlassHover: 'rgba(255, 255, 255, 0.08)',
+    borderHover: 'rgba(139, 92, 246, 0.25)',
+  } : {
+    bgHeader: 'rgba(255, 255, 255, 0.8)',
+    textPrimary: '#18181b',
+    textSecondary: 'rgba(24, 24, 27, 0.6)',
+    textMuted: 'rgba(24, 24, 27, 0.4)',
+    border: 'rgba(0, 0, 0, 0.06)',
+    bgGlass: 'rgba(0, 0, 0, 0.02)',
+    bgGlassHover: 'rgba(0, 0, 0, 0.04)',
+    borderHover: 'rgba(139, 92, 246, 0.25)',
+  };
   return (
     <div style={{
-      background: 'var(--bg-header)',
-      backdropFilter: 'var(--glass-blur)',
-      borderBottom: '1px solid var(--border-primary)',
-      padding: 'var(--spacing-6) var(--spacing-8)',
+      background: 'colors.bgHeader',
+      backdropFilter: 'blur(20px)',
+      borderBottom: '1px solid colors.border',
+      padding: '24px 32px',
       position: 'sticky',
       top: 0,
-      zIndex: 'var(--z-sticky)',
+      zIndex: '100',
     }}>
       <div style={{
         maxWidth: '100%',
@@ -35,35 +58,35 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           <nav style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 'var(--spacing-2)',
-            marginBottom: 'var(--spacing-4)',
+            gap: '8px',
+            marginBottom: '16px',
             fontSize: '14px',
-            color: 'var(--text-secondary)',
+            color: 'colors.textSecondary',
           }}>
             {breadcrumbs.map((crumb, index) => (
               <React.Fragment key={index}>
                 {index > 0 && (
-                  <span style={{ color: 'var(--text-muted)' }}>/</span>
+                  <span style={{ color: 'colors.textMuted' }}>/</span>
                 )}
                 {crumb.href ? (
                   <a
                     href={crumb.href}
                     style={{
-                      color: 'var(--text-secondary)',
+                      color: 'colors.textSecondary',
                       textDecoration: 'none',
-                      transition: 'color var(--transition-fast)',
+                      transition: 'color 0.15s ease',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.color = 'var(--accent)';
+                      e.currentTarget.style.color = '#8b5cf6';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.color = 'var(--text-secondary)';
+                      e.currentTarget.style.color = 'colors.textSecondary';
                     }}
                   >
                     {crumb.label}
                   </a>
                 ) : (
-                  <span style={{ color: 'var(--text-primary)' }}>
+                  <span style={{ color: 'colors.textPrimary' }}>
                     {crumb.label}
                   </span>
                 )}
@@ -76,13 +99,13 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: 'var(--spacing-6)',
+          gap: '24px',
         }}>
           <div style={{
             flex: 1,
             display: 'flex',
             alignItems: 'center',
-            gap: 'var(--spacing-4)',
+            gap: '16px',
           }}>
             {showBackButton && (
               <button
@@ -93,22 +116,22 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                   justifyContent: 'center',
                   width: '40px',
                   height: '40px',
-                  borderRadius: 'var(--radius-lg)',
-                  border: '1px solid var(--border-primary)',
-                  background: 'var(--bg-glass)',
-                  color: 'var(--text-secondary)',
+                  borderRadius: '12px',
+                  border: '1px solid colors.border',
+                  background: 'colors.bgGlass',
+                  color: 'colors.textSecondary',
                   cursor: 'pointer',
-                  transition: 'all var(--transition-base)',
+                  transition: 'all 0.2s ease',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--bg-glass-hover)';
-                  e.currentTarget.style.borderColor = 'var(--border-hover)';
-                  e.currentTarget.style.color = 'var(--text-primary)';
+                  e.currentTarget.style.background = 'colors.bgGlassHover';
+                  e.currentTarget.style.borderColor = 'colors.borderHover';
+                  e.currentTarget.style.color = 'colors.textPrimary';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'var(--bg-glass)';
-                  e.currentTarget.style.borderColor = 'var(--border-primary)';
-                  e.currentTarget.style.color = 'var(--text-secondary)';
+                  e.currentTarget.style.background = 'colors.bgGlass';
+                  e.currentTarget.style.borderColor = 'colors.border';
+                  e.currentTarget.style.color = 'colors.textSecondary';
                 }}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -121,19 +144,19 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
               <h1 style={{
                 fontSize: '28px',
                 fontWeight: 700,
-                color: 'var(--text-primary)',
+                color: 'colors.textPrimary',
                 margin: '0',
-                lineHeight: 'var(--line-height-tight)',
-                letterSpacing: 'var(--letter-spacing-tight)',
+                lineHeight: '1.25',
+                letterSpacing: '-0.02em',
               }}>
                 {title}
               </h1>
               {subtitle && (
                 <p style={{
                   fontSize: '14px',
-                  color: 'var(--text-secondary)',
-                  margin: 'var(--spacing-1) 0 0 0',
-                  lineHeight: 'var(--line-height-normal)',
+                  color: 'colors.textSecondary',
+                  margin: '4px 0 0 0',
+                  lineHeight: '1.5',
                 }}>
                   {subtitle}
                 </p>
@@ -145,7 +168,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 'var(--spacing-3)',
+              gap: '12px',
             }}>
               {actions}
             </div>
@@ -155,3 +178,4 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
     </div>
   );
 };
+

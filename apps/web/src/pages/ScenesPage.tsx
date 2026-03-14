@@ -17,6 +17,7 @@ import {
 import { useTheme } from '../contexts/ThemeContext';
 import { GlassCard } from '../components/ui/GlassCard';
 import { GlassButton } from '../components/ui/GlassButton';
+import { PageHeader } from '../components/ui/PageHeader';
 import { apiClient } from '../lib/api';
 
 interface Scene {
@@ -278,7 +279,7 @@ export default function ScenesPage() {
             </div>
             <div>
               <h1 style={{ fontSize: '28px', fontWeight: '700', color: 'colors.textPrimary', margin: 0 }}>场景管理</h1>
-              <p style={{ fontSize: '14px', color: 'colors.textMuted', margin: '4px 0 0 0' }}>管理项目中的所有场�?/p>
+              <p style={{ fontSize: '14px', color: 'colors.textMuted', margin: '4px 0 0 0' }}>管理项目中的所有场�?/p>
             </div>
           </div>
           <GlassButton variant="primary"
@@ -316,7 +317,7 @@ export default function ScenesPage() {
                   <Search style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'colors.textMuted' }} />
                   <input
                     type="text"
-                    placeholder="搜索地点或描�?.."
+                    placeholder="搜索地点或描�?.."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     style={{
@@ -344,7 +345,7 @@ export default function ScenesPage() {
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'colors.textSecondary', marginBottom: '8px' }}>时间筛�?/label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'colors.textSecondary', marginBottom: '8px' }}>时间筛�?/label>
                 <select
                   value={filterTime}
                   onChange={(e) => setFilterTime(e.target.value)}
@@ -375,7 +376,7 @@ export default function ScenesPage() {
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'colors.textSecondary', marginBottom: '8px' }}>氛围筛�?/label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'colors.textSecondary', marginBottom: '8px' }}>氛围筛�?/label>
                 <select
                   value={filterAtmosphere}
                   onChange={(e) => setFilterAtmosphere(e.target.value)}
@@ -430,9 +431,9 @@ export default function ScenesPage() {
                     e.currentTarget.style.borderColor = 'colors.border';
                   }}
                 >
-                  <option value="name">按名称排�?/option>
+                  <option value="name">按名称排�?/option>
                   <option value="shots">按镜头数排序</option>
-                  <option value="created">按创建时间排�?/option>
+                  <option value="created">按创建时间排�?/option>
                 </select>
               </div>
             </div>
@@ -502,12 +503,12 @@ export default function ScenesPage() {
                       transition: 'all 0.15s ease',
                     }}
                   >
-                    {selectedIds.size === filteredScenes.length && filteredScenes.length > 0 ? '取消全�? : '全�?}
+                    {selectedIds.size === filteredScenes.length && filteredScenes.length > 0 ? '取消全�? : '全�?}
                   </GlassButton>
                 )}
                 {selectedIds.size > 0 && (
                   <>
-                    <span style={{ fontSize: '13px', color: 'colors.textMuted' }}>已选择 {selectedIds.size} �?/span>
+                    <span style={{ fontSize: '13px', color: 'colors.textMuted' }}>已选择 {selectedIds.size} �?/span>
                     <GlassButton variant="danger" 
                       size="sm" 
                       onClick={handleBatchDelete}
@@ -521,7 +522,7 @@ export default function ScenesPage() {
                       ) : (
                         <Trash2 style={{ width: '14px', height: '14px', marginRight: '6px' }} />
                       )}
-                      {batchDeleteLoading ? '删除�?..' : '批量删除'}
+                      {batchDeleteLoading ? '删除�?..' : '批量删除'}
                     </GlassButton>
                     <GlassButton variant="secondary" size="sm" onClick={() => setSelectedIds(new Set())}>
                       取消选择
@@ -541,7 +542,7 @@ export default function ScenesPage() {
                 color: 'colors.textMuted',
               }}>
                 <Loader2 style={{ width: '40px', height: '40px', animation: 'spin 1s linear infinite', marginBottom: '16px', color: '#ec4899' }} />
-                <p style={{ fontSize: '14px' }}>加载场景�?..</p>
+                <p style={{ fontSize: '14px' }}>加载场景�?..</p>
               </div>
             ) : filteredScenes.length === 0 ? (
               <div style={{
@@ -565,10 +566,10 @@ export default function ScenesPage() {
                   <MapPin style={{ width: '36px', height: '36px', opacity: 0.5 }} />
                 </div>
                 <p style={{ fontSize: '16px', fontWeight: '500', marginBottom: '8px' }}>暂无场景</p>
-                <p style={{ fontSize: '14px', marginBottom: '24px' }}>点击"添加场景"开始创�?/p>
+                <p style={{ fontSize: '14px', marginBottom: '24px' }}>点击"添加场景"开始创�?/p>
                 <GlassButton variant="primary" onClick={handleOpenModal}>
                   <Plus style={{ width: '16px', height: '16px', marginRight: '6px' }} />
-                  添加第一个场�?
+                  添加第一个场�?
                 </GlassButton>
               </div>
             ) : (
@@ -709,7 +710,7 @@ export default function ScenesPage() {
                         gap: '4px',
                       }}>
                         <Layers style={{ width: '12px', height: '12px' }} />
-                        {scene._count?.shots || 0} 个分�?
+                        {scene._count?.shots || 0} 个分�?
                       </span>
                       <div style={{ display: 'flex', gap: '4px' }}>
                         <button
@@ -922,7 +923,7 @@ export default function ScenesPage() {
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'colors.textSecondary', marginBottom: '8px' }}>描述</label>
                 <textarea
-                  placeholder="描述场景的细�?.."
+                  placeholder="描述场景的细�?.."
                   rows={4}
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
@@ -1002,7 +1003,7 @@ export default function ScenesPage() {
             </div>
             <h2 style={{ fontSize: '20px', fontWeight: '600', color: 'colors.textPrimary', textAlign: 'center', margin: '0 0 8px 0' }}>确认删除</h2>
             <p style={{ fontSize: '14px', color: 'colors.textMuted', textAlign: 'center', lineHeight: '1.6', margin: '0 0 24px 0' }}>
-              确定要删除场�?{deletingScene?.location}"吗？此操作无法撤销�?
+              确定要删除场�?{deletingScene?.location}"吗？此操作无法撤销�?
             </p>
             <div style={{ display: 'flex', gap: '12px' }}>
               <GlassButton variant="secondary" style={{ flex: 1, height: '48px' }} onClick={() => setShowDeleteConfirm(false)}>
