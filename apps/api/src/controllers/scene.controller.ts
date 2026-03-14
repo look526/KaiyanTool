@@ -102,12 +102,20 @@ export class SceneController {
 
   async createScene(req: Request, res: Response): Promise<void> {
     try {
-      const { episodeId } = req.params;
-      const { location, time, description } = req.body;
+      const { episodeId, projectId } = req.params;
+      const { location, time, description, atmosphere } = req.body;
+
+      // 支持从 projectId 或 episodeId 创建
+      let targetEpisodeId = episodeId || projectId;
+      
+      if (!targetEpisodeId) {
+        res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: 'Missing episodeId or projectId' } });
+        return;
+      }
 
       // Get next scene order
       const maxScene = await prisma.scene.findFirst({
-        where: { episode_id: episodeId },
+        where: { episode_id: targetEpisodeId },
         orderBy: { scene_order: 'desc' },
         select: { scene_order: true },
       });
@@ -116,10 +124,10 @@ export class SceneController {
 
       const scene = await prisma.scene.create({
         data: {
-          episode_id: episodeId,
+          episode_id: targetEpisodeId,
           location,
           time,
-          description,
+          description: description || atmosphere,
           scene_order: nextSceneOrder,
         },
       });
