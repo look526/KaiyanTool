@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { 
   MapPin, 
   Clock, 
@@ -56,8 +56,7 @@ export default function ScenesPage() {
   
   const accentColor = '#ec4899';
   const accentLight = '#f472b6';
-  const accentGlow = '#fbcfe8';
-
+  
   const colors = isDark ? {
     bgPrimary: 'rgba(5, 5, 10, 0.95)',
     bgSecondary: 'rgba(255, 255, 255, 0.03)',
@@ -263,44 +262,37 @@ export default function ScenesPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'isDark ? 'linear-gradient(180deg, #05050a 0%, #0a0a12 50%, #0f0f1a 100%)' : 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)'',
-      padding: '24px',
+      background: isDark 
+        ? 'linear-gradient(180deg, #05050a 0%, #0a0a12 50%, #0f0f1a 100%)'
+        : 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
-      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{
-              padding: '12px',
-              borderRadius: '16px',
-              background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
-              boxShadow: '0 8px 24px rgba(236, 72, 153, 0.3)',
-            }}>
-              <Layers style={{ width: '28px', height: '28px', color: 'white' }} />
-            </div>
-            <div>
-              <h1 style={{ fontSize: '28px', fontWeight: '700', color: 'colors.textPrimary', margin: 0 }}>场景管理</h1>
-              <p style={{ fontSize: '14px', color: 'colors.textMuted', margin: '4px 0 0 0' }}>管理项目中的所有场�?/p>
-            </div>
-          </div>
-          <GlassButton variant="primary"
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'radial-gradient(ellipse at 20% 20%, rgba(236, 72, 153, 0.08) 0%, transparent 50%)',
+        pointerEvents: 'none',
+      }} />
+      
+      <PageHeader
+        title="场景管理"
+        subtitle="管理项目中的所有场景"
+        actions={
+          <GlassButton
+            variant="primary"
+            icon={<Plus style={{ width: '18px', height: '18px' }} />}
             onClick={handleOpenModal}
-            style={{
-              height: '48px',
-              padding: '0 24px',
-              background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
-              borderRadius: '14px',
-              fontSize: '14px',
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 14px rgba(236, 72, 153, 0.3)',
-            }}
           >
-            <Plus style={{ width: '18px', height: '18px' }} />
             添加场景
           </GlassButton>
-        </div>
+        }
+      />
+      
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px', position: 'relative' }}>
 
         <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -317,7 +309,7 @@ export default function ScenesPage() {
                   <Search style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '16px', height: '16px', color: 'colors.textMuted' }} />
                   <input
                     type="text"
-                    placeholder="搜索地点或描�?.."
+                    placeholder="搜索地点或描述?.."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     style={{
@@ -345,7 +337,7 @@ export default function ScenesPage() {
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'colors.textSecondary', marginBottom: '8px' }}>时间筛�?/label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'colors.textSecondary', marginBottom: '8px' }}>时间筛选?/label>
                 <select
                   value={filterTime}
                   onChange={(e) => setFilterTime(e.target.value)}
@@ -376,7 +368,7 @@ export default function ScenesPage() {
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'colors.textSecondary', marginBottom: '8px' }}>氛围筛�?/label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'colors.textSecondary', marginBottom: '8px' }}>氛围筛选?/label>
                 <select
                   value={filterAtmosphere}
                   onChange={(e) => setFilterAtmosphere(e.target.value)}
@@ -458,7 +450,7 @@ export default function ScenesPage() {
               backdropFilter: 'blur(20px)',
               textAlign: 'center',
             }}>
-              <div style={{ fontSize: '36px', fontWeight: '700', color: 'accentLight', marginBottom: '4px' }}>
+              <div style={{ fontSize: '36px', fontWeight: '700', color: 'var(--accent-blue)', marginBottom: '4px' }}>
                 {scenes.reduce((sum, s) => sum + (s._count?.shots || 0), 0)}
               </div>
               <div style={{ fontSize: '13px', color: 'colors.textMuted' }}>总镜头数</div>
@@ -481,8 +473,7 @@ export default function ScenesPage() {
               </h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {filteredScenes.length > 0 && (
-                  <button
-                    onClick={() => {
+                  <GlassButton onClick={() => {
                       if (selectedIds.size === filteredScenes.length) {
                         setSelectedIds(new Set());
                       } else {
@@ -524,7 +515,7 @@ export default function ScenesPage() {
                       )}
                       {batchDeleteLoading ? '删除�?..' : '批量删除'}
                     </GlassButton>
-                    <GlassButton variant="secondary" size="sm" onClick={() => setSelectedIds(new Set())}>
+                    <GlassButton variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
                       取消选择
                     </GlassButton>
                   </>
@@ -613,13 +604,12 @@ export default function ScenesPage() {
                     onMouseLeave={() => setHoveredCard(null)}
                   >
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '16px' }}>
-                      <button
-                        onClick={() => handleSelect(scene.id)}
+                      <GlassButton onClick={() => handleSelect(scene.id)}
                         style={{
                           width: '22px',
                           height: '22px',
                           borderRadius: '6px',
-                          border: isSelected ? 'none' : '2px solid colors.borderHover',
+                          border: isSelected ? 'none' : '2px solid var(--border-secondary)',
                           background: isSelected ? 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' : 'transparent',
                           cursor: 'pointer',
                           display: 'flex',
@@ -713,8 +703,7 @@ export default function ScenesPage() {
                         {scene._count?.shots || 0} 个分�?
                       </span>
                       <div style={{ display: 'flex', gap: '4px' }}>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleEdit(scene); }}
+                        <GlassButton onClick={(e) => { e.stopPropagation(); handleEdit(scene); }}
                           onMouseEnter={() => setHoveredAction({ id: scene.id, action: 'edit' })}
                           onMouseLeave={() => setHoveredAction(null)}
                           style={{
@@ -722,7 +711,7 @@ export default function ScenesPage() {
                             height: '28px',
                             borderRadius: '6px',
                             border: 'none',
-                            background: isEditHovered ? 'accentLight' : 'colors.bgGlassHover',
+                            background: isEditHovered ? 'var(--accent-blue)' : 'colors.bgGlassHover',
                             color: isEditHovered ? '#fff' : 'colors.textMuted',
                             cursor: 'pointer',
                             display: 'flex',
@@ -733,8 +722,7 @@ export default function ScenesPage() {
                         >
                           <Edit2 style={{ width: '14px', height: '14px' }} />
                         </GlassButton>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDelete(scene); }}
+                        <GlassButton onClick={(e) => { e.stopPropagation(); handleDelete(scene); }}
                           onMouseEnter={() => setHoveredAction({ id: scene.id, action: 'delete' })}
                           onMouseLeave={() => setHoveredAction(null)}
                           style={{
@@ -807,8 +795,7 @@ export default function ScenesPage() {
                   {editingScene ? '编辑场景' : '添加场景'}
                 </h2>
               </div>
-              <button
-                onClick={() => setShowModal(false)}
+              <GlassButton onClick={() => setShowModal(false)}
                 style={{
                   width: '36px',
                   height: '36px',
@@ -952,7 +939,7 @@ export default function ScenesPage() {
               </div>
 
               <div style={{ display: 'flex', gap: '12px', paddingTop: '8px' }}>
-                <GlassButton variant="secondary" style={{ flex: 1, height: '48px' }} onClick={() => setShowModal(false)}>
+                <GlassButton variant="outline" style={{ flex: 1, height: '48px' }} onClick={() => setShowModal(false)}>
                   取消
                 </GlassButton>
                 <GlassButton variant="primary"
@@ -1006,7 +993,7 @@ export default function ScenesPage() {
               确定要删除场�?{deletingScene?.location}"吗？此操作无法撤销�?
             </p>
             <div style={{ display: 'flex', gap: '12px' }}>
-              <GlassButton variant="secondary" style={{ flex: 1, height: '48px' }} onClick={() => setShowDeleteConfirm(false)}>
+              <GlassButton variant="outline" style={{ flex: 1, height: '48px' }} onClick={() => setShowDeleteConfirm(false)}>
                 取消
               </GlassButton>
               <GlassButton variant="danger"
@@ -1023,6 +1010,5 @@ export default function ScenesPage() {
     </div>
   );
 }
-
 
 
