@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { GlassButton } from '../components/ui/GlassButton';
+import { GlassCard } from '../components/ui/GlassCard';
 import {
   FileText,
   FileCode,
@@ -43,10 +46,10 @@ interface Document {
 }
 
 const DOCUMENT_TYPES: Record<string, { icon: React.ElementType; color: string; gradient: string; bgColor: string; borderColor: string; label: string }> = {
-  script: { icon: FileCode, color: 'var(--accent)', gradient: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%)', bgColor: 'var(--accent-bg)', borderColor: 'var(--border-hover)', label: '剧本' },
+  script: { icon: FileCode, color: 'colors.accent', gradient: 'linear-gradient(135deg, colors.accent 0%, colors.accentLight 100%)', bgColor: 'colors.accentBg', borderColor: 'colors.borderHover', label: '剧本' },
   novel: { icon: FileText, color: '#3b82f6', gradient: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', bgColor: 'rgba(59, 130, 246, 0.12)', borderColor: 'rgba(59, 130, 246, 0.25)', label: '小说' },
   outline: { icon: FileSpreadsheet, color: '#10b981', gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', bgColor: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.25)', label: '大纲' },
-  storyboard: { icon: FileImage, color: '#f59e0b', gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', bgColor: 'rgba(245, 158, 11, 0.12)', borderColor: 'rgba(245, 158, 11, 0.25)', label: '故事板' },
+  storyboard: { icon: FileImage, color: '#f59e0b', gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', bgColor: 'rgba(245, 158, 11, 0.12)', borderColor: 'rgba(245, 158, 11, 0.25)', label: '故事�? },
   video: { icon: FileVideo, color: '#ef4444', gradient: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', bgColor: 'rgba(239, 68, 68, 0.12)', borderColor: 'rgba(239, 68, 68, 0.25)', label: '视频' },
   audio: { icon: FileAudio, color: '#ec4899', gradient: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)', bgColor: 'rgba(236, 72, 153, 0.12)', borderColor: 'rgba(236, 72, 153, 0.25)', label: '音频' },
   general: { icon: File, color: '#64748b', gradient: 'linear-gradient(135deg, #64748b 0%, #475569 100%)', bgColor: 'rgba(100, 116, 139, 0.12)', borderColor: 'rgba(100, 116, 139, 0.25)', label: '文档' },
@@ -54,72 +57,53 @@ const DOCUMENT_TYPES: Record<string, { icon: React.ElementType; color: string; g
 
 const STATUS_CONFIG: Record<string, { color: string; bgColor: string; borderColor: string; label: string }> = {
   draft: { color: '#64748b', bgColor: 'rgba(100, 116, 139, 0.12)', borderColor: 'rgba(100, 116, 139, 0.2)', label: '草稿' },
-  pending: { color: '#f59e0b', bgColor: 'rgba(245, 158, 11, 0.12)', borderColor: 'rgba(245, 158, 11, 0.2)', label: '待处理' },
-  in_progress: { color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.12)', borderColor: 'rgba(59, 130, 246, 0.2)', label: '进行中' },
-  completed: { color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.2)', label: '已完成' },
-  published: { color: 'var(--accent)', bgColor: 'var(--accent-bg)', borderColor: 'rgba(139, 92, 246, 0.2)', label: '已发布' },
+  pending: { color: '#f59e0b', bgColor: 'rgba(245, 158, 11, 0.12)', borderColor: 'rgba(245, 158, 11, 0.2)', label: '待处�? },
+  in_progress: { color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.12)', borderColor: 'rgba(59, 130, 246, 0.2)', label: '进行�? },
+  completed: { color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.2)', label: '已完�? },
+  published: { color: 'colors.accent', bgColor: 'colors.accentBg', borderColor: 'rgba(139, 92, 246, 0.2)', label: '已发�? },
 };
 
 type ViewMode = 'grid' | 'list';
 type SortOption = 'newest' | 'oldest' | 'title' | 'updated';
 
-interface ButtonProps {
-  onClick: () => void;
-  variant?: 'primary' | 'secondary';
-  children: React.ReactNode;
-  style?: React.CSSProperties;
-}
-
-const Button = ({ onClick, variant = 'primary', children, style }: ButtonProps) => {
-  const [isHovered, setIsHovered] = useState(false);
-
-  const baseStyles = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    padding: variant === 'primary' ? '12px 20px' : '10px 18px',
-    borderRadius: variant === 'primary' ? '14px' : '10px',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    transform: isHovered ? 'translateY(-1px)' : 'translateY(0)',
-    border: 'none',
-    ...style,
-  };
-
-  const variantStyles = {
-    primary: {
-      background: isHovered
-        ? 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)'
-        : 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
-      color: '#ffffff',
-      boxShadow: isHovered ? '0 8px 24px var(--accent-shadow)' : '0 4px 14px var(--accent-shadow)',
-    },
-    secondary: {
-      background: isHovered ? 'var(--bg-hover)' : 'var(--bg-surface)',
-      color: 'var(--text-primary)',
-      border: '1px solid var(--border-primary)',
-      boxShadow: 'none',
-    },
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      style={{ ...baseStyles, ...variantStyles[variant] }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {children}
-    </button>
-  );
-};
-
 const DocumentsPage: React.FC = () => {
   const navigate = useNavigate();
-  useAuth();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  
+  const accentColor = '#8b5cf6';
+  const accentLight = '#a78bfa';
+  
+  const colors = isDark ? {
+    bgPrimary: 'rgba(5, 5, 10, 0.95)',
+    bgSecondary: 'rgba(255, 255, 255, 0.03)',
+    bgGlass: 'rgba(255, 255, 255, 0.04)',
+    bgGlassHover: 'rgba(255, 255, 255, 0.06)',
+    bgSurface: 'rgba(255, 255, 255, 0.05)',
+    textPrimary: '#fafafa',
+    textSecondary: 'rgba(250, 250, 250, 0.6)',
+    textMuted: 'rgba(250, 250, 250, 0.4)',
+    border: 'rgba(255, 255, 255, 0.06)',
+    borderHover: 'rgba(139, 92, 246, 0.25)',
+    accent: '#8b5cf6',
+    accentLight: '#a78bfa',
+    accentBg: 'rgba(139, 92, 246, 0.12)',
+  } : {
+    bgPrimary: 'rgba(255, 255, 255, 0.92)',
+    bgSecondary: 'rgba(0, 0, 0, 0.02)',
+    bgGlass: 'rgba(0, 0, 0, 0.02)',
+    bgGlassHover: 'rgba(0, 0, 0, 0.04)',
+    bgSurface: 'rgba(0, 0, 0, 0.03)',
+    textPrimary: '#18181b',
+    textSecondary: 'rgba(24, 24, 27, 0.6)',
+    textMuted: 'rgba(24, 24, 27, 0.4)',
+    border: 'rgba(0, 0, 0, 0.06)',
+    borderHover: 'rgba(139, 92, 246, 0.25)',
+    accent: '#8b5cf6',
+    accentLight: '#a78bfa',
+    accentBg: 'rgba(139, 92, 246, 0.12)',
+  };
+  
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -257,13 +241,13 @@ const DocumentsPage: React.FC = () => {
           <div style={{
             width: '48px',
             height: '48px',
-            border: '3px solid var(--border-primary)',
-            borderTopColor: 'var(--accent)',
+            border: '3px solid colors.border',
+            borderTopColor: 'colors.accent',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
             margin: '0 auto 16px',
           }} />
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>加载中...</p>
+          <p style={{ color: 'colors.textMuted', fontSize: '14px' }}>加载�?..</p>
         </div>
       </div>
     );
@@ -293,16 +277,16 @@ const DocumentsPage: React.FC = () => {
             }}>
               <FileText style={{ width: '40px', height: '40px', color: '#ef4444' }} />
             </div>
-            <h2 style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '8px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: '600', color: 'colors.textPrimary', marginBottom: '8px' }}>
               加载失败
             </h2>
-            <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>
+            <p style={{ fontSize: '14px', color: 'colors.textMuted', marginBottom: '24px' }}>
               {error}
             </p>
-            <Button onClick={fetchDocuments}>
+            <GlassButton onClick={fetchDocuments}>
               <RefreshCw style={{ width: '16px', height: '16px' }} />
               重试
-            </Button>
+            </GlassButton>
           </div>
         </div>
       </div>
@@ -314,7 +298,7 @@ const DocumentsPage: React.FC = () => {
       <div style={{
         background: 'var(--bg-elevated)',
         backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid var(--border-primary)',
+        borderBottom: '1px solid colors.border',
         position: 'sticky',
         top: 0,
         zIndex: 40,
@@ -325,21 +309,21 @@ const DocumentsPage: React.FC = () => {
               <div style={{
                 padding: '12px',
                 borderRadius: '14px',
-                background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%)',
+                background: 'linear-gradient(135deg, colors.accent 0%, colors.accentLight 100%)',
                 boxShadow: '0 4px 14px var(--accent-shadow)',
               }}>
                 <FolderOpen style={{ width: '24px', height: '24px', color: 'white' }} />
               </div>
               <div>
-                <h1 style={{ fontSize: '22px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>文档管理</h1>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>共 {documents.length} 个文档</p>
+                <h1 style={{ fontSize: '22px', fontWeight: '600', color: 'colors.textPrimary', margin: 0 }}>文档管理</h1>
+                <p style={{ fontSize: '13px', color: 'colors.textMuted', margin: 0 }}>�?{documents.length} 个文�?/p>
               </div>
             </div>
 
-            <Button onClick={handleCreateDocument} variant="primary">
+            <GlassButton onClick={handleCreateDocument} variant="primary">
               <Plus style={{ width: '18px', height: '18px' }} />
               新建文档
-            </Button>
+            </GlassButton>
           </div>
 
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -351,7 +335,7 @@ const DocumentsPage: React.FC = () => {
                 transform: 'translateY(-50%)',
                 width: '16px',
                 height: '16px',
-                color: 'var(--text-muted)',
+                color: 'colors.textMuted',
               }} />
               <input
                 type="text"
@@ -362,20 +346,20 @@ const DocumentsPage: React.FC = () => {
                   width: '100%',
                   height: '40px',
                   padding: '0 12px 0 36px',
-                  border: '1px solid var(--border-primary)',
+                  border: '1px solid colors.border',
                   borderRadius: '10px',
                   background: 'var(--bg-input)',
-                  color: 'var(--text-primary)',
+                  color: 'colors.textPrimary',
                   fontSize: '13px',
                   outline: 'none',
                   transition: 'all 0.2s ease',
                 }}
                 onFocus={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--accent)';
-                  e.currentTarget.style.boxShadow = '0 0 0 3px var(--accent-bg)';
+                  e.currentTarget.style.borderColor = 'colors.accent';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px colors.accentBg';
                 }}
                 onBlur={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border-primary)';
+                  e.currentTarget.style.borderColor = 'colors.border';
                   e.currentTarget.style.boxShadow = 'none';
                 }}
               />
@@ -389,9 +373,9 @@ const DocumentsPage: React.FC = () => {
                 padding: '0 32px 0 12px',
                 fontSize: '13px',
                 backgroundColor: 'var(--bg-input)',
-                border: '1px solid var(--border-primary)',
+                border: '1px solid colors.border',
                 borderRadius: '10px',
-                color: 'var(--text-primary)',
+                color: 'colors.textPrimary',
                 cursor: 'pointer',
                 outline: 'none',
                 appearance: 'none',
@@ -400,13 +384,13 @@ const DocumentsPage: React.FC = () => {
                 backgroundPosition: 'right 10px center',
               }}
             >
-              <option value="newest">最新创建</option>
-              <option value="oldest">最早创建</option>
-              <option value="updated">最近更新</option>
-              <option value="title">按标题</option>
+              <option value="newest">最新创�?/option>
+              <option value="oldest">最早创�?/option>
+              <option value="updated">最近更�?/option>
+              <option value="title">按标�?/option>
             </select>
 
-            <button
+            <GlassButton
               onClick={() => setShowFilters(!showFilters)}
               style={{
                 height: '40px',
@@ -415,10 +399,10 @@ const DocumentsPage: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: showFilters ? 'var(--accent)' : (filterHovered ? 'var(--bg-hover)' : 'var(--bg-input)'),
-                border: '1px solid var(--border-primary)',
+                backgroundColor: showFilters ? 'colors.accent' : (filterHovered ? 'colors.bgGlassHover' : 'var(--bg-input)'),
+                border: '1px solid colors.border',
                 borderRadius: '10px',
-                color: showFilters ? 'white' : 'var(--text-muted)',
+                color: showFilters ? 'white' : 'colors.textMuted',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
               }}
@@ -426,16 +410,16 @@ const DocumentsPage: React.FC = () => {
               onMouseLeave={() => setFilterHovered(false)}
             >
               <Filter style={{ width: '16px', height: '16px' }} />
-            </button>
+            </GlassButton>
 
             <div style={{
               display: 'flex',
               backgroundColor: 'var(--bg-input)',
-              border: '1px solid var(--border-primary)',
+              border: '1px solid colors.border',
               borderRadius: '10px',
               overflow: 'hidden',
             }}>
-              <button
+              <GlassButton
                 onClick={() => setViewMode('grid')}
                 style={{
                   height: '40px',
@@ -444,16 +428,16 @@ const DocumentsPage: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: viewMode === 'grid' ? 'var(--accent)' : 'transparent',
+                  backgroundColor: viewMode === 'grid' ? 'colors.accent' : 'transparent',
                   border: 'none',
-                  color: viewMode === 'grid' ? 'white' : 'var(--text-muted)',
+                  color: viewMode === 'grid' ? 'white' : 'colors.textMuted',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                 }}
               >
                 <Grid3x3 style={{ width: '16px', height: '16px' }} />
-              </button>
-              <button
+              </GlassButton>
+              <GlassButton
                 onClick={() => setViewMode('list')}
                 style={{
                   height: '40px',
@@ -462,15 +446,15 @@ const DocumentsPage: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: viewMode === 'list' ? 'var(--accent)' : 'transparent',
+                  backgroundColor: viewMode === 'list' ? 'colors.accent' : 'transparent',
                   border: 'none',
-                  color: viewMode === 'list' ? 'white' : 'var(--text-muted)',
+                  color: viewMode === 'list' ? 'white' : 'colors.textMuted',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                 }}
               >
                 <List style={{ width: '16px', height: '16px' }} />
-              </button>
+              </GlassButton>
             </div>
           </div>
 
@@ -481,28 +465,28 @@ const DocumentsPage: React.FC = () => {
               gap: '8px',
               flexWrap: 'wrap',
             }}>
-              <button
+              <GlassButton
                 onClick={() => setSelectedType(null)}
                 style={{
                   height: '36px',
                   padding: '0 14px',
                   fontSize: '13px',
                   fontWeight: '500',
-                  backgroundColor: selectedType === null ? 'var(--accent)' : 'var(--bg-input)',
-                  border: '1px solid var(--border-primary)',
+                  backgroundColor: selectedType === null ? 'colors.accent' : 'var(--bg-input)',
+                  border: '1px solid colors.border',
                   borderRadius: '8px',
-                  color: selectedType === null ? 'white' : 'var(--text-secondary)',
+                  color: selectedType === null ? 'white' : 'colors.textSecondary',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                 }}
               >
                 全部类型
-              </button>
+              </GlassButton>
               {uniqueTypes.map((type) => {
                 const config = getDocumentTypeConfig(type);
                 const ConfigIcon = config.icon;
                 return (
-                  <button
+                  <GlassButton
                     key={type}
                     onClick={() => setSelectedType(selectedType === type ? null : type)}
                     style={{
@@ -523,7 +507,7 @@ const DocumentsPage: React.FC = () => {
                   >
                     <ConfigIcon style={{ width: '14px', height: '14px' }} />
                     {config.label}
-                  </button>
+                  </GlassButton>
                 );
               })}
             </div>
@@ -540,9 +524,9 @@ const DocumentsPage: React.FC = () => {
         }}>
           <StatCard
             icon={FileText}
-            color="var(--accent)"
-            bgColor="var(--accent-bg)"
-            label="总文档"
+            color="colors.accent"
+            bgColor="colors.accentBg"
+            label="总文�?
             value={stats.total}
           />
           {Object.entries(stats.typeCounts).slice(0, 3).map(([type, count]) => {
@@ -563,35 +547,35 @@ const DocumentsPage: React.FC = () => {
 
         {filteredAndSortedDocuments.length === 0 ? (
           <div style={{
-            background: 'var(--bg-surface)',
+            background: 'colors.bgSurface',
             borderRadius: '20px',
             padding: '64px 32px',
-            border: '1px solid var(--border-primary)',
+            border: '1px solid colors.border',
             textAlign: 'center',
           }}>
             <div style={{
               width: '80px',
               height: '80px',
               borderRadius: '24px',
-              background: 'var(--bg-hover)',
+              background: 'colors.bgGlassHover',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 20px',
             }}>
-              <FilePlus style={{ width: '36px', height: '36px', color: 'var(--text-muted)' }} />
+              <FilePlus style={{ width: '36px', height: '36px', color: 'colors.textMuted' }} />
             </div>
-            <p style={{ fontSize: '16px', fontWeight: '500', color: 'var(--text-primary)', marginBottom: '8px' }}>
+            <p style={{ fontSize: '16px', fontWeight: '500', color: 'colors.textPrimary', marginBottom: '8px' }}>
               {searchQuery ? '未找到匹配的文档' : '暂无文档'}
             </p>
-            <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>
-              {searchQuery ? '尝试调整搜索条件或筛选器' : '点击右上角创建您的第一个文档'}
+            <p style={{ fontSize: '14px', color: 'colors.textMuted', marginBottom: '24px' }}>
+              {searchQuery ? '尝试调整搜索条件或筛选器' : '点击右上角创建您的第一个文�?}
             </p>
             {!searchQuery && (
-              <Button variant="primary" onClick={handleCreateDocument}>
+              <GlassButton variant="primary" onClick={handleCreateDocument}>
                 <Plus style={{ width: '16px', height: '16px' }} />
                 新建文档
-              </Button>
+              </GlassButton>
             )}
           </div>
         ) : viewMode === 'grid' ? (
@@ -650,14 +634,13 @@ const DocumentsPage: React.FC = () => {
           <div style={{
             marginTop: '24px',
             padding: '16px 0',
-            borderTop: '1px solid var(--border-primary)',
+            borderTop: '1px solid colors.border',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
           }}>
-            <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-              显示 {filteredAndSortedDocuments.length} 个文档
-              {selectedType && ` · 类型: ${getDocumentTypeConfig(selectedType).label}`}
+            <span style={{ fontSize: '14px', color: 'colors.textMuted' }}>
+              显示 {filteredAndSortedDocuments.length} 个文�?              {selectedType && ` · 类型: ${getDocumentTypeConfig(selectedType).label}`}
             </span>
           </div>
         )}
@@ -689,10 +672,10 @@ const StatCard = ({ icon: Icon, color, bgColor, label, value }: StatCardProps) =
   return (
     <div
       style={{
-        background: 'var(--bg-surface)',
+        background: 'colors.bgSurface',
         borderRadius: '16px',
         padding: '20px',
-        border: '1px solid var(--border-primary)',
+        border: '1px solid colors.border',
         backdropFilter: 'blur(20px)',
         transition: 'all 0.2s ease',
         transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
@@ -713,7 +696,7 @@ const StatCard = ({ icon: Icon, color, bgColor, label, value }: StatCardProps) =
         }}>
           <Icon style={{ width: '20px', height: '20px', color }} />
         </div>
-        <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>{label}</span>
+        <span style={{ fontSize: '13px', color: 'colors.textMuted', fontWeight: '500' }}>{label}</span>
       </div>
       <div style={{ fontSize: '32px', fontWeight: '700', color }}>{value}</div>
     </div>
@@ -736,8 +719,8 @@ const DocumentCard = ({ document, typeConfig, statusConfig, TypeIcon, isHovered,
     <div
       onClick={onClick}
       style={{
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border-primary)',
+        background: 'colors.bgSurface',
+        border: '1px solid colors.border',
         borderRadius: '20px',
         overflow: 'hidden',
         cursor: 'pointer',
@@ -778,7 +761,7 @@ const DocumentCard = ({ document, typeConfig, statusConfig, TypeIcon, isHovered,
             <h3 style={{
               fontSize: '17px',
               fontWeight: '700',
-              color: 'var(--text-primary)',
+              color: 'colors.textPrimary',
               margin: '0 0 8px 0',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -822,7 +805,7 @@ const DocumentCard = ({ document, typeConfig, statusConfig, TypeIcon, isHovered,
 
         <p style={{
           fontSize: '14px',
-          color: 'var(--text-secondary)',
+          color: 'colors.textSecondary',
           lineHeight: '1.7',
           margin: '0 0 20px 0',
           display: '-webkit-box',
@@ -840,12 +823,12 @@ const DocumentCard = ({ document, typeConfig, statusConfig, TypeIcon, isHovered,
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: '14px 16px',
-          background: 'var(--bg-hover)',
+          background: 'colors.bgGlassHover',
           borderRadius: '12px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Clock style={{ width: '14px', height: '14px', color: 'var(--text-muted)' }} />
-            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>
+            <Clock style={{ width: '14px', height: '14px', color: 'colors.textMuted' }} />
+            <span style={{ fontSize: '13px', color: 'colors.textSecondary', fontWeight: '500' }}>
               {formatDate(document.updatedAt)}
             </span>
           </div>
@@ -857,8 +840,8 @@ const DocumentCard = ({ document, typeConfig, statusConfig, TypeIcon, isHovered,
               padding: '6px 12px',
               fontSize: '12px',
               fontWeight: '600',
-              color: 'var(--text-secondary)',
-              backgroundColor: 'var(--bg-surface)',
+              color: 'colors.textSecondary',
+              backgroundColor: 'colors.bgSurface',
               borderRadius: '8px',
             }}>
               <FolderOpen style={{ width: '12px', height: '12px' }} />
@@ -890,8 +873,8 @@ const DocumentListItem = ({ document, typeConfig, statusConfig, TypeIcon, isHove
         display: 'flex',
         alignItems: 'center',
         gap: '20px',
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border-primary)',
+        background: 'colors.bgSurface',
+        border: '1px solid colors.border',
         borderRadius: '16px',
         padding: '20px 24px',
         cursor: 'pointer',
@@ -921,7 +904,7 @@ const DocumentListItem = ({ document, typeConfig, statusConfig, TypeIcon, isHove
           <h3 style={{
             fontSize: '16px',
             fontWeight: '600',
-            color: 'var(--text-primary)',
+            color: 'colors.textPrimary',
             margin: 0,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -956,7 +939,7 @@ const DocumentListItem = ({ document, typeConfig, statusConfig, TypeIcon, isHove
         </div>
         <p style={{
           fontSize: '13px',
-          color: 'var(--text-muted)',
+          color: 'colors.textMuted',
           margin: 0,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -975,8 +958,8 @@ const DocumentListItem = ({ document, typeConfig, statusConfig, TypeIcon, isHove
             padding: '6px 14px',
             fontSize: '13px',
             fontWeight: '500',
-            color: 'var(--text-secondary)',
-            backgroundColor: 'var(--bg-hover)',
+            color: 'colors.textSecondary',
+            backgroundColor: 'colors.bgGlassHover',
             borderRadius: '8px',
           }}>
             <FolderOpen style={{ width: '14px', height: '14px' }} />
@@ -984,15 +967,17 @@ const DocumentListItem = ({ document, typeConfig, statusConfig, TypeIcon, isHove
           </span>
         )}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '80px' }}>
-          <Clock style={{ width: '14px', height: '14px', color: 'var(--text-muted)' }} />
-          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>
+          <Clock style={{ width: '14px', height: '14px', color: 'colors.textMuted' }} />
+          <span style={{ fontSize: '13px', color: 'colors.textSecondary', fontWeight: '500' }}>
             {formatDate(document.updatedAt)}
           </span>
         </div>
-        <ChevronRight style={{ width: '18px', height: '18px', color: 'var(--text-muted)' }} />
+        <ChevronRight style={{ width: '18px', height: '18px', color: 'colors.textMuted' }} />
       </div>
     </div>
   );
 };
 
 export default DocumentsPage;
+
+
