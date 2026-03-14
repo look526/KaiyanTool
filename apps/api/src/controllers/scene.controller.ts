@@ -4,6 +4,50 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export class SceneController {
+  async getScenesByProject(req: Request, res: Response): Promise<void> {
+    try {
+      const { projectId } = req.params;
+
+      // Get all episodes for this project
+      const episodes = await prisma.episode.findMany({
+        where: { project_id: projectId },
+        select: { id: true },
+      });
+
+      const episodeIds = episodes.map(ep => ep.id);
+
+      // Get all scenes for these episodes
+      const scenes = await prisma.scene.findMany({
+        where: { 
+          episode_id: { in: episodeIds }
+        },
+        include: {
+          Episode: {
+            select: {
+              id: true,
+              title: true,
+            }
+          },
+          Shot: {
+            select: {
+              id: true,
+              shot_number: true,
+              status: true,
+              aspect_ratio: true,
+              resolution: true,
+            },
+          },
+        },
+        orderBy: { scene_order: 'asc' },
+      });
+
+      res.json({ success: true, data: scenes });
+    } catch (error) {
+      console.error('Error getting scenes by project:', error);
+      res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to get scenes' } });
+    }
+  }
+
   async getScenes(req: Request, res: Response): Promise<void> {
     try {
       const { episodeId } = req.params;

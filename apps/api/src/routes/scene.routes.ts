@@ -8,6 +8,12 @@ const sceneController = new SceneController();
 // All routes require authentication
 router.use(authMiddleware);
 
+// GET /projects/:projectId/scenes
+router.get('/projects/:projectId/scenes', (req, res) => sceneController.getScenesByProject(req, res));
+
+// POST /projects/:projectId/scenes
+router.post('/projects/:projectId/scenes', (req, res) => sceneController.createScene(req, res));
+
 // GET /episodes/:episodeId/scenes
 router.get('/episodes/:episodeId/scenes', (req, res) => sceneController.getScenes(req, res));
 
