@@ -17,7 +17,8 @@ import {
   MapPin,
   Calendar,
   TrendingUp,
-  Clock
+  Clock,
+  Tv
 } from 'lucide-react';
 import Breadcrumb from '../components/Breadcrumb';
 import { GlassActionButton } from '../components/ui/GlassActionButton';
@@ -160,8 +161,8 @@ export default function ProjectDetailPage() {
     { to: `/projects/${project.id}/characters`, icon: Image, label: '管理角色', desc: '创建和管理角色形象', gradient: 'var(--gradient-secondary)', shadow: 'var(--success-shadow)' },
     { to: `/projects/${project.id}/members`, icon: Users, label: '管理成员', desc: '管理项目成员和权限', gradient: 'var(--gradient-accent)', shadow: 'var(--warning-shadow)' },
     { to: `/projects/${project.id}/scenes`, icon: MapPin, label: '管理场景', desc: '创建和管理拍摄场景', gradient: 'var(--gradient-pink)', shadow: 'var(--error-shadow)' },
-    { to: `/projects/${project.id}/shots`, icon: FolderKanban, label: '分镜管理', desc: '查看和编辑镜头列表', gradient: 'var(--gradient-teal)', shadow: 'var(--info-shadow)' },
-    { to: `/projects/${project.id}/outline`, icon: BookOpen, label: '生成大纲', desc: 'AI智能生成剧情大纲', gradient: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)', shadow: '0 8px 24px rgba(139, 92, 246, 0.3)' },
+    { to: `/projects/${project.id}/shots`, icon: Tv, label: '分镜管理', desc: '剧集 - 场景 - 分镜三层管理', gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', shadow: '0 8px 24px rgba(139, 92, 246, 0.3)' },
+    { to: `/projects/${project.id}/outline`, icon: BookOpen, label: '生成大纲', desc: 'AI 智能生成剧情大纲', gradient: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)', shadow: '0 8px 24px rgba(139, 92, 246, 0.3)' },
   ];
 
   return (

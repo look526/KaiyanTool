@@ -8,7 +8,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   LineChart, Line, Legend 
 } from 'recharts';
-import { apiClient } from '../lib/api-client';
+import { apiClient } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -389,13 +389,14 @@ const CustomTooltip = ({ active, payload, label, isDark }: any) => {
 };
 
 export default function AnalyticsPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   
   const [timeRange, setTimeRange] = useState<TimeRange>('week');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   
   const [userAnalytics, setUserAnalytics] = useState<{
@@ -463,23 +464,38 @@ export default function AnalyticsPage() {
 
   const isAdmin = user?.role === 'admin';
 
-  const fetchData = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+  useEffect(() => {
+    // 只有在用户登录且认证状态加载完成时才获取数据
+    if (!user || authLoading) return;
     
-    try {
-      // 只有当用户登录时才尝试获取分析数据
-      if (user) {
-        try {
-          const [userData, platformData, modelData] = await Promise.all([
-            apiClient.getAnalytics('user') as any,
-            isAdmin ? apiClient.getAnalytics('platform') : Promise.resolve(null),
-            apiClient.getModelUsageAnalytics() as any,
-          ]);
-          setUserAnalytics(userData as any);
-          if (platformData) {
-            setPlatformAnalytics(platformData as any);
+    const fetchData = async () => {
+      setLoading(true);
+      
+      try {
+        // 先获取用户分析数据
+        const userData = await apiClient.getAnalytics('user') as any;
+        setUserAnalytics(userData as any);
+        
+        // 只有管理员才尝试获取平台分析数据
+        const currentIsAdmin = user?.role === 'admin';
+        if (currentIsAdmin) {
+          try {
+            const platformData = await apiClient.getAnalytics('platform') as any;
+            if (platformData) {
+              setPlatformAnalytics(platformData as any);
+            }
+          } catch (error: any) {
+            console.error('Failed to fetch platform analytics:', error);
+            // 403 错误表示没有管理员权限，这是正常的
+            if (error.response?.status !== 403) {
+              console.error('Unexpected error fetching platform analytics:', error);
+            }
           }
+        }
+        
+        // 获取模型使用分析数据
+        try {
+          const modelData = await apiClient.getModelUsageAnalytics() as any;
           // 转换模型数据结构以匹配前端期望的格式
           if (modelData) {
             const transformedModelData = {
@@ -490,15 +506,15 @@ export default function AnalyticsPage() {
                 type: model.type,
                 provider: model.provider,
                 totalRequests: model.usageCount || 0,
-                successCount: model.usageCount || 0, // 后端未提供，使用 usageCount 作为近似值
-                failureCount: 0, // 后端未提供
-                averageResponseTime: 0, // 后端未提供
-                lastHourRequests: 0, // 后端未提供
-                lastDayRequests: 0, // 后端未提供
-                successRate: 100, // 后端未提供，默认为 100%
-                errorRate: 0, // 后端未提供
-                totalCost: 0, // 后端未提供
-                lastError: undefined // 后端未提供
+                successCount: model.usageCount || 0,
+                failureCount: 0,
+                averageResponseTime: 0,
+                lastHourRequests: 0,
+                lastDayRequests: 0,
+                successRate: 100,
+                errorRate: 0,
+                totalCost: 0,
+                lastError: undefined
               })) || []
             };
             console.log('Model data received:', modelData);
@@ -506,29 +522,26 @@ export default function AnalyticsPage() {
             setModelUsageStats(transformedModelData);
           }
         } catch (error) {
-          console.error('Failed to fetch analytics:', error);
-          // 检查是否是未授权错误，只有当状态码为401时才重定向
-          if (error instanceof Error && (error as any).response?.status === 401) {
-            // 清除用户状态并跳转到登录页
-            window.location.href = '/login';
-          }
+          console.error('Failed to fetch model usage analytics:', error);
         }
+        
+        setLastRefresh(new Date());
+        setRefreshing(false);
+      } catch (error) {
+        console.error('Failed to fetch analytics:', error);
+        setRefreshing(false);
+      } finally {
+        setLoading(false);
       }
-      setLastRefresh(new Date());
-    } catch (error) {
-      console.error('Failed to fetch analytics:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [isAdmin, user]);
-
-  useEffect(() => {
+    };
+    
     fetchData();
-  }, [fetchData, timeRange]);
+  }, [user, authLoading, refreshTrigger]);
 
   const handleRefresh = () => {
-    fetchData(true);
+    setRefreshing(true);
+    setRefreshTrigger(prev => prev + 1);
+    // 在数据加载完成后更新 lastRefresh（在 fetchData 中）
   };
 
   const handleExport = () => {
@@ -606,8 +619,8 @@ export default function AnalyticsPage() {
               <div>
                 <h1 style={{ fontSize: '22px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>分析中心</h1>
                 <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
-                  最后更新: {lastRefresh.toLocaleTimeString('zh-CN')}
-                </p>
+                最后更新：{new Date().toLocaleTimeString('zh-CN')}
+              </p>
               </div>
             </div>
             

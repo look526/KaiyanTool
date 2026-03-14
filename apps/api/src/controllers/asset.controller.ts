@@ -198,7 +198,7 @@ export class AssetController {
       }
 
       const scenes = await prisma.scene.findMany({
-        where: { project_id: project_id },
+        where: { projectId: project_id },
         include: {
           _count: {
             select: { Shot: true },

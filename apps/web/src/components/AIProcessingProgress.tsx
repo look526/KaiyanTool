@@ -2,7 +2,7 @@ import { X, Loader2, CheckCircle, AlertCircle, Sparkles } from 'lucide-react';
 
 export interface AIProcessingTask {
   id: string;
-  type: 'parsing' | 'optimizing' | 'continuing' | 'rewriting' | 'converting';
+  type: 'parsing' | 'optimizing' | 'continuing' | 'rewriting' | 'converting' | 'formatting';
   title: string;
   progress: number;
   status: 'pending' | 'processing' | 'completed' | 'failed';
@@ -20,6 +20,7 @@ const TYPE_CONFIG = {
   continuing: { gradient: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' },
   rewriting: { gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' },
   converting: { gradient: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' },
+  formatting: { gradient: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)' },
 };
 
 export function AIProcessingProgress({ tasks, onClear }: AIProcessingProgressProps) {

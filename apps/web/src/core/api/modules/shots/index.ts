@@ -1,1 +1,2 @@
-export { shotsApi, type Shot, type CreateShotRequest, type UpdateShotRequest } from './shots-api';
+export * from './shots-api';
+export * from './types';

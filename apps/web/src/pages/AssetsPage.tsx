@@ -25,7 +25,7 @@ interface Asset {
   size?: number;
   url: string;
   thumbnailUrl?: string;
-  createdAt: string;
+  created_at: string;
 }
 
 function AssetsPage() {
@@ -600,7 +600,7 @@ function AssetsPage() {
                     }}>
                       <span>{formatFileSize(asset.size)}</span>
                       <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {new Date(asset.createdAt).toLocaleDateString()}
+                        {new Date(asset.created_at).toLocaleDateString()}
                       </span>
                     </div>
                   </div>

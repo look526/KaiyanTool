@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { analyticsService } from '../services/analytics.service';
 import { authMiddleware } from '../middleware/auth.middleware';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
 
@@ -8,19 +9,25 @@ router.use(authMiddleware);
 
 router.get('/', async (req, res) => {
   try {
-    const userId = (req as any).userId;
+    const user_id = (req as any).user_id;
+    const user = (req as any).user;
     const type = req.query.type as string;
     
-    if (!userId) {
-      return res.status(401).json({ error: '未授权' });
-    }
-    
     if (type === 'user' || type === 'usage') {
-      const analytics = await analyticsService.getUserAnalytics(userId);
+      const analytics = await analyticsService.getUserAnalytics(user_id);
       return res.json(analytics);
     }
     
     if (type === 'platform') {
+      const userWithRole = await prisma.user.findUnique({
+        where: { id: user_id },
+        select: { role: true }
+      });
+      
+      if (!userWithRole || (userWithRole.role !== 'admin' && userWithRole.role !== 'super_admin')) {
+        return res.status(403).json({ error: '需要管理员权限' });
+      }
+      
       const analytics = await analyticsService.getPlatformAnalytics();
       return res.json(analytics);
     }
@@ -33,11 +40,8 @@ router.get('/', async (req, res) => {
 
 router.get('/usage', async (req, res) => {
   try {
-    const userId = (req as any).userId;
-    if (!userId) {
-      return res.status(401).json({ error: '未授权' });
-    }
-    const analytics = await analyticsService.getUserAnalytics(userId);
+    const user_id = (req as any).user_id;
+    const analytics = await analyticsService.getUserAnalytics(user_id);
     res.json(analytics);
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to get usage analytics' });
@@ -55,19 +59,27 @@ router.get('/project/:projectId', async (req, res) => {
 
 router.get('/user', async (req, res) => {
   try {
-    const userId = (req as any).userId;
-    if (!userId) {
-      return res.status(401).json({ error: '未授权' });
-    }
-    const analytics = await analyticsService.getUserAnalytics(userId);
+    const user_id = (req as any).user_id;
+    const analytics = await analyticsService.getUserAnalytics(user_id);
     res.json(analytics);
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to get user analytics' });
   }
 });
 
-router.get('/platform', async (_req, res) => {
+router.get('/platform', async (req, res) => {
   try {
+    const user_id = (req as any).user_id;
+    
+    const userWithRole = await prisma.user.findUnique({
+      where: { id: user_id },
+      select: { role: true }
+    });
+    
+    if (!userWithRole || (userWithRole.role !== 'admin' && userWithRole.role !== 'super_admin')) {
+      return res.status(403).json({ error: '需要管理员权限' });
+    }
+    
     const analytics = await analyticsService.getPlatformAnalytics();
     res.json(analytics);
   } catch (error) {
@@ -97,11 +109,8 @@ router.get('/project/:projectId/costs', async (req, res) => {
 
 router.post('/track', async (req, res) => {
   try {
-    const userId = (req as any).userId;
-    if (!userId) {
-      return res.status(401).json({ error: '未授权' });
-    }
-    await analyticsService.trackEvent(userId, req.body.eventType, req.body.metadata);
+    const user_id = (req as any).user_id;
+    await analyticsService.trackEvent(user_id, req.body.eventType, req.body.metadata);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to track event' });

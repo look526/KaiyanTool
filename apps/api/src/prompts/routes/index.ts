@@ -91,3 +91,5 @@ export const CONTENT_PROCESS_PROMPTS = {
     optimize: `请优化内容，提升表达质量。`
   }
 };
+
+export { FORMAT_TO_SCRIPT_PROMPTS } from './format-to-script';

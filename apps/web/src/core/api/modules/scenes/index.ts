@@ -1,1 +1,2 @@
-export { scenesApi, type Scene, type CreateSceneRequest, type UpdateSceneRequest } from './scenes-api';
+export * from './scenes-api';
+export * from './types';

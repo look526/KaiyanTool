@@ -51,6 +51,11 @@ import adminRoutes from './routes/admin'
 import imageGenerationRoutes from './routes/image-generation.routes'
 import imageEnhancementRoutes from './routes/image-enhancement.routes'
 import contentProcessRoutes from './routes/content-process.routes'
+import episodeRoutes from './routes/episode.routes'
+import sceneRoutes from './routes/scene.routes'
+import shotAlternativeRoutes from './routes/shot-alternative.routes'
+import shotDraftRoutes from './routes/shot-draft.routes'
+import mentionRoutes from './routes/mention.routes'
 import logger, { requestLogger } from './lib/logger'
 import { initSentry, sentryRequestHandler, sentryErrorHandler, sentryTracingHandler } from './lib/sentry'
 import { getMetrics } from './lib/metrics'
@@ -71,10 +76,20 @@ const UPLOAD_DIR = path.join(process.cwd(), config.upload.dir)
 
 app.use(sentryRequestHandler)
 app.use(cors({
-  origin: config.cors.origins,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true)
+    if (config.nodeEnv === 'development') {
+      callback(null, true)
+    } else if (config.cors.origins.includes(origin)) {
+      callback(null, origin)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
   credentials: config.cors.credentials,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-CSRF-Token']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-CSRF-Token'],
+  exposedHeaders: ['X-CSRF-Token']
 }))
 app.use(cookieParser())
 app.use(express.json())
@@ -89,7 +104,14 @@ app.use(csrfMiddleware)
 app.use('/api/health', healthRoutes)
 
 app.get('/api/metrics', cors({
-  origin: config.cors.origins,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true)
+    if (config.cors.origins.includes(origin)) {
+      callback(null, origin)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
   credentials: config.cors.credentials,
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
@@ -99,7 +121,14 @@ app.get('/api/metrics', cors({
 })
 
 app.post('/api/metrics', cors({
-  origin: config.cors.origins,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true)
+    if (config.cors.origins.includes(origin)) {
+      callback(null, origin)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
   credentials: config.cors.credentials,
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
@@ -155,6 +184,11 @@ app.use('/api/admin', adminRoutes)
 app.use('/api/image-generation', imageGenerationRoutes)
 app.use('/api/image-enhancement', imageEnhancementRoutes)
 app.use('/api/content', contentProcessRoutes)
+app.use('/api', episodeRoutes)
+app.use('/api', sceneRoutes)
+app.use('/api', shotAlternativeRoutes)
+app.use('/api', shotDraftRoutes)
+app.use('/api', mentionRoutes)
 app.use('/temp', express.static(path.join(process.cwd(), 'temp')))
 
 app.use(sentryErrorHandler)

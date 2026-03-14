@@ -364,6 +364,7 @@ model Project {
   ChatSession    ChatSession[]
   Content        Content[]
   Document       Document[]
+  Episode        Episode[]
   Novel          Novel[]
   Outline        Outline[]
   User           User             @relation(fields: [owner_id], references: [id], onDelete: Cascade)
@@ -494,22 +495,46 @@ model RenderTask {
   @@index([type])
 }
 
-model Scene {
-  id               String   @id @db.Uuid
-  project_id       String   @db.Uuid
-  script_id        String?  @db.Uuid
-  location         String
-  time             String
-  atmosphere       String?
-  reference_images String[] @default([])
-  created_at       DateTime @default(now())
-  updated_at       DateTime
-  Project          Project  @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  Script           Script?  @relation(fields: [script_id], references: [id])
-  Shot             Shot[]
+model Episode {
+  id             String   @id @db.Uuid
+  project_id     String   @db.Uuid
+  title          String
+  episode_number Int      @default(1)
+  description    String?
+  script_id      String?  @db.Uuid
+  created_at     DateTime @default(now())
+  updated_at     DateTime
 
+  Project   Project     @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  Script    Script?     @relation(fields: [script_id], references: [id])
+  Scene     Scene[]
+  Shot      Shot[]
+  ShotDraft ShotDraft[]
+
+  @@unique([project_id, episode_number])
   @@index([project_id])
-  @@index([script_id])
+}
+
+model Scene {
+  id          String   @id @db.Uuid
+  episode_id  String   @db.Uuid
+  location    String
+  time        String
+  description String?
+  scene_order Int      @default(0)
+  status      String   @default("pending")
+  created_at  DateTime @default(now())
+  updated_at  DateTime
+
+  Episode   Episode  @relation(fields: [episode_id], references: [id], onDelete: Cascade)
+  Shot      Shot[]
+  Project   Project? @relation(fields: [project_id], references: [id])
+  project_id String? @db.Uuid
+  Script    Script?  @relation(fields: [script_id], references: [id])
+  script_id String?  @db.Uuid
+
+  @@index([episode_id])
+  @@index([episode_id, scene_order])
 }
 
 model SceneConcept {
@@ -529,14 +554,15 @@ model SceneConcept {
 }
 
 model Script {
-  id         String   @id @db.Uuid
-  project_id String   @db.Uuid
+  id         String    @id @db.Uuid
+  project_id String    @db.Uuid
   title      String
   content    String
-  created_at DateTime @default(now())
+  created_at DateTime  @default(now())
   updated_at DateTime
+  Episode    Episode[]
   Scene      Scene[]
-  Project    Project  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  Project    Project   @relation(fields: [project_id], references: [id], onDelete: Cascade)
 
   @@index([project_id])
 }
@@ -568,10 +594,11 @@ model Session {
 }
 
 model Shot {
-  id              String          @id @db.Uuid
-  project_id      String          @db.Uuid
-  scene_id        String?         @db.Uuid
-  character_id    String?         @db.Uuid
+  id              String            @id @db.Uuid
+  project_id      String            @db.Uuid
+  episode_id      String            @db.Uuid
+  scene_id        String?           @db.Uuid
+  character_id    String?           @db.Uuid
   chapter_number  Int?
   episode_number  Int?
   segment_id      Int?
@@ -583,20 +610,28 @@ model Shot {
   start_image_url String?
   end_image_url   String?
   video_url       String?
-  duration        Int             @default(8)
-  aspect_ratio    String          @default("16:9")
+  duration        Int               @default(8)
+  aspect_ratio    String            @default("16:9")
+  resolution      String            @default("1080p")
+  model           String?
+  status          String            @default("pending")
   visual_style    String?
-  created_at      DateTime        @default(now())
+  created_at      DateTime          @default(now())
   updated_at      DateTime
+  Episode         Episode           @relation(fields: [episode_id], references: [id], onDelete: Cascade)
   NineGridPanel   NineGridPanel[]
-  Character       Character?      @relation(fields: [character_id], references: [id])
-  Project         Project         @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  Scene           Scene?          @relation(fields: [scene_id], references: [id])
+  Character       Character?        @relation(fields: [character_id], references: [id])
+  Project         Project           @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  Scene           Scene?            @relation(fields: [scene_id], references: [id])
+  ShotAlternative ShotAlternative[]
   Video           Video?
+  ShotDraft       ShotDraft[]
 
   @@index([character_id])
+  @@index([episode_id])
   @@index([project_id])
   @@index([scene_id])
+  @@index([episode_id, status])
 }
 
 model Storyline {
@@ -813,6 +848,37 @@ model LoginAttempt {
 
   @@index([identifier])
   @@index([ip])
+}
+
+model ShotAlternative {
+  id             String   @id @db.Uuid
+  shot_id        String   @db.Uuid
+  video_url      String
+  is_recommended Boolean  @default(false)
+  version        Int      @default(1)
+  metadata       Json?    @default("{}")
+  created_at     DateTime @default(now())
+
+  Shot Shot @relation(fields: [shot_id], references: [id], onDelete: Cascade)
+
+  @@index([shot_id])
+  @@index([shot_id, is_recommended])
+}
+
+model ShotDraft {
+  id         String   @id @db.Uuid
+  shot_id    String?  @db.Uuid
+  episode_id String   @db.Uuid
+  scene_id   String?
+  draft_data Json     @default("{}")
+  created_at DateTime @default(now())
+  updated_at DateTime
+
+  Episode Episode @relation(fields: [episode_id], references: [id], onDelete: Cascade)
+  Shot    Shot?   @relation(fields: [shot_id], references: [id], onDelete: Cascade)
+
+  @@index([episode_id])
+  @@index([shot_id])
 }
 
 enum AgentType {

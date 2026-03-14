@@ -1,24 +1,55 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
-export async function getCsrfToken(): Promise<string> {
-  try {
-    // 直接发送GET请求到一个不需要认证的路径来获取CSRF token
-    const response = await fetch(`${API_BASE_URL}/auth/me`, {
-      method: 'GET',
-      credentials: 'include',
-    });
+// 用于防止并发请求的全局变量
+let csrfTokenPromise: Promise<string> | null = null;
 
-    // 即使响应状态不是200，也尝试从响应头获取CSRF token
-    const newToken = response.headers.get('X-CSRF-Token') || '';
-    if (newToken) {
-      localStorage.setItem('csrfToken', newToken);
-    }
-    return newToken;
-  } catch (error) {
-    console.error('Failed to fetch CSRF token:', error);
-    // 尝试从localStorage获取作为备用
-    return localStorage.getItem('csrfToken') || '';
+export async function getCsrfToken(): Promise<string> {
+  console.log('[CSRF] getCsrfToken called');
+  
+  // 首先检查 localStorage 中是否已有 token
+  const existingToken = localStorage.getItem('csrfToken');
+  console.log('[CSRF] existingToken from localStorage:', existingToken ? existingToken.substring(0, 20) + '...' : 'null');
+  if (existingToken) {
+    return existingToken;
   }
+  
+  // 如果已经有正在进行的请求，返回该 Promise
+  if (csrfTokenPromise) {
+    console.log('[CSRF] Reusing existing promise');
+    return csrfTokenPromise;
+  }
+  
+  console.log('[CSRF] Fetching new token from server...');
+  console.log('[CSRF] API_BASE_URL:', API_BASE_URL);
+  
+  // 创建新的请求 Promise
+  csrfTokenPromise = (async () => {
+    try {
+      const url = `${API_BASE_URL}/auth/me`;
+      console.log('[CSRF] Fetching from:', url);
+      const response = await fetch(url, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      console.log('[CSRF] Response status:', response.status);
+      console.log('[CSRF] Response headers:', [...response.headers.entries()]);
+
+      const newToken = response.headers.get('X-CSRF-Token') || '';
+      console.log('[CSRF] New token from header:', newToken ? newToken.substring(0, 20) + '...' : 'null');
+      if (newToken) {
+        localStorage.setItem('csrfToken', newToken);
+        console.log('[CSRF] Token saved to localStorage');
+      }
+      return newToken;
+    } catch (error) {
+      console.error('[CSRF] Failed to fetch CSRF token:', error);
+      return '';
+    } finally {
+      csrfTokenPromise = null;
+    }
+  })();
+  
+  return csrfTokenPromise;
 }
 
 export function clearCsrfToken(): void {

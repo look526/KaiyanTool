@@ -23,10 +23,14 @@ export class ApiClient {
     }
 
     const method = (options.method || 'GET').toUpperCase()
+    console.log('[API] Request method:', method, 'endpoint:', endpoint)
     if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+      console.log('[API] Getting CSRF token...')
       const token = await getCsrfToken()
+      console.log('[API] CSRF token:', token ? token.substring(0, 20) + '...' : 'null')
       if (token) {
         headers['X-CSRF-Token'] = token
+        console.log('[API] Added X-CSRF-Token header')
       }
     }
 
@@ -70,6 +74,10 @@ export class ApiClient {
       }
       const error = new Error(errorMessage) as any
       error.response = { status: response.status, data: errorText }
+      // 处理认证错误
+      if (response.status === 401) {
+        handleAuthError(error);
+      }
       throw error
     }
 
@@ -354,6 +362,15 @@ export class ApiClient {
 
   async adaptToScript(novelAnalysis: any, options?: any) {
     return this.post<any>('/novel/adapt-to-script', { novelAnalysis, options })
+  }
+
+  async formatToScript(content: string, episodes: number, minutesPerEpisode: number, model?: string) {
+    return this.post<{ success: boolean; formatted_text: string; metadata: { episodes: number; minutes_per_episode: number } }>('/script/format-to-script', {
+      content,
+      episodes,
+      minutes_per_episode: minutesPerEpisode,
+      model
+    })
   }
 
   // Character endpoints
@@ -690,15 +707,30 @@ export class ApiClient {
   }
 
   async setDefaultModels(configurations: any[]) {
-    return this.post<any>('/model-preferences/default', { configurations })
+    const defaultModels: Record<string, string> = {}
+    configurations.forEach(config => {
+      if (config.contentType && config.modelId) {
+        defaultModels[config.contentType] = config.modelId
+      }
+    })
+    return this.post<any>('/model-preferences/default', { default_models: defaultModels })
   }
 
   async testModel(data: any) {
-    return this.post<any>('/model-preferences/test', data)
+    const snakeCaseData = {
+      model_id: data.modelId || data.model_id,
+      test_prompt: data.testPrompt || data.test_prompt
+    }
+    return this.post<any>('/model-preferences/test', snakeCaseData)
   }
 
   async recordModelUsage(data: { modelId: string; contentType: string; success: boolean }) {
-    return this.post<any>('/model-preferences/usage', data)
+    const snakeCaseData = {
+      model_id: data.modelId,
+      content_type: data.contentType,
+      success: data.success
+    }
+    return this.post<any>('/model-preferences/usage', snakeCaseData)
   }
 
   async getConfigurationHistory(params?: any) {
@@ -779,9 +811,17 @@ export class ApiClient {
   }
 }
 
+let authErrorHandler: ((error: Error) => void) | null = null;
+
 export function setAuthErrorHandler(handler: (error: Error) => void) {
-  // Auth error handler
-  // This function can be used to set a global error handler for auth errors
+  authErrorHandler = handler;
+}
+
+// 在request方法中调用认证错误处理
+export function handleAuthError(error: Error) {
+  if (authErrorHandler) {
+    authErrorHandler(error);
+  }
 }
 
 export const apiClient = new ApiClient()

@@ -1,7 +1,10 @@
 import { Router } from 'express'
 import { modelPreferenceController } from '../controllers/model-preference.controller'
+import { authMiddleware } from '../middleware/auth.middleware'
 
 const router = Router()
+
+router.use(authMiddleware)
 
 router.get('/', modelPreferenceController.getPreferences.bind(modelPreferenceController))
 router.get('/history', modelPreferenceController.getHistory.bind(modelPreferenceController))

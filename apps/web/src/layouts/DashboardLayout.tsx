@@ -3,23 +3,12 @@ import { Sidebar } from '../components/Sidebar';
 import { useState, useEffect } from 'react';
 import AIAssistant from '../components/AIAssistant/AIAssistant';
 import { Bot } from 'lucide-react';
-import { apiClient } from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
 
 export function DashboardLayout() {
   const [showAIAssistant, setShowAIAssistant] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const checkAdmin = async () => {
-      try {
-        const { user } = await apiClient.getCurrentUser();
-        setIsAdmin(user?.role === 'admin');
-      } catch (e) {
-        setIsAdmin(false);
-      }
-    };
-    checkAdmin();
-  }, []);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   return (
     <div style={{

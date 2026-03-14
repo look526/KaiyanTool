@@ -54,12 +54,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string, rememberMe?: boolean) => {
     await apiClient.login({ email, password, remember_me: rememberMe });
-    window.location.href = '/projects';
+    await refetch();
+    navigate('/projects');
   };
  
   const register = async (name: string, email: string, password: string) => {
     await apiClient.register({ name, email, password });
-    window.location.href = '/projects';
+    await refetch();
+    navigate('/projects');
   };
 
   const logout = async () => {

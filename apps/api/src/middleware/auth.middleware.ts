@@ -34,12 +34,6 @@ export const authMiddleware = async (
 
     const session_token = req.cookies?.sessionId as string | undefined
 
-    // 对于GET请求，如果没有session token，允许继续执行（用于获取CSRF token）
-    if (!session_token && req.method === 'GET') {
-      next()
-      return
-    }
-
     if (!session_token) {
       logger.debug('No session token provided', { path: req.path })
       res.status(401).json({ error: '未登录' })

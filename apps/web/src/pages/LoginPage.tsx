@@ -39,8 +39,6 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await apiClient.login({ email, password, remember_me: rememberMe });
-      
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
         localStorage.setItem('rememberMe', 'true');
@@ -49,10 +47,7 @@ export default function LoginPage() {
         localStorage.removeItem('rememberMe');
       }
       
-      // 延迟一下再跳转，确保状态更新完成
-      setTimeout(() => {
-        window.location.href = '/projects';
-      }, 100);
+      await login(email, password, rememberMe);
     } catch (err) {
       setError(err instanceof Error ? err.message : '登录失败');
     } finally {

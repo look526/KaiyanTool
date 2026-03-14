@@ -3,7 +3,7 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   
   cors: {
-    origins: process.env.CORS_ORIGIN?.split(',') || (process.env.NODE_ENV === 'production' ? [] : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002']),
+    origins: process.env.CORS_ORIGIN?.split(',') || (process.env.NODE_ENV === 'development' ? ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3004'] : []),
     credentials: true,
   },
   

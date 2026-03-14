@@ -136,6 +136,7 @@ export interface ApiClientInterface {
   updateChapter(chapterId: string, data: { title?: string; content?: string; order?: number }): Promise<any>;
   deleteChapter(chapterId: string): Promise<{ success: boolean }>;
   adaptToScript(novelAnalysis: any, options?: any): Promise<any>;
+  formatToScript(content: string, episodes: number, minutesPerEpisode: number, model?: string): Promise<{ success: boolean; formatted_text: string; metadata: { episodes: number; minutes_per_episode: number } }>;
   getPanels(shotId: string): Promise<any[]>;
   createPanel(shotId: string, data: { prompt: string; imageUrl?: string; position?: number }): Promise<any>;
   updatePanel(panelId: string, data: { prompt?: string; imageUrl?: string; position?: number }): Promise<any>;
@@ -168,6 +169,11 @@ export interface ApiClientInterface {
   deleteNineGridPanel(shotId: string, panelId: string): Promise<{ message: string }>;
   generateNineGridPanels(shotId: string, data?: { providerId?: string; model?: string }): Promise<{ total: number; successful: number; failed: number }>;
   reorderNineGridPanels(shotId: string, panelIds: string[]): Promise<{ message: string }>;
+  getAnalytics(type: string, startDate?: string, endDate?: string): Promise<any>;
+  getPlatformAnalytics(): Promise<any>;
+  getUsageStats(): Promise<any>;
+  getModelUsageAnalytics(): Promise<any>;
+  getAnalysis(projectId: string): Promise<any>;
   get<T = any>(url: string): Promise<T>;
   post<T = any>(url: string, data?: any): Promise<T>;
   put<T = any>(url: string, data?: any): Promise<T>;

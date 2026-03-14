@@ -5,8 +5,19 @@ export interface CsrfRequest extends Request {
   csrfToken?: string;
 }
 
+// 需要CSRF保护的路径前缀
+const csrfProtectedPaths = ['/api/auth', '/api/projects', '/api/upload', '/api/ai-providers'];
+
 export function csrfMiddleware(req: CsrfRequest, res: Response, next: NextFunction): void {
-  const publicPaths = ['/api/auth/login', '/api/auth/register', '/api/auth/init-admin', '/api/auth/me'];
+  // 检查路径是否需要CSRF保护
+  const needsCsrfProtection = csrfProtectedPaths.some(path => req.path.startsWith(path));
+  
+  // 如果路径不需要CSRF保护，直接通过
+  if (!needsCsrfProtection) {
+    return next();
+  }
+  
+  const publicPaths = ['/api/auth/login', '/api/auth/register', '/api/auth/init-admin', '/api/auth/me', '/api/auth/test-csrf'];
   const isPublicPath = publicPaths.some(path => req.path === path);
   
   // 使用固定的sessionId来存储CSRF令牌

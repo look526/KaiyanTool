@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma';
 import { scriptParserService } from '../services/script/script-parser.service';
 import { largeTextProcessingService } from '../services/large-text';
 import { SCRIPT_CONTROLLER_PROMPTS } from '../prompts/services';
+import { FORMAT_TO_SCRIPT_PROMPTS } from '../prompts/routes';
 import { AIProviderHelper } from '../services/ai/provider-helper.service';
 import { AppError, asyncHandler } from '../middleware/error.middleware';
 import logger from '../lib/logger';
@@ -375,5 +376,69 @@ export const optimizeSceneContent = asyncHandler(async (req: Request, res: Respo
   res.json({
     success: true,
     content: result.content
+  });
+});
+
+export const formatToScript = asyncHandler(async (req: Request, res: Response) => {
+  const { content, episodes, minutes_per_episode, model } = req.body;
+  const user_id = req.user_id;
+
+  if (!content || typeof content !== 'string') {
+    throw AppError.badRequest('小说内容不能为空');
+  }
+
+  if (!episodes || typeof episodes !== 'number' || episodes < 1) {
+    throw AppError.badRequest('请填写有效的集数');
+  }
+
+  if (!minutes_per_episode || typeof minutes_per_episode !== 'number' || minutes_per_episode < 1) {
+    throw AppError.badRequest('请填写有效的分钟数');
+  }
+
+  const { aiProvider, modelName, providerId } = await AIProviderHelper.getProvider(user_id, model);
+
+  logger.info('Format to script request', {
+    user_id,
+    providerId,
+    modelName,
+    contentLength: content.length,
+    episodes,
+    minutesPerEpisode: minutes_per_episode
+  });
+
+  const userPrompt = FORMAT_TO_SCRIPT_PROMPTS.userPromptTemplate
+    .replace('{{episodes}}', String(episodes))
+    .replace('{{minutesPerEpisode}}', String(minutes_per_episode))
+    .replace('{{novelText}}', content);
+
+  const messages = [
+    {
+      role: 'system' as const,
+      content: FORMAT_TO_SCRIPT_PROMPTS.systemPrompt
+    },
+    {
+      role: 'user' as const,
+      content: userPrompt
+    }
+  ];
+
+  const result = await aiProvider.chat(messages, modelName ? { model: modelName } : undefined);
+
+  if (!result.content) {
+    throw AppError.internal('AI返回内容为空');
+  }
+
+  logger.info('Format to script completed', {
+    user_id,
+    resultLength: result.content.length
+  });
+
+  res.json({
+    success: true,
+    formatted_text: result.content,
+    metadata: {
+      episodes,
+      minutes_per_episode
+    }
   });
 });

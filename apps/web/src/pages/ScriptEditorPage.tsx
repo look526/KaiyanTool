@@ -31,6 +31,7 @@ import { ContentProvider, useContent, ContentMode } from '../contexts/ContentCon
 import { SceneOptimizer } from '../components/SceneOptimizer';
 import { AIProcessingProgress, AIProcessingTask } from '../components/AIProcessingProgress';
 import { ScriptPreviewPanel, Scene, Character } from '../components/ScriptPreviewPanel';
+import { FormatConfirmDialog } from '../components/editor/FormatConfirmDialog';
 
 const SCRIPT_TEMPLATES = [
   {
@@ -115,12 +116,25 @@ function ScriptEditorContent() {
   const [tasks, setTasks] = useState<AIProcessingTask[]>([]);
   const [showReparseConfirm, setShowReparseConfirm] = useState(false);
   const [hasParsedResult, setHasParsedResult] = useState(false);
+  const [formatEpisodes, setFormatEpisodes] = useState(12);
+  const [formatMinutes, setFormatMinutes] = useState(45);
+  const [showFormatDialog, setShowFormatDialog] = useState(false);
+  const [formattedResult, setFormattedResult] = useState<{
+    formatted_text: string;
+    metadata?: { episodes: number; minutes_per_episode: number };
+  } | null>(null);
+  const [isFormatting, setIsFormatting] = useState(false);
   const { addToast } = useToast();
 
   const addTask = (type: AIProcessingTask['type'], title: string) => {
     const id = Date.now().toString();
     const newTask: AIProcessingTask = { id, type, title, progress: 0, status: 'pending' };
-    setTasks(prev => [...prev, newTask]);
+    console.log('[addTask] Creating new task:', newTask);
+    setTasks(prev => {
+      const updated = [...prev, newTask];
+      console.log('[addTask] Updated tasks:', updated);
+      return updated;
+    });
     return id;
   };
 
@@ -406,7 +420,9 @@ function ScriptEditorContent() {
       addToast({ type: 'warning', title: '无法生成', message: '请先解析剧本' });
       return;
     }
+    console.log('[GenerateAssets] Starting asset generation...');
     const taskId = addTask('converting', '生成资产生成中');
+    console.log('[GenerateAssets] Task created with ID:', taskId);
     try {
       setIsGeneratingAssets(true);
       const stopProgress = simulateProgress(taskId, 5000);
@@ -512,6 +528,57 @@ function ScriptEditorContent() {
     }
   };
 
+  const handleFormatScript = async () => {
+    if (!content.trim() || isFormatting) {
+      if (!content.trim()) addToast({ type: 'warning', title: '内容为空' });
+      return;
+    }
+    if (!selectedModel) {
+      addToast({ type: 'warning', title: '请选择模型' });
+      return;
+    }
+
+    const taskId = addTask('formatting', '小说转剧本格式');
+    try {
+      setIsFormatting(true);
+      const stopProgress = simulateProgress(taskId, 5000);
+      
+      const result = await apiClient.formatToScript(
+        content,
+        formatEpisodes,
+        formatMinutes,
+        selectedModel
+      );
+      
+      stopProgress();
+      updateTask(taskId, { status: 'completed', progress: 100 });
+      
+      setFormattedResult({
+        formatted_text: result.formatted_text,
+        metadata: result.metadata,
+      });
+      setShowFormatDialog(true);
+    } catch (error) {
+      updateTask(taskId, { 
+        status: 'failed', 
+        error: error instanceof Error ? error.message : '未知错误' 
+      });
+      addToast({ type: 'error', title: '格式转换失败' });
+    } finally {
+      setIsFormatting(false);
+    }
+  };
+
+  const handleConfirmFormat = () => {
+    if (formattedResult) {
+      setScriptContent(formattedResult.formatted_text);
+      setMode('script');
+      setShowFormatDialog(false);
+      setFormattedResult(null);
+      addToast({ type: 'success', title: '已保存为剧本' });
+    }
+  };
+
   const editorOptions = {
     fontSize: 15,
     fontFamily: "'Fira Code', 'Consolas', monospace",
@@ -527,11 +594,12 @@ function ScriptEditorContent() {
   };
 
   const aiTools = [
-    { id: 'continue', label: 'AI续写', icon: Sparkles, color: '#007AFF', handler: handleContinueScript, loading: isContinuing, disabled: isContinuing || isRewriting || isOptimizing || !content.trim() || !selectedModel },
-    { id: 'rewrite', label: 'AI改写', icon: Wand2, color: '#10b981', handler: handleRewriteScript, loading: isRewriting, disabled: isContinuing || isRewriting || isOptimizing || !content.trim() || !selectedModel },
-    { id: 'optimize', label: 'AI优化', icon: Zap, color: '#f59e0b', handler: handleOptimizeScript, loading: isOptimizing, disabled: isContinuing || isRewriting || isOptimizing || !content.trim() || !selectedModel },
-    { id: 'parse', label: '剧本解析', icon: MapPin, color: '#ec4899', handler: handleParseScenes, loading: isParsingScenes, disabled: isParsingScenes || !content.trim() },
-    { id: 'scene-optimizer', label: '场景优化', icon: FileEdit, color: '#8b5cf6', handler: () => setShowSceneOptimizerModal(true), loading: false, disabled: !content.trim() },
+    { id: 'continue', label: 'AI续写', icon: Sparkles, color: '#007AFF', handler: handleContinueScript, loading: isContinuing, disabled: isContinuing || isRewriting || isOptimizing || !content.trim() || !selectedModel, requiresModel: true },
+    { id: 'rewrite', label: 'AI改写', icon: Wand2, color: '#10b981', handler: handleRewriteScript, loading: isRewriting, disabled: isContinuing || isRewriting || isOptimizing || !content.trim() || !selectedModel, requiresModel: true },
+    { id: 'optimize', label: 'AI优化', icon: Zap, color: '#f59e0b', handler: handleOptimizeScript, loading: isOptimizing, disabled: isContinuing || isRewriting || isOptimizing || !content.trim() || !selectedModel, requiresModel: true },
+    { id: 'format', label: '小说转剧本格式', icon: FileText, color: '#06b6d4', handler: handleFormatScript, loading: isFormatting, disabled: isFormatting || !content.trim() || !selectedModel, requiresModel: true },
+    { id: 'parse', label: '剧本解析', icon: MapPin, color: '#ec4899', handler: handleParseScenes, loading: isParsingScenes, disabled: isParsingScenes || !content.trim(), requiresModel: false },
+    { id: 'scene-optimizer', label: '场景优化', icon: FileEdit, color: '#8b5cf6', handler: () => setShowSceneOptimizerModal(true), loading: false, disabled: !content.trim(), requiresModel: false },
   ];
 
   return (
@@ -769,15 +837,79 @@ function ScriptEditorContent() {
             </div>
           </div>
 
+          <div style={{ padding: '10px', borderRadius: '10px', background: 'var(--bg-hover)', marginBottom: '12px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: '500', marginBottom: '10px' }}>
+              小说转剧本格式配置
+            </div>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>集数</label>
+                <input
+                  type="number"
+                  value={formatEpisodes}
+                  onChange={(e) => setFormatEpisodes(parseInt(e.target.value) || 1)}
+                  min={1}
+                  max={100}
+                  style={{
+                    width: '100%',
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-primary)',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-primary)',
+                    fontSize: '12px',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>每集时长(分钟)</label>
+                <input
+                  type="number"
+                  value={formatMinutes}
+                  onChange={(e) => setFormatMinutes(parseInt(e.target.value) || 1)}
+                  min={1}
+                  max={180}
+                  style={{
+                    width: '100%',
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-primary)',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-primary)',
+                    fontSize: '12px',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+            </div>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+              总时长约 {formatEpisodes * formatMinutes} 分钟
+            </div>
+          </div>
+
           {aiTools.map((tool) => {
-            const toolColors: Record<string, string> = { '#007AFF': '#3b82f6', '#10b981': '#10b981', '#f59e0b': '#f59e0b', '#ec4899': '#ec4899', '#8b5cf6': '#8b5cf6' };
+            const toolColors: Record<string, string> = { '#007AFF': '#3b82f6', '#10b981': '#10b981', '#f59e0b': '#f59e0b', '#ec4899': '#ec4899', '#8b5cf6': '#8b5cf6', '#06b6d4': '#06b6d4' };
             const color = toolColors[tool.color] || tool.color;
+            
+            const handleClick = () => {
+              if (tool.disabled) {
+                if (!content.trim()) {
+                  addToast({ type: 'warning', title: '请先输入内容' });
+                } else if (tool.requiresModel && !selectedModel) {
+                  addToast({ type: 'warning', title: '请先选择AI模型' });
+                }
+                return;
+              }
+              tool.handler();
+            };
+            
             return (
-              <button key={tool.id} onClick={tool.handler} disabled={tool.disabled || tool.loading} style={{
+              <button key={tool.id} onClick={handleClick} disabled={tool.loading} style={{
                 display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px',
                 borderRadius: '12px', border: `1px solid ${tool.disabled ? 'var(--border-primary)' : `${color}30`}`,
                 background: `${color}08`, color: tool.disabled ? 'var(--text-muted)' : color,
-                fontSize: '13px', fontWeight: '500', cursor: tool.disabled ? 'not-allowed' : 'pointer',
+                fontSize: '13px', fontWeight: '500', cursor: tool.loading ? 'wait' : 'pointer',
                 transition: 'all 0.2s ease', width: '100%', textAlign: 'left', opacity: tool.disabled ? 0.6 : 1,
               }}
               onMouseEnter={(e) => { if (!tool.disabled) { e.currentTarget.style.background = `${color}15`; e.currentTarget.style.borderColor = `${color}50`; e.currentTarget.style.transform = 'translateX(4px)'; } }}
@@ -837,6 +969,17 @@ function ScriptEditorContent() {
           setContent(optimizedContent);
           addToast({ type: 'success', title: '优化已应用' });
         }}
+      />
+
+      <FormatConfirmDialog
+        isOpen={showFormatDialog}
+        onClose={() => {
+          setShowFormatDialog(false);
+          setFormattedResult(null);
+        }}
+        onConfirm={handleConfirmFormat}
+        formatted_text={formattedResult?.formatted_text || ''}
+        metadata={formattedResult?.metadata}
       />
 
       {/* Reparse Confirm Modal */}

@@ -14,18 +14,18 @@ import PageTransition from './components/PageTransition'
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
 const CreateProjectPage = lazy(() => import('./pages/CreateProjectPage'))
 const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'))
+const EpisodesPage = lazy(() => import('./pages/EpisodesPage'))
+const EpisodeDetailPage = lazy(() => import('./pages/EpisodeDetailPage'))
 const ScriptEditorPage = lazy(() => import('./pages/ScriptEditorPage'))
 const ScriptViewerPage = lazy(() => import('./pages/ScriptViewerPage'))
 const NovelEditorPage = lazy(() => import('./pages/NovelEditorPage'))
 const NovelsPage = lazy(() => import('./pages/NovelsPage'))
-const UnifiedEditorPage = lazy(() => import('./pages/UnifiedEditorPage'))
 const StorylinePage = lazy(() => import('./pages/StorylinePage'))
 const OutlinePage = lazy(() => import('./pages/OutlinePage'))
 const CharactersPage = lazy(() => import('./pages/CharactersPage'))
 const ScenesPage = lazy(() => import('./pages/ScenesPage'))
 const ProjectMembersPage = lazy(() => import('./pages/ProjectMembersPage'))
 const AIProvidersPage = lazy(() => import('./pages/AIProvidersPage').then(m => ({ default: m.AIProvidersPage })))
-const ShotsPage = lazy(() => import('./pages/ShotsPage'))
 const PanelsPage = lazy(() => import('./pages/PanelsPage'))
 const VideoMergePage = lazy(() => import('./pages/VideoMergePage'))
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
@@ -151,7 +151,7 @@ function App() {
                   </Route>
 
                   <Route element={<ProtectedRoute><ProjectLayout /></ProtectedRoute>}>
-                    <Route path="/projects/:projectId/editor" element={<UnifiedEditorPage />} />
+                    <Route path="/projects/:projectId/editor" element={<ScriptEditorPage />} />
                     <Route path="/projects/:projectId/script" element={<ScriptEditorPage />} />
                     <Route path="/projects/:projectId/scripts/:scriptId" element={<ScriptViewerPage />} />
                     <Route path="/projects/:projectId/scripts/:scriptId/edit" element={<ScriptEditorPage />} />
@@ -162,7 +162,8 @@ function App() {
                     <Route path="/projects/:id/characters" element={<CharactersPage />} />
                     <Route path="/projects/:id/scenes" element={<ScenesPage />} />
                     <Route path="/projects/:id/members" element={<ProjectMembersPage />} />
-                    <Route path="/projects/:id/shots" element={<ShotsPage />} />
+                    <Route path="/projects/:id/shots" element={<EpisodesPage />} />
+                    <Route path="/projects/:projectId/episodes/:episodeId" element={<EpisodeDetailPage />} />
                     <Route path="/projects/:id/items" element={<ItemsPageSimple />} />
                     <Route path="/projects/:id/video-merge" element={<VideoMergePage />} />
                   </Route>
