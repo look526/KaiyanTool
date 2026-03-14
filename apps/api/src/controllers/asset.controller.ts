@@ -240,13 +240,43 @@ export class AssetController {
         return
       }
 
+      // 获取或创建默认 Episode
+      let episode = await prisma.episode.findFirst({
+        where: { project_id },
+        orderBy: { episode_order: 'asc' },
+      })
+
+      if (!episode) {
+        // 创建默认的第一集
+        episode = await prisma.episode.create({
+          data: {
+            id: crypto.randomUUID(),
+            project_id,
+            title: '第一集',
+            episode_order: 1,
+            status: 'draft',
+          },
+        })
+      }
+
+      // 获取下一个 scene_order
+      const maxScene = await prisma.scene.findFirst({
+        where: { episode_id: episode.id },
+        orderBy: { scene_order: 'desc' },
+        select: { scene_order: true },
+      })
+
+      const nextSceneOrder = (maxScene?.scene_order || 0) + 1
+
       const scene = await prisma.scene.create({
         data: {
           id: crypto.randomUUID(),
+          episode_id: episode.id,
           project_id: project_id,
           location,
           time,
-          atmosphere,
+          description: atmosphere,
+          scene_order: nextSceneOrder,
           reference_images: reference_images || [],
           created_at: new Date(),
           updated_at: new Date(),
