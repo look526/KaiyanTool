@@ -49,6 +49,7 @@ export default function CharactersPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [characterToDelete, setCharacterToDelete] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectAllHover, setSelectAllHover] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'created' | 'shots'>('name');
   const [filterGender, setFilterGender] = useState<string>('');
@@ -359,10 +360,17 @@ export default function CharactersPage() {
         }
       />
       
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px', position: 'relative' }}>
+      <div style={{ 
+        maxWidth: '1400px', 
+        margin: '0 auto', 
+        padding: '24px', 
+        position: 'relative',
+        height: 'calc(100vh - 72px)',
+        overflow: 'auto',
+      }}>
 
         <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: 0 }}>
             <div style={{
               background: colors.bgGlass,
               borderRadius: '24px',
@@ -532,11 +540,82 @@ export default function CharactersPage() {
             padding: '24px',
             border: `1px solid ${colors.border}`,
             backdropFilter: 'blur(20px)',
+            minHeight: '100%',
+            display: 'flex',
+            flexDirection: 'column',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
-                角色列表 <span style={{ color: colors.textMuted, fontWeight: '400' }}>({filteredCharacters.length})</span>
-              </h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
+                  角色列表 <span style={{ color: colors.textMuted, fontWeight: '400' }}>({filteredCharacters.length})</span>
+                </h3>
+                {filteredCharacters.length > 0 && (
+                  <button
+                    onClick={() => {
+                      if (selectedIds.size === filteredCharacters.length) {
+                        setSelectedIds(new Set());
+                      } else {
+                        setSelectedIds(new Set(filteredCharacters.map(c => c.id)));
+                      }
+                    }}
+                    onMouseEnter={() => setSelectAllHover(true)}
+                    onMouseLeave={() => setSelectAllHover(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '10px 16px',
+                      borderRadius: '12px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      color: selectAllHover ? '#fff' : colors.textPrimary,
+                      border: selectedIds.size === filteredCharacters.length
+                        ? 'none'
+                        : `1px solid ${colors.border}`,
+                      background: selectedIds.size === filteredCharacters.length
+                        ? selectAllHover
+                          ? 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)'
+                          : 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)'
+                        : selectAllHover
+                          ? `${accentColor}15`
+                          : colors.bgSecondary,
+                      boxShadow: selectedIds.size === filteredCharacters.length
+                        ? selectAllHover
+                          ? '0 8px 24px rgba(139, 92, 246, 0.5)'
+                          : '0 4px 14px rgba(139, 92, 246, 0.3)'
+                        : selectAllHover
+                          ? '0 4px 14px rgba(139, 92, 246, 0.15)'
+                          : 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.25s ease',
+                      transform: selectAllHover ? 'translateY(-1px)' : 'translateY(0)',
+                    }}
+                  >
+                    <div style={{
+                      width: '18px',
+                      height: '18px',
+                      borderRadius: '5px',
+                      border: selectedIds.size === filteredCharacters.length
+                        ? 'none'
+                        : `2px solid ${colors.borderHover}`,
+                      background: selectedIds.size === filteredCharacters.length
+                        ? 'linear-gradient(135deg, #c4b5fd 0%, #a78bfa 100%)'
+                        : 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s ease',
+                    }}>
+                      {selectedIds.size === filteredCharacters.length && (
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M2 6L5 9L10 3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </div>
+                    {selectedIds.size === filteredCharacters.length ? '取消全选' : '全选'}
+                  </button>
+                )}
+              </div>
               {selectedIds.size > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <span style={{ fontSize: '13px', color: colors.textMuted }}>已选择 {selectedIds.size} 个</span>
@@ -656,7 +735,12 @@ export default function CharactersPage() {
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', 
+                gap: '16px',
+                overflow: 'auto',
+              }}>
                 {filteredCharacters.map((character) => (
                   <CharacterCard
                     key={character.id}
@@ -902,9 +986,11 @@ export default function CharactersPage() {
                   type="character"
                   placeholder="添加角色参考图"
                   characterDescription={characterForm.appearance || ''}
+                  characterGender={characterForm.gender || ''}
+                  characterAge={characterForm.age ? parseInt(characterForm.age) : undefined}
                   enableReferenceImage={true}
-                  enableMultipleGeneration={false}
-                  enableThreeViews={false}
+                  enableMultipleGeneration={true}
+                  enableThreeViews={true}
                   threeViewsMode="combined"
                 />
               </div>
@@ -1353,6 +1439,27 @@ export default function CharactersPage() {
           @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
+          }
+          
+          /* 自定义滚动条样式 */
+          div::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+          }
+          
+          div::-webkit-scrollbar-track {
+            background: ${isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)'};
+            border-radius: 10px;
+          }
+          
+          div::-webkit-scrollbar-thumb {
+            background: ${isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'};
+            border-radius: 10px;
+            transition: background 0.2s ease;
+          }
+          
+          div::-webkit-scrollbar-thumb:hover {
+            background: ${isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)'};
           }
         `}
       </style>

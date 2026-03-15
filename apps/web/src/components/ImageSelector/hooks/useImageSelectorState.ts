@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { apiClient } from '@/lib/api';
+import { apiClient } from '../../../lib/api';
 import type { CategoryOption, ThreeViewsMode, ImageType } from '../types';
 
 interface UseImageSelectorStateProps {
@@ -9,6 +9,8 @@ interface UseImageSelectorStateProps {
   threeViewsMode: ThreeViewsMode;
   characterDescription?: string;
   autoCategoryFilter?: boolean;
+  characterGender?: string;
+  characterAge?: number;
 }
 
 /**
@@ -21,6 +23,8 @@ export function useImageSelectorState({
   threeViewsMode,
   characterDescription,
   autoCategoryFilter = true,
+  characterGender,
+  characterAge,
 }: UseImageSelectorStateProps) {
   // UI State
   const [showModal, setShowModal] = useState(false);
@@ -50,11 +54,18 @@ export function useImageSelectorState({
   const [selectedModel, setSelectedModel] = useState<string | undefined>(undefined);
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
-  const [imageCount, setImageCount] = useState(4);
+  const [imageCount, setImageCount] = useState(1); // 默认 1 张
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   
+  // 新增状态
+  const [gender, setGender] = useState(characterGender || '女'); // 默认女性
+  const [age, setAge] = useState(characterAge?.toString() || '');
+  const [resolution, setResolution] = useState<'2K' | '3K'>('2K');
+  const [aspectRatio, setAspectRatio] = useState('1:1');
+  const [localEnableThreeViews, setLocalEnableThreeViews] = useState(false);
+  
   // Computed values
-  const shouldUseThreeViews = enableThreeViews || type === 'character';
+  const shouldUseThreeViews = localEnableThreeViews || type === 'character';
   const effectiveThreeViewsMode = type === 'character' ? 'combined' : localThreeViewsMode;
 
   // Load categories on mount
@@ -89,6 +100,19 @@ export function useImageSelectorState({
       setPrompt(characterDescription);
     }
   }, [characterDescription, prompt]);
+  
+  // Sync gender and age with character info
+  useEffect(() => {
+    if (characterGender) {
+      setGender(characterGender);
+    }
+  }, [characterGender]);
+  
+  useEffect(() => {
+    if (characterAge) {
+      setAge(characterAge.toString());
+    }
+  }, [characterAge]);
 
   // Load assets when library tab is opened
   const loadAssets = useCallback(async () => {
@@ -145,6 +169,18 @@ export function useImageSelectorState({
     setImageCount,
     selectedImage,
     setSelectedImage,
+    
+    // 新增状态
+    gender,
+    setGender,
+    age,
+    setAge,
+    resolution,
+    setResolution,
+    aspectRatio,
+    setAspectRatio,
+    enableThreeViews: localEnableThreeViews,
+    setEnableThreeViews: setLocalEnableThreeViews,
     
     // Computed
     shouldUseThreeViews,

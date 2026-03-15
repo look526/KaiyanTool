@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Upload, Wand2, Images, X } from 'lucide-react';
-import { apiClient } from '@/lib/api';
-import { useToast } from '@/components/ui/Toast';
-import { ModelSelector } from '@/components/ui/ModelSelector/ModelSelector';
-import { Button } from '@/components/ui/button-new';
+import { apiClient } from '../../lib/api';
+import { useToast } from '../ui/Toast';
+import { ModelSelector } from '../ui/ModelSelector/index';
+import { Button } from '../ui/button-new';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useImageSelectorState } from './hooks/useImageSelectorState';
 import { useImageSelectorActions } from './hooks/useImageSelectorActions';
 import { ImageSelectorTabs } from './ImageSelectorTabs';
@@ -12,27 +13,8 @@ import { ImageSelectorGenerate } from './ImageSelectorGenerate';
 import { ImageSelectorLibrary } from './ImageSelectorLibrary';
 import type { ImageSelectorProps, ThreeViewsMode, TabType } from './types';
 
-/**
- * ImageSelector provides a unified interface for image selection,
- * supporting upload, AI generation, and library browsing.
- * 
- * Features:
- * - Drag & drop upload
- * - AI image generation with style presets
- * - Project asset library with search
- * - Three-view generation for characters
- * 
- * @example
- * ```tsx
- * <ImageSelector
- *   value={imageUrl}
- *   onChange={setImageUrl}
- *   projectId={project.id}
- *   type="character"
- *   enableThreeViews={true}
- * />
- * ```
- */
+const ACCENT_COLOR = '#8b5cf6';
+
 export function ImageSelector({
   value,
   onChange,
@@ -42,6 +24,8 @@ export function ImageSelector({
   maxSize = 5,
   disabled = false,
   characterDescription,
+  characterGender,
+  characterAge,
   enableReferenceImage = false,
   enableMultipleGeneration = false,
   enableThreeViews = false,
@@ -51,6 +35,8 @@ export function ImageSelector({
   autoCategoryFilter = true,
 }: ImageSelectorProps) {
   const { addToast } = useToast();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
   
   const state = useImageSelectorState({
     value,
@@ -59,6 +45,8 @@ export function ImageSelector({
     threeViewsMode,
     characterDescription,
     autoCategoryFilter,
+    characterGender,
+    characterAge,
   });
 
   const actions = useImageSelectorActions({
@@ -92,6 +80,11 @@ export function ImageSelector({
     setImageCount: state.setImageCount,
     setLocalThreeViewsMode: state.setLocalThreeViewsMode,
     setCurrentView: state.setCurrentView,
+    setGender: state.setGender,
+    setAge: state.setAge,
+    setResolution: state.setResolution,
+    setAspectRatio: state.setAspectRatio,
+    setEnableThreeViews: state.setEnableThreeViews,
     loadAssets: state.loadAssets,
     addToast,
   });
@@ -102,8 +95,7 @@ export function ImageSelector({
   }, [state]);
 
   return (
-    <div className="image-selector">
-      {/* Main Display */}
+    <div>
       {state.shouldUseThreeViews && type !== 'character' ? (
         <ThreeViewsDisplay
           value={threeViewsValue}
@@ -111,6 +103,7 @@ export function ImageSelector({
           currentView={state.currentView}
           onViewSelect={actions.handleViewSelect}
           onRemove={actions.handleThreeViewsRemove}
+          isDark={isDark}
         />
       ) : value ? (
         <SingleImageDisplay
@@ -118,16 +111,17 @@ export function ImageSelector({
           disabled={disabled}
           onRemove={actions.handleRemove}
           onClick={() => state.setShowModal(true)}
+          isDark={isDark}
         />
       ) : (
         <ImageSelectorTrigger
           onClick={() => !disabled && state.setShowModal(true)}
           disabled={disabled}
           placeholder={placeholder}
+          isDark={isDark}
         />
       )}
 
-      {/* Modal */}
       {state.showModal && (
         <ImageSelectorModal
           onClose={handleModalClose}
@@ -135,13 +129,14 @@ export function ImageSelector({
           activeTab={state.activeTab}
           effectiveThreeViewsMode={state.effectiveThreeViewsMode}
           currentView={state.currentView}
+          isDark={isDark}
         >
           <ImageSelectorTabs
             activeTab={state.activeTab as TabType}
             onTabChange={state.setActiveTab}
           />
           
-          <div className="image-selector__content">
+          <div style={{ padding: '20px', overflow: 'auto', flex: 1 }}>
             {state.activeTab === 'upload' && (
               <ImageSelectorUpload
                 projectId={projectId}
@@ -187,17 +182,21 @@ export function ImageSelector({
   );
 }
 
-// Display Components
-
-interface ThreeViewsDisplayProps {
+function ThreeViewsDisplay({ 
+  value, 
+  disabled, 
+  currentView, 
+  onViewSelect, 
+  onRemove,
+  isDark 
+}: { 
   value: { front: string | null; side: string | null; top: string | null };
   disabled: boolean;
   currentView: 'front' | 'side' | 'top';
   onViewSelect: (view: 'front' | 'side' | 'top') => void;
   onRemove: (view: 'front' | 'side' | 'top') => void;
-}
-
-function ThreeViewsDisplay({ value, disabled, currentView, onViewSelect, onRemove }: ThreeViewsDisplayProps) {
+  isDark: boolean;
+}) {
   const views = [
     { key: 'front' as const, label: '正视图' },
     { key: 'side' as const, label: '侧视图' },
@@ -205,20 +204,38 @@ function ThreeViewsDisplay({ value, disabled, currentView, onViewSelect, onRemov
   ];
 
   return (
-    <div className="flex gap-5 flex-wrap">
+    <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
       {views.map((view) => (
-        <div key={view.key} className="flex-1 min-w-[220px]">
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-3">
+        <div key={view.key} style={{ flex: '1 1 200px', minWidth: '200px' }}>
+          <label style={{
+            display: 'block',
+            fontSize: '13px',
+            fontWeight: '600',
+            color: isDark ? 'rgba(250,250,250,0.7)' : 'rgba(24,24,27,0.7)',
+            marginBottom: '12px',
+          }}>
             {view.label}
           </label>
-          <div className="relative inline-block w-full">
+          <div style={{ position: 'relative', width: '100%' }}>
             {value[view.key] ? (
               <>
-                <div className="relative rounded-xl overflow-hidden shadow-lg transition-all duration-300">
+                <div style={{
+                  position: 'relative',
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                  transition: 'all 0.3s ease',
+                }}>
                   <img
                     src={value[view.key] || ''}
                     alt={view.label}
-                    className="w-full max-w-[220px] h-auto cursor-pointer"
+                    style={{
+                      width: '100%',
+                      maxWidth: '220px',
+                      height: 'auto',
+                      cursor: disabled ? 'default' : 'pointer',
+                      display: 'block',
+                    }}
                     onClick={() => {
                       if (!disabled) {
                         onViewSelect(view.key);
@@ -229,9 +246,26 @@ function ThreeViewsDisplay({ value, disabled, currentView, onViewSelect, onRemov
                 {!disabled && (
                   <button
                     onClick={() => onRemove(view.key)}
-                    className="absolute top-[-10px] right-[-10px] w-7 h-7 rounded-full bg-red-500 border-3 border-white dark:border-gray-900 text-white flex items-center justify-center cursor-pointer p-0 shadow-lg transition-all duration-300"
+                    style={{
+                      position: 'absolute',
+                      top: '-10px',
+                      right: '-10px',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      background: '#ef4444',
+                      border: '3px solid',
+                      borderColor: isDark ? '#1a1a2e' : '#ffffff',
+                      color: '#ffffff',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s ease',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                    }}
                   >
-                    <X className="w-4 h-4" />
+                    <X style={{ width: '14px', height: '14px' }} />
                   </button>
                 )}
               </>
@@ -243,10 +277,25 @@ function ThreeViewsDisplay({ value, disabled, currentView, onViewSelect, onRemov
                   }
                 }}
                 disabled={disabled}
-                className="w-full min-h-[140px] p-6 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl bg-primary-50/50 dark:bg-primary-900/10 text-gray-500 dark:text-gray-400 cursor-pointer flex flex-col items-center justify-center gap-3 transition-all duration-300 backdrop-blur-sm"
+                style={{
+                  width: '100%',
+                  minHeight: '140px',
+                  padding: '24px',
+                  border: `2px dashed ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'}`,
+                  borderRadius: '16px',
+                  background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(139, 92, 246, 0.02)',
+                  color: isDark ? 'rgba(250,250,250,0.5)' : 'rgba(24,24,27,0.5)',
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '12px',
+                  transition: 'all 0.3s ease',
+                }}
               >
-                <Images className="w-9 h-9 text-primary-500" />
-                <span className="text-sm text-gray-600 dark:text-gray-400">上传或生成{view.label}</span>
+                <Images style={{ width: '36px', height: '36px', color: ACCENT_COLOR }} />
+                <span style={{ fontSize: '14px', fontWeight: '500' }}>上传或生成{view.label}</span>
               </button>
             )}
           </div>
@@ -256,77 +305,196 @@ function ThreeViewsDisplay({ value, disabled, currentView, onViewSelect, onRemov
   );
 }
 
-interface SingleImageDisplayProps {
+function SingleImageDisplay({ 
+  value, 
+  disabled, 
+  onRemove, 
+  onClick,
+  isDark 
+}: { 
   value: string;
   disabled: boolean;
   onRemove: () => void;
   onClick: () => void;
-}
-
-function SingleImageDisplay({ value, disabled, onRemove, onClick }: SingleImageDisplayProps) {
+  isDark: boolean;
+}) {
   return (
-    <div className="relative inline-block">
-      <div className="relative rounded-xl overflow-hidden shadow-lg transition-all duration-300">
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      <div style={{
+        position: 'relative',
+        borderRadius: '16px',
+        overflow: 'hidden',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+        transition: 'all 0.3s ease',
+      }}>
         <img
           src={value}
           alt="已选择"
-          className="w-full max-w-[220px] h-auto cursor-pointer"
+          style={{
+            width: '100%',
+            maxWidth: '220px',
+            height: 'auto',
+            cursor: 'pointer',
+            display: 'block',
+          }}
           onClick={onClick}
         />
       </div>
       {!disabled && (
         <button
           onClick={onRemove}
-          className="absolute top-[-10px] right-[-10px] w-7 h-7 rounded-full bg-red-500 border-3 border-white dark:border-gray-900 text-white flex items-center justify-center cursor-pointer p-0 shadow-lg transition-all duration-300"
+          style={{
+            position: 'absolute',
+            top: '-10px',
+            right: '-10px',
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            background: '#ef4444',
+            border: '3px solid',
+            borderColor: isDark ? '#1a1a2e' : '#ffffff',
+            color: '#ffffff',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+          }}
         >
-          <X className="w-4 h-4" />
+          <X style={{ width: '14px', height: '14px' }} />
         </button>
       )}
     </div>
   );
 }
 
-interface ImageSelectorTriggerProps {
+function ImageSelectorTrigger({ 
+  onClick, 
+  disabled, 
+  placeholder,
+  isDark 
+}: { 
   onClick: () => void;
   disabled: boolean;
   placeholder: string;
-}
-
-function ImageSelectorTrigger({ onClick, disabled, placeholder }: ImageSelectorTriggerProps) {
+  isDark: boolean;
+}) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className="w-full min-h-[140px] p-6 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl bg-primary-50/50 dark:bg-primary-900/10 text-gray-500 dark:text-gray-400 cursor-pointer flex flex-col items-center justify-center gap-3 transition-all duration-300 backdrop-blur-sm"
+      style={{
+        width: '100%',
+        minHeight: '140px',
+        padding: '24px',
+        border: `2px dashed ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'}`,
+        borderRadius: '16px',
+        background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(139, 92, 246, 0.02)',
+        color: isDark ? 'rgba(250,250,250,0.5)' : 'rgba(24,24,27,0.5)',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '12px',
+        transition: 'all 0.3s ease',
+      }}
     >
-      <Images className="w-9 h-9 text-primary-500" />
-      <span className="text-sm text-gray-600 dark:text-gray-400">{placeholder}</span>
-      <span className="text-xs text-gray-500 dark:text-gray-500">
+      <Images style={{ width: '36px', height: '36px', color: ACCENT_COLOR }} />
+      <span style={{ fontSize: '14px', fontWeight: '600' }}>{placeholder}</span>
+      <span style={{ fontSize: '12px', opacity: 0.7 }}>
         上传 / AI 生成 / 素材库
       </span>
     </button>
   );
 }
 
-interface ImageSelectorModalProps {
+function ImageSelectorModal({ 
+  onClose, 
+  children, 
+  showReferenceImagePicker, 
+  activeTab, 
+  effectiveThreeViewsMode, 
+  currentView,
+  isDark 
+}: { 
   onClose: () => void;
   children: React.ReactNode;
   showReferenceImagePicker: boolean;
   activeTab: string;
   effectiveThreeViewsMode: ThreeViewsMode;
   currentView: 'front' | 'side' | 'top';
-}
+  isDark: boolean;
+}) {
+  const getTitle = () => {
+    if (showReferenceImagePicker) return '选择参考图';
+    if (activeTab === 'generate' && effectiveThreeViewsMode === 'combined') return '选择三视图';
+    const viewLabels = { front: '正视图', side: '侧视图', top: '俯视图' };
+    return `选择${viewLabels[currentView]}`;
+  };
 
-function ImageSelectorModal({ onClose, children, showReferenceImagePicker, activeTab, effectiveThreeViewsMode, currentView }: ImageSelectorModalProps) {
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-900 backdrop-blur-md rounded-xl w-9/10 max-w-[850px] max-h-[85vh] overflow-hidden flex flex-col shadow-2xl border border-gray-200 dark:border-gray-800" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-800">
-          <h3 className="m-0 text-lg font-semibold text-primary-900 dark:text-primary-100">
-            {showReferenceImagePicker ? '选择参考图' : (activeTab === 'generate' && effectiveThreeViewsMode === 'combined' ? `选择三视图` : `选择${currentView === 'front' ? '正视图' : currentView === 'side' ? '侧视图' : '俯视图'}`)}
+    <div 
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.6)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 9999,
+        backdropFilter: 'blur(4px)',
+      }} 
+      onClick={onClose}
+    >
+      <div 
+        style={{
+          background: isDark ? 'rgba(10, 10, 20, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(20px)',
+          borderRadius: '20px',
+          width: '90%',
+          maxWidth: '850px',
+          maxHeight: '85vh',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
+          border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+        }} 
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '16px 20px',
+          borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+        }}>
+          <h3 style={{
+            margin: 0,
+            fontSize: '18px',
+            fontWeight: '600',
+            color: isDark ? '#fafafa' : '#18181b',
+          }}>
+            {getTitle()}
           </h3>
-          <button onClick={onClose} className="p-1.5 rounded-md border-none bg-transparent text-gray-500 dark:text-gray-400 cursor-pointer">
-            <X className="w-5 h-5" />
+          <button 
+            onClick={onClose} 
+            style={{
+              padding: '8px',
+              borderRadius: '10px',
+              border: 'none',
+              background: 'transparent',
+              color: isDark ? 'rgba(250,250,250,0.5)' : 'rgba(24,24,27,0.5)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <X style={{ width: '20px', height: '20px' }} />
           </button>
         </div>
         {children}

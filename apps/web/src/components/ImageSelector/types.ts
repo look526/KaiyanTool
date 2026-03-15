@@ -50,6 +50,10 @@ export interface ImageSelectorProps {
   disabled?: boolean;
   /** Character description for AI generation context */
   characterDescription?: string;
+  /** Character gender for AI generation */
+  characterGender?: string;
+  /** Character age for AI generation */
+  characterAge?: number;
   /** Enable reference image upload */
   enableReferenceImage?: boolean;
   /** Enable batch image generation */
