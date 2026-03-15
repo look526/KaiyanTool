@@ -28,7 +28,7 @@ import { apiClient } from '../lib/api';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../components/ui/Toast';
 import { ContentProvider, useContent, ContentMode } from '../contexts/ContentContext';
-import { SceneOptimizer } from '../components/SceneOptimizer';
+import { SceneOptimizer } from '../components/SceneOptimizer/index';
 import { AIProcessingProgress, AIProcessingTask } from '../components/AIProcessingProgress';
 import { ScriptPreviewPanel, Scene, Character } from '../components/ScriptPreviewPanel';
 import { FormatConfirmDialog } from '../components/editor/FormatConfirmDialog';
@@ -462,7 +462,7 @@ function ScriptEditorContent() {
           const sceneData = await apiClient.createScene(projectIdStr, {
             location: scene.description?.substring(0, 30) || scene.heading?.substring(0, 30) || `场景 ${i + 1}`,
             time: scene.time || '白天',
-            atmosphere: scene.description || scene.heading || '',
+            description: scene.description || scene.heading || '',
           } as any);
           
           const dialogues = scene.dialogues || scene.dialogue || [];
@@ -473,17 +473,17 @@ function ScriptEditorContent() {
               const dialogueText = dialogue.text || dialogue.lines?.join(' ') || '';
               try {
                 await apiClient.createShot(projectIdStr, {
-                  sceneId: sceneData.id,
-                  chapterNumber: i + 1,
-                  episodeNumber: 1,
-                  segmentId: 1,
-                  cellId: j + 1,
-                  actionSummary: `${charName}: "${dialogueText}"`,
-                  startPrompt: `【场景】${scene.description || scene.heading || '室内'}，${scene.time || '白天'}\n【角色】${charName}\n【台词】${dialogueText}`,
-                  endPrompt: `【场景】${scene.description || scene.heading || '室内'}，${scene.time || '白天'}\n【角色】${charName}说完台词`,
+                  scene_id: sceneData.id,
+                  chapter_number: i + 1,
+                  episode_number: 1,
+                  segment_id: 1,
+                  cell_id: j + 1,
+                  action_summary: `${charName}: "${dialogueText}"`,
+                  start_prompt: `【场景】${scene.description || scene.heading || '室内'}，${scene.time || '白天'}\n【角色】${charName}\n【台词】${dialogueText}`,
+                  end_prompt: `【场景】${scene.description || scene.heading || '室内'}，${scene.time || '白天'}\n【角色】${charName}说完台词`,
                   duration: Math.max(3, Math.ceil(dialogueText.length / 8)),
-                  aspectRatio: '16:9',
-                  cameraMovement: '中景，固定，平视',
+                  aspect_ratio: '16:9',
+                  camera_movement: '中景，固定，平视',
                 } as any);
                 createdAssets.shots++;
               } catch (err) { console.warn(`创建分镜失败:`, err); }
@@ -496,17 +496,17 @@ function ScriptEditorContent() {
             if (action.shot) {
               try {
                 await apiClient.createShot(projectIdStr, {
-                  sceneId: sceneData.id,
-                  chapterNumber: i + 1,
-                  episodeNumber: 1,
-                  segmentId: 1,
-                  cellId: dialogues.length + k + 1,
-                  actionSummary: action.description || '动作描述',
-                  startPrompt: `【场景】${scene.description || scene.heading || '室内'}\n【动作】${action.description || ''}`,
-                  endPrompt: `【场景】${scene.description || scene.heading || '室内'}\n【动作完成】`,
+                  scene_id: sceneData.id,
+                  chapter_number: i + 1,
+                  episode_number: 1,
+                  segment_id: 1,
+                  cell_id: dialogues.length + k + 1,
+                  action_summary: action.description || '动作描述',
+                  start_prompt: `【场景】${scene.description || scene.heading || '室内'}\n【动作】${action.description || ''}`,
+                  end_prompt: `【场景】${scene.description || scene.heading || '室内'}\n【动作完成】`,
                   duration: action.shot?.duration || 3,
-                  aspectRatio: '16:9',
-                  cameraMovement: action.shot ? `${action.shot.type || '中景'}，${action.shot.movement || '固定'}，${action.shot.angle || '平视'}` : '中景，固定，平视',
+                  aspect_ratio: '16:9',
+                  camera_movement: action.shot ? `${action.shot.type || '中景'}，${action.shot.movement || '固定'}，${action.shot.angle || '平视'}` : '中景，固定，平视',
                 } as any);
                 createdAssets.shots++;
               } catch (err) { console.warn(`创建动作分镜失败:`, err); }
@@ -962,11 +962,11 @@ function ScriptEditorContent() {
 
       {/* Modals */}
       <SceneOptimizer
-        isOpen={showSceneOptimizerModal}
-        onClose={() => setShowSceneOptimizerModal(false)}
-        scriptContent={content}
-        onApplyOptimization={(optimizedContent) => {
-          setContent(optimizedContent);
+        is_open={showSceneOptimizerModal}
+        on_close={() => setShowSceneOptimizerModal(false)}
+        script_content={content}
+        on_apply_optimization={(optimized_content) => {
+          setContent(optimized_content);
           addToast({ type: 'success', title: '优化已应用' });
         }}
       />

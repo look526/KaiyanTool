@@ -114,6 +114,14 @@ export const PROVIDER_MODELS: ProviderModels = {
       description: '阿里通义千问2.5模型，性能稳定',
       capabilities: ['对话', '创作', '翻译', '代码']
     }
+  ],
+  seedream: [
+    {
+      name: 'Seedream 5.0',
+      model_id: 'doubao-seedream-5-0',
+      description: '字节跳动 Seed 团队研发的最新图像生成模型，支持文生图、图生图、多图参考，支持 2K/3K 分辨率输出，支持联网搜索获取最新现实信息',
+      capabilities: ['文生图', '图生图', '多图参考', '图像编辑']
+    }
   ]
 };
 

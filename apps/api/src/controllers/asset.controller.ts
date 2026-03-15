@@ -243,7 +243,7 @@ export class AssetController {
       // 获取或创建默认 Episode
       let episode = await prisma.episode.findFirst({
         where: { project_id },
-        orderBy: { episode_order: 'asc' },
+        orderBy: { episode_number: 'asc' },
       })
 
       if (!episode) {
@@ -253,8 +253,10 @@ export class AssetController {
             id: crypto.randomUUID(),
             project_id,
             title: '第一集',
-            episode_order: 1,
+            episode_number: 1,
             status: 'draft',
+            created_at: new Date(),
+            updated_at: new Date(),
           },
         })
       }

@@ -40,6 +40,11 @@ const SIZE_PRESETS = [
   { value: '768x768', label: '3:4 竖屏', width: 768, height: 768, icon: '▢' },
 ];
 
+const RESOLUTION_OPTIONS = [
+  { value: '2K', label: '2K', description: '标准分辨率' },
+  { value: '3K', label: '3K', description: '高清分辨率' },
+];
+
 const QUICK_PROMPTS = [
   'cinematic lighting', 'dramatic shadows', 'soft focus background',
   'highly detailed', '8k resolution', 'professional photography',
@@ -69,20 +74,29 @@ export function ImageGenerationPage() {
   const [prompt, setPrompt] = useState('');
   const [negativePrompt, setNegativePrompt] = useState('');
   const [style, setStyle] = useState('cinematic');
-  const [size, setSize] = useState('1024x576');
+  const [size, setSize] = useState('1024x1024');
+  const [resolution, setResolution] = useState('2K');
+  const [imageCount, setImageCount] = useState(1);
+  const [watermark, setWatermark] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [generating, setGenerating] = useState(false);
   const [results, setResults] = useState<GeneratedItem[]>([]);
+  const [currentGeneratingIndex, setCurrentGeneratingIndex] = useState<number | null>(null);
   const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [hoveredResult, setHoveredResult] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [loadingImages, setLoadingImages] = useState<Record<string, boolean>>({});
 
   const handleGenerate = async () => {
     if (!prompt.trim() || generating) return;
 
     const [width, height] = size.split('x').map(Number);
+    const newId = `img-${Date.now()}`;
+    
     setGenerating(true);
+    setCurrentGeneratingIndex(Date.now());
+    setLoadingImages(prev => ({ ...prev, [newId]: true }));
 
     try {
       const result = await apiClient.generateImage({
@@ -93,10 +107,13 @@ export function ImageGenerationPage() {
         style,
         projectId: projectId || undefined,
         model: selectedModel,
+        resolution,
+        n: imageCount,
+        watermark,
       });
 
       const newItem: GeneratedItem = {
-        id: `img-${Date.now()}`,
+        id: newId,
         url: result.asset.url,
         prompt,
         negativePrompt,
@@ -108,8 +125,10 @@ export function ImageGenerationPage() {
       setResults(prev => [newItem, ...prev]);
     } catch (error) {
       console.error('Failed to generate image:', error);
+      setLoadingImages(prev => ({ ...prev, [newId]: false }));
     } finally {
       setGenerating(false);
+      setCurrentGeneratingIndex(null);
     }
   };
 
@@ -219,7 +238,6 @@ export function ImageGenerationPage() {
               background: 'var(--bg-card)',
               borderRadius: '20px',
               border: '1px solid var(--border-primary)',
-              overflow: 'hidden',
             }}>
               <div style={{ padding: '24px' }}>
                 <div style={{ marginBottom: '20px' }}>
@@ -386,10 +404,105 @@ export function ImageGenerationPage() {
                         })}
                       </div>
                     </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+                        分辨率
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                        {RESOLUTION_OPTIONS.map((option) => {
+                          const isSelected = resolution === option.value;
+                          return (
+                            <div
+                              key={option.value}
+                              onClick={() => setResolution(option.value)}
+                              style={{
+                                padding: '12px',
+                                borderRadius: '10px',
+                                border: `2px solid ${isSelected ? '#ec4899' : 'var(--border-primary)'}`,
+                                background: isSelected ? 'rgba(236, 72, 153, 0.1)' : 'var(--bg-hover)',
+                                cursor: 'pointer',
+                                textAlign: 'center',
+                                transition: 'all 0.2s ease',
+                              }}
+                            >
+                              <div style={{ fontSize: '14px', fontWeight: '600', color: isSelected ? '#ec4899' : 'var(--text-primary)', marginBottom: '2px' }}>
+                                {option.label}
+                              </div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                {option.description}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+                        生成数量
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        {[1, 2, 3, 4, 5].map((count) => (
+                          <div
+                            key={count}
+                            onClick={() => setImageCount(count)}
+                            style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '10px',
+                              border: `2px solid ${imageCount === count ? '#ec4899' : 'var(--border-primary)'}`,
+                              background: imageCount === count ? 'rgba(236, 72, 153, 0.1)' : 'var(--bg-hover)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '14px',
+                              fontWeight: '600',
+                              color: imageCount === count ? '#ec4899' : 'var(--text-primary)',
+                              transition: 'all 0.2s ease',
+                            }}
+                          >
+                            {count}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <label style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                        添加水印
+                      </label>
+                      <div
+                        onClick={() => setWatermark(!watermark)}
+                        style={{
+                          width: '48px',
+                          height: '28px',
+                          borderRadius: '14px',
+                          background: watermark ? '#ec4899' : 'var(--bg-hover)',
+                          border: `1px solid ${watermark ? '#ec4899' : 'var(--border-primary)'}`,
+                          cursor: 'pointer',
+                          position: 'relative',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <div style={{
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          background: 'white',
+                          position: 'absolute',
+                          top: '3px',
+                          left: watermark ? '23px' : '3px',
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                        }} />
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                <div style={{ marginBottom: '16px' }}>
+                <div style={{ marginBottom: '16px', position: 'relative', zIndex: 10, overflow: 'visible' }}>
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: '500' }}>选择AI模型</div>
                   <ModelSelector contentType="image" value={selectedModel} onChange={setSelectedModel} placeholder="选择模型" showLastUsed={true} showDefault={true} />
                 </div>
@@ -610,7 +723,7 @@ export function ImageGenerationPage() {
             </div>
 
             <div style={{ flex: 1, overflow: 'auto', padding: '24px' }}>
-              {generating && results.length === 0 ? (
+              {generating ? (
                 <div style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -692,6 +805,24 @@ export function ImageGenerationPage() {
                         onMouseLeave={() => setHoveredResult(null)}
                       >
                         <div style={{ position: 'relative' }}>
+                          {loadingImages[item.id] && (
+                            <div style={{
+                              position: 'absolute',
+                              inset: 0,
+                              background: 'var(--bg-hover)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              zIndex: 1,
+                            }}>
+                              <Loader2 style={{ 
+                                width: '32px', 
+                                height: '32px', 
+                                color: '#ec4899', 
+                                animation: 'spin 1s linear infinite' 
+                              }} />
+                            </div>
+                          )}
                           <img
                             src={item.url}
                             alt={item.prompt}
@@ -700,8 +831,27 @@ export function ImageGenerationPage() {
                               aspectRatio: '4/3',
                               objectFit: 'cover',
                               cursor: 'pointer',
+                              background: 'var(--bg-hover)',
+                              opacity: loadingImages[item.id] ? 0 : 1,
+                              transition: 'opacity 0.3s ease',
                             }}
                             onClick={() => setPreviewImage(item.url)}
+                            onLoad={() => {
+                              setLoadingImages(prev => ({ ...prev, [item.id]: false }));
+                            }}
+                            onError={(e) => {
+                              console.error('Image failed to load:', item.url);
+                              setLoadingImages(prev => ({ ...prev, [item.id]: false }));
+                              (e.target as HTMLImageElement).style.display = 'none';
+                              (e.target as HTMLImageElement).parentElement!.innerHTML = `
+                                <div style="width: 100%; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; background: var(--bg-hover); color: var(--text-muted);">
+                                  <div style="text-align: center; padding: 20px;">
+                                    <ImageIcon style="width: 40px; height: 40px; margin-bottom: 12px; opacity: 0.5;" />
+                                    <p style="margin: 0; font-size: 14px;">图片加载失败</p>
+                                  </div>
+                                </div>
+                              `;
+                            }}
                           />
                           {isHovered && (
                             <div style={{

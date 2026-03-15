@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
+import * as crypto from 'crypto';
 
 export class EpisodeController {
   async getEpisodes(req: Request, res: Response): Promise<void> {
@@ -88,6 +87,13 @@ export class EpisodeController {
       const { projectId } = req.params;
       const { title, description, script_id } = req.body;
 
+      // 验证必填字段
+      if (!title || !title.trim()) {
+        console.error('[EpisodeController] Title is required');
+        res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: '剧集名称不能为空' } });
+        return;
+      }
+
       // Get next episode number
       const maxEpisode = await prisma.episode.findFirst({
         where: { project_id: projectId },
@@ -98,12 +104,37 @@ export class EpisodeController {
       const nextEpisodeNumber = (maxEpisode?.episode_number || 0) + 1;
       console.log('[EpisodeController] nextEpisodeNumber:', nextEpisodeNumber);
 
+      // 验证 project 是否存在
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+      });
+
+      if (!project) {
+        console.error('[EpisodeController] Project not found:', projectId);
+        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: '项目不存在' } });
+        return;
+      }
+
+      // 如果提供了 script_id，验证其是否存在
+      if (script_id) {
+        const script = await prisma.script.findUnique({
+          where: { id: script_id },
+        });
+
+        if (!script) {
+          console.error('[EpisodeController] Script not found:', script_id);
+          res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: '剧本不存在' } });
+          return;
+        }
+      }
+
       const episode = await prisma.episode.create({
         data: {
+          id: crypto.randomUUID(),
           project_id: projectId,
-          title,
-          description,
-          script_id,
+          title: title.trim(),
+          description: description?.trim() || null,
+          script_id: script_id || null,
           episode_number: nextEpisodeNumber,
         },
       });

@@ -32,16 +32,28 @@ export function EpisodeModal({ projectId, episode, onClose, onSaved }: EpisodeMo
       setSaving(true);
       const input: CreateEpisodeInput | UpdateEpisodeInput = { title, description };
       
+      console.log('[EpisodeModal] Creating episode with data:', input);
+      console.log('[EpisodeModal] Project ID:', projectId);
+      
       if (episode) {
         await episodesApi.updateEpisode(episode.id, input);
       } else {
-        await episodesApi.createEpisode(projectId, input as CreateEpisodeInput);
+        const result = await episodesApi.createEpisode(projectId, input as CreateEpisodeInput);
+        console.log('[EpisodeModal] Episode created successfully:', result);
       }
       
       onSaved();
     } catch (error) {
-      console.error('Failed to save episode:', error);
-      setError('保存失败，请重试');
+      console.error('[EpisodeModal] Failed to save episode:', error);
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      const errorDetails = error as any;
+      console.error('[EpisodeModal] Error details:', {
+        message: errorMessage,
+        code: errorDetails?.code,
+        statusCode: errorDetails?.statusCode,
+        details: errorDetails?.details,
+      });
+      setError(`保存失败：${errorMessage}`);
     } finally {
       setSaving(false);
     }

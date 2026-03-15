@@ -6,7 +6,7 @@ import logger from '../lib/logger'
 
 const providerModelSchema = z.object({
   name: z.string().min(1, '模型名称至少1位').max(100, '模型名称最多100位'),
-  id: z.string().min(1, '模型ID至少1位').max(100, '模型ID最多100位'),
+  model_id: z.string().min(1, '模型ID至少1位').max(100, '模型ID最多100位'),
   type: z.enum(['text', 'image', 'video', 'audio', 'script', 'novel', 'storyline', 'outline']).optional(),
   types: z.array(z.enum(['text', 'image', 'video', 'audio', 'script', 'novel', 'storyline', 'outline'])).optional().default([]),
   description: z.string().optional(),
@@ -189,7 +189,7 @@ export class AIProviderController {
       
       const modelData: any = {
         name: rawData.name,
-        model_id: rawData.id,
+        model_id: rawData.model_id,
         description: rawData.description,
         capabilities: rawData.capabilities || [],
       }
@@ -243,18 +243,15 @@ export class AIProviderController {
       const rawData = providerModelSchema.partial().parse(req.body)
       
       const updateData: any = { ...rawData }
-      if (rawData.id) {
-        updateData.model_id = rawData.id
-        delete updateData.id
+      if (rawData.model_id) {
+        updateData.model_id = rawData.model_id
+        delete updateData.model_id
       }
       
       if (rawData.types && rawData.types.length > 0) {
         updateData.types = rawData.types
-        delete updateData.type
-      } else if (rawData.type) {
-        updateData.types = [rawData.type]
-        delete updateData.type
       }
+      delete updateData.type
 
       const model = await prisma.aIProviderModel.findFirst({
         where: {

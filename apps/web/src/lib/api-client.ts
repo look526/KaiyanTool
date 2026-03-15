@@ -659,7 +659,7 @@ export class ApiClient {
     return this.post<any>(`/projects/${projectId}/members`, { userId, role })
   }
 
-  async generateImage(data: { prompt: string; negativePrompt?: string; width: number; height: number; style: string; projectId?: string | undefined; model?: string; category?: string; image_urls?: string[]; threeView?: boolean }) {
+  async generateImage(data: { prompt: string; negativePrompt?: string; width: number; height: number; style: string; projectId?: string | undefined; model?: string; category?: string; image_urls?: string[]; threeView?: boolean; resolution?: string; n?: number; watermark?: boolean }) {
     return this.post<any>('/image-generation/generate', data)
   }
 

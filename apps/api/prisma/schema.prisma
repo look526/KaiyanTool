@@ -503,7 +503,7 @@ model Episode {
   description    String?
   script_id      String?  @db.Uuid
   created_at     DateTime @default(now())
-  updated_at     DateTime
+  updated_at     DateTime @updatedAt
 
   Project   Project     @relation(fields: [project_id], references: [id], onDelete: Cascade)
   Script    Script?     @relation(fields: [script_id], references: [id])

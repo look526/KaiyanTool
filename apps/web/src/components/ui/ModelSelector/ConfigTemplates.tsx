@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import { FileText, Plus, Check, Trash2, Download, Upload, Copy, Star, Clock, X } from 'lucide-react'
-import { ContentType } from './ModelSelector'
+import { ContentType } from './types'
 
 export interface ConfigTemplate {
   id: string
