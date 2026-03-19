@@ -1,5 +1,12 @@
 import { api } from '../../client';
 
+/**
+ * @description 兼容 `{ success, data }` 与直接返回实体两种响应结构。
+ */
+function unwrapResponse<T>(response: any): T {
+  return response?.data?.data ?? response?.data ?? response;
+}
+
 export interface Scene {
   id: string;
   episode_id: string;
@@ -31,7 +38,7 @@ export const scenesApi = {
    */
   async getScenes(episodeId: string): Promise<Scene[]> {
     const response = await api.get(`/episodes/${episodeId}/scenes`);
-    return (response as any).data || response;
+    return unwrapResponse<Scene[]>(response);
   },
 
   /**
@@ -39,7 +46,7 @@ export const scenesApi = {
    */
   async getScene(id: string): Promise<Scene> {
     const response = await api.get(`/scenes/${id}`);
-    return (response as any).data || response;
+    return unwrapResponse<Scene>(response);
   },
 
   /**
@@ -50,7 +57,7 @@ export const scenesApi = {
     input: CreateSceneInput
   ): Promise<Scene> {
     const response = await api.post(`/episodes/${episodeId}/scenes`, input);
-    return (response as any).data || response;
+    return unwrapResponse<Scene>(response);
   },
 
   /**
@@ -61,7 +68,7 @@ export const scenesApi = {
     input: UpdateSceneInput
   ): Promise<Scene> {
     const response = await api.put(`/scenes/${id}`, input);
-    return (response as any).data || response;
+    return unwrapResponse<Scene>(response);
   },
 
   /**
@@ -72,14 +79,13 @@ export const scenesApi = {
   },
 
   /**
-   * 重排序场景
-   */
+   * 重排序场�?   */
   async reorderScenes(
     episodeId: string,
     scenes: Array<{ id: string; scene_order: number }>
   ): Promise<Scene[]> {
     const response = await api.put(`/scenes/${episodeId}/reorder`, { scenes });
-    return (response as any).data || response;
+    return unwrapResponse<Scene[]>(response);
   },
 };
 

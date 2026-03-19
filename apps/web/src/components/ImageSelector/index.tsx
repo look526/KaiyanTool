@@ -33,6 +33,7 @@ export function ImageSelector({
   threeViewsValue = { front: null, side: null, top: null },
   onThreeViewsChange,
   autoCategoryFilter = true,
+  defaultTab = 'upload',
 }: ImageSelectorProps) {
   const { addToast } = useToast();
   const { resolvedTheme } = useTheme();
@@ -40,6 +41,7 @@ export function ImageSelector({
   
   const state = useImageSelectorState({
     value,
+    projectId,
     type,
     enableThreeViews,
     threeViewsMode,
@@ -47,6 +49,7 @@ export function ImageSelector({
     autoCategoryFilter,
     characterGender,
     characterAge,
+    defaultTab,
   });
 
   const actions = useImageSelectorActions({
@@ -69,6 +72,11 @@ export function ImageSelector({
     referenceImage: state.referenceImage,
     imageCount: state.imageCount,
     selectedCategory: state.selectedCategory,
+    gender: state.gender,
+    age: state.age,
+    resolution: state.resolution,
+    aspectRatio: state.aspectRatio,
+    enableThreeViews: state.enableThreeViews,
     setGeneratedImages: state.setGeneratedImages,
     setSelectedImage: state.setSelectedImage,
     setGenerating: state.setGenerating,

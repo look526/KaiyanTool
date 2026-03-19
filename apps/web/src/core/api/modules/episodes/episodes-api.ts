@@ -1,5 +1,12 @@
 import { api } from '../../client';
 
+/**
+ * @description 兼容 `{ success, data }` 与直接返回实体两种响应结构。
+ */
+function unwrapResponse<T>(response: any): T {
+  return response?.data?.data ?? response?.data ?? response;
+}
+
 export interface Episode {
   id: string;
   project_id: string;
@@ -51,7 +58,7 @@ export const episodesApi = {
     console.log('[episodes-api] GET /projects/${projectId}/episodes');
     const response = await api.get(`/projects/${projectId}/episodes?${queryParams}`);
     console.log('[episodes-api] Response:', response);
-    return response.data.data || response.data;
+    return unwrapResponse<Episode[]>(response);
   },
 
   /**
@@ -59,7 +66,7 @@ export const episodesApi = {
    */
   async getEpisode(id: string): Promise<Episode> {
     const response = await api.get(`/episodes/${id}`);
-    return response.data.data || response.data;
+    return unwrapResponse<Episode>(response);
   },
 
   /**
@@ -67,7 +74,7 @@ export const episodesApi = {
    */
   async getEpisodeStats(id: string): Promise<EpisodeStats> {
     const response = await api.get(`/episodes/${id}/stats`);
-    return response.data.data || response.data;
+    return unwrapResponse<EpisodeStats>(response);
   },
 
   /**
@@ -78,7 +85,7 @@ export const episodesApi = {
     input: CreateEpisodeInput
   ): Promise<Episode> {
     const response = await api.post(`/projects/${projectId}/episodes`, input);
-    return response.data.data || response.data;
+    return unwrapResponse<Episode>(response);
   },
 
   /**
@@ -89,7 +96,7 @@ export const episodesApi = {
     input: UpdateEpisodeInput
   ): Promise<Episode> {
     const response = await api.put(`/episodes/${id}`, input);
-    return response.data.data || response.data;
+    return unwrapResponse<Episode>(response);
   },
 
   /**

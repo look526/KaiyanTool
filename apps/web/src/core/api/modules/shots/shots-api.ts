@@ -1,16 +1,46 @@
 import { api } from '../../client';
 
+/**
+ * @description 兼容 `{ success, data }` 与直接返回实体两种响应结构。
+ */
+function unwrapResponse<T>(response: any): T {
+  return response?.data?.data ?? response?.data ?? response;
+}
+
 export interface Shot {
   id: string;
+  project_id?: string;
   episode_id: string;
   scene_id: string | null;
-  shot_number: number;
-  description: string;
+  character_id?: string | null;
+  chapter_number?: number | null;
+  episode_number?: number | null;
+  segment_id?: number | null;
+  cell_id?: number | null;
+  shot_number?: number;
+  description?: string;
+  action_summary?: string;
+  camera_movement?: string | null;
+  start_prompt?: string | null;
+  end_prompt?: string | null;
+  start_image_url?: string | null;
+  end_image_url?: string | null;
   model: string | null;
   aspect_ratio: string;
   resolution: string;
-  status: 'pending' | 'generating' | 'completed';
+  duration?: number;
+  visual_style?: string | null;
+  status: 'pending' | 'generating' | 'completed' | 'failed' | string;
   video_url: string | null;
+  Scene?: {
+    id: string;
+    location?: string | null;
+    time?: string | null;
+  } | null;
+  Character?: {
+    id: string;
+    name?: string | null;
+  } | null;
   created_at: string;
   updated_at: string;
 }
@@ -25,11 +55,20 @@ export interface CreateShotInput {
 
 export interface UpdateShotInput {
   scene_id?: string;
+  character_id?: string | null;
   description?: string;
+  action_summary?: string;
   model?: string;
   aspect_ratio?: string;
   resolution?: string;
   status?: string;
+  camera_movement?: string;
+  start_prompt?: string;
+  end_prompt?: string;
+  start_image_url?: string | null;
+  end_image_url?: string | null;
+  duration?: number;
+  visual_style?: string;
 }
 
 export interface GenerateShotInput {
@@ -54,7 +93,7 @@ export const shotsApi = {
    */
   async getShots(episodeId: string): Promise<Shot[]> {
     const response = await api.get(`/episodes/${episodeId}/shots`);
-    return (response as any).data || response;
+    return unwrapResponse<Shot[]>(response);
   },
 
   /**
@@ -62,7 +101,7 @@ export const shotsApi = {
    */
   async getShot(id: string): Promise<Shot> {
     const response = await api.get(`/shots/${id}`);
-    return (response as any).data || response;
+    return unwrapResponse<Shot>(response);
   },
 
   /**
@@ -73,7 +112,7 @@ export const shotsApi = {
     input: CreateShotInput
   ): Promise<Shot> {
     const response = await api.post(`/episodes/${episodeId}/shots`, input);
-    return (response as any).data || response;
+    return unwrapResponse<Shot>(response);
   },
 
   /**
@@ -84,7 +123,7 @@ export const shotsApi = {
     input: UpdateShotInput
   ): Promise<Shot> {
     const response = await api.put(`/shots/${id}`, input);
-    return (response as any).data || response;
+    return unwrapResponse<Shot>(response);
   },
 
   /**
@@ -102,7 +141,7 @@ export const shotsApi = {
     input: GenerateShotInput
   ): Promise<{ success: boolean; video_url: string; generation_time: number }> {
     const response = await api.post(`/shots/${id}/generate`, input);
-    return (response as any).data || response;
+    return unwrapResponse<{ success: boolean; video_url: string; generation_time: number }>(response);
   },
 
   /**
@@ -113,12 +152,11 @@ export const shotsApi = {
     input: BatchGenerateInput
   ): Promise<{ success: boolean; successful: number; failed: number; total: number }> {
     const response = await api.post(`/episodes/${episodeId}/shots/batch-generate`, input);
-    return (response as any).data || response;
+    return unwrapResponse<{ success: boolean; successful: number; failed: number; total: number }>(response);
   },
 
   /**
-   * 重排序分镜
-   */
+   * 重排序分�?   */
   async reorderShot(
     id: string,
     newOrder: number
@@ -126,3 +164,4 @@ export const shotsApi = {
     await api.put(`/shots/${id}/reorder`, { order: newOrder });
   },
 };
+

@@ -1,5 +1,12 @@
 import { api } from '../../client';
 
+/**
+ * @description 兼容 `{ success, data }` 与直接返回实体两种响应结构。
+ */
+function unwrapResponse<T>(response: any): T {
+  return response?.data?.data ?? response?.data ?? response;
+}
+
 export interface ShotDraft {
   id: string;
   shot_id: string | null;
@@ -22,7 +29,7 @@ export const shotDraftsApi = {
    */
   async getDrafts(episodeId: string): Promise<ShotDraft[]> {
     const response = await api.get(`/episodes/${episodeId}/drafts`);
-    return response.data.data || response.data;
+    return unwrapResponse<ShotDraft[]>(response);
   },
 
   /**
@@ -33,7 +40,7 @@ export const shotDraftsApi = {
     input: SaveDraftInput
   ): Promise<ShotDraft> {
     const response = await api.post(`/episodes/${episodeId}/drafts`, input);
-    return response.data.data || response.data;
+    return unwrapResponse<ShotDraft>(response);
   },
 
   /**
@@ -44,7 +51,7 @@ export const shotDraftsApi = {
     draft_data: any
   ): Promise<ShotDraft> {
     const response = await api.put(`/drafts/${id}`, { draft_data });
-    return response.data.data || response.data;
+    return unwrapResponse<ShotDraft>(response);
   },
 
   /**

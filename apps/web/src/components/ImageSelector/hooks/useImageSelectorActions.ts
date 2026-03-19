@@ -195,6 +195,10 @@ export function useImageSelectorActions({
       
       const { width, height } = getDimensions();
       
+      const referenceImageUrl = referenceImage
+        ? getFullUrl(referenceImage) ?? undefined
+        : undefined;
+
       if (true) { // eslint-disable-line no-constant-condition
         const results = await apiClient.batchGenerateImages({
           prompt: stylePrompt,
@@ -206,7 +210,7 @@ export function useImageSelectorActions({
           resolution,
           providerId: selectedModel,
           projectId,
-          referenceImageUrl: referenceImage ? getFullUrl(referenceImage) : undefined,
+          referenceImageUrl,
           three_view: enableThreeViews,
         });
         
@@ -437,5 +441,6 @@ export function useImageSelectorActions({
     handleSelectAsset,
     handleUpdateAssetCategory,
     handleDeleteAsset,
+    loadAssets,
   };
 }

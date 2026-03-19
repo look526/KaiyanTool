@@ -7,10 +7,12 @@ interface UseImageSelectorStateProps {
   type: ImageType;
   enableThreeViews: boolean;
   threeViewsMode: ThreeViewsMode;
+  projectId: string;
   characterDescription?: string;
   autoCategoryFilter?: boolean;
   characterGender?: string;
   characterAge?: number;
+  defaultTab?: 'upload' | 'generate' | 'library';
 }
 
 /**
@@ -21,14 +23,16 @@ export function useImageSelectorState({
   type,
   enableThreeViews,
   threeViewsMode,
+  projectId,
   characterDescription,
   autoCategoryFilter = true,
   characterGender,
   characterAge,
+  defaultTab = 'upload',
 }: UseImageSelectorStateProps) {
   // UI State
   const [showModal, setShowModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'upload' | 'generate' | 'library'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'generate' | 'library'>(defaultTab);
   const [showReferenceImagePicker, setShowReferenceImagePicker] = useState(false);
   
   // View State
@@ -116,8 +120,33 @@ export function useImageSelectorState({
 
   // Load assets when library tab is opened
   const loadAssets = useCallback(async () => {
-    // This will be implemented in useImageSelectorActions
-  }, []);
+    if (!projectId) {
+      setAssets([]);
+      return;
+    }
+
+    try {
+      setLoadingAssets(true);
+      const result = await apiClient.getProjectAssets(
+        projectId,
+        type === 'general' ? undefined : type,
+        searchQuery.trim() || undefined,
+        selectedCategory === 'all' ? undefined : selectedCategory
+      );
+      setAssets(Array.isArray(result) ? result : []);
+    } catch (error) {
+      console.error('Failed to load assets:', error);
+      setAssets([]);
+    } finally {
+      setLoadingAssets(false);
+    }
+  }, [projectId, searchQuery, selectedCategory, type]);
+
+  useEffect(() => {
+    if (showModal && activeTab === 'library') {
+      void loadAssets();
+    }
+  }, [showModal, activeTab, loadAssets]);
 
   return {
     // UI State

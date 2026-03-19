@@ -68,6 +68,8 @@ export interface ImageSelectorProps {
   onThreeViewsChange?: (views: { front: string | null; side: string | null; top: string | null }) => void;
   /** Automatically filter by category based on type */
   autoCategoryFilter?: boolean;
+  /** 打开弹窗时默认激活的标签页 */
+  defaultTab?: TabType;
 }
 
 /**
