@@ -628,15 +628,19 @@ function ShotListItem({
 }
 
 const pageStyle: CSSProperties = {
-  minHeight: '100vh',
+  flex: 1,
+  minHeight: 0,
+  overflowY: 'auto',
   background: 'var(--bg-page)',
 };
 
 const loadingPageStyle: CSSProperties = {
-  minHeight: '100vh',
+  flex: 1,
+  minHeight: 0,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
+  overflowY: 'auto',
   background: 'var(--bg-page)',
 };
 

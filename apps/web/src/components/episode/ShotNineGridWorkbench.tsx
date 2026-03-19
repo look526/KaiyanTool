@@ -156,6 +156,19 @@ export function ShotNineGridWorkbench({ shotId, defaultPrompt, onApplyImage }: S
     [panels]
   );
 
+  const emptyCount = useMemo(
+    () => panels.filter((panel) => !panel.prompt.trim() && !panel.imageUrl).length,
+    [panels]
+  );
+
+  const isDraftDirty = useMemo(() => {
+    if (!activePanel) {
+      return false;
+    }
+
+    return draftPrompt.trim() !== (activePanel.prompt ?? '').trim();
+  }, [activePanel, draftPrompt]);
+
   const handleCreatePanel = async () => {
     if (panels.length >= 9) {
       addToast({
@@ -427,6 +440,7 @@ export function ShotNineGridWorkbench({ shotId, defaultPrompt, onApplyImage }: S
         <div style={summaryRowStyle}>
           <span style={summaryBadgeStyle}>已建 {panels.length}/9</span>
           <span style={summaryBadgeStyle}>已出图 {generatedCount}</span>
+          <span style={summaryBadgeStyle}>待细化 {emptyCount}</span>
         </div>
       </div>
 
@@ -550,7 +564,7 @@ export function ShotNineGridWorkbench({ shotId, defaultPrompt, onApplyImage }: S
                     <div style={editorTitleStyle}>第 {activePanel.position} 格</div>
                     <div style={editorSubtitleStyle}>编辑提示词，生成后可直接回填为当前分镜关键帧。</div>
                   </div>
-                  <span style={summaryBadgeStyle}>{activePanel.imageUrl ? '已生成图片' : '待生成图片'}</span>
+                  <span style={summaryBadgeStyle}>{isDraftDirty ? '未保存' : activePanel.imageUrl ? '已生成图片' : '待生成图片'}</span>
                 </div>
 
                 <textarea
@@ -568,7 +582,7 @@ export function ShotNineGridWorkbench({ shotId, defaultPrompt, onApplyImage }: S
 
                 <div style={editorActionsStyle}>
                   <GlassButton
-                    variant="secondary"
+                    variant={isDraftDirty ? 'primary' : 'secondary'}
                     icon={savingPanelId === activePanel.id ? <Loader2 style={spinnerStyle} /> : <Save style={{ width: '16px', height: '16px' }} />}
                     isDark={false}
                     loading={savingPanelId === activePanel.id}
@@ -627,7 +641,7 @@ const spinnerLargeStyle: CSSProperties = {
 };
 
 const containerStyle: CSSProperties = {
-  background: 'var(--bg-card)',
+  background: 'linear-gradient(180deg, rgba(99, 102, 241, 0.04) 0%, var(--bg-card) 16%, var(--bg-card) 100%)',
   border: '1px solid var(--border-primary)',
   borderRadius: '18px',
   padding: '18px',
@@ -658,35 +672,41 @@ const subtitleStyle: CSSProperties = {
 };
 
 const summaryRowStyle: CSSProperties = {
-  display: 'flex',
-  flexWrap: 'wrap',
+  display: 'grid',
+  gridTemplateColumns: 'repeat(3, minmax(92px, auto))',
   gap: '8px',
-  alignItems: 'flex-start',
+  alignItems: 'stretch',
   justifyContent: 'flex-end',
 };
 
 const summaryBadgeStyle: CSSProperties = {
-  padding: '6px 10px',
-  borderRadius: '999px',
+  padding: '10px 12px',
+  borderRadius: '14px',
   border: '1px solid var(--border-primary)',
   background: 'var(--bg-elevated)',
   fontSize: '12px',
+  fontWeight: 700,
   color: 'var(--text-secondary)',
+  textAlign: 'center',
+  minWidth: '96px',
 };
 
 const toolbarStyle: CSSProperties = {
-  display: 'flex',
-  flexWrap: 'wrap',
+  display: 'grid',
+  gridTemplateColumns: '280px minmax(0, 1fr)',
   gap: '12px',
-  justifyContent: 'space-between',
-  alignItems: 'center',
+  alignItems: 'stretch',
   marginBottom: '18px',
 };
 
 const providerRowStyle: CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
+  display: 'grid',
   gap: '10px',
+  alignContent: 'start',
+  padding: '12px',
+  borderRadius: '14px',
+  border: '1px solid var(--border-primary)',
+  background: 'var(--bg-elevated)',
 };
 
 const toolbarLabelStyle: CSSProperties = {
@@ -696,8 +716,9 @@ const toolbarLabelStyle: CSSProperties = {
 };
 
 const selectStyle: CSSProperties = {
+  width: '100%',
   minWidth: '220px',
-  height: '38px',
+  height: '40px',
   borderRadius: '10px',
   border: '1px solid var(--border-primary)',
   background: 'var(--bg-input)',
@@ -709,6 +730,10 @@ const toolbarActionsStyle: CSSProperties = {
   display: 'flex',
   flexWrap: 'wrap',
   gap: '10px',
+  padding: '12px',
+  borderRadius: '14px',
+  border: '1px solid var(--border-primary)',
+  background: 'var(--bg-elevated)',
 };
 
 const loadingStyle: CSSProperties = {
@@ -754,30 +779,34 @@ const emptyActionsStyle: CSSProperties = {
 
 const bodyStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'minmax(0, 1.4fr) minmax(320px, 0.9fr)',
+  gridTemplateColumns: 'minmax(0, 1fr) minmax(360px, 1.08fr)',
   gap: '16px',
   alignItems: 'start',
 };
 
 const gridStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
   gap: '12px',
 };
 
 const panelCardStyle: CSSProperties = {
   border: '1px solid var(--border-primary)',
-  background: 'var(--bg-elevated)',
+  background: 'rgba(255, 255, 255, 0.72)',
   borderRadius: '16px',
   padding: '12px',
   textAlign: 'left',
   cursor: 'pointer',
   transition: 'all 0.2s ease',
+  display: 'grid',
+  gap: '10px',
+  minHeight: '220px',
 };
 
 const panelCardActiveStyle: CSSProperties = {
-  border: '1px solid var(--accent)',
-  boxShadow: '0 4px 14px var(--accent-shadow)',
+  border: '1px solid rgba(99, 102, 241, 0.45)',
+  boxShadow: '0 10px 28px rgba(99, 102, 241, 0.14)',
+  transform: 'translateY(-1px)',
 };
 
 const panelCardHeaderStyle: CSSProperties = {
@@ -785,7 +814,6 @@ const panelCardHeaderStyle: CSSProperties = {
   justifyContent: 'space-between',
   alignItems: 'center',
   gap: '8px',
-  marginBottom: '10px',
 };
 
 const panelIndexStyle: CSSProperties = {
@@ -809,7 +837,6 @@ const panelImageWrapStyle: CSSProperties = {
   overflow: 'hidden',
   background: 'var(--bg-secondary)',
   border: '1px solid var(--border-primary)',
-  marginBottom: '10px',
 };
 
 const panelImageStyle: CSSProperties = {
@@ -832,17 +859,17 @@ const panelPlaceholderStyle: CSSProperties = {
 const panelPromptStyle: CSSProperties = {
   fontSize: '12px',
   color: 'var(--text-secondary)',
-  lineHeight: 1.5,
-  minHeight: '36px',
+  lineHeight: 1.55,
+  minHeight: '56px',
   display: '-webkit-box',
-  WebkitLineClamp: 2,
+  WebkitLineClamp: 3,
   WebkitBoxOrient: 'vertical',
   overflow: 'hidden',
 };
 
 const editorStyle: CSSProperties = {
   border: '1px solid var(--border-primary)',
-  background: 'var(--bg-elevated)',
+  background: 'linear-gradient(180deg, rgba(99, 102, 241, 0.03) 0%, var(--bg-elevated) 18%, var(--bg-elevated) 100%)',
   borderRadius: '16px',
   padding: '16px',
 };
