@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { FileText, Users, Package, Map, LayoutGrid, ArrowLeft, ChevronRight, Sparkles, Zap, BookOpen } from 'lucide-react';
 import { WorkflowStepId } from '../../contexts/WorkflowContext';
+import { resolveWorkflowStepFromPath } from './resolveWorkflowStepFromPath';
 
 interface StepConfig {
   id: WorkflowStepId;
@@ -235,18 +236,7 @@ export function WorkflowSidebar({ onStepChange }: WorkflowSidebarProps) {
   const projectUuid = projectId || id;
   const [isBackHovered, setIsBackHovered] = useState(false);
 
-  const getActiveStep = (): WorkflowStepId => {
-    const path = location.pathname;
-    if (path.includes('/script')) return 'script';
-    if (path.includes('/storyline') || path.includes('/outline')) return 'storyline';
-    if (path.includes('/characters')) return 'characters';
-    if (path.includes('/items')) return 'items';
-    if (path.includes('/scenes')) return 'scenes';
-    if (path.includes('/storyboard') || path.includes('/shots')) return 'storyboard';
-    return 'script';
-  };
-
-  const activeStep = getActiveStep();
+  const activeStep = resolveWorkflowStepFromPath(location.pathname);
   const activeIndex = STEP_CONFIGS.findIndex(s => s.id === activeStep);
 
   const handleStepClick = (stepId: WorkflowStepId) => {
