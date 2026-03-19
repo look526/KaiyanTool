@@ -5,6 +5,7 @@ import { episodesApi, shotsApi } from '../core/api/modules';
 import { charactersApi, type Character } from '../core/api/modules/characters';
 import { StandardPageHeader } from '../components/ui/StandardPageHeader';
 import { GlassButton } from '../components/ui/GlassButton';
+import { ShotNineGridWorkbench } from '../components/episode/ShotNineGridWorkbench';
 import { ImageSelector } from '../components/ImageSelector';
 import { Loader2, Film, CheckSquare, Square, Trash2, Save, Image, Clapperboard, FileText, Plus, User } from 'lucide-react';
 import type { Episode } from '../types/episode';
@@ -230,6 +231,11 @@ export default function EpisodeDetailPage() {
   const handleEditorChange = <K extends keyof ShotEditorState>(key: K, value: ShotEditorState[K]) => {
     setEditorState(prev => ({ ...prev, [key]: value }));
     setSaveMessage('');
+  };
+
+  const handleApplyPanelImage = (target: 'start' | 'end', imageUrl: string) => {
+    handleEditorChange(target === 'start' ? 'start_image_url' : 'end_image_url', imageUrl);
+    setSaveMessage(target === 'start' ? '已回填九宫格到开始帧，请保存分镜' : '已回填九宫格到结束帧，请保存分镜');
   };
 
   if (loading) {
@@ -472,6 +478,12 @@ export default function EpisodeDetailPage() {
                         </div>
                       </div>
                     </section>
+
+                    <ShotNineGridWorkbench
+                      shotId={activeShot.id}
+                      defaultPrompt={editorState.start_prompt || editorState.action_summary || activeShot.description || ''}
+                      onApplyImage={handleApplyPanelImage}
+                    />
 
                     <section style={metaBarStyle}>
                       <span style={metaBadgeStyle}>比例 {activeShot.aspect_ratio || '16:9'}</span>

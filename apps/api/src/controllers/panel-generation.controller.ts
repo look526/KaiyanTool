@@ -15,6 +15,7 @@ class PanelGenerationController {
 
       const { id } = req.params
       const { provider_id } = req.body
+      const resolved_provider_id = await this.resolveProviderId(provider_id)
 
       const panel = await prisma.nineGridPanel.findFirst({
         where: {
@@ -44,14 +45,14 @@ class PanelGenerationController {
         return
       }
 
-      if (!provider_id) {
+      if (!resolved_provider_id) {
         res.status(400).json({ error: 'Provider ID is required' })
         return
       }
 
       const prompt = panel.prompt || this.buildImagePrompt(panel)
 
-      const response = await aiProviderService.createImage(provider_id, {
+      const response = await aiProviderService.createImage(resolved_provider_id, {
         prompt,
         size: '1024x1024',
         quality: 'standard',
@@ -68,7 +69,7 @@ class PanelGenerationController {
           id: crypto.randomUUID(),
           type: 'image',
           url: response.url,
-          project_id: panel.shot_id,
+          project_id: panel.Shot.project_id,
           metadata: {
             name: `九宫格 - 第 ${panel.position} 格`,
             prompt,
@@ -87,7 +88,7 @@ class PanelGenerationController {
         revised_prompt: response.revisedPrompt,
         panel: updatedPanel,
       })
-      logger.info('九宫格图像生成成功', { user_id: req.user_id, panel_id: id, provider_id })
+      logger.info('九宫格图像生成成功', { user_id: req.user_id, panel_id: id, provider_id: resolved_provider_id })
     } catch (error) {
       logger.error('生成九宫格图像失败', { user_id: req.user_id, panel_id: req.params.id, error })
       res.status(500).json({ error: 'Failed to generate panel image' })
@@ -103,6 +104,7 @@ class PanelGenerationController {
 
       const { shot_id } = req.params
       const { provider_id } = req.body
+      const resolved_provider_id = await this.resolveProviderId(provider_id)
 
       const shot = await prisma.shot.findFirst({
         where: {
@@ -126,7 +128,7 @@ class PanelGenerationController {
         return
       }
 
-      if (!provider_id) {
+      if (!resolved_provider_id) {
         res.status(400).json({ error: 'Provider ID is required' })
         return
       }
@@ -143,7 +145,7 @@ class PanelGenerationController {
 
       const generatePromises = panels.map((panel: any) => {
         const prompt = panel.prompt || this.buildImagePrompt(panel, shot)
-        return aiProviderService.createImage(provider_id, {
+        return aiProviderService.createImage(resolved_provider_id, {
           prompt,
           size: '1024x1024',
           quality: 'standard',
@@ -189,7 +191,7 @@ class PanelGenerationController {
         images: results.map(r => r.response.url),
         panels: updatedPanels,
       })
-      logger.info('批量生成九宫格图像成功', { user_id: req.user_id, shot_id, count: panels.length, provider_id })
+      logger.info('批量生成九宫格图像成功', { user_id: req.user_id, shot_id, count: panels.length, provider_id: resolved_provider_id })
     } catch (error) {
       logger.error('批量生成九宫格图像失败', { user_id: req.user_id, shot_id: req.params.shot_id, error })
       res.status(500).json({ error: 'Failed to generate batch images' })
@@ -225,6 +227,19 @@ class PanelGenerationController {
     }
   }
 
+
+  private async resolveProviderId(providerId?: string): Promise<string | null> {
+    if (!providerId) {
+      return null
+    }
+
+    const provider = await prisma.aIProvider.findUnique({
+      where: { id: providerId },
+      select: { type: true },
+    })
+
+    return provider?.type || providerId
+  }
   private buildImagePrompt(panel: any, shot?: any): string {
     const character = shot?.Character?.name || ''
     const scene = shot?.Scene?.location || ''

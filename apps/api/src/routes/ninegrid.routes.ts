@@ -1,48 +1,38 @@
-import { Router } from 'express'
+﻿import { Router } from 'express'
 import { authMiddleware } from '../middleware/auth.middleware'
-import { checkProjectAccess } from '../middleware/permission.middleware'
 import { nineGridController } from '../controllers/ninegrid.controller'
 
 const router = Router()
 
+router.use(authMiddleware)
+
 router.get(
-  '/shots/:shotId/ninegrid/panels',
-  authMiddleware,
+  '/shots/:shot_id/ninegrid/panels',
   nineGridController.getPanelsByShot.bind(nineGridController)
 )
 
 router.post(
-  '/shots/:shotId/ninegrid/panels',
-  authMiddleware,
-  checkProjectAccess,
+  '/shots/:shot_id/ninegrid/panels',
   nineGridController.createPanel.bind(nineGridController)
 )
 
-router.patch(
-  '/shots/:shotId/ninegrid/panels/:panelId',
-  authMiddleware,
-  checkProjectAccess,
+router.put(
+  '/shots/:shot_id/ninegrid/panels/:panelId',
   nineGridController.updatePanel.bind(nineGridController)
 )
 
 router.delete(
-  '/shots/:shotId/ninegrid/panels/:panelId',
-  authMiddleware,
-  checkProjectAccess,
+  '/shots/:shot_id/ninegrid/panels/:panelId',
   nineGridController.deletePanel.bind(nineGridController)
 )
 
 router.post(
-  '/shots/:shotId/ninegrid/generate',
-  authMiddleware,
-  checkProjectAccess,
+  '/shots/:shot_id/ninegrid/generate',
   nineGridController.generateAllPanels.bind(nineGridController)
 )
 
 router.put(
-  '/shots/:shotId/ninegrid/reorder',
-  authMiddleware,
-  checkProjectAccess,
+  '/shots/:shot_id/ninegrid/reorder',
   nineGridController.reorderPanels.bind(nineGridController)
 )
 
