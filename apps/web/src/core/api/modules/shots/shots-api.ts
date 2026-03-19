@@ -73,10 +73,13 @@ export interface UpdateShotInput {
 
 export interface GenerateShotInput {
   provider_id: string;
-  model: string;
-  prompt: string;
-  aspect_ratio?: string;
+}
+
+export interface GenerateShotResponse {
+  video_url: string;
+  duration?: number;
   resolution?: string;
+  shot?: Shot;
 }
 
 export interface BatchGenerateInput {
@@ -139,9 +142,9 @@ export const shotsApi = {
   async generateShot(
     id: string,
     input: GenerateShotInput
-  ): Promise<{ success: boolean; video_url: string; generation_time: number }> {
+  ): Promise<GenerateShotResponse> {
     const response = await api.post(`/shots/${id}/generate`, input);
-    return unwrapResponse<{ success: boolean; video_url: string; generation_time: number }>(response);
+    return unwrapResponse<GenerateShotResponse>(response);
   },
 
   /**

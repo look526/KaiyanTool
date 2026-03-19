@@ -64,10 +64,13 @@ export interface UpdateShotInput {
 
 export interface GenerateShotInput {
   provider_id: string;
-  model: string;
-  prompt: string;
-  aspect_ratio?: string;
+}
+
+export interface GenerateShotResponse {
+  video_url: string;
+  duration?: number;
   resolution?: string;
+  shot?: Shot;
 }
 
 export interface BatchGenerateInput {

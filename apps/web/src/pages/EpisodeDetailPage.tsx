@@ -1,13 +1,15 @@
-import type { CSSProperties, ReactNode } from 'react';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+﻿import type { CSSProperties, ReactNode } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { episodesApi, shotsApi } from '../core/api/modules';
+import { aiProvidersApi } from '../core/api/modules/ai-providers';
 import { charactersApi, type Character } from '../core/api/modules/characters';
 import { StandardPageHeader } from '../components/ui/StandardPageHeader';
 import { GlassButton } from '../components/ui/GlassButton';
 import { ShotNineGridWorkbench } from '../components/episode/ShotNineGridWorkbench';
 import { ImageSelector } from '../components/ImageSelector';
-import { Loader2, Film, CheckSquare, Square, Trash2, Save, Image, Clapperboard, FileText, Plus, User } from 'lucide-react';
+import { Loader2, Film, CheckSquare, Square, Trash2, Save, Image, Clapperboard, FileText, Plus, User, Video } from 'lucide-react';
+import type { AIProvider } from '../types';
 import type { Episode } from '../types/episode';
 import type { Shot, UpdateShotInput } from '../core/api/modules/shots/shots-api';
 import {
@@ -44,7 +46,11 @@ export default function EpisodeDetailPage() {
   const [activeShotId, setActiveShotId] = useState<string | null>(null);
   const [batchDeleteLoading, setBatchDeleteLoading] = useState(false);
   const [savingShot, setSavingShot] = useState(false);
+  const [generatingVideo, setGeneratingVideo] = useState(false);
+  const [videoProviders, setVideoProviders] = useState<AIProvider[]>([]);
   const [saveMessage, setSaveMessage] = useState('');
+  const [saveMessageTone, setSaveMessageTone] = useState<'success' | 'error' | 'info'>('success');
+  const previousActiveShotIdRef = useRef<string | null>(null);
   const [editorState, setEditorState] = useState<ShotEditorState>({
     character_id: null,
     action_summary: '',
@@ -63,14 +69,23 @@ export default function EpisodeDetailPage() {
 
     try {
       setLoading(true);
-      const [episodeData, shotsData, charactersData] = await Promise.all([
+      const [episodeData, shotsData, charactersData, providersData] = await Promise.all([
         episodesApi.getEpisode(episodeId),
         shotsApi.getShots(episodeId),
         charactersApi.getCharacters(projectId),
+        aiProvidersApi.getAIProviders().catch((error) => {
+          console.error('Failed to load AI providers:', error);
+          return [] as AIProvider[];
+        }),
       ]);
       setEpisode(episodeData);
       setShots(shotsData);
       setCharacters(charactersData);
+      /** 后端返回 { providers: [...], pagination }，需提取 providers 数组，否则 videoProviders.filter 会抛错导致整页崩溃 */
+      const providersList = Array.isArray(providersData)
+        ? providersData
+        : (providersData as { providers?: AIProvider[] })?.providers ?? [];
+      setVideoProviders(providersList);
     } catch (error) {
       console.error('Failed to load episode data:', error);
     } finally {
@@ -100,9 +115,15 @@ export default function EpisodeDetailPage() {
 
   useEffect(() => {
     if (!activeShot) {
+      previousActiveShotIdRef.current = null;
       return;
     }
 
+    if (previousActiveShotIdRef.current === activeShot.id) {
+      return;
+    }
+
+    previousActiveShotIdRef.current = activeShot.id;
     setEditorState({
       character_id: activeShot.character_id || null,
       action_summary: activeShot.action_summary || activeShot.description || '',
@@ -114,7 +135,8 @@ export default function EpisodeDetailPage() {
       visual_style: activeShot.visual_style || '',
     });
     setSaveMessage('');
-  }, [activeShotId, activeShot]);
+    setSaveMessageTone('success');
+  }, [activeShot]);
 
   const stats = useMemo(() => {
     return shots.reduce(
@@ -135,6 +157,50 @@ export default function EpisodeDetailPage() {
     () => characters.find((character) => character.id === editorState.character_id) || null,
     [characters, editorState.character_id]
   );
+
+  const activeVideoProvider = useMemo(() => {
+    const enabledProviders = videoProviders.filter((provider) => provider.enabled !== false);
+    return enabledProviders[0] || videoProviders[0] || null;
+  }, [videoProviders]);
+
+  const activeVideoProviderId = useMemo(() => {
+    if (!activeVideoProvider) {
+      return null;
+    }
+
+    return activeVideoProvider.type || activeVideoProvider.id;
+  }, [activeVideoProvider]);
+
+  const canGenerateVideo = useMemo(() => {
+    return Boolean(
+      activeShot &&
+      editorState.start_image_url &&
+      editorState.end_image_url &&
+      activeVideoProviderId &&
+      !savingShot &&
+      !generatingVideo
+    );
+  }, [activeShot, activeVideoProviderId, editorState.end_image_url, editorState.start_image_url, generatingVideo, savingShot]);
+
+  const syncShot = useCallback((nextShot: Shot) => {
+    setShots((prev) => prev.map((shot) => (shot.id === nextShot.id ? nextShot : shot)));
+  }, []);
+
+  const buildShotUpdateInput = useCallback((shot: Shot): UpdateShotInput => {
+    return {
+      character_id: editorState.character_id || null,
+      action_summary: editorState.action_summary.trim() || '\u672a\u586b\u5199\u955c\u5934\u63cf\u8ff0',
+      camera_movement: editorState.camera_movement.trim() || undefined,
+      start_prompt: editorState.start_prompt.trim() || undefined,
+      end_prompt: editorState.end_prompt.trim() || undefined,
+      start_image_url: editorState.start_image_url,
+      end_image_url: editorState.end_image_url,
+      visual_style: editorState.visual_style.trim() || undefined,
+      aspect_ratio: shot.aspect_ratio,
+      resolution: shot.resolution,
+      duration: shot.duration,
+    };
+  }, [editorState]);
 
   const handleCreateShot = async () => {
     if (!episodeId) {
@@ -202,40 +268,71 @@ export default function EpisodeDetailPage() {
     try {
       setSavingShot(true);
       setSaveMessage('');
+      setSaveMessageTone('success');
 
-      const input: UpdateShotInput = {
-        character_id: editorState.character_id || null,
-        action_summary: editorState.action_summary.trim() || '未填写镜头描述',
-        camera_movement: editorState.camera_movement.trim() || undefined,
-        start_prompt: editorState.start_prompt.trim() || undefined,
-        end_prompt: editorState.end_prompt.trim() || undefined,
-        start_image_url: editorState.start_image_url,
-        end_image_url: editorState.end_image_url,
-        visual_style: editorState.visual_style.trim() || undefined,
-        aspect_ratio: activeShot.aspect_ratio,
-        resolution: activeShot.resolution,
-        duration: activeShot.duration,
-      };
-
-      const updatedShot = await shotsApi.updateShot(activeShot.id, input);
-      setShots(prev => prev.map(shot => (shot.id === updatedShot.id ? updatedShot : shot)));
-      setSaveMessage('已保存');
+      const updatedShot = await shotsApi.updateShot(activeShot.id, buildShotUpdateInput(activeShot));
+      syncShot(updatedShot);
+      setSaveMessage('\u5df2\u4fdd\u5b58');
     } catch (error) {
       console.error('Failed to save shot:', error);
-      setSaveMessage('保存失败，请稍后重试');
+      setSaveMessage('\u4fdd\u5b58\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5');
+      setSaveMessageTone('error');
     } finally {
       setSavingShot(false);
+    }
+  };
+
+  const handleGenerateVideo = async () => {
+    if (!activeShot || !activeVideoProviderId || !editorState.start_image_url || !editorState.end_image_url) {
+      return;
+    }
+
+    try {
+      setGeneratingVideo(true);
+      setSaveMessage('');
+      setSaveMessageTone('success');
+
+      const persistedShot = await shotsApi.updateShot(activeShot.id, buildShotUpdateInput(activeShot));
+      syncShot(persistedShot);
+
+      const result = await shotsApi.generateShot(activeShot.id, {
+        provider_id: activeVideoProviderId,
+      });
+
+      const nextShot: Shot = result.shot
+        ? result.shot
+        : {
+            ...persistedShot,
+            video_url: result.video_url || persistedShot.video_url,
+            duration: result.duration || persistedShot.duration,
+            resolution: result.resolution || persistedShot.resolution,
+          };
+
+      syncShot(nextShot);
+      setSaveMessage('\u89c6\u9891\u5df2\u751f\u6210\uff0c\u53ef\u5728\u4e0b\u65b9\u9884\u89c8');
+    } catch (error) {
+      console.error('Failed to generate video:', error);
+      setSaveMessage('\u89c6\u9891\u751f\u6210\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5');
+      setSaveMessageTone('error');
+    } finally {
+      setGeneratingVideo(false);
     }
   };
 
   const handleEditorChange = <K extends keyof ShotEditorState>(key: K, value: ShotEditorState[K]) => {
     setEditorState(prev => ({ ...prev, [key]: value }));
     setSaveMessage('');
+    setSaveMessageTone('success');
   };
 
   const handleApplyPanelImage = (target: 'start' | 'end', imageUrl: string) => {
     handleEditorChange(target === 'start' ? 'start_image_url' : 'end_image_url', imageUrl);
-    setSaveMessage(target === 'start' ? '已回填九宫格到开始帧，请保存分镜' : '已回填九宫格到结束帧，请保存分镜');
+    setSaveMessageTone('info');
+    setSaveMessage(
+      target === 'start'
+        ? '已回填九宫格到开始帧，请保存分镜'
+        : '已回填九宫格到结束帧，请保存分镜'
+    );
   };
 
   if (loading) {
@@ -348,16 +445,26 @@ export default function EpisodeDetailPage() {
                         {getShotStatusLabel(getShotStatus(activeShot as any))}
                       </span>
                       <GlassButton
+                        variant="secondary"
+                        icon={generatingVideo ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Video style={{ width: '16px', height: '16px' }} />}
+                        isDark={false}
+                        loading={generatingVideo}
+                        disabled={!canGenerateVideo}
+                        title={!editorState.start_image_url || !editorState.end_image_url ? '\u8bf7\u5148\u51c6\u5907\u5f00\u59cb\u5e27\u548c\u7ed3\u675f\u5e27' : !activeVideoProviderId ? '\u6682\u65e0\u53ef\u7528\u89c6\u9891 Provider' : undefined}
+                        onClick={handleGenerateVideo}
+                      >
+                        {'\u751f\u6210\u89c6\u9891'}
+                      </GlassButton>
+                      <GlassButton
                         variant="primary"
                         icon={savingShot ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Save style={{ width: '16px', height: '16px' }} />}
                         isDark={false}
                         loading={savingShot}
                         onClick={handleSaveShot}
                       >
-                        保存分镜
+                        {'\u4fdd\u5b58\u5206\u955c'}
                       </GlassButton>
-                    </div>
-                  </div>
+                    </div>                  </div>
 
                   <div style={detailBodyStyle}>
                     <section style={editorSectionStyle}>
@@ -486,17 +593,28 @@ export default function EpisodeDetailPage() {
                     />
 
                     <section style={metaBarStyle}>
-                      <span style={metaBadgeStyle}>比例 {activeShot.aspect_ratio || '16:9'}</span>
-                      <span style={metaBadgeStyle}>分辨率 {activeShot.resolution || '1080p'}</span>
-                      <span style={metaBadgeStyle}>时长 {activeShot.duration || 8}s</span>
-                      {saveMessage && <span style={saveTipStyle}>{saveMessage}</span>}
+                      <span style={metaBadgeStyle}>{'\u6bd4\u4f8b'} {activeShot.aspect_ratio || '16:9'}</span>
+                      <span style={metaBadgeStyle}>{'\u5206\u8fa8\u7387'} {activeShot.resolution || '1080p'}</span>
+                      <span style={metaBadgeStyle}>{'\u65f6\u957f'} {activeShot.duration || 8}s</span>
+                      <span style={metaBadgeStyle}>{'\u89c6\u9891\u5f15\u64ce'} {activeVideoProvider?.name || '\u672a\u914d\u7f6e'}</span>
+                      <span style={metaBadgeStyle}>{editorState.start_image_url && editorState.end_image_url ? '\u53cc\u5e27\u5df2\u5c31\u7eea' : '\u7f3a\u5c11\u8d77\u6b62\u5e27'}</span>
+                      {saveMessage && (
+                        <span
+                          style={{
+                            ...saveTipStyle,
+                            color: saveMessageTone === 'error' ? '#ef4444' : saveMessageTone === 'info' ? '#6366f1' : '#10b981',
+                          }}
+                        >
+                          {saveMessage}
+                        </span>
+                      )}
                     </section>
 
                     {activeShot.video_url && (
                       <section style={editorSectionStyle}>
                         <div style={sectionTitleStyle}>
                           <Clapperboard style={{ width: '16px', height: '16px' }} />
-                          成片预览
+                          {'\u6210\u7247\u9884\u89c8'}
                         </div>
                         <video controls src={activeShot.video_url} style={videoStyle} />
                       </section>
