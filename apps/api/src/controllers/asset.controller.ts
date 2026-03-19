@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import * as crypto from 'crypto'
 import { prisma } from '../lib/prisma'
+import { getOrCreateDefaultEpisode } from '../utils/episode-resolver'
 
 export class AssetController {
   async listCharacters(req: Request, res: Response): Promise<void> {
@@ -221,7 +222,7 @@ export class AssetController {
       }
 
       const { project_id } = req.params
-      const { location, time, atmosphere, reference_images } = req.body
+      const { location, time, atmosphere, description } = req.body
 
       if (!location || !time) {
         res.status(400).json({ error: 'Location and time are required' })
@@ -240,26 +241,7 @@ export class AssetController {
         return
       }
 
-      // 获取或创建默认 Episode
-      let episode = await prisma.episode.findFirst({
-        where: { project_id },
-        orderBy: { episode_number: 'asc' },
-      })
-
-      if (!episode) {
-        // 创建默认的第一集
-        episode = await prisma.episode.create({
-          data: {
-            id: crypto.randomUUID(),
-            project_id,
-            title: '第一集',
-            episode_number: 1,
-            status: 'draft',
-            created_at: new Date(),
-            updated_at: new Date(),
-          },
-        })
-      }
+      const episode = await getOrCreateDefaultEpisode(project_id)
 
       // 获取下一个 scene_order
       const maxScene = await prisma.scene.findFirst({
@@ -277,10 +259,8 @@ export class AssetController {
           project_id: project_id,
           location,
           time,
-          description: atmosphere,
+          description: description || atmosphere,
           scene_order: nextSceneOrder,
-          reference_images: reference_images || [],
-          created_at: new Date(),
           updated_at: new Date(),
         },
       })

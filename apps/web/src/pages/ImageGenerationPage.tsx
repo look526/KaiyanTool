@@ -504,7 +504,7 @@ export function ImageGenerationPage() {
 
                 <div style={{ marginBottom: '16px', position: 'relative', zIndex: 10, overflow: 'visible' }}>
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: '500' }}>选择AI模型</div>
-                  <ModelSelector contentType="image" value={selectedModel} onChange={setSelectedModel} placeholder="选择模型" showLastUsed={true} showDefault={true} />
+                  <ModelSelector content_type="image" value={selectedModel} on_change={setSelectedModel} placeholder="选择模型" show_last_used={true} show_default={true} />
                 </div>
 
                 <button

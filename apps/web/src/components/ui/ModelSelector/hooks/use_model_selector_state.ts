@@ -50,9 +50,10 @@ export function use_model_selector_state(content_type: ContentType) {
         return;
       }
 
-      const providers = await apiClient.getAIProviders();
+      const response = await apiClient.getAIProviders();
+      const providers_data = response.providers;
 
-      const enabled_providers = providers.providers.filter(p => p.enabled);
+      const enabled_providers = providers_data.filter(p => p.enabled);
 
       const all_models = enabled_providers
         .flatMap(provider => {
@@ -63,7 +64,7 @@ export function use_model_selector_state(content_type: ContentType) {
         });
 
       const models_by_type: Record<string, typeof models> = {};
-      providers.providers
+      providers_data
         .filter(p => p.enabled)
         .forEach(provider => {
           provider.models?.forEach(model => {
@@ -77,7 +78,7 @@ export function use_model_selector_state(content_type: ContentType) {
         });
 
       cacheUtils.setModels({
-        providers: providers.providers,
+        providers: providers_data,
         modelsByType: models_by_type,
         lastUpdated: Date.now(),
       });

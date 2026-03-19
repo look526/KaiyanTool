@@ -4,6 +4,7 @@ import { GoogleProvider } from './google.provider'
 import { ZhipuProvider } from './zhipu.provider'
 import { AntSKProvider } from './antsk.provider'
 import { SeedreamProvider } from './seedream.provider'
+import { VolcengineTTSProvider } from './volcengine-tts.provider'
 
 export interface ModelProvider {
   id: string
@@ -35,6 +36,9 @@ export class ProviderManager {
         break
       case 'seedream':
         provider = new SeedreamProvider(config.apiKey, config.baseUrl)
+        break
+      case 'volcengine-tts':
+        provider = new VolcengineTTSProvider(config.apiKey, config.baseUrl)
         break
       default:
         provider = new OpenAIProvider(config.apiKey, config.baseUrl)

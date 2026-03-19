@@ -17,7 +17,7 @@ export const mentionsApi = {
   ): Promise<MentionItem[]> {
     const queryParams = query ? `?q=${encodeURIComponent(query)}` : '';
     const response = await api.get(`/projects/${projectId}/mentions${queryParams}`);
-    return response.data.data || response.data;
+    return (response as any).data || response;
   },
 };
 

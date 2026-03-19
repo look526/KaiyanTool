@@ -53,16 +53,16 @@ export const shotsApi = {
    * 获取分镜列表
    */
   async getShots(episodeId: string): Promise<Shot[]> {
-    const response = await apiClient.get(`/episodes/${episodeId}/shots`);
-    return response.data.data || response.data;
+    const response = await api.get(`/episodes/${episodeId}/shots`);
+    return (response as any).data || response;
   },
 
   /**
    * 获取分镜详情
    */
   async getShot(id: string): Promise<Shot> {
-    const response = await apiClient.get(`/shots/${id}`);
-    return response.data.data || response.data;
+    const response = await api.get(`/shots/${id}`);
+    return (response as any).data || response;
   },
 
   /**
@@ -72,8 +72,8 @@ export const shotsApi = {
     episodeId: string,
     input: CreateShotInput
   ): Promise<Shot> {
-    const response = await apiClient.post(`/episodes/${episodeId}/shots`, input);
-    return response.data.data || response.data;
+    const response = await api.post(`/episodes/${episodeId}/shots`, input);
+    return (response as any).data || response;
   },
 
   /**
@@ -83,15 +83,15 @@ export const shotsApi = {
     id: string,
     input: UpdateShotInput
   ): Promise<Shot> {
-    const response = await apiClient.put(`/shots/${id}`, input);
-    return response.data.data || response.data;
+    const response = await api.put(`/shots/${id}`, input);
+    return (response as any).data || response;
   },
 
   /**
    * 删除分镜
    */
   async deleteShot(id: string): Promise<void> {
-    await apiClient.delete(`/shots/${id}`);
+    await api.delete(`/shots/${id}`);
   },
 
   /**
@@ -101,8 +101,8 @@ export const shotsApi = {
     id: string,
     input: GenerateShotInput
   ): Promise<{ success: boolean; video_url: string; generation_time: number }> {
-    const response = await apiClient.post(`/shots/${id}/generate`, input);
-    return response.data.data || response.data;
+    const response = await api.post(`/shots/${id}/generate`, input);
+    return (response as any).data || response;
   },
 
   /**
@@ -112,17 +112,17 @@ export const shotsApi = {
     episodeId: string,
     input: BatchGenerateInput
   ): Promise<{ success: boolean; successful: number; failed: number; total: number }> {
-    const response = await apiClient.post(`/episodes/${episodeId}/shots/batch-generate`, input);
-    return response.data.data || response.data;
+    const response = await api.post(`/episodes/${episodeId}/shots/batch-generate`, input);
+    return (response as any).data || response;
   },
 
   /**
-   * 重排序分�?   */
+   * 重排序分镜
+   */
   async reorderShot(
     id: string,
     newOrder: number
   ): Promise<void> {
-    await apiClient.put(`/shots/${id}/reorder`, { order: newOrder });
+    await api.put(`/shots/${id}/reorder`, { order: newOrder });
   },
 };
-

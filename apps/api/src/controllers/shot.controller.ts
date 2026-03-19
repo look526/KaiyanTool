@@ -2,6 +2,7 @@ import { Request, Response } from 'express'
 import * as crypto from 'crypto'
 import { prisma } from '../lib/prisma'
 import logger from '../lib/logger'
+import { resolveEpisodeForProject } from '../utils/episode-resolver'
 
 class ShotController {
   async getShots(req: Request, res: Response): Promise<void> {
@@ -11,7 +12,7 @@ class ShotController {
         return
       }
 
-      const { project_id } = req.params
+      const project_id = req.params.projectId || req.params.project_id
 
       const project = await prisma.project.findFirst({
         where: {
@@ -95,10 +96,11 @@ class ShotController {
         return
       }
 
-      const { project_id } = req.params
+      const project_id = req.params.projectId || req.params.project_id
       const {
         scene_id,
         character_id,
+        episode_id,
         chapter_number,
         episode_number,
         segment_id,
@@ -125,14 +127,27 @@ class ShotController {
         return
       }
 
+      const resolvedEpisode = await resolveEpisodeForProject({
+        project_id,
+        scene_id,
+        episode_id,
+        episode_number,
+      })
+
+      if (!resolvedEpisode) {
+        res.status(400).json({ error: 'Scene not found or does not belong to project' })
+        return
+      }
+
       const shot = await prisma.shot.create({
         data: {
           id: crypto.randomUUID(),
           project_id: project_id,
+          episode_id: resolvedEpisode.id,
           scene_id,
           character_id,
           chapter_number,
-          episode_number,
+          episode_number: episode_number ?? resolvedEpisode.episode_number,
           segment_id,
           cell_id,
           action_summary,
@@ -282,7 +297,7 @@ class ShotController {
         return
       }
 
-      const { project_id } = req.params
+      const project_id = req.params.projectId || req.params.project_id
       const { shots } = req.body
 
       if (!Array.isArray(shots)) {
@@ -335,7 +350,7 @@ class ShotController {
         return
       }
 
-      const { project_id } = req.params
+      const project_id = req.params.projectId || req.params.project_id
       const { script_id } = req.body
 
       const project = await prisma.project.findFirst({

@@ -925,7 +925,7 @@ function ScriptEditorContent() {
 
           <div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: '500' }}>选择AI模型</div>
-            <ModelSelector contentType="script" value={selectedModel} onChange={setSelectedModel} placeholder="选择模型" showLastUsed={true} showDefault={true} />
+            <ModelSelector content_type="script" value={selectedModel} on_change={setSelectedModel} placeholder="选择模型" show_last_used={true} show_default={true} />
           </div>
 
           <div style={{ height: '1px', background: 'var(--border-primary)', margin: '4px 0' }} />

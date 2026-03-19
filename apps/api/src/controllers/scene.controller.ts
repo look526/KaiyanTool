@@ -1,7 +1,7 @@
+import crypto from 'crypto';
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
+import { getOrCreateDefaultEpisode } from '../utils/episode-resolver';
 
 export class SceneController {
   async getScenesByProject(req: Request, res: Response): Promise<void> {
@@ -105,12 +105,44 @@ export class SceneController {
       const { episodeId, projectId } = req.params;
       const { location, time, description, atmosphere } = req.body;
 
-      // 支持从 projectId 或 episodeId 创建
-      let targetEpisodeId = episodeId || projectId;
-      
-      if (!targetEpisodeId) {
+      if (!episodeId && !projectId) {
         res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: 'Missing episodeId or projectId' } });
         return;
+      }
+
+      let targetEpisodeId = episodeId;
+      let targetProjectId: string | null = null;
+
+      if (episodeId) {
+        const episode = await prisma.episode.findUnique({
+          where: { id: episodeId },
+          select: {
+            id: true,
+            project_id: true,
+          },
+        });
+
+        if (!episode) {
+          res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Episode not found' } });
+          return;
+        }
+
+        targetEpisodeId = episode.id;
+        targetProjectId = episode.project_id;
+      } else if (projectId) {
+        const project = await prisma.project.findUnique({
+          where: { id: projectId },
+          select: { id: true },
+        });
+
+        if (!project) {
+          res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Project not found' } });
+          return;
+        }
+
+        const episode = await getOrCreateDefaultEpisode(projectId);
+        targetEpisodeId = episode.id;
+        targetProjectId = episode.project_id;
       }
 
       // Get next scene order
@@ -124,11 +156,14 @@ export class SceneController {
 
       const scene = await prisma.scene.create({
         data: {
+          id: crypto.randomUUID(),
           episode_id: targetEpisodeId,
+          project_id: targetProjectId,
           location,
           time,
           description: description || atmosphere,
           scene_order: nextSceneOrder,
+          updated_at: new Date(),
         },
       });
 

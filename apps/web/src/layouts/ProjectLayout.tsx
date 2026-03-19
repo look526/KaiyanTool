@@ -4,6 +4,7 @@ import { WorkflowSidebar } from '../components/workflow/WorkflowSidebar';
 
 const STEP_ROUTES: Record<WorkflowStepId, string> = {
   script: 'script',
+  storyline: 'storyline',
   characters: 'characters',
   items: 'items',
   scenes: 'scenes',

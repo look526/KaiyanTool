@@ -176,7 +176,7 @@ export class ApiClient {
 
   // AI Provider endpoints
   async getAIProviders() {
-    return this.get<AIProvider[]>('/ai-providers')
+    return this.get<{ providers: AIProvider[]; pagination: { total: number; page: number; limit: number } }>('/ai-providers')
   }
 
   async createAIProvider(data: Partial<AIProvider>) {
@@ -808,6 +808,98 @@ export class ApiClient {
 
   async styleTransfer(imageId: string, style?: string, strength: number = 0.5) {
     return this.post<{ url: string }>('/image-enhancement/style-transfer', { imageId, style, strength })
+  }
+
+  // ========== TTS 配音 ==========
+
+  async synthesizeSpeech(project_id: string, data: { text: string; voice_id: string; provider_id: string; speed?: number; emotion?: string; shot_id?: string; episode_id?: string; speaker?: string }) {
+    return this.post<any>(`/projects/${project_id}/tts/synthesize`, data)
+  }
+
+  async batchSynthesizeTTS(project_id: string, data: { episode_id: string; provider_id: string; default_voice_id?: string }) {
+    return this.post<any>(`/projects/${project_id}/tts/batch`, data)
+  }
+
+  async listTTSVoices(provider_id: string) {
+    return this.get<any[]>(`/tts/voices?provider_id=${provider_id}`)
+  }
+
+  async getVoiceProfiles(project_id: string) {
+    return this.get<any[]>(`/projects/${project_id}/voice-profiles`)
+  }
+
+  async upsertVoiceProfile(project_id: string, data: { character_id?: string; name: string; provider: string; voice_id: string; sample_url?: string; language?: string; gender?: string; style?: string }) {
+    return this.post<any>(`/projects/${project_id}/voice-profiles`, data)
+  }
+
+  async deleteVoiceProfile(id: string) {
+    return this.delete(`/voice-profiles/${id}`)
+  }
+
+  // ========== 字幕 ==========
+
+  async generateSubtitles(project_id: string, episode_id: string) {
+    return this.post<any>(`/projects/${project_id}/episodes/${episode_id}/subtitles/generate`, {})
+  }
+
+  async getSubtitles(project_id: string, episode_id: string) {
+    return this.get<any>(`/projects/${project_id}/episodes/${episode_id}/subtitles`)
+  }
+
+  async updateSubtitleEntries(subtitle_id: string, entries: any[]) {
+    return this.put<any>(`/subtitles/${subtitle_id}/entries`, { entries })
+  }
+
+  async updateSubtitleStyle(subtitle_id: string, style: Record<string, any>) {
+    return this.put<any>(`/subtitles/${subtitle_id}/style`, { style })
+  }
+
+  async exportSubtitle(subtitle_id: string, format: 'srt' | 'vtt' | 'ass' | 'ssa' = 'srt') {
+    return this.get<string>(`/subtitles/${subtitle_id}/export?format=${format}`)
+  }
+
+  // ========== 时间线 ==========
+
+  async createTimeline(project_id: string, episode_id: string) {
+    return this.post<any>(`/projects/${project_id}/episodes/${episode_id}/timeline`, {})
+  }
+
+  async getTimeline(project_id: string, episode_id: string) {
+    return this.get<any>(`/projects/${project_id}/episodes/${episode_id}/timeline`)
+  }
+
+  async updateTimelineTracks(timeline_id: string, tracks: any[]) {
+    return this.put<any>(`/timeline/${timeline_id}/tracks`, { tracks })
+  }
+
+  async startTimelineRender(timeline_id: string) {
+    return this.post<any>(`/timeline/${timeline_id}/render`, {})
+  }
+
+  async getTimelineRenderStatus(timeline_id: string) {
+    return this.get<any>(`/timeline/${timeline_id}/render/status`)
+  }
+
+  // ========== 一键出片 ==========
+
+  async createProductionTask(project_id: string, data: { episode_id: string; provider_id: string; tts_provider_id?: string; default_voice_id?: string; style?: string; quality?: string; skip_steps?: string[]; enable_lip_sync?: boolean }) {
+    return this.post<any>(`/projects/${project_id}/production`, data)
+  }
+
+  async executeProductionTask(task_id: string) {
+    return this.post<any>(`/production/${task_id}/execute`, {})
+  }
+
+  async getProductionTask(task_id: string) {
+    return this.get<any>(`/production/${task_id}`)
+  }
+
+  async listProductionTasks(project_id: string) {
+    return this.get<any[]>(`/projects/${project_id}/production`)
+  }
+
+  async cancelProductionTask(task_id: string) {
+    return this.post<any>(`/production/${task_id}/cancel`, {})
   }
 }
 

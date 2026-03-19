@@ -158,9 +158,9 @@ export function AIControls({
       </div>
 
       <ModelSelector
-        contentType="script"
+        content_type="script"
         value={selectedModel}
-        onChange={onModelChange}
+        on_change={onModelChange}
       />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

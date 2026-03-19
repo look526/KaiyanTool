@@ -367,15 +367,20 @@ model Project {
   Episode        Episode[]
   Novel          Novel[]
   Outline        Outline[]
-  User           User             @relation(fields: [owner_id], references: [id], onDelete: Cascade)
-  ProjectMember  ProjectMember[]
-  PromptTemplate PromptTemplate[]
-  Scene          Scene[]
-  Script         Script[]
-  Shot           Shot[]
-  Storyline      Storyline[]
-  Video          Video[]
-  VideoMergeTask VideoMergeTask[]
+  User             User              @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+  ProjectMember    ProjectMember[]
+  PromptTemplate   PromptTemplate[]
+  Scene            Scene[]
+  Script           Script[]
+  Shot             Shot[]
+  Storyline        Storyline[]
+  Video            Video[]
+  VideoMergeTask   VideoMergeTask[]
+  AudioTrack       AudioTrack[]
+  Subtitle         Subtitle[]
+  TimelineProject  TimelineProject[]
+  VoiceProfile     VoiceProfile[]
+  ProductionTask   ProductionTask[]
 }
 
 model ProjectMember {
@@ -616,6 +621,10 @@ model Shot {
   model           String?
   status          String            @default("pending")
   visual_style    String?
+  audio_url       String?
+  lip_sync_url    String?
+  subtitle_text   String?
+  audio_duration  Int?
   created_at      DateTime          @default(now())
   updated_at      DateTime
   Episode         Episode           @relation(fields: [episode_id], references: [id], onDelete: Cascade)
@@ -887,6 +896,7 @@ enum AgentType {
   director
   segment
   shot
+  production
 }
 
 enum ContentType {
@@ -917,4 +927,104 @@ enum TaskStatus {
   processing
   completed
   failed
+}
+
+model AudioTrack {
+  id         String   @id @db.Uuid
+  project_id String   @db.Uuid
+  shot_id    String?  @db.Uuid
+  episode_id String?  @db.Uuid
+  type       String
+  url        String
+  duration   Int
+  speaker    String?
+  voice_id   String?
+  emotion    String?
+  text       String?
+  start_time Int?
+  volume     Float    @default(1.0)
+  status     String   @default("pending")
+  created_at DateTime @default(now())
+  updated_at DateTime
+  Project    Project  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id])
+  @@index([shot_id])
+  @@index([episode_id])
+  @@index([type])
+}
+
+model Subtitle {
+  id         String   @id @db.Uuid
+  project_id String   @db.Uuid
+  episode_id String   @db.Uuid
+  entries    Json     @default("[]")
+  format     String   @default("srt")
+  language   String   @default("zh-CN")
+  style      Json?
+  created_at DateTime @default(now())
+  updated_at DateTime
+  Project    Project  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id])
+  @@index([episode_id])
+}
+
+model TimelineProject {
+  id         String   @id @db.Uuid
+  project_id String   @db.Uuid
+  episode_id String   @db.Uuid
+  tracks     Json     @default("[]")
+  duration   Int      @default(0)
+  fps        Int      @default(30)
+  resolution String   @default("1080x1920")
+  output_url String?
+  status     String   @default("draft")
+  created_at DateTime @default(now())
+  updated_at DateTime
+  Project    Project  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id])
+  @@index([episode_id])
+}
+
+model VoiceProfile {
+  id           String   @id @db.Uuid
+  project_id   String   @db.Uuid
+  character_id String?  @db.Uuid
+  name         String
+  provider     String
+  voice_id     String
+  sample_url   String?
+  language     String   @default("zh-CN")
+  gender       String?
+  style        String?
+  created_at   DateTime @default(now())
+  Project      Project  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id])
+  @@index([character_id])
+}
+
+model ProductionTask {
+  id           String    @id @db.Uuid
+  project_id   String    @db.Uuid
+  episode_id   String?   @db.Uuid
+  type         String
+  config       Json      @default("{}")
+  progress     Float     @default(0)
+  current_step String?
+  total_steps  Int?
+  status       String    @default("pending")
+  error_log    Json?
+  output_url   String?
+  started_at   DateTime?
+  completed_at DateTime?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime
+  Project      Project   @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id])
+  @@index([episode_id])
+  @@index([status])
 }

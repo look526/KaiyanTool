@@ -59,6 +59,21 @@ export function use_optimizer_state() {
     set_expanded_scenes(new Set());
   }, []);
 
+  const actions = useMemo(() => ({
+    set_step,
+    set_scenes,
+    set_selected_scene_ids,
+    set_search_query,
+    set_current_page,
+    set_selected_directions,
+    set_custom_prompt,
+    set_optimization_result,
+    set_is_optimizing,
+    set_optimization_progress,
+    set_expanded_scenes,
+    reset,
+  }), [reset]);
+
   return {
     state: {
       step,
@@ -74,20 +89,7 @@ export function use_optimizer_state() {
       optimization_progress,
       expanded_scenes,
     },
-    actions: {
-      set_step,
-      set_scenes,
-      set_selected_scene_ids,
-      set_search_query,
-      set_current_page,
-      set_selected_directions,
-      set_custom_prompt,
-      set_optimization_result,
-      set_is_optimizing,
-      set_optimization_progress,
-      set_expanded_scenes,
-      reset,
-    },
+    actions,
   };
 }
 

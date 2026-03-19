@@ -30,16 +30,16 @@ export const scenesApi = {
    * 获取场景列表
    */
   async getScenes(episodeId: string): Promise<Scene[]> {
-    const response = await apiClient.get(`/episodes/${episodeId}/scenes`);
-    return response.data.data || response.data;
+    const response = await api.get(`/episodes/${episodeId}/scenes`);
+    return (response as any).data || response;
   },
 
   /**
    * 获取场景详情
    */
   async getScene(id: string): Promise<Scene> {
-    const response = await apiClient.get(`/scenes/${id}`);
-    return response.data.data || response.data;
+    const response = await api.get(`/scenes/${id}`);
+    return (response as any).data || response;
   },
 
   /**
@@ -49,8 +49,8 @@ export const scenesApi = {
     episodeId: string,
     input: CreateSceneInput
   ): Promise<Scene> {
-    const response = await apiClient.post(`/episodes/${episodeId}/scenes`, input);
-    return response.data.data || response.data;
+    const response = await api.post(`/episodes/${episodeId}/scenes`, input);
+    return (response as any).data || response;
   },
 
   /**
@@ -60,25 +60,26 @@ export const scenesApi = {
     id: string,
     input: UpdateSceneInput
   ): Promise<Scene> {
-    const response = await apiClient.put(`/scenes/${id}`, input);
-    return response.data.data || response.data;
+    const response = await api.put(`/scenes/${id}`, input);
+    return (response as any).data || response;
   },
 
   /**
    * 删除场景
    */
   async deleteScene(id: string): Promise<void> {
-    await apiClient.delete(`/scenes/${id}`);
+    await api.delete(`/scenes/${id}`);
   },
 
   /**
-   * 重排序场�?   */
+   * 重排序场景
+   */
   async reorderScenes(
     episodeId: string,
     scenes: Array<{ id: string; scene_order: number }>
   ): Promise<Scene[]> {
-    const response = await apiClient.put(`/scenes/${episodeId}/reorder`, { scenes });
-    return response.data.data || response.data;
+    const response = await api.put(`/scenes/${episodeId}/reorder`, { scenes });
+    return (response as any).data || response;
   },
 };
 

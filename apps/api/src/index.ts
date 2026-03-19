@@ -56,6 +56,10 @@ import sceneRoutes from './routes/scene.routes'
 import shotAlternativeRoutes from './routes/shot-alternative.routes'
 import shotDraftRoutes from './routes/shot-draft.routes'
 import mentionRoutes from './routes/mention.routes'
+import ttsRoutes from './routes/tts.routes'
+import subtitleRoutes from './routes/subtitle.routes'
+import timelineRoutes from './routes/timeline.routes'
+import productionRoutes from './routes/production.routes'
 import logger, { requestLogger } from './lib/logger'
 import { initSentry, sentryRequestHandler, sentryErrorHandler, sentryTracingHandler } from './lib/sentry'
 import { getMetrics } from './lib/metrics'
@@ -189,6 +193,10 @@ app.use('/api', sceneRoutes)
 app.use('/api', shotAlternativeRoutes)
 app.use('/api', shotDraftRoutes)
 app.use('/api', mentionRoutes)
+app.use('/api', ttsRoutes)
+app.use('/api', subtitleRoutes)
+app.use('/api', timelineRoutes)
+app.use('/api', productionRoutes)
 app.use('/temp', express.static(path.join(process.cwd(), 'temp')))
 
 app.use(sentryErrorHandler)

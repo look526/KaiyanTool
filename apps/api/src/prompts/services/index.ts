@@ -464,3 +464,5 @@ export const CLOTHING_VARIANT_PROMPTS = {
   ]
 }`
 };
+
+export * from './tts-prompts'

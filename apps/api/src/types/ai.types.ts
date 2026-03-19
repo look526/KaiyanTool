@@ -87,3 +87,39 @@ export interface AICreateVideoResponse {
   duration?: number
   resolution?: string
 }
+
+export interface TTSRequest {
+  text: string
+  voice_id: string
+  speed?: number
+  pitch?: number
+  emotion?: string
+  language?: string
+  format?: 'mp3' | 'wav' | 'ogg'
+}
+
+export interface TTSResponse {
+  url: string
+  duration: number
+  format: string
+}
+
+export interface TTSVoice {
+  id: string
+  name: string
+  language: string
+  gender: string
+  style?: string
+  sample_url?: string
+}
+
+export interface LipSyncRequest {
+  image_url: string
+  audio_url: string
+  output_format?: 'mp4' | 'webm'
+}
+
+export interface LipSyncResponse {
+  url: string
+  duration: number
+}

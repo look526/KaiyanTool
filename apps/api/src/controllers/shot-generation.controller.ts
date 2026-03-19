@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma'
 import { aiProviderService } from '../services/ai/provider.service'
 import logger from '../lib/logger'
 import { buildCharacterImagePrompt } from '../config/prompt-templates'
+import { buildConsistencyParams, enhancePromptWithCharacter } from '../services/character-consistency.service'
 import crypto from 'crypto'
 
 class ShotGenerationController {
@@ -43,13 +44,22 @@ class ShotGenerationController {
         return
       }
 
-      const prompt = shot.start_prompt || this.buildImagePrompt(shot, 'start', style)
+      let prompt = shot.start_prompt || this.buildImagePrompt(shot, 'start', style)
+
+      const consistencyData = shot.character_id
+        ? await buildConsistencyParams(id)
+        : null
+
+      if (consistencyData?.appearance_prompt) {
+        prompt = enhancePromptWithCharacter(prompt, consistencyData.appearance_prompt)
+      }
 
       const response = await aiProviderService.createImage(provider_id, {
         prompt,
         size: shot.aspect_ratio === '16:9' ? '1920x1080' : shot.aspect_ratio === '4:3' ? '1536x1024' : '1024x1792',
         quality: quality || 'standard',
         style: 'vivid',
+        image_urls: consistencyData?.image_urls,
       })
 
       const updatedShot = await prisma.shot.update({
@@ -125,13 +135,22 @@ class ShotGenerationController {
         return
       }
 
-      const prompt = shot.end_prompt || this.buildImagePrompt(shot, 'end', style)
+      let prompt = shot.end_prompt || this.buildImagePrompt(shot, 'end', style)
+
+      const consistencyData = shot.character_id
+        ? await buildConsistencyParams(id)
+        : null
+
+      if (consistencyData?.appearance_prompt) {
+        prompt = enhancePromptWithCharacter(prompt, consistencyData.appearance_prompt)
+      }
 
       const response = await aiProviderService.createImage(provider_id, {
         prompt,
         size: shot.aspect_ratio === '16:9' ? '1920x1080' : shot.aspect_ratio === '4:3' ? '1536x1024' : '1024x1792',
         quality: quality || 'standard',
         style: 'vivid',
+        image_urls: consistencyData?.image_urls,
       })
 
       const updatedShot = await prisma.shot.update({
@@ -207,21 +226,34 @@ class ShotGenerationController {
         return
       }
 
-      const start_prompt = shot.start_prompt || this.buildImagePrompt(shot, 'start', style)
-      const end_prompt = shot.end_prompt || this.buildImagePrompt(shot, 'end', style)
+      let start_prompt = shot.start_prompt || this.buildImagePrompt(shot, 'start', style)
+      let end_prompt = shot.end_prompt || this.buildImagePrompt(shot, 'end', style)
+
+      const consistencyData = shot.character_id
+        ? await buildConsistencyParams(id)
+        : null
+
+      if (consistencyData?.appearance_prompt) {
+        start_prompt = enhancePromptWithCharacter(start_prompt, consistencyData.appearance_prompt)
+        end_prompt = enhancePromptWithCharacter(end_prompt, consistencyData.appearance_prompt)
+      }
+
+      const imageSize = shot.aspect_ratio === '16:9' ? '1920x1080' : shot.aspect_ratio === '4:3' ? '1536x1024' : '1024x1792'
       
       const [startResponse, endResponse] = await Promise.all([
         aiProviderService.createImage(provider_id, {
           prompt: start_prompt,
-          size: shot.aspect_ratio === '16:9' ? '1920x1080' : shot.aspect_ratio === '4:3' ? '1536x1024' : '1024x1792',
+          size: imageSize,
           quality: quality || 'standard',
           style: 'vivid',
+          image_urls: consistencyData?.image_urls,
         }),
         aiProviderService.createImage(provider_id, {
           prompt: end_prompt,
-          size: shot.aspect_ratio === '16:9' ? '1920x1080' : shot.aspect_ratio === '4:3' ? '1536x1024' : '1024x1792',
+          size: imageSize,
           quality: quality || 'standard',
           style: 'vivid',
+          image_urls: consistencyData?.image_urls,
         }),
       ])
 

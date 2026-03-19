@@ -227,9 +227,9 @@ export default function NovelEditorPage() {
               </span>
             )}
             <ModelSelector
-              contentType="novel"
+              content_type="novel"
               value={selectedModel}
-              onChange={setSelectedModel}
+              on_change={setSelectedModel}
               placeholder="选择AI模型"
               style={{ width: '240px' }}
             />

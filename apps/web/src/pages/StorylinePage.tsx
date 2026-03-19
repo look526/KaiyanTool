@@ -611,9 +611,9 @@ const StorylinePage: React.FC = () => {
             </h1>
           </div>
           <ModelSelector
-            contentType="storyline"
+            content_type="storyline"
             value={selectedModel}
-            onChange={setSelectedModel}
+            on_change={setSelectedModel}
             placeholder="选择故事线模型"
             style={{ width: '240px' }}
           />

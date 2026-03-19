@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { FileText, Users, Package, Map, LayoutGrid, ArrowLeft, ChevronRight, Sparkles, Zap } from 'lucide-react';
+import { FileText, Users, Package, Map, LayoutGrid, ArrowLeft, ChevronRight, Sparkles, Zap, BookOpen } from 'lucide-react';
 import { WorkflowStepId } from '../../contexts/WorkflowContext';
 
 interface StepConfig {
@@ -20,6 +20,14 @@ const STEP_CONFIGS: StepConfig[] = [
     description: '创作或导入剧本内容',
     gradient: 'linear-gradient(135deg, #007AFF 0%, #0056CC 100%)',
     shadow: 'rgba(0, 122, 255, 0.4)',
+  },
+  { 
+    id: 'storyline', 
+    name: '故事线', 
+    icon: BookOpen, 
+    description: '生成故事线并产出大纲/剧情结构',
+    gradient: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+    shadow: 'rgba(99, 102, 241, 0.4)',
   },
   { 
     id: 'characters', 
@@ -230,6 +238,7 @@ export function WorkflowSidebar({ onStepChange }: WorkflowSidebarProps) {
   const getActiveStep = (): WorkflowStepId => {
     const path = location.pathname;
     if (path.includes('/script')) return 'script';
+    if (path.includes('/storyline') || path.includes('/outline')) return 'storyline';
     if (path.includes('/characters')) return 'characters';
     if (path.includes('/items')) return 'items';
     if (path.includes('/scenes')) return 'scenes';

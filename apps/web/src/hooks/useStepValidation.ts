@@ -33,6 +33,30 @@ export function useStepValidation(projectId: string | undefined) {
     }
   }, [projectId]);
 
+  const validateStorylineStep = useCallback(async (): Promise<StepValidationResult> => {
+    if (!projectId) return { isValid: false, percentage: 0 };
+
+    try {
+      const documents = await apiClient.getProjectDocuments(projectId);
+      const storylines = documents.filter((d: any) => d?.type === 'storyline') as any[];
+
+      if (!storylines || storylines.length === 0) {
+        return { isValid: false, percentage: 0 };
+      }
+
+      const first = storylines[0];
+      const content = first?.content;
+      const hasCore = Boolean(content?.title) && Boolean(content?.logline);
+
+      return {
+        isValid: hasCore,
+        percentage: hasCore ? 100 : 30,
+      };
+    } catch {
+      return { isValid: false, percentage: 0 };
+    }
+  }, [projectId]);
+
   const validateCharactersStep = useCallback(async (): Promise<StepValidationResult> => {
     if (!projectId) return { isValid: false, percentage: 0 };
     
@@ -126,6 +150,8 @@ export function useStepValidation(projectId: string | undefined) {
     switch (stepId) {
       case 'script':
         return validateScriptStep();
+      case 'storyline':
+        return validateStorylineStep();
       case 'characters':
         return validateCharactersStep();
       case 'scenes':
@@ -140,7 +166,7 @@ export function useStepValidation(projectId: string | undefined) {
   const validateAllSteps = useCallback(async () => {
     if (!projectId) return;
     
-    const steps: WorkflowStepId[] = ['script', 'characters', 'scenes', 'storyboard'];
+    const steps: WorkflowStepId[] = ['script', 'storyline', 'characters', 'scenes', 'storyboard'];
     
     for (const step of steps) {
       const result = await validateStep(step);
