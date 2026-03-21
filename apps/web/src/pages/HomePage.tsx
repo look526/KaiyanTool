@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../core/store/auth.store';
 import {
   PlayCircle,
   Sparkles,
@@ -35,7 +36,16 @@ const colors = {
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+
+  const handleStartCreation = () => {
+    if (isAuthenticated) {
+      navigate('/projects');
+    } else {
+      navigate('/register');
+    }
+  };
 
   const glassPanelStyle: React.CSSProperties = {
     background: colors.glassBg,
@@ -131,6 +141,7 @@ export default function HomePage() {
               onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
               onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
               onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+              onClick={handleStartCreation}
             >
               立即开始
             </button>
@@ -227,6 +238,7 @@ export default function HomePage() {
                 }}
                 onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+                onClick={handleStartCreation}
               >
                 免费开始创作
               </button>
@@ -866,6 +878,7 @@ export default function HomePage() {
                 }}
                 onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+                onClick={handleStartCreation}
               >
                 立即创建
               </button>
