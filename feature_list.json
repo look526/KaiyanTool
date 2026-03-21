@@ -1,0 +1,368 @@
+{
+  "project": "kaiyanTool - AI内容创作平台",
+  "version": "1.0.0",
+  "last_updated": "2026-03-22",
+  "features": [
+    {
+      "id": "auth-001",
+      "category": "authentication",
+      "description": "用户注册功能 - 用户可以创建新账户",
+      "steps": [
+        "打开注册页面",
+        "填写用户名、邮箱、密码",
+        "点击注册按钮",
+        "验证账户创建成功"
+      ],
+      "passes": false
+    },
+    {
+      "id": "auth-002",
+      "category": "authentication",
+      "description": "用户登录功能 - 用户可以使用邮箱密码登录",
+      "steps": [
+        "打开登录页面",
+        "填写邮箱和密码",
+        "点击登录按钮",
+        "验证登录成功并跳转首页"
+      ],
+      "passes": false
+    },
+    {
+      "id": "auth-003",
+      "category": "authentication",
+      "description": "用户登出功能 - 用户可以安全退出登录",
+      "steps": [
+        "点击登出按钮",
+        "验证清除会话",
+        "验证跳转登录页"
+      ],
+      "passes": false
+    },
+    {
+      "id": "auth-004",
+      "category": "authentication",
+      "description": "CSRF Token保护 - 所有认证相关API启用CSRF保护",
+      "steps": [
+        "不带token请求受保护API应返回403",
+        "带正确token请求应正常处理"
+      ],
+      "passes": false
+    },
+    {
+      "id": "project-001",
+      "category": "project",
+      "description": "项目创建功能 - 用户可以创建新项目",
+      "steps": [
+        "点击新建项目按钮",
+        "填写项目名称和描述",
+        "选择项目模板",
+        "验证项目创建成功"
+      ],
+      "passes": false
+    },
+    {
+      "id": "project-002",
+      "category": "project",
+      "description": "项目列表功能 - 用户可以查看所有项目",
+      "steps": [
+        "打开项目列表页",
+        "验证显示所有项目",
+        "验证分页功能正常"
+      ],
+      "passes": false
+    },
+    {
+      "id": "project-003",
+      "category": "project",
+      "description": "项目详情页功能 - 用户可以查看项目详情",
+      "steps": [
+        "点击项目卡片",
+        "验证跳转到详情页",
+        "验证显示项目内容"
+      ],
+      "passes": false
+    },
+    {
+      "id": "script-001",
+      "category": "script",
+      "description": "剧本创建功能 - 用户可以创建新剧本",
+      "steps": [
+        "在项目中点击新建剧本",
+        "填写剧本标题和内容",
+        "保存剧本",
+        "验证剧本创建成功"
+      ],
+      "passes": false
+    },
+    {
+      "id": "script-002",
+      "category": "script",
+      "description": "剧本编辑功能 - 用户可以编辑剧本内容",
+      "steps": [
+        "打开剧本编辑页面",
+        "修改剧本内容",
+        "保存更改",
+        "验证更改已保存"
+      ],
+      "passes": false
+    },
+    {
+      "id": "script-003",
+      "category": "script",
+      "description": "AI剧本分析功能 - AI可以分析剧本内容",
+      "steps": [
+        "选择剧本",
+        "点击AI分析按钮",
+        "等待分析完成",
+        "验证分析结果展示"
+      ],
+      "passes": false
+    },
+    {
+      "id": "episode-001",
+      "category": "episode",
+      "description": "剧集管理功能 - 用户可以管理剧集",
+      "steps": [
+        "在项目中创建剧集",
+        "添加剧集标题和描述",
+        "保存剧集",
+        "验证剧集列表更新"
+      ],
+      "passes": false
+    },
+    {
+      "id": "scene-001",
+      "category": "scene",
+      "description": "场景管理功能 - 用户可以管理场景",
+      "steps": [
+        "在剧集中创建场景",
+        "填写场景描述",
+        "设置场景参数",
+        "验证场景保存成功"
+      ],
+      "passes": false
+    },
+    {
+      "id": "storyline-001",
+      "category": "storyline",
+      "description": "故事线生成功能 - AI可以生成故事线",
+      "steps": [
+        "输入故事线提示词",
+        "调用AI生成故事线",
+        "验证故事线生成成功",
+        "验证可以编辑保存"
+      ],
+      "passes": false
+    },
+    {
+      "id": "storyboard-001",
+      "category": "storyboard",
+      "description": "分镜生成功能 - AI可以生成视频分镜",
+      "steps": [
+        "选择剧本或场景",
+        "触发分镜生成",
+        "等待AI生成分镜",
+        "验证分镜内容展示"
+      ],
+      "passes": false
+    },
+    {
+      "id": "shot-001",
+      "category": "shot",
+      "description": "镜头管理功能 - 用户可以管理镜头",
+      "steps": [
+        "在分镜中添加镜头",
+        "设置镜头参数",
+        "保存镜头",
+        "验证镜头列表更新"
+      ],
+      "passes": false
+    },
+    {
+      "id": "image-001",
+      "category": "image_generation",
+      "description": "AI图像生成功能 - 用户可以生成AI图像",
+      "steps": [
+        "输入图像描述",
+        "选择图像模型",
+        "点击生成按钮",
+        "验证图像生成成功并展示"
+      ],
+      "passes": false
+    },
+    {
+      "id": "image-002",
+      "category": "image_generation",
+      "description": "图像增强功能 - AI可以增强图像质量",
+      "steps": [
+        "上传或选择图像",
+        "点击增强按钮",
+        "等待增强处理",
+        "验证增强后图像质量提升"
+      ],
+      "passes": false
+    },
+    {
+      "id": "tts-001",
+      "category": "tts",
+      "description": "文字转语音功能 - AI可以将文字转为语音",
+      "steps": [
+        "输入要转换的文字",
+        "选择语音模型和声音",
+        "点击转换按钮",
+        "验证语音生成成功"
+      ],
+      "passes": false
+    },
+    {
+      "id": "video-001",
+      "category": "video_generation",
+      "description": "视频生成功能 - AI可以生成视频",
+      "steps": [
+        "选择分镜或镜头",
+        "设置视频参数",
+        "触发视频生成",
+        "验证视频生成成功"
+      ],
+      "passes": false
+    },
+    {
+      "id": "export-001",
+      "category": "export",
+      "description": "导出功能 - 用户可以导出项目内容",
+      "steps": [
+        "选择要导出的内容",
+        "选择导出格式",
+        "点击导出按钮",
+        "验证文件下载成功"
+      ],
+      "passes": false
+    },
+    {
+      "id": "ai-provider-001",
+      "category": "ai_provider",
+      "description": "AI提供商管理 - 管理员可以配置AI提供商",
+      "steps": [
+        "打开AI提供商管理页",
+        "添加新的AI提供商",
+        "配置API密钥和模型",
+        "验证保存成功"
+      ],
+      "passes": false
+    },
+    {
+      "id": "ai-provider-002",
+      "category": "ai_provider",
+      "description": "模型选择功能 - 用户可以选择不同的AI模型",
+      "steps": [
+        "在功能页面打开模型选择",
+        "查看可用模型列表",
+        "选择目标模型",
+        "验证模型切换成功"
+      ],
+      "passes": false
+    },
+    {
+      "id": "ui-001",
+      "category": "ui",
+      "description": "深色/浅色主题切换功能",
+      "steps": [
+        "点击主题切换按钮",
+        "验证主题从浅色切换到深色",
+        "再次点击切换回浅色",
+        "验证主题持久化"
+      ],
+      "passes": false
+    },
+    {
+      "id": "ui-002",
+      "category": "ui",
+      "description": "Glassmorphism UI风格一致性",
+      "steps": [
+        "检查所有页面使用毛玻璃效果",
+        "验证色彩系统一致性",
+        "验证圆角和阴影规范"
+      ],
+      "passes": false
+    },
+    {
+      "id": "analytics-001",
+      "category": "analytics",
+      "description": "使用统计分析功能",
+      "steps": [
+        "打开分析页面",
+        "查看生成统计",
+        "验证数据展示正确"
+      ],
+      "passes": false
+    },
+    {
+      "id": "asset-001",
+      "category": "asset",
+      "description": "素材管理功能 - 用户可以上传和管理素材",
+      "steps": [
+        "打开素材管理页面",
+        "上传新素材",
+        "验证素材上传成功",
+        "验证素材列表更新"
+      ],
+      "passes": false
+    },
+    {
+      "id": "workflow-001",
+      "category": "workflow",
+      "description": "工作流管理功能",
+      "steps": [
+        "创建新工作流",
+        "配置工作流步骤",
+        "保存工作流",
+        "验证工作流可执行"
+      ],
+      "passes": false
+    },
+    {
+      "id": "api-001",
+      "category": "api",
+      "description": "API响应格式统一 - 所有API返回统一格式",
+      "steps": [
+        "调用任意API",
+        "验证响应格式为 {success: boolean, data/error: any}",
+        "验证错误格式统一"
+      ],
+      "passes": false
+    },
+    {
+      "id": "api-002",
+      "category": "api",
+      "description": "snake_case命名规范 - 前后端使用统一命名",
+      "steps": [
+        "检查API请求参数使用snake_case",
+        "检查API响应使用snake_case",
+        "验证无camelCase泄漏"
+      ],
+      "passes": false
+    },
+    {
+      "id": "agent-001",
+      "category": "agent",
+      "description": "多Agent协作功能",
+      "steps": [
+        "触发Agent处理任务",
+        "验证Agent协调工作",
+        "验证任务完成"
+      ],
+      "passes": false
+    },
+    {
+      "id": "realtime-001",
+      "category": "realtime",
+      "description": "WebSocket实时通信",
+      "steps": [
+        "建立WebSocket连接",
+        "发送实时消息",
+        "验证接收实时响应"
+      ],
+      "passes": false
+    }
+  ]
+}
