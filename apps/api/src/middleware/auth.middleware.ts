@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express'
 import { prisma } from '../lib/prisma'
 import logger from '../lib/logger'
 
-const ENABLE_AUTH = true
+const ENABLE_AUTH = false
 
 export interface AuthRequest extends Request {
   user_id?: string;

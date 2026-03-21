@@ -1,11 +1,11 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import { createLongRunningOrchestrator, LongRunningOrchestrator, OrchestratorConfig } from '../agents/long-running-orchestrator';
 import logger from '../lib/logger';
 
 const orchestrators = new Map<string, LongRunningOrchestrator>();
 
 export class LongRunningAgentController {
-  async initializeProject(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async initializeProject(req: Request, res: Response) {
     try {
       const { project_id, user_id } = req.params;
       const { task_description, project_context, technologies, constraints, existing_features, provider_id, workspace_path, create_git_commits } = req.body;
@@ -53,11 +53,17 @@ export class LongRunningAgentController {
       logger.error('Failed to initialize project', {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
-      next(error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'INITIALIZATION_FAILED',
+          message: 'Failed to initialize project',
+        },
+      });
     }
   }
 
-  async runCodingSession(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async runCodingSession(req: Request, res: Response) {
     try {
       const { project_id, user_id } = req.params;
       const { max_features, session_notes, task_id } = req.body;
@@ -93,11 +99,17 @@ export class LongRunningAgentController {
       logger.error('Failed to run coding session', {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
-      next(error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'CODING_SESSION_FAILED',
+          message: 'Failed to run coding session',
+        },
+      });
     }
   }
 
-  async getProjectStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getProjectStatus(req: Request, res: Response) {
     try {
       const { project_id } = req.params;
 
@@ -124,11 +136,17 @@ export class LongRunningAgentController {
       logger.error('Failed to get project status', {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
-      next(error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'GET_STATUS_FAILED',
+          message: 'Failed to get project status',
+        },
+      });
     }
   }
 
-  async getProgressReport(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getProgressReport(req: Request, res: Response) {
     try {
       const { project_id } = req.params;
       const { format } = req.query;
@@ -161,11 +179,17 @@ export class LongRunningAgentController {
       logger.error('Failed to get progress report', {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
-      next(error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'GET_REPORT_FAILED',
+          message: 'Failed to get progress report',
+        },
+      });
     }
   }
 
-  async getRecentSessions(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getRecentSessions(req: Request, res: Response) {
     try {
       const { project_id } = req.params;
       const { limit } = req.query;
@@ -193,11 +217,17 @@ export class LongRunningAgentController {
       logger.error('Failed to get recent sessions', {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
-      next(error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'GET_SESSIONS_FAILED',
+          message: 'Failed to get recent sessions',
+        },
+      });
     }
   }
 
-  async getFeature(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getFeature(req: Request, res: Response) {
     try {
       const { project_id, feature_id } = req.params;
 
@@ -235,11 +265,17 @@ export class LongRunningAgentController {
       logger.error('Failed to get feature', {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
-      next(error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'GET_FEATURE_FAILED',
+          message: 'Failed to get feature',
+        },
+      });
     }
   }
 
-  async updateFeatureStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async updateFeatureStatus(req: Request, res: Response) {
     try {
       const { project_id, feature_id } = req.params;
       const { status, notes } = req.body;
@@ -282,11 +318,17 @@ export class LongRunningAgentController {
       logger.error('Failed to update feature status', {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
-      next(error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'UPDATE_STATUS_FAILED',
+          message: 'Failed to update feature status',
+        },
+      });
     }
   }
 
-  async resumeProject(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async resumeProject(req: Request, res: Response) {
     try {
       const { project_id } = req.params;
       const { task_id } = req.body;
@@ -316,11 +358,17 @@ export class LongRunningAgentController {
       logger.error('Failed to resume project', {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
-      next(error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'RESUME_FAILED',
+          message: 'Failed to resume project',
+        },
+      });
     }
   }
 
-  async runAutoSession(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async runAutoSession(req: Request, res: Response) {
     try {
       const { project_id } = req.params;
       const { max_iterations, task_id } = req.body;
@@ -353,11 +401,17 @@ export class LongRunningAgentController {
       logger.error('Failed to run auto session', {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
-      next(error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'AUTO_SESSION_FAILED',
+          message: 'Failed to run auto session',
+        },
+      });
     }
   }
 
-  async deleteProject(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async deleteProject(req: Request, res: Response) {
     try {
       const { project_id } = req.params;
 
@@ -388,7 +442,13 @@ export class LongRunningAgentController {
       logger.error('Failed to delete project', {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
-      next(error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'DELETE_FAILED',
+          message: 'Failed to delete project',
+        },
+      });
     }
   }
 }

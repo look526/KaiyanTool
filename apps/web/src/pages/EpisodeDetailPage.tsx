@@ -1,4 +1,4 @@
-﻿import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { episodesApi, shotsApi } from '../core/api/modules';
@@ -8,7 +8,8 @@ import { StandardPageHeader } from '../components/ui/StandardPageHeader';
 import { GlassButton } from '../components/ui/GlassButton';
 import { ShotNineGridWorkbench } from '../components/episode/ShotNineGridWorkbench';
 import { ImageSelector } from '../components/ImageSelector';
-import { Loader2, Film, CheckSquare, Square, Trash2, Save, Image, Clapperboard, FileText, Plus, User, Video } from 'lucide-react';
+import { MentionInput } from '../components/ui/MentionInput';
+import { Loader2, Film, CheckSquare, Square, Trash2, Save, Image, Clapperboard, FileText, Plus, User, Video, ChevronDown, Play, RefreshCw, AlertCircle, XCircle, Layers } from 'lucide-react';
 import type { AIProvider } from '../types';
 import type { Episode } from '../types/episode';
 import type { Shot, UpdateShotInput } from '../core/api/modules/shots/shots-api';
@@ -21,6 +22,28 @@ import {
   getShotStatusLabel,
 } from '../lib/shotUtils';
 
+function useLocalStorageState<T>(key: string, initialValue: T): [T, (value: T) => void] {
+  const [storedValue, setStoredValue] = useState<T>(() => {
+    try {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch {
+      return initialValue;
+    }
+  });
+
+  const setValue = (value: T) => {
+    try {
+      setStoredValue(value);
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+      console.error('Failed to save to localStorage:', error);
+    }
+  };
+
+  return [storedValue, setValue];
+}
+
 interface ShotEditorState {
   character_id: string | null;
   action_summary: string;
@@ -32,9 +55,6 @@ interface ShotEditorState {
   visual_style: string;
 }
 
-/**
- * @description 分镜详情工作台，提供列表浏览、描述编辑与素材引用能力。
- */
 export default function EpisodeDetailPage() {
   const { projectId, episodeId } = useParams<{ projectId: string; episodeId: string }>();
 
@@ -47,7 +67,9 @@ export default function EpisodeDetailPage() {
   const [batchDeleteLoading, setBatchDeleteLoading] = useState(false);
   const [savingShot, setSavingShot] = useState(false);
   const [generatingVideo, setGeneratingVideo] = useState(false);
+  const [generatingShotId, setGeneratingShotId] = useState<string | null>(null);
   const [videoProviders, setVideoProviders] = useState<AIProvider[]>([]);
+  const [selectedProviderId, setSelectedProviderId] = useLocalStorageState<string | null>('episode_selected_provider', null);
   const [saveMessage, setSaveMessage] = useState('');
   const [saveMessageTone, setSaveMessageTone] = useState<'success' | 'error' | 'info'>('success');
   const previousActiveShotIdRef = useRef<string | null>(null);
@@ -57,6 +79,12 @@ export default function EpisodeDetailPage() {
   const autoSaveTimerRef = useRef<number | null>(null);
   const editorStateRef = useRef<ShotEditorState | null>(null);
   const activeShotRef = useRef<Shot | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [lastPlayedShotId, setLastPlayedShotId] = useLocalStorageState<string | null>('episode_last_played_shot', null);
+  const [batchGenerating, setBatchGenerating] = useState(false);
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0, success: 0, failed: 0 });
+  const [batchResults, setBatchResults] = useState<{ shotId: string; success: boolean; error?: string }[]>([]);
+  const [shotErrors, setShotErrors] = useState<Record<string, string>>({});
   const [editorState, setEditorState] = useState<ShotEditorState>({
     character_id: null,
     action_summary: '',
@@ -100,7 +128,6 @@ export default function EpisodeDetailPage() {
         return [] as AIProvider[];
       });
 
-      /** 后端返回 { providers: [...], pagination }，需提取 providers 数组，否则 videoProviders.filter 会抛错导致整页崩溃 */
       const providersList = Array.isArray(providersData)
         ? providersData
         : (providersData as { providers?: AIProvider[] })?.providers ?? [];
@@ -115,6 +142,7 @@ export default function EpisodeDetailPage() {
       setLoading(false);
     }
   }, [episodeId, projectId]);
+
   useEffect(() => {
     loadEpisodeData();
   }, [loadEpisodeData]);
@@ -146,7 +174,6 @@ export default function EpisodeDetailPage() {
     }
 
     previousActiveShotIdRef.current = activeShot.id;
-    // 切换分镜时清理脏状态与待保存定时器
     if (autoSaveTimerRef.current) {
       window.clearTimeout(autoSaveTimerRef.current);
       autoSaveTimerRef.current = null;
@@ -190,16 +217,28 @@ export default function EpisodeDetailPage() {
 
   const activeVideoProvider = useMemo(() => {
     const enabledProviders = videoProviders.filter((provider) => provider.enabled !== false);
+    if (selectedProviderId) {
+      const selected = enabledProviders.find(p => (p.type || p.id) === selectedProviderId);
+      if (selected) return selected;
+    }
     return enabledProviders[0] || videoProviders[0] || null;
-  }, [videoProviders]);
+  }, [videoProviders, selectedProviderId]);
 
   const activeVideoProviderId = useMemo(() => {
     if (!activeVideoProvider) {
       return null;
     }
-
     return activeVideoProvider.type || activeVideoProvider.id;
   }, [activeVideoProvider]);
+
+  const getGenerateButtonDisabledReason = useMemo(() => {
+    if (!activeShot) return '请先选择一个分镜';
+    if (generatingVideo) return '当前正在生成中，请勿重复点击';
+    if (!editorState.start_image_url) return '缺少开始帧';
+    if (!editorState.end_image_url) return '缺少结束帧';
+    if (!activeVideoProviderId) return '暂无可用视频 Provider';
+    return null;
+  }, [activeShot, generatingVideo, editorState.start_image_url, editorState.end_image_url, activeVideoProviderId]);
 
   const canGenerateVideo = useMemo(() => {
     return Boolean(
@@ -220,7 +259,7 @@ export default function EpisodeDetailPage() {
   const buildShotUpdateInput = useCallback((shot: Shot): UpdateShotInput => {
     return {
       character_id: editorState.character_id || null,
-      action_summary: editorState.action_summary.trim() || '\u672a\u586b\u5199\u955c\u5934\u63cf\u8ff0',
+      action_summary: editorState.action_summary.trim() || '未填写镜头描述',
       camera_movement: editorState.camera_movement.trim() || undefined,
       start_prompt: editorState.start_prompt.trim() || undefined,
       end_prompt: editorState.end_prompt.trim() || undefined,
@@ -291,142 +330,237 @@ export default function EpisodeDetailPage() {
     }
   };
 
-  const handleSaveShot = async () => {\r
-    if (!activeShot) {\r
-      return;\r
-    }\r
-\r
-    if (autoSaveTimerRef.current) {\r
-      window.clearTimeout(autoSaveTimerRef.current);\r
-      autoSaveTimerRef.current = null;\r
-    }\r
-\r
-    try {\r
-      setSavingShot(true);\r
-      setSaveMessage('');\r
-      setSaveMessageTone('success');\r
-\r
-      const updatedShot = await shotsApi.updateShot(activeShot.id, buildShotUpdateInput(activeShot));\r
-      syncShot(updatedShot);\r
-\r
-      isDirtyRef.current = false;\r
-      setIsDirty(false);\r
-\r
-      setSaveMessage('已保存');\r
-    } catch (error) {\r
-      console.error('Failed to save shot:', error);\r
-      setSaveMessage('保存失败，请稍后重试');\r
-      setSaveMessageTone('error');\r
-    } finally {\r
-      setSavingShot(false);\r
-    }\r
-  };\r
-\r
-  const handleGenerateVideo = async () => {\r
-    if (!activeShot || !activeVideoProviderId || !editorState.start_image_url || !editorState.end_image_url) {\r
-      return;\r
-    }\r
-\r
-    // 生成前取消未到时的自动保存，避免重复请求\r
-    if (autoSaveTimerRef.current) {\r
-      window.clearTimeout(autoSaveTimerRef.current);\r
-      autoSaveTimerRef.current = null;\r
-    }\r
-\r
-    try {\r
-      setGeneratingVideo(true);\r
-      setSaveMessage('');\r
-      setSaveMessageTone('success');\r
-\r
-      let persistedShot: Shot = activeShot;\r
-\r
-      if (isDirtyRef.current) {\r
-        persistedShot = await shotsApi.updateShot(activeShot.id, buildShotUpdateInput(activeShot));\r
-        syncShot(persistedShot);\r
-\r
-        isDirtyRef.current = false;\r
-        setIsDirty(false);\r
-      }\r
-\r
-      const result = await shotsApi.generateShot(activeShot.id, {\r
-        provider_id: activeVideoProviderId,\r
-      });\r
-\r
-      const nextShot: Shot = result.shot\r
-        ? result.shot\r
-        : {\r
-            ...persistedShot,\r
-            video_url: result.video_url || persistedShot.video_url,\r
-            duration: result.duration || persistedShot.duration,\r
-            resolution: result.resolution || persistedShot.resolution,\r
-          };\r
-\r
-      syncShot(nextShot);\r
-      isDirtyRef.current = false;\r
-      setIsDirty(false);\r
-      setSaveMessage('视频已生成，可在下方预览');\r
-    } catch (error) {\r
-      console.error('Failed to generate video:', error);\r
-      setSaveMessage('视频生成失败，请稍后重试');\r
-      setSaveMessageTone('error');\r
-    } finally {\r
-      setGeneratingVideo(false);\r
-    }\r
-  };\r
-\r
-  const handleEditorChange = <K extends keyof ShotEditorState>(key: K, value: ShotEditorState[K]) => {\r
-    setEditorState(prev => ({ ...prev, [key]: value }));\r
-    setIsDirty(true);\r
-    isDirtyRef.current = true;\r
-    setSaveMessage('');\r
-    setSaveMessageTone('success');\r
-\r
-    if (autoSaveTimerRef.current) {\r
-      window.clearTimeout(autoSaveTimerRef.current);\r
-    }\r
-\r
-    autoSaveTimerRef.current = window.setTimeout(() => {\r
-      void (async () => {\r
-        const shot = activeShotRef.current;\r
-        const stateToSave = editorStateRef.current;\r
-\r
-        if (!shot || !stateToSave) return;\r
-        if (!isDirtyRef.current) return;\r
-        if (savingShot || generatingVideo) return;\r
-\r
-        try {\r
-          setAutoSaving(true);\r
-\r
-          const input: UpdateShotInput = {\r
-            character_id: stateToSave.character_id || null,\r
-            action_summary: stateToSave.action_summary.trim() || '\u672a\u586b\u5199\u955c\u5934\u63cf\u8ff0',\r
-            camera_movement: stateToSave.camera_movement.trim() || undefined,\r
-            start_prompt: stateToSave.start_prompt.trim() || undefined,\r
-            end_prompt: stateToSave.end_prompt.trim() || undefined,\r
-            start_image_url: stateToSave.start_image_url,\r
-            end_image_url: stateToSave.end_image_url,\r
-            visual_style: stateToSave.visual_style.trim() || undefined,\r
-            aspect_ratio: shot.aspect_ratio,\r
-            resolution: shot.resolution,\r
-            duration: shot.duration,\r
-          };\r
-\r
-          const updatedShot = await shotsApi.updateShot(shot.id, input);\r
-          syncShot(updatedShot);\r
-\r
-          isDirtyRef.current = false;\r
-          setIsDirty(false);\r
-          setSaveMessage('已自动保存');\r
-          setSaveMessageTone('success');\r
-        } catch (error) {\r
-          console.error('Auto save failed:', error);\r
-        } finally {\r
-          setAutoSaving(false);\r
-        }\r
-      })();\r
-    }, 900);\r
-  };\r
-\r
+  const handleSaveShot = async () => {
+    if (!activeShot) {
+      return;
+    }
+
+    if (autoSaveTimerRef.current) {
+      window.clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+
+    try {
+      setSavingShot(true);
+      setSaveMessage('');
+      setSaveMessageTone('success');
+
+      const updatedShot = await shotsApi.updateShot(activeShot.id, buildShotUpdateInput(activeShot));
+      syncShot(updatedShot);
+
+      isDirtyRef.current = false;
+      setIsDirty(false);
+
+      setSaveMessage('已保存');
+    } catch (error) {
+      console.error('Failed to save shot:', error);
+      setSaveMessage('保存失败，请稍后重试');
+      setSaveMessageTone('error');
+    } finally {
+      setSavingShot(false);
+    }
+  };
+
+  const handleGenerateVideo = async () => {
+    if (!activeShot || !activeVideoProviderId || !editorState.start_image_url || !editorState.end_image_url) {
+      return;
+    }
+
+    if (autoSaveTimerRef.current) {
+      window.clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+
+    try {
+      setGeneratingVideo(true);
+      setGeneratingShotId(activeShot.id);
+      setSaveMessage('');
+      setSaveMessageTone('success');
+
+      let persistedShot: Shot = activeShot;
+
+      if (isDirtyRef.current) {
+        persistedShot = await shotsApi.updateShot(activeShot.id, buildShotUpdateInput(activeShot));
+        syncShot(persistedShot);
+
+        isDirtyRef.current = false;
+        setIsDirty(false);
+      }
+
+      const result = await shotsApi.generateShot(activeShot.id, {
+        provider_id: activeVideoProviderId,
+      });
+
+      const nextShot: Shot = result.shot
+        ? result.shot
+        : {
+            ...persistedShot,
+            video_url: result.video_url || persistedShot.video_url,
+            duration: result.duration || persistedShot.duration,
+            resolution: result.resolution || persistedShot.resolution,
+          };
+
+      syncShot(nextShot);
+      setShotErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[activeShot.id];
+        return newErrors;
+      });
+      isDirtyRef.current = false;
+      setIsDirty(false);
+      setSaveMessage('视频已生成');
+      setSaveMessageTone('success');
+
+      const currentIndex = shots.findIndex(s => s.id === activeShot.id);
+      const nextShotItem = shots[currentIndex + 1];
+      if (nextShotItem) {
+        setTimeout(() => setActiveShotId(nextShotItem.id), 800);
+      }
+    } catch (error: any) {
+      console.error('Failed to generate video:', error);
+      const errorMsg = error?.message || '视频生成失败，请稍后重试';
+      setSaveMessage(errorMsg);
+      setSaveMessageTone('error');
+      setShotErrors(prev => ({ ...prev, [activeShot.id]: errorMsg }));
+    } finally {
+      setGeneratingVideo(false);
+      setGeneratingShotId(null);
+    }
+  };
+
+  const handleBatchGenerate = async () => {
+    if (!activeVideoProviderId || batchGenerating) return;
+
+    const readyShotIds = Array.from(selectedIds).filter(id => {
+      const shot = shots.find(s => s.id === id);
+      return shot?.start_image_url && shot?.end_image_url;
+    });
+
+    if (readyShotIds.length === 0) {
+      setSaveMessage('所选分镜中没有就绪的双帧分镜');
+      setSaveMessageTone('error');
+      return;
+    }
+
+    try {
+      setBatchGenerating(true);
+      setBatchProgress({ current: 0, total: readyShotIds.length, success: 0, failed: 0 });
+      setBatchResults([]);
+      setSaveMessage('');
+      setSaveMessageTone('success');
+
+      for (const shotId of readyShotIds) {
+        const shot = shots.find(s => s.id === shotId);
+        if (!shot) continue;
+
+        setBatchProgress(prev => ({ ...prev, current: prev.current + 1 }));
+        setGeneratingShotId(shotId);
+
+        try {
+          if (shot.start_image_url && shot.end_image_url) {
+            await shotsApi.updateShot(shotId, {
+              character_id: shot.character_id || null,
+              action_summary: shot.action_summary || shot.description || '未填写镜头描述',
+              camera_movement: shot.camera_movement || undefined,
+              start_prompt: shot.start_prompt || undefined,
+              end_prompt: shot.end_prompt || undefined,
+              start_image_url: shot.start_image_url,
+              end_image_url: shot.end_image_url,
+              visual_style: shot.visual_style || undefined,
+              aspect_ratio: shot.aspect_ratio,
+              resolution: shot.resolution,
+              duration: shot.duration,
+            });
+
+            const result = await shotsApi.generateShot(shotId, {
+              provider_id: activeVideoProviderId,
+            });
+
+            const updatedShot = result.shot || {
+              ...shot,
+              video_url: result.video_url || shot.video_url,
+              duration: result.duration || shot.duration,
+              resolution: result.resolution || shot.resolution,
+            };
+            syncShot(updatedShot);
+            setShotErrors(prev => {
+              const newErrors = { ...prev };
+              delete newErrors[shotId];
+              return newErrors;
+            });
+            setBatchProgress(prev => ({ ...prev, success: prev.success + 1 }));
+            setBatchResults(prev => [...prev, { shotId, success: true }]);
+          }
+        } catch (error: any) {
+          const errorMsg = error?.message || '生成失败';
+          setShotErrors(prev => ({ ...prev, [shotId]: errorMsg }));
+          setBatchProgress(prev => ({ ...prev, failed: prev.failed + 1 }));
+          setBatchResults(prev => [...prev, { shotId, success: false, error: errorMsg }]);
+        }
+      }
+
+      setSaveMessage(`批量生成完成：成功 ${batchProgress.success}，失败 ${batchProgress.failed}`);
+      setSaveMessageTone(batchProgress.failed > 0 ? 'error' : 'success');
+    } finally {
+      setBatchGenerating(false);
+      setGeneratingShotId(null);
+      setBatchProgress({ current: 0, total: 0, success: 0, failed: 0 });
+    }
+  };
+
+  const handleEditorChange = <K extends keyof ShotEditorState>(key: K, value: ShotEditorState[K]) => {
+    setEditorState(prev => ({ ...prev, [key]: value }));
+    setIsDirty(true);
+    isDirtyRef.current = true;
+    setSaveMessage('');
+    setSaveMessageTone('success');
+
+    if (autoSaveTimerRef.current) {
+      window.clearTimeout(autoSaveTimerRef.current);
+    }
+
+    autoSaveTimerRef.current = window.setTimeout(() => {
+      void (async () => {
+        const shot = activeShotRef.current;
+        const stateToSave = editorStateRef.current;
+
+        if (!shot || !stateToSave) return;
+        if (!isDirtyRef.current) return;
+        if (savingShot || generatingVideo) return;
+
+        try {
+          setAutoSaving(true);
+
+          const input: UpdateShotInput = {
+            character_id: stateToSave.character_id || null,
+            action_summary: stateToSave.action_summary.trim() || '未填写镜头描述',
+            camera_movement: stateToSave.camera_movement.trim() || undefined,
+            start_prompt: stateToSave.start_prompt.trim() || undefined,
+            end_prompt: stateToSave.end_prompt.trim() || undefined,
+            start_image_url: stateToSave.start_image_url,
+            end_image_url: stateToSave.end_image_url,
+            visual_style: stateToSave.visual_style.trim() || undefined,
+            aspect_ratio: shot.aspect_ratio,
+            resolution: shot.resolution,
+            duration: shot.duration,
+          };
+
+          const updatedShot = await shotsApi.updateShot(shot.id, input);
+          syncShot(updatedShot);
+
+          isDirtyRef.current = false;
+          setIsDirty(false);
+          setSaveMessage('已自动保存');
+          setSaveMessageTone('success');
+        } catch (error) {
+          console.error('Auto save failed:', error);
+        } finally {
+          setAutoSaving(false);
+        }
+      })();
+    }, 900);
+  };
+
   const handleApplyPanelImage = (target: 'start' | 'end', imageUrl: string) => {
     handleEditorChange(target === 'start' ? 'start_image_url' : 'end_image_url', imageUrl);
     setSaveMessageTone('info');
@@ -466,15 +600,27 @@ export default function EpisodeDetailPage() {
                   {selectedIds.size > 0 ? `${selectedIds.size}/${shots.length}` : '全选'}
                 </GlassButton>
                 {selectedIds.size > 0 && (
-                  <GlassButton
-                    variant="danger"
-                    icon={batchDeleteLoading ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Trash2 style={{ width: '16px', height: '16px' }} />}
-                    isDark={false}
-                    loading={batchDeleteLoading}
-                    onClick={handleBulkDelete}
-                  >
-                    删除 ({selectedIds.size})
-                  </GlassButton>
+                  <>
+                    <GlassButton
+                      variant="danger"
+                      icon={batchDeleteLoading ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Trash2 style={{ width: '16px', height: '16px' }} />}
+                      isDark={false}
+                      loading={batchDeleteLoading}
+                      onClick={handleBulkDelete}
+                    >
+                      删除 ({selectedIds.size})
+                    </GlassButton>
+                    <GlassButton
+                      variant="primary"
+                      icon={batchGenerating ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Layers style={{ width: '16px', height: '16px' }} />}
+                      isDark={false}
+                      loading={batchGenerating}
+                      disabled={batchGenerating}
+                      onClick={handleBatchGenerate}
+                    >
+                      {batchGenerating ? `批量生成 ${batchProgress.current}/${batchProgress.total}` : `批量生成 (${selectedIds.size})`}
+                    </GlassButton>
+                  </>
                 )}
               </>
             )}
@@ -518,6 +664,9 @@ export default function EpisodeDetailPage() {
                     index={index}
                     active={shot.id === activeShotId}
                     selected={selectedIds.has(shot.id)}
+                    isGenerating={generatingShotId === shot.id}
+                    hasError={!!shotErrors[shot.id]}
+                    errorMessage={shotErrors[shot.id]}
                     onActive={() => setActiveShotId(shot.id)}
                     onToggleSelect={() => toggleSelect(shot.id)}
                   />
@@ -536,6 +685,23 @@ export default function EpisodeDetailPage() {
                       </p>
                     </div>
                     <div style={detailHeaderActionsStyle}>
+                      <div style={providerSelectorStyle}>
+                        <select
+                          value={selectedProviderId || activeVideoProvider?.id || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setSelectedProviderId(value || null);
+                          }}
+                          style={providerSelectStyle}
+                        >
+                          {videoProviders.filter(p => p.enabled !== false).map(provider => (
+                            <option key={provider.id} value={provider.type || provider.id}>
+                              {provider.name || provider.type || 'Provider'}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown style={{ width: '14px', height: '14px', pointerEvents: 'none' }} />
+                      </div>
                       <span
                         style={{
                           ...statusBadgeStyle,
@@ -546,17 +712,24 @@ export default function EpisodeDetailPage() {
                       >
                         {getShotStatusLabel(getShotStatus(activeShot as any))}
                       </span>
-                      <GlassButton
-                        variant="secondary"
-                        icon={generatingVideo ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Video style={{ width: '16px', height: '16px' }} />}
-                        isDark={false}
-                        loading={generatingVideo}
-                        disabled={!canGenerateVideo}
-                        title={!editorState.start_image_url || !editorState.end_image_url ? '\u8bf7\u5148\u51c6\u5907\u5f00\u59cb\u5e27\u548c\u7ed3\u675f\u5e27' : !activeVideoProviderId ? '\u6682\u65e0\u53ef\u7528\u89c6\u9891 Provider' : undefined}
-                        onClick={handleGenerateVideo}
-                      >
-                        {'\u751f\u6210\u89c6\u9891'}
-                      </GlassButton>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                        <GlassButton
+                          variant="secondary"
+                          icon={generatingVideo ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Video style={{ width: '16px', height: '16px' }} />}
+                          isDark={false}
+                          loading={generatingVideo}
+                          disabled={!canGenerateVideo}
+                          onClick={handleGenerateVideo}
+                        >
+                          生成视频
+                        </GlassButton>
+                        {!canGenerateVideo && getGenerateButtonDisabledReason && (
+                          <span style={disabledReasonStyle}>
+                            <AlertCircle style={{ width: '10px', height: '10px' }} />
+                            {getGenerateButtonDisabledReason}
+                          </span>
+                        )}
+                      </div>
                       <GlassButton
                         variant="primary"
                         icon={savingShot ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Save style={{ width: '16px', height: '16px' }} />}
@@ -564,9 +737,10 @@ export default function EpisodeDetailPage() {
                         loading={savingShot}
                         onClick={handleSaveShot}
                       >
-                        {'\u4fdd\u5b58\u5206\u955c'}
+                        保存分镜
                       </GlassButton>
-                    </div>                  </div>
+                    </div>
+                  </div>
 
                   <div style={detailBodyStyle}>
                     <section style={editorSectionStyle}>
@@ -574,11 +748,12 @@ export default function EpisodeDetailPage() {
                         <FileText style={{ width: '16px', height: '16px' }} />
                         镜头描述
                       </div>
-                      <textarea
+                      <MentionInput
                         value={editorState.action_summary}
-                        onChange={(event) => handleEditorChange('action_summary', event.target.value)}
-                        placeholder="填写镜头内容、表演动作、画面重点。"
-                        style={textareaStyle}
+                        onChange={(val) => handleEditorChange('action_summary', val)}
+                        placeholder="填写镜头内容、表演动作、画面重点，使用 @ 提及角色、场景或物品..."
+                        projectId={projectId || ''}
+                        rows={6}
                       />
                     </section>
 
@@ -638,20 +813,22 @@ export default function EpisodeDetailPage() {
                     <section style={editorGridStyle}>
                       <div style={editorSectionStyle}>
                         <div style={sectionTitleStyle}>开始提示词</div>
-                        <textarea
+                        <MentionInput
                           value={editorState.start_prompt}
-                          onChange={(event) => handleEditorChange('start_prompt', event.target.value)}
-                          placeholder="填写开场帧提示词，可用于图像/视频生成。"
-                          style={textareaCompactStyle}
+                          onChange={(val) => handleEditorChange('start_prompt', val)}
+                          placeholder="输入提示词，使用 @ 提及角色、场景或物品..."
+                          projectId={projectId || ''}
+                          rows={4}
                         />
                       </div>
                       <div style={editorSectionStyle}>
                         <div style={sectionTitleStyle}>结束提示词</div>
-                        <textarea
+                        <MentionInput
                           value={editorState.end_prompt}
-                          onChange={(event) => handleEditorChange('end_prompt', event.target.value)}
-                          placeholder="填写结束帧提示词，可用于图像/视频生成。"
-                          style={textareaCompactStyle}
+                          onChange={(val) => handleEditorChange('end_prompt', val)}
+                          placeholder="输入提示词，使用 @ 提及角色、场景或物品..."
+                          projectId={projectId || ''}
+                          rows={4}
                         />
                       </div>
                     </section>
@@ -695,11 +872,66 @@ export default function EpisodeDetailPage() {
                     />
 
                     <section style={metaBarStyle}>
-                      <span style={metaBadgeStyle}>{'\u6bd4\u4f8b'} {activeShot.aspect_ratio || '16:9'}</span>
-                      <span style={metaBadgeStyle}>{'\u5206\u8fa8\u7387'} {activeShot.resolution || '1080p'}</span>
-                      <span style={metaBadgeStyle}>{'\u65f6\u957f'} {activeShot.duration || 8}s</span>
-                      <span style={metaBadgeStyle}>{'\u89c6\u9891\u5f15\u64ce'} {activeVideoProvider?.name || '\u672a\u914d\u7f6e'}</span>
-                      <span style={metaBadgeStyle}>{editorState.start_image_url && editorState.end_image_url ? '\u53cc\u5e27\u5df2\u5c31\u7eea' : '\u7f3a\u5c11\u8d77\u6b62\u5e27'}</span>
+                      <div style={metaBadgeStyle}>
+                        <span style={{ marginRight: '4px', color: 'var(--text-muted)' }}>比例</span>
+                        <select
+                          value={activeShot.aspect_ratio || '16:9'}
+                          onChange={(e) => {
+                            const shot = activeShot;
+                            if (!shot) return;
+                            const updated = { ...shot, aspect_ratio: e.target.value };
+                            syncShot(updated);
+                            shotsApi.updateShot(shot.id, { aspect_ratio: e.target.value }).catch(console.error);
+                          }}
+                          style={metaSelectStyle}
+                        >
+                          <option value="16:9">16:9</option>
+                          <option value="9:16">9:16</option>
+                          <option value="1:1">1:1</option>
+                          <option value="4:3">4:3</option>
+                        </select>
+                      </div>
+                      <div style={metaBadgeStyle}>
+                        <span style={{ marginRight: '4px', color: 'var(--text-muted)' }}>分辨率</span>
+                        <select
+                          value={activeShot.resolution || '1080p'}
+                          onChange={(e) => {
+                            const shot = activeShot;
+                            if (!shot) return;
+                            const updated = { ...shot, resolution: e.target.value };
+                            syncShot(updated);
+                            shotsApi.updateShot(shot.id, { resolution: e.target.value }).catch(console.error);
+                          }}
+                          style={metaSelectStyle}
+                        >
+                          <option value="480p">480p</option>
+                          <option value="720p">720p</option>
+                          <option value="1080p">1080p</option>
+                          <option value="2k">2k</option>
+                          <option value="4k">4k</option>
+                        </select>
+                      </div>
+                      <div style={metaBadgeStyle}>
+                        <span style={{ marginRight: '4px', color: 'var(--text-muted)' }}>时长</span>
+                        <select
+                          value={activeShot.duration || 8}
+                          onChange={(e) => {
+                            const shot = activeShot;
+                            if (!shot) return;
+                            const updated = { ...shot, duration: parseInt(e.target.value) };
+                            syncShot(updated);
+                            shotsApi.updateShot(shot.id, { duration: parseInt(e.target.value) }).catch(console.error);
+                          }}
+                          style={metaSelectStyle}
+                        >
+                          <option value="4">4s</option>
+                          <option value="6">6s</option>
+                          <option value="8">8s</option>
+                          <option value="10">10s</option>
+                        </select>
+                      </div>
+                      <span style={metaBadgeStyle}>视频引擎 {activeVideoProvider?.name || '未配置'}</span>
+                      <span style={metaBadgeStyle}>{editorState.start_image_url && editorState.end_image_url ? '双帧已就绪' : '缺少起止帧'}</span>
                       {saveMessage && (
                         <span
                           style={{
@@ -716,9 +948,21 @@ export default function EpisodeDetailPage() {
                       <section style={editorSectionStyle}>
                         <div style={sectionTitleStyle}>
                           <Clapperboard style={{ width: '16px', height: '16px' }} />
-                          {'\u6210\u7247\u9884\u89c8'}
+                          成片预览
+                          {lastPlayedShotId === activeShot.id && (
+                            <span style={playingIndicatorStyle}>
+                              <Play style={{ width: '10px', height: '10px' }} />
+                              播放位置已保存
+                            </span>
+                          )}
                         </div>
-                        <video controls src={activeShot.video_url} style={videoStyle} />
+                        <video
+                          ref={videoRef}
+                          controls
+                          src={activeShot.video_url}
+                          style={videoStyle}
+                          onPlay={() => setLastPlayedShotId(activeShot.id)}
+                        />
                       </section>
                     )}
                   </div>
@@ -739,9 +983,6 @@ export default function EpisodeDetailPage() {
   );
 }
 
-/**
- * @description 顶部统计卡。
- */
 function StatCard({ title, value, icon }: { title: string; value: number; icon: ReactNode }) {
   return (
     <div style={statCardStyle}>
@@ -754,9 +995,6 @@ function StatCard({ title, value, icon }: { title: string; value: number; icon: 
   );
 }
 
-/**
- * @description 空状态。
- */
 function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
     <div style={emptyStateStyle}>
@@ -775,14 +1013,14 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
   );
 }
 
-/**
- * @description 左侧分镜列表项。
- */
 function ShotListItem({
   shot,
   index,
   active,
   selected,
+  isGenerating,
+  hasError,
+  errorMessage,
   onActive,
   onToggleSelect,
 }: {
@@ -790,6 +1028,9 @@ function ShotListItem({
   index: number;
   active: boolean;
   selected: boolean;
+  isGenerating?: boolean;
+  hasError?: boolean;
+  errorMessage?: string;
   onActive: () => void;
   onToggleSelect: () => void;
 }) {
@@ -801,6 +1042,7 @@ function ShotListItem({
       style={{
         ...shotItemStyle,
         ...(active ? shotItemActiveStyle : null),
+        ...(isGenerating ? shotItemGeneratingStyle : null),
       }}
       onClick={onActive}
     >
@@ -820,19 +1062,50 @@ function ShotListItem({
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={shotItemHeaderStyle}>
           <div style={shotCodeStyle}>{getShotDisplayNumber(shot as any, index)}</div>
-          <span
-            style={{
-              ...statusBadgeStyle,
-              color: getShotStatusColor(shotStatus),
-              background: getShotStatusBackgroundColor(shotStatus),
-              border: `1px solid ${getShotStatusBorderColor(shotStatus)}`,
-            }}
-          >
-            {getShotStatusLabel(shotStatus)}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {isGenerating && (
+              <span style={generatingBadgeStyle}>
+                <Loader2 style={{ width: '10px', height: '10px', animation: 'spin 1s linear infinite' }} />
+                生成中
+              </span>
+            )}
+            {hasError && !isGenerating && (
+              <span style={errorBadgeStyle}>
+                <XCircle style={{ width: '10px', height: '10px' }} />
+                失败
+              </span>
+            )}
+            <span
+              style={{
+                ...statusBadgeStyle,
+                color: getShotStatusColor(shotStatus),
+                background: getShotStatusBackgroundColor(shotStatus),
+                border: `1px solid ${getShotStatusBorderColor(shotStatus)}`,
+              }}
+            >
+              {getShotStatusLabel(shotStatus)}
+            </span>
+          </div>
         </div>
 
         <div style={shotDescStyle}>{normalizedDescription}</div>
+
+        {hasError && errorMessage && (
+          <div style={errorMessageStyle}>
+            <AlertCircle style={{ width: '12px', height: '12px', flexShrink: 0 }} />
+            <span style={{ flex: 1 }}>{errorMessage}</span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onActive();
+              }}
+              style={retryButtonStyle}
+            >
+              <RefreshCw style={{ width: '10px', height: '10px' }} />
+              重试
+            </button>
+          </div>
+        )}
 
         <div style={shotMetaRowStyle}>
           <span style={shotMetaBadgeStyle}>{shot.aspect_ratio || '16:9'}</span>
@@ -1228,4 +1501,119 @@ const emptyDescStyle: CSSProperties = {
   margin: '0 0 12px',
   fontSize: '14px',
   color: 'var(--text-secondary)',
+};
+
+const shotItemGeneratingStyle: CSSProperties = {
+  border: '1px solid rgba(99, 102, 241, 0.4)',
+  background: 'rgba(99, 102, 241, 0.08)',
+};
+
+const generatingBadgeStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px',
+  height: '22px',
+  padding: '0 8px',
+  borderRadius: '999px',
+  fontSize: '10px',
+  fontWeight: 600,
+  background: 'rgba(99, 102, 241, 0.15)',
+  color: '#6366f1',
+  border: '1px solid rgba(99, 102, 241, 0.3)',
+};
+
+const errorBadgeStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px',
+  height: '22px',
+  padding: '0 8px',
+  borderRadius: '999px',
+  fontSize: '10px',
+  fontWeight: 600,
+  background: 'rgba(239, 68, 68, 0.12)',
+  color: '#ef4444',
+  border: '1px solid rgba(239, 68, 68, 0.25)',
+};
+
+const errorMessageStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  padding: '8px 10px',
+  marginBottom: '10px',
+  borderRadius: '8px',
+  background: 'rgba(239, 68, 68, 0.08)',
+  border: '1px solid rgba(239, 68, 68, 0.2)',
+  fontSize: '11px',
+  color: '#ef4444',
+};
+
+const retryButtonStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px',
+  padding: '4px 8px',
+  borderRadius: '6px',
+  border: 'none',
+  background: 'rgba(239, 68, 68, 0.15)',
+  color: '#ef4444',
+  fontSize: '10px',
+  fontWeight: 600,
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+};
+
+const providerSelectorStyle: CSSProperties = {
+  position: 'relative',
+  display: 'inline-flex',
+  alignItems: 'center',
+};
+
+const providerSelectStyle: CSSProperties = {
+  appearance: 'none',
+  height: '36px',
+  padding: '0 32px 0 12px',
+  borderRadius: '10px',
+  border: '1px solid var(--border-primary)',
+  background: 'var(--bg-elevated)',
+  color: 'var(--text-primary)',
+  fontSize: '13px',
+  fontWeight: 600,
+  cursor: 'pointer',
+  outline: 'none',
+};
+
+const disabledReasonStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px',
+  fontSize: '11px',
+  color: '#f59e0b',
+  fontWeight: 500,
+};
+
+const metaSelectStyle: CSSProperties = {
+  appearance: 'none',
+  background: 'transparent',
+  border: 'none',
+  color: 'var(--text-primary)',
+  fontSize: '12px',
+  fontWeight: 600,
+  cursor: 'pointer',
+  outline: 'none',
+  padding: '0',
+};
+
+const playingIndicatorStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px',
+  marginLeft: '8px',
+  padding: '2px 8px',
+  borderRadius: '999px',
+  background: 'rgba(99, 102, 241, 0.12)',
+  color: '#6366f1',
+  fontSize: '10px',
+  fontWeight: 600,
 };
