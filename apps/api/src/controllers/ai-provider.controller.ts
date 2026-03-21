@@ -399,6 +399,7 @@ export class AIProviderController {
         const { GoogleProvider } = await import('../services/ai/google.provider')
         const { AntSKProvider } = await import('../services/ai/antsk.provider')
         const { SeedreamProvider } = await import('../services/ai/seedream.provider')
+        const { ToapisProvider } = await import('../services/ai/toapis.provider')
 
         let aiProvider: any
 
@@ -417,6 +418,9 @@ export class AIProviderController {
             break
           case 'seedream':
             aiProvider = new SeedreamProvider(provider.api_key, provider.base_url || undefined)
+            break
+          case 'toapis':
+            aiProvider = new ToapisProvider(provider.api_key, provider.base_url || undefined)
             break
           default:
             throw new Error(`Unknown provider type: ${provider.type}`)

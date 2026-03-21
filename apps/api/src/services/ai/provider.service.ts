@@ -5,6 +5,7 @@ import { AntSKProvider } from './antsk.provider'
 import { ZhipuProvider } from './zhipu.provider'
 import { SeedreamProvider } from './seedream.provider'
 import { DeepSeekProvider } from './deepseek.provider'
+import { ToapisProvider } from './toapis.provider'
 import { AIProviderConfig, AIChatMessage, AICreateImageRequest, AICreateImageResponse, AICreateVideoRequest, AICreateVideoResponse, AIResponse } from '../../types/ai.types'
 
 class AIProviderService {
@@ -32,6 +33,9 @@ class AIProviderService {
         break
       case 'deepseek':
         provider = new DeepSeekProvider(config.apiKey, config.baseUrl)
+        break
+      case 'toapis':
+        provider = new ToapisProvider(config.apiKey, config.baseUrl)
         break
 
       default:

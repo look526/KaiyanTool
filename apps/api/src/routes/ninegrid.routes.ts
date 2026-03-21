@@ -1,10 +1,20 @@
-﻿import { Router } from 'express'
+import { Router } from 'express'
 import { authMiddleware } from '../middleware/auth.middleware'
 import { nineGridController } from '../controllers/ninegrid.controller'
 
 const router = Router()
 
 router.use(authMiddleware)
+
+router.get(
+  '/shots/:shot_id/ninegrid',
+  nineGridController.getNineGridByShot.bind(nineGridController)
+)
+
+router.post(
+  '/shots/:shot_id/ninegrid/generate',
+  nineGridController.generateNineGrid.bind(nineGridController)
+)
 
 router.get(
   '/shots/:shot_id/ninegrid/panels',
@@ -27,7 +37,7 @@ router.delete(
 )
 
 router.post(
-  '/shots/:shot_id/ninegrid/generate',
+  '/shots/:shot_id/ninegrid/panels/generate',
   nineGridController.generateAllPanels.bind(nineGridController)
 )
 

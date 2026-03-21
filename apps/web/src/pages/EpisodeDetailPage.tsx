@@ -51,6 +51,12 @@ export default function EpisodeDetailPage() {
   const [saveMessage, setSaveMessage] = useState('');
   const [saveMessageTone, setSaveMessageTone] = useState<'success' | 'error' | 'info'>('success');
   const previousActiveShotIdRef = useRef<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const isDirtyRef = useRef(false);
+  const [autoSaving, setAutoSaving] = useState(false);
+  const autoSaveTimerRef = useRef<number | null>(null);
+  const editorStateRef = useRef<ShotEditorState | null>(null);
+  const activeShotRef = useRef<Shot | null>(null);
   const [editorState, setEditorState] = useState<ShotEditorState>({
     character_id: null,
     action_summary: '',
@@ -62,6 +68,10 @@ export default function EpisodeDetailPage() {
     visual_style: '',
   });
 
+  useEffect(() => {
+    editorStateRef.current = editorState;
+  }, [editorState]);
+
   const loadEpisodeData = useCallback(async () => {
     if (!episodeId || !projectId) {
       return;
@@ -69,22 +79,35 @@ export default function EpisodeDetailPage() {
 
     try {
       setLoading(true);
-      const [episodeData, shotsData, charactersData, providersData] = await Promise.all([
-        episodesApi.getEpisode(episodeId),
-        shotsApi.getShots(episodeId),
-        charactersApi.getCharacters(projectId),
-        aiProvidersApi.getAIProviders().catch((error) => {
-          console.error('Failed to load AI providers:', error);
-          return [] as AIProvider[];
-        }),
-      ]);
-      setEpisode(episodeData);
-      setShots(shotsData);
-      setCharacters(charactersData);
+
+      const episodeData = await episodesApi.getEpisode(episodeId).catch((error) => {
+        console.error('Failed to load episode:', error);
+        return null;
+      });
+
+      const shotsData = await shotsApi.getShots(episodeId).catch((error) => {
+        console.error('Failed to load shots:', error);
+        return [] as Shot[];
+      });
+
+      const charactersData = await charactersApi.getCharacters(projectId).catch((error) => {
+        console.error('Failed to load characters:', error);
+        return [] as Character[];
+      });
+
+      const providersData = await aiProvidersApi.getAIProviders().catch((error) => {
+        console.error('Failed to load AI providers:', error);
+        return [] as AIProvider[];
+      });
+
       /** 后端返回 { providers: [...], pagination }，需提取 providers 数组，否则 videoProviders.filter 会抛错导致整页崩溃 */
       const providersList = Array.isArray(providersData)
         ? providersData
         : (providersData as { providers?: AIProvider[] })?.providers ?? [];
+
+      setEpisode(episodeData);
+      setShots(shotsData);
+      setCharacters(charactersData);
       setVideoProviders(providersList);
     } catch (error) {
       console.error('Failed to load episode data:', error);
@@ -92,7 +115,6 @@ export default function EpisodeDetailPage() {
       setLoading(false);
     }
   }, [episodeId, projectId]);
-
   useEffect(() => {
     loadEpisodeData();
   }, [loadEpisodeData]);
@@ -124,6 +146,14 @@ export default function EpisodeDetailPage() {
     }
 
     previousActiveShotIdRef.current = activeShot.id;
+    // 切换分镜时清理脏状态与待保存定时器
+    if (autoSaveTimerRef.current) {
+      window.clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+    isDirtyRef.current = false;
+    setIsDirty(false);
+    activeShotRef.current = activeShot;
     setEditorState({
       character_id: activeShot.character_id || null,
       action_summary: activeShot.action_summary || activeShot.description || '',
@@ -178,9 +208,10 @@ export default function EpisodeDetailPage() {
       editorState.end_image_url &&
       activeVideoProviderId &&
       !savingShot &&
+      !autoSaving &&
       !generatingVideo
     );
-  }, [activeShot, activeVideoProviderId, editorState.end_image_url, editorState.start_image_url, generatingVideo, savingShot]);
+  }, [activeShot, activeVideoProviderId, editorState.end_image_url, editorState.start_image_url, generatingVideo, savingShot, autoSaving]);
 
   const syncShot = useCallback((nextShot: Shot) => {
     setShots((prev) => prev.map((shot) => (shot.id === nextShot.id ? nextShot : shot)));
@@ -260,71 +291,142 @@ export default function EpisodeDetailPage() {
     }
   };
 
-  const handleSaveShot = async () => {
-    if (!activeShot) {
-      return;
-    }
-
-    try {
-      setSavingShot(true);
-      setSaveMessage('');
-      setSaveMessageTone('success');
-
-      const updatedShot = await shotsApi.updateShot(activeShot.id, buildShotUpdateInput(activeShot));
-      syncShot(updatedShot);
-      setSaveMessage('\u5df2\u4fdd\u5b58');
-    } catch (error) {
-      console.error('Failed to save shot:', error);
-      setSaveMessage('\u4fdd\u5b58\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5');
-      setSaveMessageTone('error');
-    } finally {
-      setSavingShot(false);
-    }
-  };
-
-  const handleGenerateVideo = async () => {
-    if (!activeShot || !activeVideoProviderId || !editorState.start_image_url || !editorState.end_image_url) {
-      return;
-    }
-
-    try {
-      setGeneratingVideo(true);
-      setSaveMessage('');
-      setSaveMessageTone('success');
-
-      const persistedShot = await shotsApi.updateShot(activeShot.id, buildShotUpdateInput(activeShot));
-      syncShot(persistedShot);
-
-      const result = await shotsApi.generateShot(activeShot.id, {
-        provider_id: activeVideoProviderId,
-      });
-
-      const nextShot: Shot = result.shot
-        ? result.shot
-        : {
-            ...persistedShot,
-            video_url: result.video_url || persistedShot.video_url,
-            duration: result.duration || persistedShot.duration,
-            resolution: result.resolution || persistedShot.resolution,
-          };
-
-      syncShot(nextShot);
-      setSaveMessage('\u89c6\u9891\u5df2\u751f\u6210\uff0c\u53ef\u5728\u4e0b\u65b9\u9884\u89c8');
-    } catch (error) {
-      console.error('Failed to generate video:', error);
-      setSaveMessage('\u89c6\u9891\u751f\u6210\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5');
-      setSaveMessageTone('error');
-    } finally {
-      setGeneratingVideo(false);
-    }
-  };
-
-  const handleEditorChange = <K extends keyof ShotEditorState>(key: K, value: ShotEditorState[K]) => {
-    setEditorState(prev => ({ ...prev, [key]: value }));
-    setSaveMessage('');
-    setSaveMessageTone('success');
-  };
-
+  const handleSaveShot = async () => {\r
+    if (!activeShot) {\r
+      return;\r
+    }\r
+\r
+    if (autoSaveTimerRef.current) {\r
+      window.clearTimeout(autoSaveTimerRef.current);\r
+      autoSaveTimerRef.current = null;\r
+    }\r
+\r
+    try {\r
+      setSavingShot(true);\r
+      setSaveMessage('');\r
+      setSaveMessageTone('success');\r
+\r
+      const updatedShot = await shotsApi.updateShot(activeShot.id, buildShotUpdateInput(activeShot));\r
+      syncShot(updatedShot);\r
+\r
+      isDirtyRef.current = false;\r
+      setIsDirty(false);\r
+\r
+      setSaveMessage('已保存');\r
+    } catch (error) {\r
+      console.error('Failed to save shot:', error);\r
+      setSaveMessage('保存失败，请稍后重试');\r
+      setSaveMessageTone('error');\r
+    } finally {\r
+      setSavingShot(false);\r
+    }\r
+  };\r
+\r
+  const handleGenerateVideo = async () => {\r
+    if (!activeShot || !activeVideoProviderId || !editorState.start_image_url || !editorState.end_image_url) {\r
+      return;\r
+    }\r
+\r
+    // 生成前取消未到时的自动保存，避免重复请求\r
+    if (autoSaveTimerRef.current) {\r
+      window.clearTimeout(autoSaveTimerRef.current);\r
+      autoSaveTimerRef.current = null;\r
+    }\r
+\r
+    try {\r
+      setGeneratingVideo(true);\r
+      setSaveMessage('');\r
+      setSaveMessageTone('success');\r
+\r
+      let persistedShot: Shot = activeShot;\r
+\r
+      if (isDirtyRef.current) {\r
+        persistedShot = await shotsApi.updateShot(activeShot.id, buildShotUpdateInput(activeShot));\r
+        syncShot(persistedShot);\r
+\r
+        isDirtyRef.current = false;\r
+        setIsDirty(false);\r
+      }\r
+\r
+      const result = await shotsApi.generateShot(activeShot.id, {\r
+        provider_id: activeVideoProviderId,\r
+      });\r
+\r
+      const nextShot: Shot = result.shot\r
+        ? result.shot\r
+        : {\r
+            ...persistedShot,\r
+            video_url: result.video_url || persistedShot.video_url,\r
+            duration: result.duration || persistedShot.duration,\r
+            resolution: result.resolution || persistedShot.resolution,\r
+          };\r
+\r
+      syncShot(nextShot);\r
+      isDirtyRef.current = false;\r
+      setIsDirty(false);\r
+      setSaveMessage('视频已生成，可在下方预览');\r
+    } catch (error) {\r
+      console.error('Failed to generate video:', error);\r
+      setSaveMessage('视频生成失败，请稍后重试');\r
+      setSaveMessageTone('error');\r
+    } finally {\r
+      setGeneratingVideo(false);\r
+    }\r
+  };\r
+\r
+  const handleEditorChange = <K extends keyof ShotEditorState>(key: K, value: ShotEditorState[K]) => {\r
+    setEditorState(prev => ({ ...prev, [key]: value }));\r
+    setIsDirty(true);\r
+    isDirtyRef.current = true;\r
+    setSaveMessage('');\r
+    setSaveMessageTone('success');\r
+\r
+    if (autoSaveTimerRef.current) {\r
+      window.clearTimeout(autoSaveTimerRef.current);\r
+    }\r
+\r
+    autoSaveTimerRef.current = window.setTimeout(() => {\r
+      void (async () => {\r
+        const shot = activeShotRef.current;\r
+        const stateToSave = editorStateRef.current;\r
+\r
+        if (!shot || !stateToSave) return;\r
+        if (!isDirtyRef.current) return;\r
+        if (savingShot || generatingVideo) return;\r
+\r
+        try {\r
+          setAutoSaving(true);\r
+\r
+          const input: UpdateShotInput = {\r
+            character_id: stateToSave.character_id || null,\r
+            action_summary: stateToSave.action_summary.trim() || '\u672a\u586b\u5199\u955c\u5934\u63cf\u8ff0',\r
+            camera_movement: stateToSave.camera_movement.trim() || undefined,\r
+            start_prompt: stateToSave.start_prompt.trim() || undefined,\r
+            end_prompt: stateToSave.end_prompt.trim() || undefined,\r
+            start_image_url: stateToSave.start_image_url,\r
+            end_image_url: stateToSave.end_image_url,\r
+            visual_style: stateToSave.visual_style.trim() || undefined,\r
+            aspect_ratio: shot.aspect_ratio,\r
+            resolution: shot.resolution,\r
+            duration: shot.duration,\r
+          };\r
+\r
+          const updatedShot = await shotsApi.updateShot(shot.id, input);\r
+          syncShot(updatedShot);\r
+\r
+          isDirtyRef.current = false;\r
+          setIsDirty(false);\r
+          setSaveMessage('已自动保存');\r
+          setSaveMessageTone('success');\r
+        } catch (error) {\r
+          console.error('Auto save failed:', error);\r
+        } finally {\r
+          setAutoSaving(false);\r
+        }\r
+      })();\r
+    }, 900);\r
+  };\r
+\r
   const handleApplyPanelImage = (target: 'start' | 'end', imageUrl: string) => {
     handleEditorChange(target === 'start' ? 'start_image_url' : 'end_image_url', imageUrl);
     setSaveMessageTone('info');

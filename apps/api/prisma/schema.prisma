@@ -625,6 +625,8 @@ model Shot {
   lip_sync_url    String?
   subtitle_text   String?
   audio_duration  Int?
+  nine_grid_image_url String?
+  nine_grid_created_at DateTime?
   created_at      DateTime          @default(now())
   updated_at      DateTime
   Episode         Episode           @relation(fields: [episode_id], references: [id], onDelete: Cascade)

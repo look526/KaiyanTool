@@ -122,6 +122,26 @@ export const PROVIDER_MODELS: ProviderModels = {
       description: '字节跳动 Seed 团队研发的最新图像生成模型，支持文生图、图生图、多图参考，支持 2K/3K 分辨率输出，支持联网搜索获取最新现实信息',
       capabilities: ['文生图', '图生图', '多图参考', '图像编辑']
     }
+  ],
+  toapis: [
+    {
+      name: 'Sora 2 标准版',
+      model_id: 'sora-2',
+      description: 'OpenAI Sora2 标准版视频生成模型，支持文本到视频、图生视频、角色引用',
+      capabilities: ['文生视频', '图生视频', '角色引用', '视频变体']
+    },
+    {
+      name: 'Sora 2 专业版',
+      model_id: 'sora-2-pro',
+      description: 'Sora2 专业版，支持更长时长（15秒高清/25秒），更高优先级',
+      capabilities: ['文生视频', '图生视频', '角色引用', '长视频', '高清输出']
+    },
+    {
+      name: 'Sora 2 VIP版',
+      model_id: 'sora-2-vip',
+      description: 'Sora2 VIP版，最高优先级，更快生成速度',
+      capabilities: ['文生视频', '图生视频', '角色引用', 'VIP加速', '优先队列']
+    }
   ]
 };
 
