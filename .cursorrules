@@ -4,7 +4,22 @@
 kaiyanTool is an AI video content creation platform
 - Backend: Express + Prisma + TypeScript (port 3001)
 - Frontend: React 19 + Vite + Tailwind (port 3000)
-- Core: Authentication, Projects, Scripts, Episodes, Scenes, Storylines, Storyboards, Image/Video Generation, TTS, AI Providers
+- Core: Auth, Projects, Scripts, Episodes, Scenes, Storylines, Storyboards, Image/Video Generation, TTS, AI Providers
+
+## Anthropic Best Practices
+This configuration follows the article "Effective harnesses for long-running agents" from Anthropic Engineering.
+
+### Two-Part Solution
+1. **Initializer Agent**: First run - sets up environment, feature list, progress file
+2. **Coding Agent**: Subsequent runs - makes incremental progress one feature at a time
+
+## Existing Implementation
+The project already has a complete long-running agent system:
+- `apps/api/src/agents/long-running-orchestrator.ts` - Main orchestrator
+- `apps/api/src/agents/initializer.agent.ts` - Initializer agent
+- `apps/api/src/agents/coding.agent.ts` - Coding agent
+- `apps/api/src/services/progress-tracking.service.ts` - Progress tracking
+- `apps/api/src/services/feature-list.service.ts` - Feature list management
 
 ## Agent Work Mode
 
@@ -23,6 +38,32 @@ kaiyanTool is an AI video content creation platform
 5. Run: `git add -A && git commit -m "Feature: <id> - <description>"`
 6. Update claude-progress.txt with progress
 
+### Using the Built-in Agent API
+You can also use the LongRunningOrchestrator API:
+```typescript
+import { createLongRunningOrchestrator } from './src/agents/long-running-orchestrator';
+
+// Initialize
+const orchestrator = await createLongRunningOrchestrator({
+  project_id: 'your-project-id',
+  user_id: 'user-id',
+  create_git_commits: true,
+});
+
+// Start new project
+await orchestrator.startNewProject({
+  task_description: 'Build an AI image generator',
+}, 'task-id');
+
+// Run coding session
+await orchestrator.runCodingSession({
+  max_features: 1,
+}, 'task-id');
+
+// Get status
+const status = await orchestrator.getProjectStatus();
+```
+
 ### Testing Requirements
 - API tests: `cd apps/api && npm test`
 - TypeScript check: `cd apps/api && npx tsc --noEmit`
@@ -38,6 +79,7 @@ kaiyanTool is an AI video content creation platform
 - ❌ Never leave the environment in a broken state
 - ❌ Never skip the session start steps
 - ❌ Never make large commits without incremental progress
+- ❌ Never declare job done prematurely
 
 ### Anti-Patterns to Avoid
 - One-shot implementation (trying to do everything at once)
@@ -65,6 +107,15 @@ Feature: auth-001 - Add user registration functionality
 Feature: project-002 - Implement project list pagination
 Feature: image-001 - Add AI image generation feature
 ```
+
+## Common Agent Failure Modes & Solutions
+
+| Problem | Solution |
+|---------|----------|
+| Agent declares victory too early | Use feature_list.json with passes status |
+| Agent leaves broken state | Always run tests before marking passes: true |
+| Agent skips git commits | Commit after each feature |
+| Agent can't resume work | Read progress files at session start |
 
 ## Success Criteria
 - Feature passes status accurately reflects implementation
