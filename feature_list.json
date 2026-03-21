@@ -130,6 +130,20 @@
       "passes": true
     },
     {
+      "id": "shot-002",
+      "category": "shot",
+      "description": "分镜草稿 - 分镜草稿保存和恢复",
+      "steps": ["自动保存草稿", "恢复草稿", "草稿列表"],
+      "passes": true
+    },
+    {
+      "id": "shot-003",
+      "category": "shot",
+      "description": "镜头备选 - 为镜头生成备选方案",
+      "steps": ["选择镜头", "生成备选", "选择最终方案"],
+      "passes": true
+    },
+    {
       "id": "ninegrid-001",
       "category": "ninegrid",
       "description": "九宫格工作台 - 九宫格分镜生成和编辑",
@@ -172,6 +186,13 @@
       "passes": true
     },
     {
+      "id": "clothing-001",
+      "category": "clothing",
+      "description": "服装变体生成 - AI生成角色服装变体",
+      "steps": ["选择角色", "上传基础图像", "设置变体样式", "生成多种服装"],
+      "passes": true
+    },
+    {
       "id": "tts-001",
       "category": "tts",
       "description": "文字转语音 - AI生成语音",
@@ -190,6 +211,13 @@
       "category": "video",
       "description": "视频合成 - 合并多个视频片段",
       "steps": ["选择视频片段", "设置顺序", "合成新视频"],
+      "passes": true
+    },
+    {
+      "id": "video-003",
+      "category": "video",
+      "description": "视频教程 - 视频教程生成和管理",
+      "steps": ["选择内容", "生成教程", "查看教程"],
       "passes": true
     },
     {
@@ -221,10 +249,45 @@
       "passes": true
     },
     {
+      "id": "prompt-001",
+      "category": "prompt",
+      "description": "提示词优化 - AI优化提示词",
+      "steps": ["输入原始提示词", "AI优化", "展示优化结果"],
+      "passes": true
+    },
+    {
+      "id": "prompt-002",
+      "category": "prompt",
+      "description": "提示词模板 - 提示词模板管理",
+      "steps": ["创建模板", "使用模板", "模板列表"],
+      "passes": true
+    },
+    {
       "id": "team-001",
       "category": "team",
       "description": "团队协作 - 项目成员管理",
       "steps": ["邀请成员", "设置权限", "成员列表"],
+      "passes": true
+    },
+    {
+      "id": "mention-001",
+      "category": "mention",
+      "description": "@提及功能 - 在剧本中@提及角色/场景",
+      "steps": ["输入@", "选择提及对象", "添加到内容"],
+      "passes": true
+    },
+    {
+      "id": "chat-001",
+      "category": "chat",
+      "description": "聊天历史 - 对话历史记录管理",
+      "steps": ["查看历史", "搜索历史", "删除历史"],
+      "passes": true
+    },
+    {
+      "id": "version-001",
+      "category": "version",
+      "description": "版本控制 - 项目版本管理",
+      "steps": ["创建版本", "查看版本历史", "恢复版本"],
       "passes": true
     },
     {
@@ -239,6 +302,13 @@
       "category": "settings",
       "description": "外观设置 - 主题切换",
       "steps": ["选择主题", "实时预览", "保存偏好"],
+      "passes": true
+    },
+    {
+      "id": "settings-003",
+      "category": "settings",
+      "description": "通知设置 - 消息通知配置",
+      "steps": ["选择通知类型", "设置接收方式", "保存设置"],
       "passes": true
     },
     {
@@ -267,6 +337,34 @@
       "category": "admin",
       "description": "管理员面板 - 系统管理",
       "steps": ["管理员登录", "用户管理", "素材管理", "日志查看"],
+      "passes": true
+    },
+    {
+      "id": "document-001",
+      "category": "document",
+      "description": "文档管理 - 项目文档创建和管理",
+      "steps": ["创建文档", "编辑文档", "文档列表"],
+      "passes": true
+    },
+    {
+      "id": "director-001",
+      "category": "director",
+      "description": "导演工作台 - AI导演辅助决策",
+      "steps": ["输入场景描述", "AI给出建议", "采纳或调整"],
+      "passes": true
+    },
+    {
+      "id": "content-001",
+      "category": "content",
+      "description": "内容处理 - 批量内容处理任务",
+      "steps": ["选择内容", "设置处理参数", "执行处理"],
+      "passes": true
+    },
+    {
+      "id": "task-001",
+      "category": "task",
+      "description": "任务队列 - 异步任务管理和状态追踪",
+      "steps": ["提交任务", "查看状态", "获取结果"],
       "passes": true
     }
   ]
