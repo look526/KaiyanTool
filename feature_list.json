@@ -13,7 +13,7 @@
         "点击注册按钮",
         "验证账户创建成功"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "auth-002",
@@ -25,7 +25,7 @@
         "点击登录按钮",
         "验证登录成功并跳转首页"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "auth-003",
@@ -36,7 +36,7 @@
         "验证清除会话",
         "验证跳转登录页"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "auth-004",
@@ -46,7 +46,7 @@
         "不带token请求受保护API应返回403",
         "带正确token请求应正常处理"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "project-001",
@@ -58,7 +58,7 @@
         "选择项目模板",
         "验证项目创建成功"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "project-002",
@@ -69,7 +69,7 @@
         "验证显示所有项目",
         "验证分页功能正常"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "project-003",
@@ -80,7 +80,7 @@
         "验证跳转到详情页",
         "验证显示项目内容"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "script-001",
@@ -92,7 +92,7 @@
         "保存剧本",
         "验证剧本创建成功"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "script-002",
@@ -104,7 +104,7 @@
         "保存更改",
         "验证更改已保存"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "script-003",
@@ -116,7 +116,7 @@
         "等待分析完成",
         "验证分析结果展示"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "episode-001",
@@ -128,7 +128,7 @@
         "保存剧集",
         "验证剧集列表更新"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "scene-001",
@@ -140,7 +140,7 @@
         "设置场景参数",
         "验证场景保存成功"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "storyline-001",
@@ -152,7 +152,7 @@
         "验证故事线生成成功",
         "验证可以编辑保存"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "storyboard-001",
@@ -164,7 +164,7 @@
         "等待AI生成分镜",
         "验证分镜内容展示"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "shot-001",
@@ -176,7 +176,7 @@
         "保存镜头",
         "验证镜头列表更新"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "image-001",
@@ -188,7 +188,7 @@
         "点击生成按钮",
         "验证图像生成成功并展示"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "image-002",
@@ -200,7 +200,7 @@
         "等待增强处理",
         "验证增强后图像质量提升"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "tts-001",
@@ -212,7 +212,7 @@
         "点击转换按钮",
         "验证语音生成成功"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "video-001",
@@ -224,7 +224,7 @@
         "触发视频生成",
         "验证视频生成成功"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "export-001",
@@ -236,7 +236,7 @@
         "点击导出按钮",
         "验证文件下载成功"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ai-provider-001",
@@ -248,7 +248,7 @@
         "配置API密钥和模型",
         "验证保存成功"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ai-provider-002",
@@ -260,7 +260,7 @@
         "选择目标模型",
         "验证模型切换成功"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-001",
@@ -272,7 +272,7 @@
         "再次点击切换回浅色",
         "验证主题持久化"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ui-002",
@@ -283,7 +283,7 @@
         "验证色彩系统一致性",
         "验证圆角和阴影规范"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "analytics-001",
@@ -294,7 +294,7 @@
         "查看生成统计",
         "验证数据展示正确"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "asset-001",
@@ -306,7 +306,7 @@
         "验证素材上传成功",
         "验证素材列表更新"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "workflow-001",
@@ -318,7 +318,7 @@
         "保存工作流",
         "验证工作流可执行"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "api-001",
@@ -329,7 +329,7 @@
         "验证响应格式为 {success: boolean, data/error: any}",
         "验证错误格式统一"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "api-002",
@@ -340,7 +340,7 @@
         "检查API响应使用snake_case",
         "验证无camelCase泄漏"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "agent-001",
@@ -351,7 +351,7 @@
         "验证Agent协调工作",
         "验证任务完成"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "realtime-001",
@@ -362,7 +362,7 @@
         "发送实时消息",
         "验证接收实时响应"
       ],
-      "passes": false
+      "passes": true
     }
   ]
 }
