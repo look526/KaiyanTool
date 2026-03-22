@@ -1,10 +1,12 @@
 import { createContext, useContext, useEffect, useCallback, ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiClient, User, setAuthErrorHandler } from '../lib/api';
 import { useAuth as useAuthStore } from '../core/store/auth.store';
 import { useCurrentUser } from '../modules/auth/hooks';
 import { queryKeys } from '../core/api/query-keys';
+
+const PUBLIC_PATHS = ['/', '/login', '/register', '/forgot-password', '/admin/login'];
 
 const ENABLE_AUTH = true;
 
@@ -24,6 +26,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const { data: userData, isLoading: userLoading, refetch } = useCurrentUser();
   const { rememberMe, sessionExpired, setRememberMe, setSessionExpired, setTokens, logout: storeLogout, clearSession } = useAuthStore();
@@ -36,11 +39,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [setSessionExpired]);
 
   const handleAuthError = useCallback(() => {
-    clearSession();
-    setSessionExpired(true);
-    localStorage.removeItem('rememberedEmail');
-    localStorage.removeItem('rememberMe');
-  }, [clearSession, setSessionExpired]);
+    const isPublicPath = PUBLIC_PATHS.some(path => location.pathname === path || location.pathname.startsWith(path + '/'));
+    if (!isPublicPath) {
+      clearSession();
+      setSessionExpired(true);
+      localStorage.removeItem('rememberedEmail');
+      localStorage.removeItem('rememberMe');
+    }
+  }, [clearSession, setSessionExpired, location.pathname]);
 
   useEffect(() => {
     setAuthErrorHandler(handleAuthError);

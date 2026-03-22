@@ -44,7 +44,7 @@ export const createUserRateLimit = (config: RateLimitConfig) => {
 
 export const userAuthRateLimit = createUserRateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 20,
   message: '登录尝试过于频繁，请15分钟后再试',
 });
 

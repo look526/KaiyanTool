@@ -39,7 +39,6 @@ import auditRoutes from './routes/audit.routes'
 import documentRoutes from './routes/document.routes'
 import analyticsRoutes from './routes/analytics.routes'
 import agentStreamRoutes from './routes/agent-stream.routes'
-import longRunningAgentRoutes from './routes/long-running-agent.routes'
 import agentRoutes from './routes/agent.routes'
 import promptTemplateRoutes from './routes/prompt-template.routes'
 import promptRoutes from './routes/prompt.routes'
@@ -179,7 +178,6 @@ app.use('/api/audit', auditRoutes)
 app.use('/api/analytics', analyticsRoutes)
 app.use('/api/agent-stream', agentStreamRoutes)
 app.use('/api/agent', agentRoutes)
-app.use('/api/long-running-agent', longRunningAgentRoutes)
 app.use('/api/prompt-templates', promptTemplateRoutes)
 app.use('/api/prompt', promptRoutes)
 app.use('/api/project-settings', projectSettingsRoutes)

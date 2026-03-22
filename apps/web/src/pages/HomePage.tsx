@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../core/store/auth.store';
+import { useAuth } from '../contexts/AuthContext';
 import {
   PlayCircle,
   Sparkles,
@@ -36,14 +36,14 @@ const colors = {
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { user, loading } = useAuth();
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
   const handleStartCreation = () => {
-    if (isAuthenticated) {
+    if (user && !loading) {
       navigate('/projects');
     } else {
-      navigate('/register');
+      navigate('/login');
     }
   };
 
@@ -895,8 +895,9 @@ export default function HomePage() {
                 }}
                 onMouseEnter={e => { e.currentTarget.style.background = colors.white10; }}
                 onMouseLeave={e => { e.currentTarget.style.background = colors.glassBg; }}
+                onClick={() => navigate('/register')}
               >
-                咨询专家
+                注册账号
               </button>
             </div>
           </div>
