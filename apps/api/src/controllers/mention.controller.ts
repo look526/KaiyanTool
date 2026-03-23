@@ -1,97 +1,184 @@
-import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { Request, Response } from 'express'
+import { prisma } from '../lib/prisma'
 
-const prisma = new PrismaClient();
+const MENTION_TYPES = ['character', 'scene', 'item', 'asset'] as const
+type MentionType = (typeof MENTION_TYPES)[number]
+
+function parseMentionType(raw: unknown): MentionType | 'all' {
+  const s = String(raw ?? '').toLowerCase()
+  if (!s || s === 'all') return 'all'
+  if (MENTION_TYPES.includes(s as MentionType)) return s as MentionType
+  return 'all'
+}
 
 export class MentionController {
   async getMentions(req: Request, res: Response): Promise<void> {
     try {
-      const { projectId } = req.params;
-      const { q = '' } = req.query;
-      const query = q as string;
+      const { projectId } = req.params
+      const qRaw = req.query.q
+      const typeRaw = req.query.type
+      const query = String(Array.isArray(qRaw) ? qRaw[0] : qRaw ?? '').trim()
+      const filter = parseMentionType(Array.isArray(typeRaw) ? typeRaw[0] : typeRaw)
 
-      // Query characters
-      const characters = await prisma.character.findMany({
-        where: {
-          project_id: projectId,
-          name: { contains: query, mode: 'insensitive' },
-        },
-        take: 5,
-      });
+      if (!req.user_id) {
+        res.status(401).json({
+          success: false,
+          error: { code: 'UNAUTHORIZED', message: 'Unauthorized' },
+        })
+        return
+      }
 
-      // Query items
-      const items = await prisma.item.findMany({
+      const project = await prisma.project.findFirst({
         where: {
-          project_id: projectId,
-          name: { contains: query, mode: 'insensitive' },
-        },
-        take: 5,
-      });
-
-      // Query scenes
-      const scenes = await prisma.scene.findMany({
-        where: {
-          episode: {
-            project_id: projectId,
-          },
+          id: projectId,
           OR: [
-            { location: { contains: query, mode: 'insensitive' } },
-            { description: { contains: query, mode: 'insensitive' } },
+            { owner_id: req.user_id },
+            { ProjectMember: { some: { user_id: req.user_id } } },
           ],
         },
-        take: 5,
-        include: {
-          Episode: {
-            select: { title: true },
-          },
-        },
-      });
+        select: { id: true },
+      })
 
-      // Query assets
-      const assets = await prisma.asset.findMany({
-        where: {
-          project_id: projectId,
-          type: 'image',
-          OR: [
-            { metadata: { path: ['name'], string_contains: query } },
-            { metadata: { path: ['description'], string_contains: query } },
-          ],
-        },
-        take: 5,
-      });
+      if (!project) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Project not found' },
+        })
+        return
+      }
 
-      // Format mentions
+      const episodes = await prisma.episode.findMany({
+        where: { project_id: projectId },
+        select: { id: true },
+      })
+      const episodeIds = episodes.map((e) => e.id)
+
+      const needCharacter = filter === 'all' || filter === 'character'
+      const needItem = filter === 'all' || filter === 'item'
+      const needScene = filter === 'all' || filter === 'scene'
+      const needAsset = filter === 'all' || filter === 'asset'
+
+      const characters = needCharacter
+        ? await prisma.character.findMany({
+            where: {
+              project_id: projectId,
+              ...(query
+                ? { name: { contains: query, mode: 'insensitive' as const } }
+                : {}),
+            },
+            take: 8,
+          })
+        : []
+
+      const items = needItem
+        ? await prisma.item.findMany({
+            where: {
+              project_id: projectId,
+              ...(query
+                ? { name: { contains: query, mode: 'insensitive' as const } }
+                : {}),
+            },
+            take: 8,
+          })
+        : []
+
+      const scenes =
+        needScene && episodeIds.length > 0
+          ? await prisma.scene.findMany({
+              where: {
+                episode_id: { in: episodeIds },
+                ...(query
+                  ? {
+                      OR: [
+                        {
+                          location: {
+                            contains: query,
+                            mode: 'insensitive' as const,
+                          },
+                        },
+                        {
+                          description: {
+                            contains: query,
+                            mode: 'insensitive' as const,
+                          },
+                        },
+                      ],
+                    }
+                  : {}),
+              },
+              take: 8,
+              include: {
+                Episode: {
+                  select: { title: true },
+                },
+              },
+            })
+        : []
+
+      const imageCandidates = needAsset
+        ? await prisma.asset.findMany({
+            where: {
+              project_id: projectId,
+              type: 'image',
+            },
+            take: 40,
+          })
+        : []
+
+      const assets = needAsset
+        ? (
+            query
+              ? imageCandidates.filter((a) => {
+                  const m = (a.metadata as Record<string, unknown>) || {}
+                  const name = String(m.name ?? '')
+                  const desc = String(m.description ?? '')
+                  const ql = query.toLowerCase()
+                  return (
+                    name.toLowerCase().includes(ql) ||
+                    desc.toLowerCase().includes(ql)
+                  )
+                })
+              : imageCandidates
+          ).slice(0, 8)
+        : []
+
       const mentions = [
-        ...characters.map(c => ({ 
-          id: c.id, 
-          type: 'character' as const, 
+        ...characters.map((c) => ({
+          id: c.id,
+          type: 'character' as const,
           name: c.name,
-          icon: 'user'
+          icon: 'user',
         })),
-        ...items.map(i => ({ 
-          id: i.id, 
-          type: 'item' as const, 
+        ...items.map((i) => ({
+          id: i.id,
+          type: 'item' as const,
           name: i.name,
-          icon: 'box'
+          icon: 'box',
         })),
-        ...scenes.map(s => ({ 
-          id: s.id, 
-          type: 'scene' as const, 
+        ...scenes.map((s) => ({
+          id: s.id,
+          type: 'scene' as const,
           name: `${s.location} (${s.time})`,
-          icon: 'film'
+          icon: 'film',
         })),
-        ...assets.map(a => ({ 
-          id: a.id, 
-          type: 'asset' as const, 
-          name: (a.metadata as any)?.name || a.type,
-          icon: 'image'
+        ...assets.map((a) => ({
+          id: a.id,
+          type: 'asset' as const,
+          name: String((a.metadata as Record<string, unknown>)?.name ?? a.type),
+          icon: 'image',
         })),
-      ];
+      ]
 
-      res.json({ success: true, data: mentions });
+      res.json({ success: true, data: mentions })
     } catch (error) {
-      console.error('Error getting mentions:', error);
-      res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to get mentions' } });
+      console.error('Error getting mentions:', error)
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Failed to get mentions',
+        },
+      })
     }
   }
 }

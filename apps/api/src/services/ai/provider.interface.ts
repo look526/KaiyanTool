@@ -1,4 +1,4 @@
-import { AIRequest, AIResponse, AIChatMessage, AICreateImageRequest, AICreateImageResponse, AICreateVideoRequest, AICreateVideoResponse } from '../../types/ai.types'
+import { AIRequest, AIResponse, AIChatMessage, AICreateImageRequest, AICreateImageResponse, AICreateVideoRequest, AICreateVideoResponse, TTSRequest, TTSResponse, TTSVoice, LipSyncRequest, LipSyncResponse } from '../../types/ai.types'
 import logger from '../../lib/logger'
 
 export abstract class AIProvider {
@@ -16,6 +16,10 @@ export abstract class AIProvider {
   abstract chat(messages: AIChatMessage[], options?: Partial<AIRequest>): Promise<AIResponse>
   abstract createImage(request: AICreateImageRequest): Promise<AICreateImageResponse>
   abstract createVideo?(request: AICreateVideoRequest): Promise<AICreateVideoResponse>
+
+  async synthesizeSpeech?(_request: TTSRequest): Promise<TTSResponse>
+  async listVoices?(): Promise<TTSVoice[]>
+  async generateLipSync?(_request: LipSyncRequest): Promise<LipSyncResponse>
 
   protected async request(endpoint: string, options: RequestInit = {}): Promise<any> {
     const url = this.baseUrl ? `${this.baseUrl}${endpoint}` : endpoint

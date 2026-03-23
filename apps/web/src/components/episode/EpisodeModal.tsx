@@ -32,16 +32,28 @@ export function EpisodeModal({ projectId, episode, onClose, onSaved }: EpisodeMo
       setSaving(true);
       const input: CreateEpisodeInput | UpdateEpisodeInput = { title, description };
       
+      console.log('[EpisodeModal] Creating episode with data:', input);
+      console.log('[EpisodeModal] Project ID:', projectId);
+      
       if (episode) {
         await episodesApi.updateEpisode(episode.id, input);
       } else {
-        await episodesApi.createEpisode(projectId, input as CreateEpisodeInput);
+        const result = await episodesApi.createEpisode(projectId, input as CreateEpisodeInput);
+        console.log('[EpisodeModal] Episode created successfully:', result);
       }
       
       onSaved();
     } catch (error) {
-      console.error('Failed to save episode:', error);
-      setError('保存失败，请重试');
+      console.error('[EpisodeModal] Failed to save episode:', error);
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      const errorDetails = error as any;
+      console.error('[EpisodeModal] Error details:', {
+        message: errorMessage,
+        code: errorDetails?.code,
+        statusCode: errorDetails?.statusCode,
+        details: errorDetails?.details,
+      });
+      setError(`保存失败：${errorMessage}`);
     } finally {
       setSaving(false);
     }
@@ -69,7 +81,7 @@ export function EpisodeModal({ projectId, episode, onClose, onSaved }: EpisodeMo
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
-          maxWidth: '520px',
+          maxWidth: '640px',
           margin: '20px',
           animation: 'slideIn 0.3s ease-out',
         }}
@@ -78,8 +90,8 @@ export function EpisodeModal({ projectId, episode, onClose, onSaved }: EpisodeMo
           padding: '0',
           overflow: 'hidden',
           boxShadow: isDark 
-            ? `0 25px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 80px ${accentColor}20`
-            : `0 25px 50px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05)`,
+            ? `0 24px 48px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(255, 255, 255, 0.08)`
+            : `0 18px 40px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.05)`,
         }}>
           {/* Header */}
           <div style={{
@@ -89,8 +101,8 @@ export function EpisodeModal({ projectId, episode, onClose, onSaved }: EpisodeMo
             alignItems: 'center',
             justifyContent: 'space-between',
             background: isDark 
-              ? `linear-gradient(135deg, ${accentColor}15 0%, transparent 100%)`
-              : `linear-gradient(135deg, ${accentLight}10 0%, transparent 100%)`,
+              ? `linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(99, 102, 241, 0.04) 100%)`
+              : `linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(99, 102, 241, 0.03) 100%)`,
           }}>
             <div style={{
               display: 'flex',
@@ -284,7 +296,8 @@ export function EpisodeModal({ projectId, episode, onClose, onSaved }: EpisodeMo
               display: 'flex',
               gap: '12px',
               justifyContent: 'flex-end',
-              paddingTop: '8px',
+              paddingTop: '18px',
+              borderTop: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
             }}>
               <GlassButton
                 variant="secondary"

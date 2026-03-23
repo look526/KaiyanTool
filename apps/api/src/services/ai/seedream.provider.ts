@@ -139,9 +139,70 @@ export class SeedreamProvider extends AIProvider {
         },
       })
 
+      logger.info('Seedream waitForTaskCompletion result', { 
+        taskId, 
+        status: result.status,
+        progress: result.progress,
+        hasResult: !!result.result,
+        hasData: !!result.result?.data,
+        resultDataLength: result.result?.data?.length,
+        metadata: result.metadata,
+        url: result.url,
+      });
+
+      // 即使状态是 failed，也要检查是否有可用的图片 URL
       if (result.status === 'failed') {
+        // 尝试从多个位置提取 URL
+        let outputUrl = '';
+        
+        // 1. 优先从 result.result.data 提取（标准结构）
+        if (result.result?.data && Array.isArray(result.result.data) && result.result.data.length > 0) {
+          outputUrl = result.result.data[0].url || '';
+          logger.warn('Seedream task marked as failed but has URL in result.data', { 
+            taskId, 
+            outputUrl,
+            progress: result.progress 
+          });
+        }
+        // 2. 从 metadata.output_url 提取
+        else if (result.metadata?.output_url) {
+          outputUrl = result.metadata.output_url;
+          logger.warn('Seedream task marked as failed but has URL in metadata', { 
+            taskId, 
+            outputUrl,
+            progress: result.progress 
+          });
+        }
+        // 3. 从 result.url 提取
+        else if (result.url) {
+          outputUrl = result.url;
+          logger.warn('Seedream task marked as failed but has URL in result', { 
+            taskId, 
+            outputUrl,
+            progress: result.progress 
+          });
+        }
+        
+        logger.info('Seedream failed task URL check', {
+          taskId,
+          outputUrl,
+          hasResultData: !!(result.result?.data?.length),
+          hasMetadataUrl: !!result.metadata?.output_url,
+          hasResultUrl: !!result.url,
+        });
+        
+        // 如果有 URL，返回结果
+        if (outputUrl) {
+          return {
+            url: outputUrl,
+            revisedPrompt: request.prompt,
+            thumbnailUrl: outputUrl,
+          };
+        }
+        
+        // 确实失败且没有 URL
         const error = `Image generation failed: ${result.progress}% completed`
-        logger.error('Seedream task failed', { taskId, progress: result.progress })
+        logger.error('Seedream task failed with no URL', { taskId, progress: result.progress })
         throw new Error(error)
       }
 
@@ -149,10 +210,11 @@ export class SeedreamProvider extends AIProvider {
         taskId,
         attempts: result.progress,
         metadata: result.metadata,
+        resultUrl: result.url,
       })
 
       return {
-        url: (result as any).url,
+        url: result.url || '',
         revisedPrompt: request.prompt,
       }
     } catch (error) {

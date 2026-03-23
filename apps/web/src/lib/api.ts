@@ -106,8 +106,8 @@ export interface ApiClientInterface {
   generateShotsFromScript(projectId: string, scriptContent: string, visualStyle?: string): Promise<{ success: boolean; count: number; shots: any[] }>;
   optimizeShotPrompt(shotId: string, referenceImages: string[]): Promise<{ success: boolean; startPrompt: string; endPrompt: string; shot: any }>;
   optimizeScene(data: { sceneContent: string; location: string; time: string; direction?: string }): Promise<{ suggestion: string; optimized: string }>;
-  generateImage(data: { prompt: string; negativePrompt?: string; width: number; height: number; style: string; projectId?: string; model?: string; category?: string; image_urls?: string[]; threeView?: boolean }): Promise<{ asset: { url: string } }>;
-  batchGenerateImages(data: { prompt: string; count: number; referenceImageUrl?: string; providerId?: string }): Promise<{ assets: Array<{ url: string; filename: string }> }>;
+  generateImage(data: { prompt: string; negativePrompt?: string; width: number; height: number; style: string; projectId?: string; model?: string; category?: string; image_urls?: string[]; threeView?: boolean; resolution?: string; n?: number; watermark?: boolean }): Promise<{ asset: { url: string } }>;
+  batchGenerateImages(data: { prompt: string; count: number; style?: string; negativePrompt?: string; width?: number; height?: number; resolution?: string; projectId?: string; providerId?: string; referenceImageUrl?: string; three_view?: boolean }): Promise<{ assets: Array<{ url: string; filename: string }> }>;
   getProjectAssets(projectId: string, type?: string, search?: string, category?: string, source?: string): Promise<any[]>;
   polishPrompt(prompt: string, type?: string, style?: string): Promise<{ polished: string }>;
   processContentWithFile(content: string, mode: 'continue' | 'rewrite' | 'optimize', model?: string): Promise<any>;

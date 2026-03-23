@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { CheckSquare, Square, Play, Trash2, Loader2, CheckCircle2, XCircle, AlertCircle, X } from 'lucide-react'
-import { AIProviderModel } from './ModelSelector'
+import { AIProviderModel } from './types'
 
 export interface BatchOperationProps {
   models: AIProviderModel[]

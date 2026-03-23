@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { AIProvider } from './provider.interface'
 import { AIRequest, AIResponse, AIChatMessage, AICreateImageRequest, AICreateImageResponse, AICreateVideoRequest, AICreateVideoResponse } from '../../types/ai.types'
 import { config } from '../../config'
@@ -105,44 +106,93 @@ export class ZhipuProvider extends AIProvider {
     throw new Error('Video generation not yet implemented for Zhipu provider')
   }
 
+  /**
+   * 使用 axios + 长超时：Node 内置 fetch(undici) 默认 headers 超时较短，
+   * 大 Prompt / 慢首包易触发 UND_ERR_HEADERS_TIMEOUT。
+   */
   protected async request(endpoint: string, options: RequestInit = {}): Promise<any> {
     const url = `${this.baseUrl}${endpoint}`
-    
+    const method = (options.method || 'GET').toString().toUpperCase()
+    const timeoutMs = Math.max(
+      config.ai.http.headersTimeoutMs,
+      config.ai.http.bodyTimeoutMs,
+    )
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(options.headers as Record<string, string>),
+    }
+
+    let data: unknown = undefined
+    if (options.body && typeof options.body === 'string' && options.body.trim()) {
+      try {
+        data = JSON.parse(options.body)
+      } catch {
+        data = options.body
+      }
+    }
+
     try {
-      const response = await fetch(url, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
+      const response = await axios.request({
+        url,
+        method: method as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+        headers,
+        data: method !== 'GET' && method !== 'HEAD' ? data : undefined,
+        timeout: timeoutMs,
+        validateStatus: () => true,
       })
 
-      if (!response.ok) {
-        const errorText = await response.text()
+      if (response.status >= 400) {
+        const raw = response.data
+        const errorText =
+          typeof raw === 'string' ? raw : raw != null ? JSON.stringify(raw) : ''
         let errorMessage = `ZhipuAI request failed with status ${response.status}`
-        
+
         try {
-          const errorJson = JSON.parse(errorText)
-          errorMessage = errorJson.error?.message || errorJson.message || errorMessage
+          const errorJson = typeof raw === 'object' && raw !== null ? raw : JSON.parse(errorText)
+          errorMessage =
+            (errorJson as { error?: { message?: string }; message?: string }).error?.message ||
+            (errorJson as { message?: string }).message ||
+            errorMessage
         } catch {
           errorMessage = errorText || errorMessage
         }
-        
+
         logger.error('Zhipu AI API request failed', {
           endpoint,
           status: response.status,
           error: errorMessage,
         })
-        
+
         throw new Error(errorMessage)
       }
 
-      return response.json()
+      return response.data
     } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const data = error.response?.data
+        let msg = error.message
+        if (data && typeof data === 'object' && data !== null) {
+          const o = data as { error?: { message?: string }; message?: string }
+          msg = o.error?.message ?? o.message ?? msg
+        } else if (typeof data === 'string' && data.trim()) {
+          try {
+            const j = JSON.parse(data) as { error?: { message?: string }; message?: string }
+            msg = j.error?.message ?? j.message ?? msg
+          } catch {
+            msg = data
+          }
+        }
+        logger.error('Zhipu AI API request error', {
+          endpoint,
+          code: error.code,
+          message: msg,
+        })
+        throw new Error(msg)
+      }
       if (error instanceof Error) {
         throw error
       }
-      
       logger.error('Zhipu AI API request error', {
         endpoint,
         error: String(error),

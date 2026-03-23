@@ -1,4 +1,4 @@
-export { ModelSelector } from './ModelSelector'
+export { ModelSelector } from './index.tsx'
 export { BatchOperations, BatchModelItem } from './BatchOperations'
 export { SmartRecommendation, useModelRecommendation } from './SmartRecommendation'
 export { ModelErrorProvider, useModelError, ModelErrorMessages } from './ModelErrorHandling'
@@ -18,7 +18,7 @@ export {
   FocusIndicator,
   getA11yProps
 } from './Accessibility'
-export type { ContentType, AIProviderModel, ModelSelectorProps } from './ModelSelector'
+export type { ContentType, AIProviderModel, ModelSelectorProps } from './types'
 export type { ModelRecommendation, SmartRecommendationProps } from './SmartRecommendation'
 export type { ModelError } from './ModelErrorHandling'
 export type { ComparisonResult, ModelComparisonProps } from './ModelComparison'

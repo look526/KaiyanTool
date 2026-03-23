@@ -11,6 +11,8 @@ export interface Shot {
   aspect_ratio: string;
   resolution: string;
   video_url: string | null;
+  audio_url?: string | null;
+  audio_duration?: number | null;
   created_at: string;
   updated_at: string;
 }

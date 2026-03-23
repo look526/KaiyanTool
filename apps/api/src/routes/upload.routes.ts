@@ -25,6 +25,14 @@ const upload = multer({
   },
 })
 
+function fixFilename(filename: string): string {
+  try {
+    return Buffer.from(filename, 'latin1').toString('utf8')
+  } catch {
+    return filename
+  }
+}
+
 const router = Router()
 
 router.use(authMiddleware)
@@ -45,6 +53,59 @@ router.get('/categories', (_req, res) => {
       label
     }))
   })
+})
+
+router.get('/assets/debug', async (req, res) => {
+  try {
+    if (!req.user_id) {
+      res.status(401).json({ error: 'Unauthorized' })
+      return
+    }
+
+    console.log('[DEBUG ASSETS] User ID:', req.user_id)
+
+    const userProjects = await prisma.project.findMany({
+      where: {
+        OR: [
+          { owner_id: req.user_id },
+          { ProjectMember: { some: { user_id: req.user_id } } },
+        ],
+      },
+      select: { id: true },
+    })
+
+    console.log('[DEBUG ASSETS] User projects:', userProjects)
+
+    const projectIds = userProjects.map(p => p.id)
+    projectIds.push('00000000-0000-0000-0000-000000000000')
+
+    console.log('[DEBUG ASSETS] Project IDs:', projectIds)
+
+    const assets = await prisma.asset.findMany({
+      where: { project_id: { in: projectIds } },
+      orderBy: { created_at: 'desc' },
+    })
+
+    console.log('[DEBUG ASSETS] Raw assets from DB:', assets.length, assets.map(a => ({ id: a.id, project_id: a.project_id, url: a.url })))
+
+    res.json({
+      user_id: req.user_id,
+      user_projects: userProjects,
+      project_ids: projectIds,
+      assets_count: assets.length,
+      assets: assets.map(a => ({
+        id: a.id,
+        project_id: a.project_id,
+        url: a.url,
+        type: a.type,
+        created_at: a.created_at,
+        metadata: a.metadata
+      }))
+    })
+  } catch (error) {
+    console.error('Error in debug assets:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
 })
 
 router.get('/assets', async (req, res) => {
@@ -69,10 +130,16 @@ router.get('/assets', async (req, res) => {
     const projectIds = userProjects.map(p => p.id)
     projectIds.push('00000000-0000-0000-0000-000000000000')
 
+    console.log('[GET ASSETS] Query params:', { type, search, category, source })
+    console.log('[GET ASSETS] User projects:', userProjects.length)
+    console.log('[GET ASSETS] Project IDs including global:', projectIds)
+
     const assets = await prisma.asset.findMany({
       where: { project_id: { in: projectIds } },
       orderBy: { created_at: 'desc' },
     })
+
+    console.log('[GET ASSETS] Found assets count:', assets.length)
 
     const assetsWithName = assets.map(asset => ({
       ...asset,
@@ -179,29 +246,38 @@ router.post('/assets', upload.single('file'), async (req, res) => {
 
     const { uploadToStorage } = await import('../lib/storage')
     
-    const safeName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')
+    const originalName = fixFilename(file.originalname)
+    const safeName = originalName.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
     const filename = `assets/${req.user_id}/${Date.now()}-${safeName}`
     const url = await uploadToStorage(file.buffer, filename, file.mimetype)
 
     const category = req.body.category || ASSET_CATEGORIES.GENERAL
     const source = req.body.source || ASSET_SOURCES.UPLOAD
 
+    console.log('[UPLOAD ASSET] Creating asset:', {
+      userId: req.user_id,
+      category,
+      source,
+      projectId: req.body.project_id || '00000000-0000-0000-0000-000000000000',
+      originalName
+    })
+
     const asset = await prisma.asset.create({
       data: {
         id: crypto.randomUUID(),
-        type: file.mimetype.startsWith('image/') ? 'image' : 
-              file.mimetype.startsWith('video/') ? 'video' : 
+        type: file.mimetype.startsWith('image/') ? 'image' :
+              file.mimetype.startsWith('video/') ? 'video' :
               file.mimetype.startsWith('audio/') ? 'audio' : 'document',
         url,
         project_id: req.body.project_id || '00000000-0000-0000-0000-000000000000',
         category,
         source,
         metadata: {
-          originalName: file.originalname,
+          originalName: originalName,
           size: file.size,
           mimetype: file.mimetype,
           userId: req.user_id,
-          name: file.originalname,
+          name: originalName,
           thumbnailUrl: url,
         },
         created_at: new Date(),
@@ -209,8 +285,19 @@ router.post('/assets', upload.single('file'), async (req, res) => {
       },
     })
 
+    console.log('[UPLOAD ASSET] Asset created successfully:', {
+      id: asset.id,
+      type: asset.type,
+      url: asset.url,
+      project_id: asset.project_id,
+      user_id_from_metadata: (asset.metadata as any)?.userId
+    })
+
+    const metadata = asset.metadata as any
     res.json({
       ...asset,
+      name: metadata?.name || originalName,
+      thumbnailUrl: metadata?.thumbnailUrl || url,
       categoryLabel: ASSET_CATEGORY_LABELS[category as keyof typeof ASSET_CATEGORY_LABELS] || ASSET_CATEGORY_LABELS.general,
       sourceLabel: ASSET_SOURCE_LABELS[source as keyof typeof ASSET_SOURCE_LABELS] || ASSET_SOURCE_LABELS.upload,
     })
@@ -396,6 +483,25 @@ router.get('/projects/:project_id/assets', async (req, res) => {
 
 router.post('/projects/:project_id/assets', upload.single('file'), uploadController.uploadAsset.bind(uploadController))
 
+const GLOBAL_PROJECT_ID = '00000000-0000-0000-0000-000000000000'
+
+/** 全局素材：POST /upload 写入 metadata.userId，且文件路径为 uploads/assets/{userId}/... */
+function isGlobalAssetUploader(asset: { metadata: unknown; url: string }, userId: string): boolean {
+  const meta =
+    asset.metadata && typeof asset.metadata === 'object'
+      ? (asset.metadata as Record<string, unknown>)
+      : {}
+  const fromMeta = meta.userId ?? meta.user_id
+  if (typeof fromMeta === 'string' && fromMeta === userId) {
+    return true
+  }
+  // 本地存储 URL：/uploads/assets/{userId}/...
+  if (asset.url && asset.url.includes(`assets/${userId}/`)) {
+    return true
+  }
+  return false
+}
+
 router.delete('/assets/:id', async (req, res) => {
   try {
     if (!req.user_id) {
@@ -418,12 +524,11 @@ router.delete('/assets/:id', async (req, res) => {
 
     console.log('[DELETE ASSET] Found asset:', { id: asset.id, projectId: asset.project_id, url: asset.url });
 
-    const isGlobalAsset = asset.project_id === '00000000-0000-0000-0000-000000000000'
-    const isOwner = (asset.metadata as any)?.userId === req.user_id
+    const isGlobalAsset = asset.project_id === GLOBAL_PROJECT_ID
 
     if (isGlobalAsset) {
-      if (!isOwner) {
-        console.log('[DELETE ASSET] Forbidden: global asset but not owner');
+      if (!isGlobalAssetUploader(asset, req.user_id)) {
+        console.log('[DELETE ASSET] Forbidden: global asset but not owner (check metadata.userId or URL path)');
         res.status(403).json({ error: 'Forbidden' })
         return
       }

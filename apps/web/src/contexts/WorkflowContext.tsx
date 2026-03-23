@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useMemo } from 'react';
 
-export type WorkflowStepId = 'script' | 'characters' | 'items' | 'scenes' | 'storyboard';
+export type WorkflowStepId = 'script' | 'storyline' | 'characters' | 'items' | 'scenes' | 'storyboard';
 
 export type StepStatus = 'pending' | 'in_progress' | 'completed';
 
@@ -26,10 +26,11 @@ type WorkflowAction =
   | { type: 'RESET_WORKFLOW' }
   | { type: 'LOAD_STATE'; payload: WorkflowState };
 
-const WORKFLOW_STEPS: WorkflowStepId[] = ['script', 'characters', 'items', 'scenes', 'storyboard'];
+const WORKFLOW_STEPS: WorkflowStepId[] = ['script', 'storyline', 'characters', 'items', 'scenes', 'storyboard'];
 
 const initialStepProgress: Record<WorkflowStepId, StepProgress> = {
   script: { status: 'pending', percentage: 0, lastVisited: null },
+  storyline: { status: 'pending', percentage: 0, lastVisited: null },
   characters: { status: 'pending', percentage: 0, lastVisited: null },
   items: { status: 'pending', percentage: 0, lastVisited: null },
   scenes: { status: 'pending', percentage: 0, lastVisited: null },
@@ -152,20 +153,26 @@ function loadFromStorage(projectId: string): WorkflowState | null {
     const stored = localStorage.getItem(getStorageKey(projectId));
     if (stored) {
       const parsed = JSON.parse(stored);
+      const mergedStepProgress = {
+        ...initialStepProgress,
+        ...(parsed.stepProgress || {}),
+      } as Record<WorkflowStepId, StepProgress>;
+
+      const normalizedStepProgress = Object.fromEntries(
+        Object.entries(mergedStepProgress).map(([key, value]) => [
+          key,
+          {
+            ...(value as StepProgress),
+            lastVisited: (value as StepProgress).lastVisited
+              ? new Date((value as StepProgress).lastVisited as any)
+              : null,
+          },
+        ])
+      ) as Record<WorkflowStepId, StepProgress>;
       return {
         ...parsed,
+        stepProgress: normalizedStepProgress,
         lastUpdated: parsed.lastUpdated ? new Date(parsed.lastUpdated) : null,
-        stepProgress: Object.fromEntries(
-          Object.entries(parsed.stepProgress).map(([key, value]) => [
-            key,
-            {
-              ...(value as StepProgress),
-              lastVisited: (value as StepProgress).lastVisited
-                ? new Date((value as StepProgress).lastVisited!)
-                : null,
-            },
-          ])
-        ) as Record<WorkflowStepId, StepProgress>,
       };
     }
   } catch (e) {

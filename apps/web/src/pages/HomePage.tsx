@@ -1,632 +1,938 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { 
-  Sparkles, 
-  FileText, 
-  Users, 
-  LayoutGrid, 
-  Zap, 
+import { useAuth } from '../contexts/AuthContext';
+import {
+  PlayCircle,
+  Sparkles,
+  Edit3,
   BarChart3,
-  ArrowRight,
+  Scan,
+  Lock,
+  Image,
+  Film,
+  Palette,
+  Activity,
   Play,
-  Star,
-  Globe,
-  Shield,
-  Clock,
-  Check,
-  ChevronRight
+  ArrowRight,
 } from 'lucide-react';
+
+const colors = {
+  bgDark: '#070d1f',
+  primary: '#ba9eff',
+  secondary: '#34b5fa',
+  tertiary: '#ec63ff',
+  onSurface: '#dfe4fe',
+  onSurfaceVariant: '#a5aac2',
+  surfaceContainerLow: '#0c1326',
+  surfaceContainerHigh: '#171f36',
+  glassBg: 'rgba(28, 37, 62, 0.4)',
+  white: '#ffffff',
+  whiteMuted: 'rgba(255, 255, 255, 0.5)',
+  white10: 'rgba(255, 255, 255, 0.1)',
+  white5: 'rgba(255, 255, 255, 0.05)',
+  white8: 'rgba(255, 255, 255, 0.08)',
+  white20: 'rgba(255, 255, 255, 0.2)',
+};
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const [mounted, setMounted] = useState(false);
-  const [hoveredFeature, setHoveredFeature] = useState<number | null>(null);
-  const [ctaHover, setCtaHover] = useState(false);
+  const { user, loading } = useAuth();
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const handleStartCreation = () => {
+    if (user && !loading) {
+      navigate('/projects');
+    } else {
+      navigate('/login');
+    }
+  };
 
-  const features = [
-    {
-      name: 'AI 驱动创作',
-      description: '从剧本到视频，全程智能辅助，让创作更高效',
-      icon: Sparkles,
-    },
-    {
-      name: '剧本/小说输入',
-      description: '支持多种输入方式，灵活适配您的创作流程',
-      icon: FileText,
-    },
-    {
-      name: '角色一致性',
-      description: '强大的角色管理系统，确保视觉高度一致',
-      icon: Users,
-    },
-    {
-      name: '分镜管理',
-      description: '专业的镜头规划和九宫格预览',
-      icon: LayoutGrid,
-    },
-    {
-      name: '批量生成',
-      description: '高效的图像和视频批量生成能力',
-      icon: Zap,
-    },
-    {
-      name: '数据可视化',
-      description: '清晰的项目进度和资产视图',
-      icon: BarChart3,
-    },
-  ];
+  const glassPanelStyle: React.CSSProperties = {
+    background: colors.glassBg,
+    backdropFilter: 'blur(40px)',
+    border: `1px solid ${colors.white8}`,
+    borderRadius: '1rem',
+  };
 
-  const stats = [
-    { value: '100K+', label: '活跃用户' },
-    { value: '500K+', label: '创作项目' },
-    { value: '10M+', label: '生成内容' },
-    { value: '99.9%', label: '服务可用率' },
-  ];
-
-  const steps = [
-    { num: '01', title: '输入内容', desc: '导入剧本或小说文本' },
-    { num: '02', title: 'AI 分析', desc: '智能理解内容结构' },
-    { num: '03', title: '生成素材', desc: '一键生成角色和场景' },
-    { num: '04', title: '导出成品', desc: '输出视频或图文内容' },
-  ];
+  const textGradientStyle = {
+    background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.tertiary} 100%)`,
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text',
+  };
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: '#000000',
-      color: '#ffffff',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    }}>
-      {/* Navigation */}
+    <div style={{ backgroundColor: colors.bgDark, color: colors.onSurface, overflowX: 'hidden', fontFamily: "'Manrope', sans-serif" }}>
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        .animate-pulse-slow {
+          animation: pulse 2s ease-in-out infinite;
+        }
+      `}</style>
+
       <nav style={{
         position: 'fixed',
         top: 0,
-        left: 0,
-        right: 0,
-        height: '72px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 48px',
-        background: 'rgba(0, 0, 0, 0.8)',
-        backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
-        zIndex: 100,
+        width: '100%',
+        zIndex: 50,
+        background: 'rgba(7, 13, 31, 0.6)',
+        backdropFilter: 'blur(48px)',
+        borderBottom: `1px solid ${colors.white10}`,
+        boxShadow: `0 20px 50px rgba(139, 92, 246, 0.1)`,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '36px',
-            height: '36px',
-            background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-            borderRadius: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <Sparkles size={18} color="#fff" />
-          </div>
-          <span style={{ fontSize: '18px', fontWeight: 600, letterSpacing: '-0.02em' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 2rem', height: '5rem', maxWidth: '1440px', margin: '0 auto' }}>
+          <div
+            style={{
+              fontSize: '1.5rem',
+              fontWeight: 900,
+              letterSpacing: '-0.05em',
+              background: `linear-gradient(to bottom right, ${colors.primary}, ${colors.tertiary})`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              cursor: 'pointer',
+            }}
+            onClick={() => navigate('/')}
+          >
             开演AI
-          </span>
-        </div>
-        
-        <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
-          {['功能', '定价', '关于'].map((item) => (
-            <a 
-              key={item}
-              href="#"
-              style={{
-                color: '#a1a1aa',
-                textDecoration: 'none',
-                fontSize: '14px',
-                fontWeight: 500,
-                transition: 'color 0.2s',
-              }}
-            >
-              {item}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700 }}>
+            <a href="#" style={{ color: colors.onSurfaceVariant, textDecoration: 'none', transition: 'color 0.2s' }}
+               onMouseEnter={e => (e.currentTarget.style.color = colors.white)}
+               onMouseLeave={e => (e.currentTarget.style.color = colors.onSurfaceVariant)}>
+              作品展示
             </a>
-          ))}
-          <button
-            onClick={() => navigate('/login')}
-            style={{
-              padding: '10px 20px',
-              background: 'transparent',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '8px',
-              color: '#ffffff',
-              fontSize: '14px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-          >
-            登录
-          </button>
-          <button
-            onClick={() => navigate('/register')}
-            style={{
-              padding: '10px 20px',
-              background: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              color: '#000000',
-              fontSize: '14px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-          >
-            免费试用
-          </button>
+            <a href="#" style={{ color: colors.onSurfaceVariant, textDecoration: 'none', transition: 'color 0.2s' }}
+               onMouseEnter={e => (e.currentTarget.style.color = colors.white)}
+               onMouseLeave={e => (e.currentTarget.style.color = colors.onSurfaceVariant)}>
+              模型
+            </a>
+            <a href="#" style={{ color: colors.onSurfaceVariant, textDecoration: 'none', transition: 'color 0.2s' }}
+               onMouseEnter={e => (e.currentTarget.style.color = colors.white)}
+               onMouseLeave={e => (e.currentTarget.style.color = colors.onSurfaceVariant)}>
+              文档
+            </a>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <button
+              style={{ color: colors.primary, fontWeight: 700, fontSize: '0.875rem', background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem 1rem' }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+            >
+              登录
+            </button>
+            <button
+              style={{
+                background: `linear-gradient(to bottom right, ${colors.primary}, #8455ef)`,
+                color: '#39008c',
+                padding: '0.625rem 1.5rem',
+                borderRadius: '9999px',
+                fontWeight: 700,
+                fontSize: '0.875rem',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: `0 8px 24px rgba(186, 158, 255, 0.2)`,
+                transition: 'transform 0.2s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+              onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
+              onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+              onClick={handleStartCreation}
+            >
+              立即开始
+            </button>
+          </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '120px 24px 80px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        {/* Animated background */}
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.15), transparent)',
-        }} />
-        
-        {/* Grid pattern */}
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: `
-            linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)
-          `,
-          backgroundSize: '64px 64px',
-        }} />
-
-        {/* Glow effects */}
-        <div style={{
-          position: 'absolute',
-          top: '20%',
-          left: '10%',
-          width: '400px',
-          height: '400px',
-          background: 'radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, transparent 70%)',
-          filter: 'blur(80px)',
-          animation: 'float 8s ease-in-out infinite',
-        }} />
-        <div style={{
-          position: 'absolute',
-          bottom: '10%',
-          right: '10%',
-          width: '300px',
-          height: '300px',
-          background: 'radial-gradient(circle, rgba(168, 85, 247, 0.1) 0%, transparent 70%)',
-          filter: 'blur(60px)',
-          animation: 'float 10s ease-in-out infinite reverse',
-        }} />
-
-        <div style={{ 
-          textAlign: 'center', 
-          maxWidth: '800px', 
-          position: 'relative', 
-          zIndex: 1,
-          opacity: mounted ? 1 : 0,
-          transform: mounted ? 'translateY(0)' : 'translateY(20px)',
-          transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+      <main>
+        <section style={{
+          position: 'relative',
+          padding: '11rem 1.5rem 8rem',
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          overflow: 'hidden',
         }}>
-          {/* Badge */}
           <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 16px',
-            borderRadius: '100px',
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            color: '#a1a1aa',
-            fontSize: '13px',
-            fontWeight: 500,
-            marginBottom: '40px',
-            backdropFilter: 'blur(10px)',
-          }}>
-            <Sparkles size={14} style={{ color: '#6366f1' }} />
-            <span>AI 内容创作平台</span>
-            <ChevronRight size={14} />
+            position: 'absolute',
+            top: '-10%',
+            left: '-10%',
+            width: '50%',
+            height: '50%',
+            background: `${colors.primary}20`,
+            borderRadius: '50%',
+            filter: 'blur(120px)',
+            pointerEvents: 'none',
+          }} />
+          <div style={{
+            position: 'absolute',
+            bottom: '-10%',
+            right: '-10%',
+            width: '40%',
+            height: '40%',
+            background: `${colors.tertiary}10`,
+            borderRadius: '50%',
+            filter: 'blur(100px)',
+            pointerEvents: 'none',
+          }} />
+
+          <div style={{ position: 'relative', zIndex: 10, maxWidth: '80rem', margin: '0 auto' }}>
+            <div style={{
+              ...glassPanelStyle,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 1rem',
+              borderRadius: '9999px',
+              marginBottom: '2rem',
+              border: `${colors.white5}`,
+            }}>
+              <span style={{ width: '0.5rem', height: '0.5rem', borderRadius: '50%', background: colors.tertiary }} className="animate-pulse-slow" />
+              <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.2em', color: colors.onSurfaceVariant }}>媒体的未来已至</span>
+            </div>
+
+            <h1 style={{
+              fontSize: 'clamp(3rem, 8vw, 6rem)',
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontWeight: 800,
+              letterSpacing: '-0.05em',
+              color: colors.white,
+              marginBottom: '2rem',
+              lineHeight: 1.05,
+            }}>
+              开演AI：编织<span style={textGradientStyle}>电影级</span> <br />的智能创作未来
+            </h1>
+
+            <p style={{
+              fontSize: 'clamp(1.125rem, 2vw, 1.25rem)',
+              color: colors.onSurfaceVariant,
+              maxWidth: '42rem',
+              margin: '0 auto 3rem',
+              fontWeight: 500,
+              lineHeight: 1.625,
+            }}>
+              通过单一提示词编织整个电影宇宙。从超写实的剧本合写到每一帧都完美的生成式视频，开启您的无限创意可能。
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', justifyContent: 'center', alignItems: 'center' }}>
+              <button
+                style={{
+                  padding: '1.25rem 2.5rem',
+                  background: colors.primary,
+                  color: '#39008c',
+                  fontWeight: 700,
+                  fontSize: '1.125rem',
+                  borderRadius: '0.75rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: `0 0 40px rgba(186, 158, 255, 0.4)`,
+                  transition: 'transform 0.2s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+                onClick={handleStartCreation}
+              >
+                免费开始创作
+              </button>
+              <button
+                style={{
+                  ...glassPanelStyle,
+                  padding: '1.25rem 2.5rem',
+                  fontWeight: 700,
+                  fontSize: '1.125rem',
+                  color: colors.white,
+                  border: `${colors.white10}`,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = colors.white10; }}
+                onMouseLeave={e => { e.currentTarget.style.background = colors.glassBg; }}
+              >
+                <PlayCircle size={28} />
+                观看演示视频
+              </button>
+            </div>
           </div>
 
-          <h1 style={{
-            fontSize: 'clamp(48px, 8vw, 72px)',
-            fontWeight: 700,
-            marginBottom: '24px',
-            lineHeight: 1.1,
-            letterSpacing: '-0.04em',
-            background: 'linear-gradient(180deg, #ffffff 0%, #a1a1aa 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}>
-            AI 驱动创意
-          </h1>
+          <div style={{ marginTop: '6rem', position: 'relative', width: '100%', maxWidth: '72rem', aspectRatio: '16/9', padding: '0 1rem' }}>
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: '0.75rem',
+              overflow: 'hidden',
+              ...glassPanelStyle,
+              border: `${colors.white10}`,
+              padding: '1rem',
+            }}>
+              <img
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCIxxFsHOLYSH2IaV3LFw251lKLP-THBqD0vvsAVJo-odC4y5mBELcWr1WnGCbUSlVsBqK1GUF9QiKHMJCJR6iPntxXNtWZzyNUU5ByO0GtXYt2-D-L7pTJ8Z91VhPPQHmoT4MyJrzgqrkrhicE5IgWBKZLdhS-uMyClQUiWnsjXs3n_JU8SneFK2bH_Ryu0Vpeixawh2EGiW-RcxIev0P46WldqKdz-1DSlEKdjooCsu614RS62DQcktiPAg5dE_0uKedCU-aeMcc"
+                alt="Abstract cinematic landscape"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '0.5rem', opacity: 0.7 }}
+              />
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                background: `linear-gradient(to top, ${colors.bgDark} 0%, transparent 50%, transparent 100%)`,
+                pointerEvents: 'none',
+              }} />
+            </div>
 
-          <p style={{
-            fontSize: 'clamp(16px, 1.5vw, 20px)',
-            color: '#71717a',
-            lineHeight: 1.7,
-            marginBottom: '48px',
-            maxWidth: '560px',
-            margin: '0 auto 48px',
-          }}>
-            从剧本到视频的完整创作工作流，让 AI 成为您的创作伙伴
-          </p>
 
-          <div style={{ 
-            display: 'flex', 
-            gap: '16px', 
-            justifyContent: 'center', 
-            flexWrap: 'wrap' 
-          }}>
-            <button
-              onClick={() => navigate('/register')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '14px 28px',
-                fontSize: '15px',
-                fontWeight: 600,
-                borderRadius: '10px',
-                border: 'none',
-                background: '#ffffff',
-                color: '#000000',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={() => setCtaHover(true)}
-              onMouseLeave={() => setCtaHover(false)}
-            >
-              免费开始
-              <ArrowRight size={16} />
-            </button>
-            <button
-              onClick={() => navigate('/projects')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '14px 28px',
-                fontSize: '15px',
-                fontWeight: 500,
-                borderRadius: '10px',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
-                background: 'transparent',
-                color: '#ffffff',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-            >
-              <Play size={16} />
-              查看演示
-            </button>
           </div>
-        </div>
+        </section>
 
-        {/* Stats */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '48px',
-          marginTop: '100px',
-          padding: '32px 48px',
-          background: 'rgba(255, 255, 255, 0.03)',
-          borderRadius: '16px',
-          border: '1px solid rgba(255, 255, 255, 0.06)',
-          backdropFilter: 'blur(20px)',
-        }}>
-          {stats.map((stat, index) => (
-            <div key={index} style={{ textAlign: 'center' }}>
-              <div style={{ 
-                fontSize: '36px', 
-                fontWeight: 700, 
-                color: '#ffffff',
-                letterSpacing: '-0.02em',
-                marginBottom: '4px',
-              }}>
-                {stat.value}
+        <section style={{ padding: '8rem 1.5rem', backgroundColor: colors.surfaceContainerLow, position: 'relative' }}>
+          <div style={{ maxWidth: '80rem', margin: '0 auto' }}>
+            <div style={{ display: 'grid', gap: '5rem', alignItems: 'center' }}>
+              <div>
+                <h2 style={{
+                  fontSize: 'clamp(2.25rem, 5vw, 3rem)',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontWeight: 800,
+                  color: colors.white,
+                  marginBottom: '2rem',
+                }}>
+                  剧本与小说引擎
+                </h2>
+                <p style={{ color: colors.onSurfaceVariant, fontSize: '1.125rem', marginBottom: '2.5rem', lineHeight: 1.7 }}>
+                  AI辅助续写、改写、解析，支持强大的Monaco编辑器。它不仅仅是语法检查，更能理解潜台词、角色弧光和叙事节奏。
+                </p>
+                <ul style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                    <Sparkles size={24} style={{ color: colors.secondary, marginTop: '0.25rem' }} />
+                    <div>
+                      <h4 style={{ fontWeight: 700, color: colors.white, fontSize: '1.25rem' }}>动态改写</h4>
+                      <p style={{ color: colors.onSurfaceVariant, fontSize: '0.875rem' }}>瞬间将整个场景的基调从"黑色电影"切换为"赛博朋克"，保持情节逻辑严密。</p>
+                    </div>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                    <Edit3 size={24} style={{ color: colors.secondary, marginTop: '0.25rem' }} />
+                    <div>
+                      <h4 style={{ fontWeight: 700, color: colors.white, fontSize: '1.25rem' }}>无限连贯性</h4>
+                      <p style={{ color: colors.onSurfaceVariant, fontSize: '0.875rem' }}>在数千页的长篇创作中，AI能精准保留角色背景、物品状态及世界观设定。</p>
+                    </div>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                    <BarChart3 size={24} style={{ color: colors.secondary, marginTop: '0.25rem' }} />
+                    <div>
+                      <h4 style={{ fontWeight: 700, color: colors.white, fontSize: '1.25rem' }}>智能解析</h4>
+                      <p style={{ color: colors.onSurfaceVariant, fontSize: '0.875rem' }}>自动识别剧本中的场景、角色、道具，一键生成拍摄计划资产清单。</p>
+                    </div>
+                  </li>
+                </ul>
               </div>
-              <div style={{ 
-                fontSize: '14px', 
-                color: '#71717a',
-                fontWeight: 500,
+
+              <div style={{
+                ...glassPanelStyle,
+                padding: '0.5rem',
+                borderRadius: '0.75rem',
+                border: `${colors.white10}`,
+                boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)',
               }}>
-                {stat.label}
+                <div style={{
+                  background: colors.bgDark,
+                  borderRadius: '0.5rem',
+                  padding: '1.5rem',
+                  fontFamily: 'monospace',
+                  fontSize: '0.875rem',
+                  lineHeight: 1.7,
+                  overflow: 'hidden',
+                }}>
+                  <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.5rem', borderBottom: `${colors.white5}`, paddingBottom: '0.5rem' }}>
+                    <span style={{ color: colors.secondary }}>editor.js</span>
+                    <span style={{ color: '#4b5563' }}>ai_prompter.py</span>
+                  </div>
+                  <p style={{ color: '#9ca3af' }}><span style={{ color: '#6b7280' }}>01</span> <span style={{ color: colors.tertiary }}>日。霓虹区 - 街道</span></p>
+                  <p style={{ color: '#9ca3af' }}><span style={{ color: '#6b7280' }}>02</span> 雨水打湿了路面。<span style={{ color: colors.primary }}>凯伦</span>像影子一样移动。</p>
+                  <p style={{ color: '#9ca3af' }}><span style={{ color: '#6b7280' }}>03</span> <span style={{ color: '#6b7280' }}>// AI 建议：增加全息锦鲤池的倒影效果</span></p>
+                  <p style={{ color: colors.white, background: `${colors.primary}10`, borderLeft: `2px solid ${colors.primary}`, paddingLeft: '0.5rem', margin: '0.5rem 0', padding: '0.25rem 0.5rem' }}><span style={{ color: '#6b7280' }}>04</span> 巨大的全息锦鲤在空中游过，在凯伦的面罩上投下蓝光。</p>
+                  <p style={{ color: '#9ca3af' }}><span style={{ color: '#6b7280' }}>05</span> 凯伦："我们的时间不多了。"</p>
+                  <div style={{ marginTop: '2rem', display: 'flex', gap: '0.5rem' }}>
+                    <button style={{
+                      padding: '0.5rem 1rem',
+                      background: `${colors.secondary}20`,
+                      color: colors.secondary,
+                      border: `1px solid ${colors.secondary}30`,
+                      borderRadius: '0.25rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      cursor: 'pointer',
+                    }}>
+                      续写
+                    </button>
+                    <button style={{
+                      padding: '0.5rem 1rem',
+                      background: `${colors.tertiary}20`,
+                      color: colors.tertiary,
+                      border: `1px solid ${colors.tertiary}30`,
+                      borderRadius: '0.25rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      cursor: 'pointer',
+                    }}>
+                      改写
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section style={{
-        padding: '120px 24px',
-        background: 'linear-gradient(180deg, transparent 0%, rgba(99, 102, 241, 0.03) 100%)',
-      }}>
-        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '64px' }}>
-            <h2 style={{
-              fontSize: '40px',
-              fontWeight: 600,
-              color: '#ffffff',
-              marginBottom: '16px',
-              letterSpacing: '-0.02em',
-            }}>
-              工作流程
-            </h2>
-            <p style={{
-              fontSize: '16px',
-              color: '#71717a',
-            }}>
-              简单的四步流程，快速生成专业内容
-            </p>
           </div>
+        </section>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '24px',
-          }}>
-            {steps.map((step, index) => (
-              <div 
-                key={index}
+        <section style={{ padding: '8rem 1.5rem' }}>
+          <div style={{ maxWidth: '80rem', margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '5rem' }}>
+              <h2 style={{
+                fontSize: 'clamp(2.25rem, 5vw, 3rem)',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontWeight: 800,
+                color: colors.white,
+                marginBottom: '1.5rem',
+              }}>
+                角色与场景管理
+              </h2>
+              <p style={{ color: colors.onSurfaceVariant, fontSize: '1.125rem', maxWidth: '42rem', margin: '0 auto' }}>
+                独特的<span style={{ ...textGradientStyle, fontWeight: 700 }}>基因锁</span>技术，确保您的数字资产在跨场景、跨媒体创作中保持绝对的一致性。
+              </p>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gridTemplateRows: 'repeat(2, 1fr)',
+              gap: '1.5rem',
+              minHeight: '800px',
+            }}>
+              <div
                 style={{
-                  padding: '32px 24px',
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  border: '1px solid rgba(255, 255, 255, 0.06)',
-                  borderRadius: '16px',
+                  ...glassPanelStyle,
+                  borderRadius: '0.75rem',
+                  overflow: 'hidden',
+                  position: 'relative',
+                  gridColumn: 'span 2',
+                  gridRow: 'span 2',
+                }}
+                onMouseEnter={() => setHoveredCard('character1')}
+                onMouseLeave={() => setHoveredCard(null)}
+              >
+                <img
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCr3KmOKV5lINbiFGiD2ug7mcyUyXiDHgmNfhRMfXsYvPkA8vpl9saVodHKDECg2s2wTxtzi9bOZoF5CZxke5m2mMH8M5fFtX4wDtc0M26oncGZVMyutcNfh2GCKLp30HgRYw9ZJI4peGpMTz72vsl4FlMh73_k2scXUAIZarS_khR6Jh9Z5xz5LdXnZJJMJOklYGWRtPgjKKQ3_VhJEFGalraLAqYfRjkkuFTOTUk3hpGfAOdMGyYmIUmTXqDBXatx66xztQf3qpo"
+                  alt="Hyper-realistic digital character"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    transition: 'transform 0.7s',
+                    transform: hoveredCard === 'character1' ? 'scale(1.1)' : 'scale(1)',
+                    position: 'absolute',
+                    inset: 0,
+                  }}
+                />
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: `linear-gradient(to top, ${colors.bgDark} 0%, transparent 50%)`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'flex-end',
+                  padding: '2rem',
+                }}>
+                  <span style={{ color: colors.primary, fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em', marginBottom: '0.5rem' }}>角色种子 #9921</span>
+                  <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: colors.white }}>指挥官 艾莉亚</h3>
+                  <p style={{ color: colors.onSurfaceVariant, fontSize: '0.875rem', marginTop: '0.5rem' }}>已锁定：解剖比例、生物识别特征、特有服装集</p>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  ...glassPanelStyle,
+                  borderRadius: '0.75rem',
+                  overflow: 'hidden',
                   position: 'relative',
                 }}
+                onMouseEnter={() => setHoveredCard('character2')}
+                onMouseLeave={() => setHoveredCard(null)}
               >
-                <div style={{
-                  fontSize: '48px',
-                  fontWeight: 700,
-                  color: 'rgba(99, 102, 241, 0.3)',
-                  letterSpacing: '-0.04em',
-                  marginBottom: '16px',
-                  fontFamily: 'monospace',
-                }}>
-                  {step.num}
-                </div>
-                <h3 style={{
-                  fontSize: '18px',
-                  fontWeight: 600,
-                  color: '#ffffff',
-                  marginBottom: '8px',
-                }}>
-                  {step.title}
-                </h3>
-                <p style={{
-                  fontSize: '14px',
-                  color: '#71717a',
-                  lineHeight: 1.6,
-                }}>
-                  {step.desc}
-                </p>
-                {index < steps.length - 1 && (
-                  <ChevronRight 
-                    size={20} 
-                    style={{
-                      position: 'absolute',
-                      right: '-12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: 'rgba(255, 255, 255, 0.1)',
-                    }} 
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section style={{
-        padding: '120px 24px',
-      }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '64px' }}>
-            <h2 style={{
-              fontSize: '40px',
-              fontWeight: 600,
-              color: '#ffffff',
-              marginBottom: '16px',
-              letterSpacing: '-0.02em',
-            }}>
-              核心功能
-            </h2>
-            <p style={{
-              fontSize: '16px',
-              color: '#71717a',
-            }}>
-              为创作者打造的专业工具集
-            </p>
-          </div>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '20px',
-          }}>
-            {features.map((feature, index) => {
-              const Icon = feature.icon
-              const isHovered = hoveredFeature === index
-              return (
-                <div 
-                  key={index}
+                <img
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKE2BK9OLDlFTVSnAgmkEbqyYo3Wa-SI6kpKH8acLTR95HCZngwFJW2Q_WoLsVl4mx-urhVNOTPQ1OyH1Y7BS2t73UJAh_bRO9RkZmg8PuI9mNYmZjFnXjpbtIC9ncKzImaaRYtFVtU-4_f0JS61I1H2ubyrZK8Wh6aPwOmhDTtd6sRLhL_yv_ZeIm_sboe9D2LapnoNKUzGGs4IduIbhx7o-DN6PocbSVrQY_pGkKM2_FIifSiIS7GUlnO4OTMtt7YlehYZSUu2Q"
+                  alt="Futuristic robotic eye"
                   style={{
-                    padding: '32px',
-                    background: isHovered ? 'rgba(255, 255, 255, 0.04)' : 'rgba(255, 255, 255, 0.02)',
-                    border: `1px solid ${isHovered ? 'rgba(99, 102, 241, 0.3)' : 'rgba(255, 255, 255, 0.06)'}`,
-                    borderRadius: '16px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    opacity: 0.6,
+                    transition: 'transform 0.7s',
+                    transform: hoveredCard === 'character2' ? 'scale(1.1)' : 'scale(1)',
+                    position: 'absolute',
+                    inset: 0,
                   }}
-                  onMouseEnter={() => setHoveredFeature(index)}
-                  onMouseLeave={() => setHoveredFeature(null)}
+                />
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  pointerEvents: 'none',
+                }}>
+                  <div style={{ ...glassPanelStyle, padding: '0.5rem', borderRadius: '50%' }}>
+                    <Scan size={24} style={{ color: colors.white }} />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{
+                ...glassPanelStyle,
+                borderRadius: '0.75rem',
+                padding: '1.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                borderLeft: `4px solid ${colors.tertiary}`,
+              }}>
+                <Lock size={40} style={{ color: colors.tertiary, marginBottom: '1rem' }} />
+                <h4 style={{ fontSize: '1.25rem', fontWeight: 700, color: colors.white, marginBottom: '0.5rem' }}>基因锁定</h4>
+                <p style={{ color: colors.onSurfaceVariant, fontSize: '0.875rem' }}>在整个分镜脚本中精确锁定面部特征和肢体比例，告别"AI变脸"烦恼。</p>
+              </div>
+
+              <div
+                style={{
+                  ...glassPanelStyle,
+                  borderRadius: '0.75rem',
+                  overflow: 'hidden',
+                  position: 'relative',
+                  gridColumn: 'span 2',
+                }}
+                onMouseEnter={() => setHoveredCard('character3')}
+                onMouseLeave={() => setHoveredCard(null)}
+              >
+                <img
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDP7-wW1OHqe7hCryS9onm1XBVmGgZMCvX1bwppQ2iBj4TLTeSiDQVokUob94uLbHba1ACtyjUUTXBuy34rKup0RT-C0jH2vIqidiKOu28t2xmFzQswzYdfCL-c1_laIQJDLU8YBLGeYG7eYQnJrehLxKBr0uDM3rAlXXfuFOHj7tQ9IpvuDjuOcLppLdfV3jZUdbQMZrIj93WIHihlMQ8otdfB1EUzMoFkz0xkth-wg_DUejFmYEde8f2VgaH6mxQAAXgzhv2an88"
+                  alt="Abstract data visualization"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    opacity: 0.5,
+                    transition: 'transform 0.7s',
+                    transform: hoveredCard === 'character3' ? 'scale(1.1)' : 'scale(1)',
+                    position: 'absolute',
+                    inset: 0,
+                  }}
+                />
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <span style={{ fontSize: '2.5rem', fontWeight: 900, color: colors.white }}>2.5M+</span>
+                    <p style={{ fontSize: '0.75rem', color: colors.onSurface, letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: '0.5rem' }}>资产参数库</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section style={{ padding: '8rem 1.5rem', backgroundColor: colors.surfaceContainerLow }}>
+          <div style={{ maxWidth: '80rem', margin: '0 auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', marginBottom: '4rem' }}>
+              <div>
+                <h2 style={{
+                  fontSize: 'clamp(2.25rem, 5vw, 3rem)',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontWeight: 800,
+                  color: colors.white,
+                  marginBottom: '1.5rem',
+                }}>
+                  多媒体合成
+                </h2>
+                <p style={{ color: colors.onSurfaceVariant, fontSize: '1.125rem' }}>
+                  直接从您的剧本生成高保真帧和流体级电影视频。支持 8K 图像生成与物理感知视频合成。
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button style={{
+                  ...glassPanelStyle,
+                  padding: '1rem',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = colors.primary; e.currentTarget.style.color = colors.bgDark; }}
+                onMouseLeave={e => { e.currentTarget.style.background = colors.glassBg; e.currentTarget.style.color = colors.white; }}
                 >
+                  <Image size={24} />
+                </button>
+                <button style={{
+                  ...glassPanelStyle,
+                  padding: '1rem',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = colors.primary; e.currentTarget.style.color = colors.bgDark; }}
+                onMouseLeave={e => { e.currentTarget.style.background = colors.glassBg; e.currentTarget.style.color = colors.white; }}
+                >
+                  <Film size={24} />
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '3rem' }}>
+              <div
+                style={{
+                  ...glassPanelStyle,
+                  borderRadius: '0.75rem',
+                  overflow: 'hidden',
+                  position: 'relative',
+                }}
+                onMouseEnter={() => setHoveredCard('imageGen')}
+                onMouseLeave={() => setHoveredCard(null)}
+              >
+                <img
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdXqKk_cy6YRHr-TUOQwwvayX-hrAuZVB2WahTYzajax0mtGDLY2qYzmkv1EflYMxi9fPEbzBqi-J9sGH5_AtX0VBPP5zvniVfBBxJryI6SCJ8Mb4Lb80Nb1cEbdDQF3wxdtBPB4BlZXXZNjP3RGArDy7veDGTecrrWMaveZJ06FwrmVzifIw_bftZ8YI0sY-sybqfsUqdOIo8HKVnoPBGhybEOxkcvfgf2cCrxnUPKlmw_BifQGafsKI647uxcMY5ZGYMh9jMKPI"
+                  alt="Crystalline structures landscape"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    aspectRatio: '1/1',
+                    filter: hoveredCard === 'imageGen' ? 'grayscale(0%)' : 'grayscale(100%)',
+                    transition: 'filter 1s',
+                  }}
+                />
+                <div style={{
+                  position: 'absolute',
+                  top: '1.5rem',
+                  left: '1.5rem',
+                  ...glassPanelStyle,
+                  padding: '0.5rem 1rem',
+                  borderRadius: '9999px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}>
+                  <Palette size={16} style={{ color: colors.secondary }} />
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: colors.white }}>8K 图像生成</span>
+                </div>
+                <div style={{
+                  position: 'absolute',
+                  bottom: '1.5rem',
+                  left: '1.5rem',
+                  right: '1.5rem',
+                  opacity: hoveredCard === 'imageGen' ? 1 : 0,
+                  transform: hoveredCard === 'imageGen' ? 'translateY(0)' : 'translateY(1rem)',
+                  transition: 'all 0.3s',
+                }}>
+                  <div style={{ ...glassPanelStyle, padding: '1.5rem', borderRadius: '0.75rem', backdropFilter: 'blur(48px)' }}>
+                    <p style={{ fontSize: '0.875rem', color: '#cbd5e1', fontStyle: 'italic' }}>"电影感镜头：漂浮在紫色星云中的水晶宫殿..."</p>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  ...glassPanelStyle,
+                  borderRadius: '0.75rem',
+                  overflow: 'hidden',
+                  position: 'relative',
+                }}
+                onMouseEnter={() => setHoveredCard('videoGen')}
+                onMouseLeave={() => setHoveredCard(null)}
+              >
+                <img
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDujkwBv5eYzwE2SitkVQAqTmfqQqulAYPDXhtgZm-bmfuwBMetWVPU5GIIoDI_VB2iGQ2sQCE5rdcIfLIMe2X3dmkUMUFe7y7VlJQePRB_p1yb60ebYKZGlT8gCxyXsaSYN1T6ev9-5Jjf-hBvxhiI0beLLAFVezMWOnqOzxEqsNfqoGGYENlPw2StdZdbRwKAnaTueHdlQYUTnjiHVFc7xZWTeRxSuSmTCHTfhGJKVZxica4-EkYbntEmnJE3raytYEeTwzhfnZw"
+                  alt="Futuristic spacecraft"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    aspectRatio: '1/1',
+                    filter: hoveredCard === 'videoGen' ? 'grayscale(0%)' : 'grayscale(100%)',
+                    transition: 'filter 1s',
+                  }}
+                />
+                <div style={{
+                  position: 'absolute',
+                  top: '1.5rem',
+                  left: '1.5rem',
+                  ...glassPanelStyle,
+                  padding: '0.5rem 1rem',
+                  borderRadius: '9999px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}>
+                  <Activity size={16} style={{ color: colors.tertiary }} />
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: colors.white }}>物理感知视频</span>
+                </div>
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: hoveredCard === 'videoGen' ? 1 : 0,
+                  transition: 'opacity 0.3s',
+                }}>
                   <div style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '12px',
-                    background: 'rgba(99, 102, 241, 0.1)',
+                    width: '5rem',
+                    height: '5rem',
+                    borderRadius: '50%',
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    backdropFilter: 'blur(24px)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    marginBottom: '20px',
-                  }}>
-                    <Icon size={24} style={{ color: '#6366f1' }} />
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    cursor: 'pointer',
+                    transition: 'transform 0.2s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+                  >
+                    <Play size={40} style={{ color: colors.white }} />
                   </div>
-                  <h3 style={{
-                    fontSize: '18px',
-                    fontWeight: 600,
-                    color: '#ffffff',
-                    marginBottom: '8px',
-                  }}>
-                    {feature.name}
-                  </h3>
-                  <p style={{
-                    fontSize: '14px',
-                    color: '#71717a',
-                    lineHeight: 1.6,
-                  }}>
-                    {feature.description}
-                  </p>
                 </div>
-              )
-            })}
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA */}
-      <section style={{
-        padding: '120px 24px',
-      }}>
-        <div style={{ maxWidth: '700px', margin: '0 auto' }}>
-          <div style={{
-            padding: '80px 48px',
-            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%)',
-            border: '1px solid rgba(99, 102, 241, 0.2)',
-            borderRadius: '24px',
-            textAlign: 'center',
-          }}>
-            <h2 style={{
-              fontSize: '36px',
-              fontWeight: 600,
-              color: '#ffffff',
-              marginBottom: '16px',
-              letterSpacing: '-0.02em',
-            }}>
-              立即开始创作
-            </h2>
-            <p style={{
-              fontSize: '16px',
-              color: '#a1a1aa',
-              marginBottom: '32px',
-              maxWidth: '400px',
-              margin: '0 auto 32px',
-            }}>
-              免费注册，体验 AI 创作的强大能力
-            </p>
-            
+        <section style={{ padding: '8rem 1.5rem' }}>
+          <div style={{ maxWidth: '80rem', margin: '0 auto', ...glassPanelStyle, borderRadius: '1rem', padding: '3rem', position: 'relative', overflow: 'hidden' }}>
             <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              gap: '12px',
-              marginBottom: '32px',
-              flexWrap: 'wrap',
-            }}>
-              {['免费试用', '无需信用卡', '24/7 支持'].map((item) => (
-                <div key={item} style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              width: '50%',
+              height: '100%',
+              background: `${colors.primary}05`,
+              filter: 'blur(120px)',
+              pointerEvents: 'none',
+            }} />
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4rem', alignItems: 'center', position: 'relative', zIndex: 10 }}>
+              <div>
+                <h2 style={{
+                  fontSize: '2.25rem',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontWeight: 700,
+                  color: colors.white,
+                  marginBottom: '1.5rem',
+                }}>
+                  团队协作与生产管理
+                </h2>
+                <p style={{ color: colors.onSurfaceVariant, fontSize: '1.125rem', marginBottom: '2rem', lineHeight: 1.7 }}>
+                  将整个制作团队聚集在一起。共享工作空间、AI 种子的版本控制，以及实时的多人剧本编辑，彻底重塑制片流程。
+                </p>
+                <div style={{ display: 'flex', marginBottom: '2.5rem' }}>
+                  <div style={{
+                    width: '3rem',
+                    height: '3rem',
+                    borderRadius: '50%',
+                    border: `4px solid ${colors.bgDark}`,
+                    background: '#475569',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: colors.white,
+                  }}>JS</div>
+                  <div style={{
+                    width: '3rem',
+                    height: '3rem',
+                    borderRadius: '50%',
+                    border: `4px solid ${colors.bgDark}`,
+                    background: `${colors.primary}40`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: colors.white,
+                    marginLeft: '-1rem',
+                  }}>AK</div>
+                  <div style={{
+                    width: '3rem',
+                    height: '3rem',
+                    borderRadius: '50%',
+                    border: `4px solid ${colors.bgDark}`,
+                    background: `${colors.tertiary}40`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: colors.white,
+                    marginLeft: '-1rem',
+                  }}>RV</div>
+                  <div style={{
+                    width: '3rem',
+                    height: '3rem',
+                    borderRadius: '50%',
+                    border: `4px solid ${colors.bgDark}`,
+                    background: colors.glassBg,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: colors.white,
+                    marginLeft: '-1rem',
+                  }}>+8</div>
+                </div>
+                <button style={{
+                  color: colors.primary,
+                  fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  color: '#a1a1aa',
-                  fontSize: '14px',
+                  gap: '0.5rem',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
                 }}>
-                  <Check size={14} style={{ color: '#6366f1' }} />
-                  {item}
+                  探索团队功能
+                  <ArrowRight size={20} />
+                </button>
+              </div>
+
+              <div style={{ position: 'relative' }}>
+                <div style={{
+                  ...glassPanelStyle,
+                  padding: '1.5rem',
+                  borderRadius: '0.75rem',
+                  border: `${colors.white10}`,
+                  transform: 'rotate(3deg) translateX(1rem) translateY(1rem)',
+                }}>
+                  <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                    <div style={{ width: '0.75rem', height: '0.75rem', borderRadius: '50%', background: '#ff6e84' }} />
+                    <div style={{ width: '0.75rem', height: '0.75rem', borderRadius: '50%', background: colors.secondary }} />
+                    <div style={{ width: '0.75rem', height: '0.75rem', borderRadius: '50%', background: colors.tertiary }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ height: '1rem', width: '75%', background: colors.white5, borderRadius: '0.25rem' }} />
+                    <div style={{ height: '1rem', width: '50%', background: colors.white5, borderRadius: '0.25rem' }} />
+                    <div style={{ height: '6rem', width: '100%', background: colors.white5, borderRadius: '0.5rem', border: `1px dashed ${colors.white20}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>资产版本历史记录</span>
+                    </div>
+                  </div>
                 </div>
-              ))}
+              </div>
             </div>
-            
-            <button 
-              onClick={() => navigate('/register')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '16px 40px',
-                fontSize: '16px',
-                fontWeight: 600,
-                borderRadius: '10px',
-                border: 'none',
-                background: '#ffffff',
-                color: '#000000',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-            >
-              <Sparkles size={18} />
-              免费注册
-            </button>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Footer */}
-      <footer style={{
-        padding: '48px 24px',
-        borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-        textAlign: 'center',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '16px' }}>
+        <section style={{ padding: '11rem 1.5rem', position: 'relative', overflow: 'hidden' }}>
           <div style={{
-            width: '28px',
-            height: '28px',
-            background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <Sparkles size={14} color="#fff" />
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(to bottom, transparent, rgba(186, 158, 255, 0.05), transparent)',
+            pointerEvents: 'none',
+          }} />
+          <div style={{ maxWidth: '56rem', margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 10 }}>
+            <h2 style={{
+              fontSize: 'clamp(3rem, 7vw, 5rem)',
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontWeight: 900,
+              color: colors.white,
+              marginBottom: '2.5rem',
+              letterSpacing: '-0.05em',
+            }}>
+              立即开启您的<br /><span style={textGradientStyle}>创作之旅</span>
+            </h2>
+            <p style={{ fontSize: '1.25rem', color: '#94a3b8', marginBottom: '3rem' }}>下一代电影级叙事，只需一个提示词即可触达。</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', justifyContent: 'center', alignItems: 'center' }}>
+              <button
+                style={{
+                  padding: '1.5rem 3rem',
+                  background: colors.white,
+                  color: colors.bgDark,
+                  fontWeight: 900,
+                  fontSize: '1.25rem',
+                  borderRadius: '0.75rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+                onClick={handleStartCreation}
+              >
+                立即创建
+              </button>
+              <button
+                style={{
+                  padding: '1.5rem 3rem',
+                  ...glassPanelStyle,
+                  color: colors.white,
+                  fontWeight: 900,
+                  fontSize: '1.25rem',
+                  borderRadius: '0.75rem',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = colors.white10; }}
+                onMouseLeave={e => { e.currentTarget.style.background = colors.glassBg; }}
+                onClick={() => navigate('/register')}
+              >
+                注册账号
+              </button>
+            </div>
           </div>
-          <span style={{ fontSize: '16px', fontWeight: 600 }}>开演AI</span>
-        </div>
-        <p style={{
-          fontSize: '14px',
-          color: '#52525b',
-        }}>
-          © 2025 开演AI. All rights reserved.
-        </p>
-      </footer>
+        </section>
+      </main>
 
-      <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
-        }
-      `}</style>
+      <footer style={{ width: '100%', padding: '3rem 0', borderTop: `1px solid ${colors.white5}`, background: colors.bgDark }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', justifyContent: 'space-between', alignItems: 'center', padding: '0 3rem', maxWidth: '1440px', margin: '0 auto' }}>
+          <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'rgba(255, 255, 255, 0.5)' }}>
+            © 2026 开演AI. 编织电影级智能。
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            <a href="#" style={{ color: '#475569', textDecoration: 'none', transition: 'color 0.2s' }}
+               onMouseEnter={e => (e.currentTarget.style.color = colors.secondary)}
+               onMouseLeave={e => (e.currentTarget.style.color = '#475569')}>
+              服务条款
+            </a>
+            <a href="#" style={{ color: '#475569', textDecoration: 'none', transition: 'color 0.2s' }}
+               onMouseEnter={e => (e.currentTarget.style.color = colors.secondary)}
+               onMouseLeave={e => (e.currentTarget.style.color = '#475569')}>
+              隐私政策
+            </a>
+            <a href="#" style={{ color: '#475569', textDecoration: 'none', transition: 'color 0.2s' }}
+               onMouseEnter={e => (e.currentTarget.style.color = colors.secondary)}
+               onMouseLeave={e => (e.currentTarget.style.color = '#475569')}>
+              Discord
+            </a>
+            <a href="#" style={{ color: '#475569', textDecoration: 'none', transition: 'color 0.2s' }}
+               onMouseEnter={e => (e.currentTarget.style.color = colors.secondary)}
+               onMouseLeave={e => (e.currentTarget.style.color = '#475569')}>
+              Twitter
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

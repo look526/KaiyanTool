@@ -20,6 +20,9 @@ import { apiClient, Character } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import { useTheme } from '../contexts/ThemeContext';
 import { CharacterCard } from '../components/CharacterCard';
+import { PageHeader } from '../components/ui/PageHeader';
+import { GlassButton } from '../components/ui/GlassButton';
+import { GlassDropdown } from '../components/ui/GlassDropdown';
 
 interface CharacterFormData {
   name: string;
@@ -47,6 +50,7 @@ export default function CharactersPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [characterToDelete, setCharacterToDelete] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectAllHover, setSelectAllHover] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'created' | 'shots'>('name');
   const [filterGender, setFilterGender] = useState<string>('');
@@ -330,7 +334,6 @@ export default function CharactersPage() {
       background: isDark 
         ? 'linear-gradient(180deg, #05050a 0%, #0a0a12 50%, #0f0f1a 100%)'
         : 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
-      padding: '24px',
       position: 'relative',
       overflow: 'hidden',
     }}>
@@ -344,24 +347,31 @@ export default function CharactersPage() {
         pointerEvents: 'none',
       }} />
       
-      <div style={{ maxWidth: '1400px', margin: '0 auto', position: 'relative' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
-          <div style={{
-            padding: '12px',
-            borderRadius: '16px',
-            background: `linear-gradient(135deg, ${accentColor} 0%, ${accentLight} 100%)`,
-            boxShadow: `0 8px 24px ${accentColor}40`,
-          }}>
-            <Users style={{ width: '28px', height: '28px', color: 'white' }} />
-          </div>
-          <div>
-            <h1 style={{ fontSize: '28px', fontWeight: '700', color: colors.textPrimary, margin: 0 }}>角色管理</h1>
-            <p style={{ fontSize: '14px', color: colors.textMuted, margin: '4px 0 0 0' }}>管理项目中的所有角色和服装</p>
-          </div>
-        </div>
+      <PageHeader
+        title="角色管理"
+        subtitle="管理项目中的所有角色和服装"
+        actions={
+          <GlassButton
+            variant="primary"
+            icon={<Plus style={{ width: '18px', height: '18px' }} />}
+            onClick={() => handleOpenCharacterModal()}
+          >
+            添加角色
+          </GlassButton>
+        }
+      />
+      
+      <div style={{ 
+        maxWidth: '1400px', 
+        margin: '0 auto', 
+        padding: '24px', 
+        position: 'relative',
+        height: 'calc(100vh - 72px)',
+        overflow: 'auto',
+      }}>
 
         <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: 0 }}>
             <div style={{
               background: colors.bgGlass,
               borderRadius: '24px',
@@ -404,65 +414,33 @@ export default function CharactersPage() {
 
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: colors.textSecondary, marginBottom: '8px' }}>性别筛选</label>
-                <select
+                <GlassDropdown
+                  options={[
+                    { value: '', label: '全部' },
+                    { value: '男', label: '男' },
+                    { value: '女', label: '女' },
+                    { value: '其他', label: '其他' },
+                  ]}
                   value={filterGender}
-                  onChange={(e) => setFilterGender(e.target.value)}
-                  style={{
-                    width: '100%',
-                    height: '44px',
-                    padding: '0 14px',
-                    border: `1px solid ${colors.border}`,
-                    borderRadius: '14px',
-                    background: colors.bgSecondary,
-                    color: colors.textPrimary,
-                    fontSize: '14px',
-                    outline: 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.25s ease',
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = accentColor;
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = colors.border;
-                  }}
-                >
-                  <option value="">全部</option>
-                  <option value="男">男</option>
-                  <option value="女">女</option>
-                  <option value="其他">其他</option>
-                </select>
+                  onChange={setFilterGender}
+                  colors={colors}
+                  accentColor={accentColor}
+                />
               </div>
 
               <div style={{ marginBottom: '24px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: colors.textSecondary, marginBottom: '8px' }}>排序方式</label>
-                <select
+                <GlassDropdown
+                  options={[
+                    { value: 'name', label: '按名称' },
+                    { value: 'shots', label: '按出镜次数' },
+                    { value: 'created', label: '按创建时间' },
+                  ]}
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  style={{
-                    width: '100%',
-                    height: '44px',
-                    padding: '0 14px',
-                    border: `1px solid ${colors.border}`,
-                    borderRadius: '14px',
-                    background: colors.bgSecondary,
-                    color: colors.textPrimary,
-                    fontSize: '14px',
-                    outline: 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.25s ease',
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = accentColor;
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = colors.border;
-                  }}
-                >
-                  <option value="name">按名称</option>
-                  <option value="shots">按出镜次数</option>
-                  <option value="created">按创建时间</option>
-                </select>
+                  onChange={(val) => setSortBy(val as 'name' | 'created' | 'shots')}
+                  colors={colors}
+                  accentColor={accentColor}
+                />
               </div>
 
               <button
@@ -531,11 +509,82 @@ export default function CharactersPage() {
             padding: '24px',
             border: `1px solid ${colors.border}`,
             backdropFilter: 'blur(20px)',
+            minHeight: '100%',
+            display: 'flex',
+            flexDirection: 'column',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
-                角色列表 <span style={{ color: colors.textMuted, fontWeight: '400' }}>({filteredCharacters.length})</span>
-              </h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: '600', color: colors.textPrimary, margin: 0 }}>
+                  角色列表 <span style={{ color: colors.textMuted, fontWeight: '400' }}>({filteredCharacters.length})</span>
+                </h3>
+                {filteredCharacters.length > 0 && (
+                  <button
+                    onClick={() => {
+                      if (selectedIds.size === filteredCharacters.length) {
+                        setSelectedIds(new Set());
+                      } else {
+                        setSelectedIds(new Set(filteredCharacters.map(c => c.id)));
+                      }
+                    }}
+                    onMouseEnter={() => setSelectAllHover(true)}
+                    onMouseLeave={() => setSelectAllHover(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '10px 16px',
+                      borderRadius: '12px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      color: selectAllHover ? '#fff' : colors.textPrimary,
+                      border: selectedIds.size === filteredCharacters.length
+                        ? 'none'
+                        : `1px solid ${colors.border}`,
+                      background: selectedIds.size === filteredCharacters.length
+                        ? selectAllHover
+                          ? 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)'
+                          : 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)'
+                        : selectAllHover
+                          ? `${accentColor}15`
+                          : colors.bgSecondary,
+                      boxShadow: selectedIds.size === filteredCharacters.length
+                        ? selectAllHover
+                          ? '0 8px 24px rgba(139, 92, 246, 0.5)'
+                          : '0 4px 14px rgba(139, 92, 246, 0.3)'
+                        : selectAllHover
+                          ? '0 4px 14px rgba(139, 92, 246, 0.15)'
+                          : 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.25s ease',
+                      transform: selectAllHover ? 'translateY(-1px)' : 'translateY(0)',
+                    }}
+                  >
+                    <div style={{
+                      width: '18px',
+                      height: '18px',
+                      borderRadius: '5px',
+                      border: selectedIds.size === filteredCharacters.length
+                        ? 'none'
+                        : `2px solid ${colors.borderHover}`,
+                      background: selectedIds.size === filteredCharacters.length
+                        ? 'linear-gradient(135deg, #c4b5fd 0%, #a78bfa 100%)'
+                        : 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s ease',
+                    }}>
+                      {selectedIds.size === filteredCharacters.length && (
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M2 6L5 9L10 3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </div>
+                    {selectedIds.size === filteredCharacters.length ? '取消全选' : '全选'}
+                  </button>
+                )}
+              </div>
               {selectedIds.size > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <span style={{ fontSize: '13px', color: colors.textMuted }}>已选择 {selectedIds.size} 个</span>
@@ -655,7 +704,12 @@ export default function CharactersPage() {
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', 
+                gap: '16px',
+                overflow: 'auto',
+              }}>
                 {filteredCharacters.map((character) => (
                   <CharacterCard
                     key={character.id}
@@ -818,34 +872,19 @@ export default function CharactersPage() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: colors.textSecondary, marginBottom: '8px' }}>性别</label>
-                  <select
+                  <GlassDropdown
+                    options={[
+                      { value: '', label: '请选择' },
+                      { value: '男', label: '男' },
+                      { value: '女', label: '女' },
+                      { value: '其他', label: '其他' },
+                    ]}
                     value={characterForm.gender}
-                    onChange={(e) => setCharacterForm({ ...characterForm, gender: e.target.value })}
-                    style={{
-                      width: '100%',
-                      height: '44px',
-                      padding: '0 14px',
-                      border: `1px solid ${colors.border}`,
-                      borderRadius: '12px',
-                      background: colors.bgSecondary,
-                      color: colors.textPrimary,
-                      fontSize: '14px',
-                      outline: 'none',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = accentColor;
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = colors.border;
-                    }}
-                  >
-                    <option value="">请选择</option>
-                    <option value="男">男</option>
-                    <option value="女">女</option>
-                    <option value="其他">其他</option>
-                  </select>
+                    onChange={(val) => setCharacterForm({ ...characterForm, gender: val })}
+                    colors={colors}
+                    accentColor={accentColor}
+                    size="sm"
+                  />
                 </div>
               </div>
 
@@ -901,9 +940,11 @@ export default function CharactersPage() {
                   type="character"
                   placeholder="添加角色参考图"
                   characterDescription={characterForm.appearance || ''}
+                  characterGender={characterForm.gender || ''}
+                  characterAge={characterForm.age ? parseInt(characterForm.age) : undefined}
                   enableReferenceImage={true}
-                  enableMultipleGeneration={false}
-                  enableThreeViews={false}
+                  enableMultipleGeneration={true}
+                  enableThreeViews={true}
                   threeViewsMode="combined"
                 />
               </div>
@@ -1352,6 +1393,27 @@ export default function CharactersPage() {
           @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
+          }
+          
+          /* 自定义滚动条样式 */
+          div::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+          }
+          
+          div::-webkit-scrollbar-track {
+            background: ${isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)'};
+            border-radius: 10px;
+          }
+          
+          div::-webkit-scrollbar-thumb {
+            background: ${isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'};
+            border-radius: 10px;
+            transition: background 0.2s ease;
+          }
+          
+          div::-webkit-scrollbar-thumb:hover {
+            background: ${isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)'};
           }
         `}
       </style>

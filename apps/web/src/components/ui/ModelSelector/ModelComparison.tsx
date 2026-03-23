@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import { GitCompare, Play, Loader2, CheckCircle2, XCircle, Clock, DollarSign, Star, X, ChevronDown, ChevronUp } from 'lucide-react'
-import { AIProviderModel, ContentType } from './ModelSelector'
+import { AIProviderModel, ContentType } from './types'
 import { apiClient } from '../../../lib/api-client'
 
 export interface ComparisonResult {

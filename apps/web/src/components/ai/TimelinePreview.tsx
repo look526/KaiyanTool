@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward, Settings } from 'lucide-react';
+import type { SubtitleEntry } from './SubtitleEditor'
 
 interface TimelinePreviewProps {
   videoUrl?: string;
@@ -10,13 +11,17 @@ interface TimelinePreviewProps {
   }>;
   onSeek?: (timestamp: number) => void;
   onFrameClick?: (frameId: string) => void;
+  subtitles?: SubtitleEntry[]
+  subtitleStyle?: Record<string, any>
 }
 
 export function TimelinePreview({
   videoUrl,
   frames = [],
   onSeek,
-  onFrameClick
+  onFrameClick,
+  subtitles = [],
+  subtitleStyle = {},
 }: TimelinePreviewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -45,6 +50,11 @@ export function TimelinePreview({
       video.removeEventListener('ended', handleEnded);
     };
   }, []);
+
+  const activeSubtitle = subtitles?.find(s => {
+    const ms = currentTime * 1000
+    return ms >= s.start_time && ms <= s.end_time
+  })
 
   const togglePlay = () => {
     const video = videoRef.current;
@@ -119,6 +129,33 @@ export function TimelinePreview({
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-800">
             <p className="text-gray-500">暂无视频预览</p>
+          </div>
+        )}
+
+        {videoUrl && activeSubtitle && (
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              padding: '0 16px',
+              textAlign: 'center',
+              pointerEvents: 'none',
+              fontSize: subtitleStyle.font_size ?? 48,
+              color: subtitleStyle.color ?? '#FFFFFF',
+              WebkitTextStroke: subtitleStyle.outline ? `${subtitleStyle.outline}px #000000` : undefined,
+              textShadow: subtitleStyle.shadow
+                ? `0 0 ${subtitleStyle.shadow}px rgba(0,0,0,0.8)`
+                : undefined,
+              ...(subtitleStyle.alignment === 'top'
+                ? { top: 12, bottom: 'auto' }
+                : subtitleStyle.alignment === 'center'
+                  ? { top: '50%', bottom: 'auto', transform: 'translateY(-50%)' }
+                  : { bottom: 24, top: 'auto' }),
+              whiteSpace: 'pre-line',
+            }}
+          >
+            {activeSubtitle.text}
           </div>
         )}
 

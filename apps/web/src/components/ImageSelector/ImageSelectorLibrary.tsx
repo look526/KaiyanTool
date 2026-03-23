@@ -28,6 +28,7 @@ export function ImageSelectorLibrary({
   shouldUseThreeViews,
   type,
   currentView,
+  onClose,
 }: ImageSelectorLibraryProps) {
   const {
     assets,
@@ -47,6 +48,7 @@ export function ImageSelectorLibrary({
     handleSelectAsset,
     handleUpdateAssetCategory,
     handleDeleteAsset,
+    loadAssets,
   } = actions;
 
   return (
@@ -75,7 +77,7 @@ export function ImageSelectorLibrary({
           }}
         />
         
-        <Button onClick={() => {}} variant="outline" size="sm">
+        <Button onClick={() => void loadAssets()} variant="outline" size="sm">
           刷新
         </Button>
       </div>
@@ -93,7 +95,10 @@ export function ImageSelectorLibrary({
           shouldUseThreeViews={shouldUseThreeViews}
           type={type}
           currentView={currentView}
-          onSelect={(asset) => handleSelectAsset(asset)}
+          onSelect={(asset) => {
+            handleSelectAsset(asset);
+            onClose();
+          }}
           onEditCategory={(assetId) => setEditingAssetId(editingAssetId === assetId ? null : assetId)}
           onUpdateCategory={handleUpdateAssetCategory}
           onDelete={handleDeleteAsset}

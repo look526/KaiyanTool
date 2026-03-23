@@ -18,11 +18,13 @@ const ImageGenerationSchema = z.object({
   image_urls: z.array(z.string()).optional(),
   character_ref_image_id: z.string().optional(),
   scene_ref_image_id: z.string().optional(),
-  project_id: z.string(),
+  referenceImageUrl: z.string().optional(),
+  project_id: z.string().optional().nullable(),
   model: z.string().optional(),
   category: z.string().optional(),
   source: z.string().optional(),
-  three_view: z.boolean().optional()
+  three_view: z.boolean().optional(),
+  watermark: z.boolean().optional()
 });
 
 export async function generateImage(input: z.infer<typeof ImageGenerationSchema>) {
@@ -46,15 +48,21 @@ export async function generateImage(input: z.infer<typeof ImageGenerationSchema>
     data: {
       id: crypto.randomUUID(),
       type: 'image',
-      status: 'pending',
+      status: 'processing',
+      progress: 0,
       params: { ...validated, width: finalWidth, height: finalHeight },
-      project_id: validated.project_id,
+      project_id: validated.project_id || null,
       created_at: new Date(),
       updated_at: new Date()
     }
   });
 
   try {
+    await prisma.renderTask.update({
+      where: { id: task.id },
+      data: { progress: 10 }
+    });
+
     const aiProviders = await prisma.aIProvider.findMany({
       where: { enabled: true },
       include: { AIProviderModel: true },
@@ -84,13 +92,15 @@ export async function generateImage(input: z.infer<typeof ImageGenerationSchema>
       baseUrl: provider.base_url || undefined,
     });
 
-    console.log('[ImageGeneration] Provider added:', { id: provider.id, type: provider.type });
-
     const aiProvider = providerManager.getProvider(provider.id);
-    console.log('[ImageGeneration] Got provider:', aiProvider, 'type:', aiProvider?.constructor?.name);
     if (!aiProvider) {
       throw new Error('Failed to initialize AI provider');
     }
+
+    await prisma.renderTask.update({
+      where: { id: task.id },
+      data: { progress: 30 }
+    });
 
     const result = await aiProvider.createImage({
       prompt: enhancedPrompt,
@@ -101,36 +111,54 @@ export async function generateImage(input: z.infer<typeof ImageGenerationSchema>
       style: validated.style,
     });
 
+    console.log('[DEBUG] AI provider result:', {
+      hasUrl: !!result.url,
+      url: result.url ? result.url.substring(0, 100) + '...' : 'empty',
+      hasThumbnailUrl: !!result.thumbnailUrl,
+    });
+
+    await prisma.renderTask.update({
+      where: { id: task.id },
+      data: { progress: 70 }
+    });
+
     const category = validated.category || inferCategoryFromPrompt(validated.prompt);
     const source = validated.source || ASSET_SOURCES.AI_GENERATION;
 
     const asset = await prisma.asset.create({
-    data: {
-      id: crypto.randomUUID(),
-      type: 'image',
-      url: result.url,
-      metadata: {
-        name: `图片生成 - ${enhancedPrompt.substring(0, 30)}...`,
-        width: finalWidth,
-        height: finalHeight,
-        taskId: task.id,
-        prompt: enhancedPrompt,
-        thumbnailUrl: result.thumbnailUrl || result.url,
-        size: validated.size,
-        resolution: validated.resolution,
-      },
-      project_id: validated.project_id,
-      category,
-      source,
-      created_at: new Date(),
-      updated_at: new Date()
-    }
-  });
+      data: {
+        id: crypto.randomUUID(),
+        type: 'image',
+        url: result.url,
+        metadata: {
+          name: `图片生成 - ${enhancedPrompt.substring(0, 30)}...`,
+          width: finalWidth,
+          height: finalHeight,
+          taskId: task.id,
+          prompt: enhancedPrompt,
+          thumbnailUrl: result.thumbnailUrl || result.url,
+          size: validated.size,
+          resolution: validated.resolution,
+        },
+        project_id: validated.project_id || null,
+        category,
+        source,
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+    });
+
+    console.log('[DEBUG] Asset created:', {
+      assetId: asset.id,
+      hasUrl: !!asset.url,
+      url: asset.url ? asset.url.substring(0, 100) + '...' : 'empty',
+    });
 
     await prisma.renderTask.update({
       where: { id: task.id },
       data: {
         status: 'completed',
+        progress: 100,
         params: { assetId: asset.id, url: result.url }
       }
     });
@@ -180,10 +208,7 @@ function inferCategoryFromPrompt(prompt: string): AssetCategory {
 async function buildEnhancedPrompt(input: z.infer<typeof ImageGenerationSchema>): Promise<string> {
   const style = input.style || 'cinematic';
   
-  console.log('[DEBUG] buildEnhancedPrompt input:', { prompt: input.prompt, threeView: input.three_view, style });
-  
   if (input.three_view) {
-    console.log('[DEBUG] Using buildThreeViewPrompt with style:', style);
     return buildThreeViewPrompt(input.prompt, style);
   }
   
@@ -193,18 +218,44 @@ async function buildEnhancedPrompt(input: z.infer<typeof ImageGenerationSchema>)
 export async function batchGenerateImages(
   prompts: Array<z.infer<typeof ImageGenerationSchema>>
 ) {
-  const queue = prompts.map((prompt, index) => 
-    generateImage(prompt).then(result => ({ index, ...result }))
-  );
+  const successfulResults = [];
+  const errors = [];
+  
+  for (let i = 0; i < prompts.length; i++) {
+    try {
+      const result = await generateImage(prompts[i]);
+      console.log(`[DEBUG] Generated image ${i}:`, { 
+        assetId: result.asset?.id, 
+        url: result.asset?.url,
+        hasAsset: !!result.asset,
+      });
+      successfulResults.push(result);
+    } catch (error) {
+      console.error(`[DEBUG] Failed to generate image ${i}:`, error);
+      errors.push({ index: i, error: error instanceof Error ? error.message : 'Generation failed' });
+    }
+  }
 
-  const results = await Promise.allSettled(queue);
+  const assets = successfulResults.map((r, idx) => {
+    const url = r.asset?.url || '';
+    console.log(`[DEBUG] Mapping result ${idx}:`, { 
+      hasAsset: !!r.asset, 
+      url,
+      asset: r.asset ? { id: r.asset.id, type: r.asset.type } : 'no asset',
+    });
+    return { url };
+  });
 
-  return results.map((result, index) => ({
-    index,
-    success: result.status === 'fulfilled',
-    data: result.status === 'fulfilled' ? result.value : null,
-    error: result.status === 'rejected' ? result.reason : null
-  }));
+  console.log('[DEBUG] Final batch response:', { 
+    assetsCount: assets.length, 
+    errorsCount: errors.length,
+    assetsWithUrl: assets.filter(a => a.url).length,
+  });
+
+  return {
+    assets,
+    errors: errors.length > 0 ? errors : undefined,
+  };
 }
 
 export async function getTaskStatus(taskId: string) {

@@ -13,14 +13,11 @@ import {
   Lightbulb,
   Zap
 } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Card } from '../components/ui/card';
-import { Input } from '../components/ui/input';
-import { Select } from '../components/ui/Select';
+import { GlassCard } from '../components/ui/GlassCard';
+import { GlassButton } from '../components/ui/GlassButton';
+import { GlassSelect } from '../components/ui/GlassSelect';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
-import { ModelSelector } from '../components/ui/ModelSelector';
-import { apiClient } from '../lib/api-client';
-import { useTheme } from '../contexts/ThemeContext';
+import { apiClient } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 
 interface Storyline {
@@ -44,47 +41,40 @@ interface Storyline {
 }
 
 const GENRE_OPTIONS = [
-  { value: 'drama', label: '剧情', icon: '🎭' },
-  { value: 'comedy', label: '喜剧', icon: '😂' },
-  { value: 'romance', label: '爱情', icon: '💕' },
-  { value: 'thriller', label: '惊悚', icon: '😱' },
-  { value: 'action', label: '动作', icon: '💥' },
-  { value: 'horror', label: '恐怖', icon: '👻' },
-  { value: 'sci-fi', label: '科幻', icon: '🚀' },
-  { value: 'fantasy', label: '奇幻', icon: '🧙' },
-  { value: 'animation', label: '动画', icon: '🎬' },
+  { value: 'drama', label: '剧情' },
+  { value: 'comedy', label: '喜剧' },
+  { value: 'romance', label: '爱情' },
+  { value: 'thriller', label: '惊悚' },
+  { value: 'action', label: '动作' },
+  { value: 'horror', label: '恐怖' },
+  { value: 'sci-fi', label: '科幻' },
+  { value: 'fantasy', label: '奇幻' },
+  { value: 'animation', label: '动画' },
 ];
 
 const TONE_OPTIONS = [
-  { value: 'dramatic', label: '戏剧性', color: '#ef4444' },
-  { value: 'comedy', label: '轻松幽默', color: '#f59e0b' },
-  { value: 'romance', label: '浪漫温馨', color: '#ec4899' },
-  { value: 'thriller', label: '紧张悬疑', color: '#6366f1' },
-  { value: 'action', label: '激烈紧张', color: '#dc2626' },
-  { value: 'horror', label: '恐怖惊悚', color: '#1f2937' },
-  { value: 'sci-fi', label: '未来科技', color: '#0ea5e9' },
+  { value: 'dramatic', label: '戏剧性' },
+  { value: 'comedy', label: '轻松幽默' },
+  { value: 'romance', label: '浪漫温馨' },
+  { value: 'thriller', label: '紧张悬疑' },
+  { value: 'action', label: '激烈紧张' },
+  { value: 'horror', label: '恐怖惊悚' },
+  { value: 'sci-fi', label: '未来科技' },
 ];
 
 const StorylinePage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const { theme } = useTheme();
   const { addToast } = useToast();
+  const accentColor = '#8b5cf6';
+  const accentLight = '#a78bfa';
 
   const [step, setStep] = useState<'input' | 'generating' | 'result'>('input');
   const [storyline, setStoryline] = useState<Storyline | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string>('');
 
-  const [formData, setFormData] = useState<{
-    title: string;
-    genre: string;
-    description: string;
-    style: string;
-    targetDuration: number;
-    targetAudience: string;
-    tone: string;
-  }>({
+  const [formData, setFormData] = useState({
     title: '',
     genre: 'drama',
     description: '',
@@ -94,132 +84,108 @@ const StorylinePage: React.FC = () => {
     tone: 'dramatic',
   });
 
-  const textColor = theme === 'dark' ? '#ffffff' : '#0f172a';
-  const mutedTextColor = theme === 'dark' ? '#a1a1aa' : '#64748b';
-  const cardBg = theme === 'dark' ? '#18181b' : '#ffffff';
-  const borderColor = theme === 'dark' ? '#27272a' : '#e2e8f0';
-  const inputBg = theme === 'dark' ? '#09090b' : '#f8fafc';
-  const accentColor = '#6366f1';
+  const [hoveredGenre, setHoveredGenre] = useState<string | null>(null);
 
   const handleGenerate = async () => {
     if (!formData.title || !formData.description) {
-      addToast({
-        type: 'error',
-        title: '信息不完整',
-        message: '请填写标题和故事描述',
-      });
+      addToast({ type: 'error', title: '信息不完整', message: '请填写标题和故事描述' });
       return;
     }
-
     setStep('generating');
-
     try {
       const result = await (apiClient as any).generateStorylineFromForm(formData) as Storyline;
       setStoryline(result);
       setStep('result');
-      addToast({
-        type: 'success',
-        title: '生成成功',
-        message: '故事线已生成完成',
-      });
+      addToast({ type: 'success', title: '生成成功', message: '故事线已生成完成' });
     } catch (error) {
       console.error('生成故事线失败:', error);
       setStep('input');
-      addToast({
-        type: 'error',
-        title: '生成失败',
-        message: '请稍后重试',
-      });
+      addToast({ type: 'error', title: '生成失败', message: '请稍后重试' });
     }
   };
 
   const handleSave = async () => {
     if (!storyline || !projectId) return;
-
     try {
       const result = await (apiClient as any).saveStoryline(projectId, storyline) as { id: string };
       setSavedId(result.id);
-      addToast({
-        type: 'success',
-        title: '保存成功',
-        message: '故事线已保存到项目',
-      });
+      addToast({ type: 'success', title: '保存成功', message: '故事线已保存到项目' });
     } catch (error) {
-      addToast({
-        type: 'error',
-        title: '保存失败',
-        message: '请稍后重试',
-      });
+      addToast({ type: 'error', title: '保存失败', message: '请稍后重试' });
     }
   };
-
-
 
   const renderInputStep = () => (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
       <div style={{ marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: '600', color: textColor, marginBottom: '8px' }}>
+        <h2 style={{ fontSize: '24px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '8px' }}>
           创建故事线
         </h2>
-        <p style={{ color: mutedTextColor }}>
+        <p style={{ color: 'var(--text-muted)' }}>
           填写基本信息，AI将为您生成完整的故事线
         </p>
       </div>
 
-      <Card style={{ padding: '24px', backgroundColor: cardBg, border: `1px solid ${borderColor}` }}>
+      <GlassCard variant="glass" padding="lg">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: textColor, marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>
               故事标题 *
             </label>
-            <Input
+            <input
+              type="text"
               placeholder="输入您的故事标题..."
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              style={{ backgroundColor: inputBg }}
+              style={{
+                width: '100%', height: '44px', padding: '0 14px',
+                border: '1px solid var(--border-primary)', borderRadius: '12px',
+                background: 'var(--bg-secondary)', color: 'var(--text-primary)',
+                fontSize: '14px', outline: 'none', transition: 'all 0.2s ease',
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = accentColor; e.currentTarget.style.boxShadow = `0 0 0 3px ${accentColor}20`; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.boxShadow = 'none'; }}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: textColor, marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>
               故事类型 *
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-              {GENRE_OPTIONS.map((genre) => (
-                <button
-                  key={genre.value}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, genre: genre.value })}
-                  style={{
-                    padding: '12px 16px',
-                    borderRadius: '8px',
-                    border: formData.genre === genre.value 
-                      ? `2px solid ${accentColor}` 
-                      : `1px solid ${borderColor}`,
-                    backgroundColor: formData.genre === genre.value 
-                      ? `${accentColor}10` 
-                      : 'transparent',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  <span>{genre.icon}</span>
-                  <span style={{ 
-                    fontSize: '14px', 
-                    color: formData.genre === genre.value ? accentColor : textColor 
-                  }}>
-                    {genre.label}
-                  </span>
-                </button>
-              ))}
+              {GENRE_OPTIONS.map((genre) => {
+                const isSelected = formData.genre === genre.value;
+                const isHovered = hoveredGenre === genre.value;
+                return (
+                  <button
+                    key={genre.value}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, genre: genre.value })}
+                    onMouseEnter={() => setHoveredGenre(genre.value)}
+                    onMouseLeave={() => setHoveredGenre(null)}
+                    style={{
+                      padding: '12px 16px',
+                      borderRadius: '10px',
+                      border: isSelected ? `2px solid ${accentColor}` : '1px solid var(--border-primary)',
+                      background: isSelected ? `${accentColor}15` : isHovered ? 'var(--bg-glass-hover)' : 'transparent',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      transition: 'all 0.2s ease',
+                      color: isSelected ? accentColor : 'var(--text-primary)',
+                    }}
+                  >
+                    <span style={{ fontSize: '14px', fontWeight: isSelected ? '600' : '400' }}>{genre.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: textColor, marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>
               故事概述 *
             </label>
             <textarea
@@ -227,111 +193,114 @@ const StorylinePage: React.FC = () => {
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               style={{
-                width: '100%',
-                minHeight: '150px',
-                backgroundColor: inputBg,
-                border: `1px solid ${borderColor}`,
-                borderRadius: '8px',
-                padding: '12px',
-                fontSize: '14px',
-                color: textColor,
-                resize: 'vertical'
+                width: '100%', minHeight: '150px', padding: '14px',
+                border: '1px solid var(--border-primary)', borderRadius: '12px',
+                background: 'var(--bg-secondary)', color: 'var(--text-primary)',
+                fontSize: '14px', outline: 'none', resize: 'vertical', transition: 'all 0.2s ease',
               }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = accentColor; e.currentTarget.style.boxShadow = `0 0 0 3px ${accentColor}20`; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.boxShadow = 'none'; }}
             />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: textColor, marginBottom: '8px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>
                 目标时长（分钟）
               </label>
-              <Input
+              <input
                 type="number"
                 value={formData.targetDuration}
                 onChange={(e) => setFormData({ ...formData, targetDuration: parseInt(e.target.value) || 15 })}
-                style={{ backgroundColor: inputBg }}
+                style={{
+                  width: '100%', height: '44px', padding: '0 14px',
+                  border: '1px solid var(--border-primary)', borderRadius: '12px',
+                  background: 'var(--bg-secondary)', color: 'var(--text-primary)',
+                  fontSize: '14px', outline: 'none', transition: 'all 0.2s ease',
+                }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = accentColor; e.currentTarget.style.boxShadow = `0 0 0 3px ${accentColor}20`; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: textColor, marginBottom: '8px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>
                 目标观众
               </label>
-              <Input
+              <input
+                type="text"
                 value={formData.targetAudience}
                 onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
                 placeholder="如：年轻人、家庭..."
-                style={{ backgroundColor: inputBg }}
+                style={{
+                  width: '100%', height: '44px', padding: '0 14px',
+                  border: '1px solid var(--border-primary)', borderRadius: '12px',
+                  background: 'var(--bg-secondary)', color: 'var(--text-primary)',
+                  fontSize: '14px', outline: 'none', transition: 'all 0.2s ease',
+                }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = accentColor; e.currentTarget.style.boxShadow = `0 0 0 3px ${accentColor}20`; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: textColor, marginBottom: '8px' }}>
-              基调
-            </label>
-            <Select
-              options={TONE_OPTIONS.map(tone => ({
-                value: tone.value,
-                label: tone.label,
-                icon: <span style={{
-                  width: '12px',
-                  height: '12px',
-                  borderRadius: '50%',
-                  backgroundColor: tone.color
-                }} />
-              }))}
-              value={formData.tone}
-              onChange={(value) => setFormData({ ...formData, tone: typeof value === 'string' ? value : value[0] })}
-              placeholder="选择基调"
-            />
-          </div>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                基调
+              </label>
+              <GlassSelect
+                options={TONE_OPTIONS}
+                value={formData.tone}
+                onChange={(e) => setFormData({ ...formData, tone: e.target.value })}
+                placeholder="选择基调"
+              />
+            </div>
             <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: textColor, marginBottom: '8px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>
                 风格参考（可选）
               </label>
-              <Input
+              <input
+                type="text"
                 value={formData.style}
                 onChange={(e) => setFormData({ ...formData, style: e.target.value })}
                 placeholder="如：宫崎骏风格、赛博朋克..."
-                style={{ backgroundColor: inputBg }}
+                style={{
+                  width: '100%', height: '44px', padding: '0 14px',
+                  border: '1px solid var(--border-primary)', borderRadius: '12px',
+                  background: 'var(--bg-secondary)', color: 'var(--text-primary)',
+                  fontSize: '14px', outline: 'none', transition: 'all 0.2s ease',
+                }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = accentColor; e.currentTarget.style.boxShadow = `0 0 0 3px ${accentColor}20`; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
             </div>
           </div>
 
-          <Button
+          <GlassButton
+            variant="primary"
             onClick={handleGenerate}
-            style={{ 
-              marginTop: '8px',
-              backgroundColor: accentColor,
-              color: 'white',
-              padding: '14px 24px',
-              fontSize: '16px',
-              fontWeight: '500',
-            }}
+            accentColor={accentColor}
+            accentLight={accentLight}
+            style={{ marginTop: '8px', height: '52px', fontSize: '16px', justifyContent: 'center' }}
           >
-            <Sparkles style={{ width: '18px', height: '18px', marginRight: '8px' }} />
+            <Sparkles style={{ width: '18px', height: '18px' }} />
             生成故事线
-          </Button>
+          </GlassButton>
         </div>
-      </Card>
+      </GlassCard>
     </div>
   );
 
   const renderGeneratingStep = () => (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      padding: '64px 24px',
-      textAlign: 'center'
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center', padding: '64px 24px', textAlign: 'center',
     }}>
       <LoadingSpinner size="large" />
-      <h3 style={{ fontSize: '20px', fontWeight: '600', color: textColor, marginTop: '24px', marginBottom: '8px' }}>
+      <h3 style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)', marginTop: '24px', marginBottom: '8px' }}>
         AI 正在创作中...
       </h3>
-      <p style={{ color: mutedTextColor, maxWidth: '400px' }}>
+      <p style={{ color: 'var(--text-muted)', maxWidth: '400px' }}>
         故事线生成可能需要一些时间，请稍候...
       </p>
     </div>
@@ -342,97 +311,70 @@ const StorylinePage: React.FC = () => {
 
     return (
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          marginBottom: '24px'
-        }}>
-          <Button
-            variant="outline"
-            onClick={() => setStep('input')}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-          >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <GlassButton variant="secondary" onClick={() => setStep('input')}>
             <ArrowLeft style={{ width: '16px', height: '16px' }} />
             重新生成
-          </Button>
-          
+          </GlassButton>
+
           <div style={{ display: 'flex', gap: '12px' }}>
-            <Button
-              variant="outline"
-              onClick={handleGenerate}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
+            <GlassButton variant="secondary" onClick={handleGenerate}>
               <RefreshCw style={{ width: '16px', height: '16px' }} />
               再次生成
-            </Button>
-            <Button
+            </GlassButton>
+            <GlassButton
+              variant="primary"
               onClick={handleSave}
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '8px',
-                backgroundColor: savedId ? '#22c55e' : accentColor,
-                color: 'white'
-              }}
+              accentColor={savedId ? '#22c55e' : accentColor}
+              accentLight={savedId ? '#4ade80' : accentLight}
             >
               <Save style={{ width: '16px', height: '16px' }} />
               {savedId ? '已保存' : '保存故事线'}
-            </Button>
+            </GlassButton>
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <Card style={{ padding: '24px', backgroundColor: cardBg, border: `1px solid ${borderColor}` }}>
+            <GlassCard variant="glass" padding="lg">
               <div style={{ marginBottom: '16px' }}>
-                <h2 style={{ fontSize: '20px', fontWeight: '600', color: textColor }}>
+                <h2 style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)' }}>
                   {storyline.title}
                 </h2>
               </div>
-              
+
               <div style={{ marginBottom: '24px' }}>
-                <h4 style={{ 
-                  fontSize: '14px', 
-                  fontWeight: '500', 
-                  color: accentColor, 
-                  marginBottom: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
+                <h4 style={{
+                  fontSize: '14px', fontWeight: '600', color: accentColor, marginBottom: '8px',
+                  display: 'flex', alignItems: 'center', gap: '6px',
                 }}>
                   <Lightbulb style={{ width: '14px', height: '14px' }} />
                   Logline
                 </h4>
-                <p style={{ fontSize: '16px', color: textColor, lineHeight: '1.6' }}>
+                <p style={{ fontSize: '16px', color: 'var(--text-primary)', lineHeight: '1.6' }}>
                   {storyline.logline}
                 </p>
               </div>
 
               <div>
-                <h4 style={{ 
-                  fontSize: '14px', 
-                  fontWeight: '500', 
-                  color: accentColor, 
-                  marginBottom: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
+                <h4 style={{
+                  fontSize: '14px', fontWeight: '600', color: accentColor, marginBottom: '8px',
+                  display: 'flex', alignItems: 'center', gap: '6px',
                 }}>
                   <BookOpen style={{ width: '14px', height: '14px' }} />
                   故事梗概
                 </h4>
-                <p style={{ fontSize: '14px', color: mutedTextColor, lineHeight: '1.8' }}>
+                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.8' }}>
                   {storyline.synopsis}
                 </p>
               </div>
-            </Card>
+            </GlassCard>
 
-            <Card style={{ padding: '24px', backgroundColor: cardBg, border: `1px solid ${borderColor}` }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '600', color: textColor, marginBottom: '16px' }}>
+            <GlassCard variant="glass" padding="lg">
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '16px' }}>
                 三幕结构
               </h3>
-              
+
               {[
                 { key: 'act1', title: '第一幕', color: '#22c55e' },
                 { key: 'act2', title: '第二幕', color: '#f59e0b' },
@@ -441,36 +383,15 @@ const StorylinePage: React.FC = () => {
                 const actData = storyline.structure[act.key as keyof typeof storyline.structure];
                 return (
                   <div key={act.key} style={{ marginBottom: idx < 2 ? '16px' : 0 }}>
-                    <h4 style={{ 
-                      fontSize: '14px', 
-                      fontWeight: '500', 
-                      color: act.color,
-                      marginBottom: '8px'
-                    }}>
+                    <h4 style={{ fontSize: '14px', fontWeight: '600', color: act.color, marginBottom: '8px' }}>
                       {act.title}: {actData.title}
                     </h4>
-                    <ul style={{ 
-                      listStyle: 'none', 
-                      padding: 0, 
-                      margin: 0,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '6px'
-                    }}>
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       {actData.beats.map((beat, i) => (
-                        <li key={i} style={{ 
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          gap: '8px',
-                          fontSize: '14px',
-                          color: mutedTextColor
+                        <li key={i} style={{
+                          display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '14px', color: 'var(--text-secondary)',
                         }}>
-                          <span style={{ 
-                            color: accentColor,
-                            fontWeight: '500'
-                          }}>
-                            {i + 1}.
-                          </span>
+                          <span style={{ color: accentColor, fontWeight: '600' }}>{i + 1}.</span>
                           {beat}
                         </li>
                       ))}
@@ -478,97 +399,92 @@ const StorylinePage: React.FC = () => {
                   </div>
                 );
               })}
-            </Card>
+            </GlassCard>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <Card style={{ padding: '20px', backgroundColor: cardBg, border: `1px solid ${borderColor}` }}>
-              <h3 style={{ fontSize: '14px', fontWeight: '600', color: textColor, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <GlassCard variant="glass" padding="md">
+              <h3 style={{
+                fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '16px',
+                display: 'flex', alignItems: 'center', gap: '8px',
+              }}>
                 <Users style={{ width: '16px', height: '16px', color: accentColor }} />
                 角色列表
               </h3>
-              
+
               {storyline.characters.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {storyline.characters.map((char, i) => (
-                    <div key={i} style={{ 
-                      padding: '12px',
-                      backgroundColor: inputBg,
-                      borderRadius: '8px'
+                    <div key={i} style={{
+                      padding: '12px', background: 'var(--bg-secondary)', borderRadius: '10px',
                     }}>
-                      <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: '4px'
-                      }}>
-                        <span style={{ fontWeight: '500', color: textColor }}>{char.name}</span>
-                        <span style={{ 
-                          fontSize: '12px', 
-                          padding: '2px 8px',
-                          backgroundColor: `${accentColor}20`,
-                          color: accentColor,
-                          borderRadius: '4px'
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{char.name}</span>
+                        <span style={{
+                          fontSize: '12px', padding: '2px 8px',
+                          background: `${accentColor}20`, color: accentColor, borderRadius: '6px',
                         }}>
                           {char.role}
                         </span>
                       </div>
-                      <p style={{ fontSize: '12px', color: mutedTextColor, margin: 0 }}>
+                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
                         {char.description.substring(0, 60)}...
                       </p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p style={{ fontSize: '14px', color: mutedTextColor, textAlign: 'center' }}>
+                <p style={{ fontSize: '14px', color: 'var(--text-muted)', textAlign: 'center' }}>
                   暂无角色信息
                 </p>
               )}
-            </Card>
+            </GlassCard>
 
-            <Card style={{ padding: '20px', backgroundColor: cardBg, border: `1px solid ${borderColor}` }}>
-              <h3 style={{ fontSize: '14px', fontWeight: '600', color: textColor, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <GlassCard variant="glass" padding="md">
+              <h3 style={{
+                fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '16px',
+                display: 'flex', alignItems: 'center', gap: '8px',
+              }}>
                 <Target style={{ width: '16px', height: '16px', color: accentColor }} />
                 主题标签
               </h3>
-              
+
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {storyline.themes.map((theme, i) => (
                   <span key={i} style={{
-                    padding: '4px 12px',
-                    backgroundColor: `${accentColor}15`,
-                    color: accentColor,
-                    borderRadius: '16px',
-                    fontSize: '12px',
-                    fontWeight: '500'
+                    padding: '4px 12px', background: `${accentColor}15`, color: accentColor,
+                    borderRadius: '16px', fontSize: '12px', fontWeight: '500',
                   }}>
                     {theme}
                   </span>
                 ))}
               </div>
-            </Card>
+            </GlassCard>
 
-            <Card style={{ padding: '20px', backgroundColor: cardBg, border: `1px solid ${borderColor}` }}>
-              <h3 style={{ fontSize: '14px', fontWeight: '600', color: textColor, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <GlassCard variant="glass" padding="md">
+              <h3 style={{
+                fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '16px',
+                display: 'flex', alignItems: 'center', gap: '8px',
+              }}>
                 <Zap style={{ width: '16px', height: '16px', color: accentColor }} />
                 建议信息
               </h3>
-              
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Clock style={{ width: '14px', height: '14px', color: mutedTextColor }} />
-                  <span style={{ fontSize: '14px', color: textColor }}>
+                  <Clock style={{ width: '14px', height: '14px', color: 'var(--text-muted)' }} />
+                  <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
                     {storyline.suggestedDuration} 分钟
                   </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                  <Palette style={{ width: '14px', height: '14px', color: mutedTextColor, marginTop: '2px' }} />
-                  <span style={{ fontSize: '14px', color: mutedTextColor }}>
+                  <Palette style={{ width: '14px', height: '14px', color: 'var(--text-muted)', marginTop: '2px' }} />
+                  <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
                     {storyline.suggestedStyle}
                   </span>
                 </div>
               </div>
-            </Card>
+            </GlassCard>
           </div>
         </div>
       </div>
@@ -576,54 +492,38 @@ const StorylinePage: React.FC = () => {
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-page)' }}>
       <header style={{
-          height: '64px',
-          borderBottom: `1px solid ${borderColor}`,
-          backgroundColor: cardBg,
-          padding: '0 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexShrink: 0,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <button
-              onClick={() => navigate(`/projects/${projectId}`)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                textDecoration: 'none',
-                color: mutedTextColor,
-                border: 'none',
-                background: 'transparent',
-                cursor: 'pointer',
-              }}
-            >
-              <ArrowLeft style={{ width: '16px', height: '16px' }} />
-              <span style={{ fontSize: '14px' }}>返回项目</span>
-            </button>
-            <h1 style={{ fontSize: '18px', fontWeight: '600', color: textColor }}>
-              故事线生成
-            </h1>
-          </div>
-          <ModelSelector
-            contentType="storyline"
-            value={selectedModel}
-            onChange={setSelectedModel}
-            placeholder="选择故事线模型"
-            style={{ width: '240px' }}
-          />
-        </header>
-
-        <div style={{ flex: 1, padding: '24px', overflowY: 'auto' }}>
-          {step === 'input' && renderInputStep()}
-          {step === 'generating' && renderGeneratingStep()}
-          {step === 'result' && renderResultStep()}
+        height: '64px', borderBottom: '1px solid var(--border-primary)',
+        background: 'var(--bg-elevated)', backdropFilter: 'blur(20px)',
+        padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        position: 'sticky', top: 0, zIndex: 10,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button
+            onClick={() => navigate(`/projects/${projectId}`)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px',
+              borderRadius: '8px', textDecoration: 'none', color: 'var(--text-secondary)',
+              border: 'none', background: 'transparent', cursor: 'pointer', transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-glass-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+          >
+            <ArrowLeft style={{ width: '16px', height: '16px' }} />
+            <span style={{ fontSize: '14px' }}>返回项目</span>
+          </button>
+          <h1 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)' }}>
+            故事线生成
+          </h1>
         </div>
+      </header>
+
+      <div style={{ flex: 1, padding: '24px', overflowY: 'auto' }}>
+        {step === 'input' && renderInputStep()}
+        {step === 'generating' && renderGeneratingStep()}
+        {step === 'result' && renderResultStep()}
+      </div>
     </div>
   );
 };

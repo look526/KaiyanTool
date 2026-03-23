@@ -2,6 +2,7 @@ import { IntelligentSegmenter } from './intelligent-segmenter'
 import { ParallelProcessor } from './parallel-processor'
 import { AIProcessor } from './ai-processor'
 import { ResultMerger } from './result-merger'
+import { config } from '../../config'
 import { prisma } from '../../lib/prisma'
 import logger from '../../lib/logger'
 import { providerManager } from '../ai/provider.manager'
@@ -111,6 +112,14 @@ export class LargeTextProcessingService {
     }
 
     try {
+      this.configure({
+        maxSegmentTokens: options.maxSegmentTokens ?? config.ai.largeText.maxSegmentTokens,
+        contextWindowTokens: options.contextWindowTokens,
+        maxTokens: options.maxTokens ?? config.ai.largeText.maxOutputTokens,
+        maxConcurrency: options.maxConcurrency ?? config.ai.largeText.maxConcurrency,
+        temperature: options.temperature,
+      })
+
       progressTracker.update(5, '开始智能分段...')
       const segments = await this.segmenter.segmentText(text)
       logger.info(`[大文本处理] 分段完成，共 ${segments.length} 个片段`)

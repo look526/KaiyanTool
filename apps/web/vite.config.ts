@@ -11,7 +11,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, '../..'),
+      '@': path.resolve(__dirname, './src'),
       '@shared': path.resolve(__dirname, '../../packages/shared'),
       '@ui': path.resolve(__dirname, '../../packages/ui'),
       '@/lib': path.resolve(__dirname, './src/lib'),
@@ -66,7 +66,7 @@ export default defineConfig({
     exclude: ['node_modules', 'dist', '.idea', '.git', '.cache'],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '../..'),
+        '@': path.resolve(__dirname, './src'),
         '@shared': path.resolve(__dirname, '../../packages/shared'),
         '@ui': path.resolve(__dirname, '../../packages/ui'),
         '@/lib': path.resolve(__dirname, './src/lib'),

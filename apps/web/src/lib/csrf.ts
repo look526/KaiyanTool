@@ -34,6 +34,7 @@ export async function getCsrfToken(): Promise<string> {
       console.log('[CSRF] Response status:', response.status);
       console.log('[CSRF] Response headers:', [...response.headers.entries()]);
 
+      // 无论响应状态如何，都尝试获取 CSRF token（服务器即使返回 401 也会设置 token）
       const newToken = response.headers.get('X-CSRF-Token') || '';
       console.log('[CSRF] New token from header:', newToken ? newToken.substring(0, 20) + '...' : 'null');
       if (newToken) {

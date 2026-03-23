@@ -1,3 +1,5 @@
+import { jsonrepair } from 'jsonrepair'
+import { config } from '../../config'
 import { providerManager } from '../ai/provider.manager'
 import { TextSegment } from './intelligent-segmenter'
 import { AI_PROCESSOR_PROMPTS } from '../../prompts/services'
@@ -48,10 +50,14 @@ export interface AISegmentResult {
   }>
 }
 
+const CONCISE_RETRY_USER_SUFFIX = `
+
+【重要】请保证输出为完整合法 JSON（从第一个{到最后一个}）。若内容过多，请压缩：每个 description、镜头 shot 各字段、物品 items 各字段均控制在约 40 字以内，禁止省略结尾括号。`
+
 export class AIProcessor {
   private defaultModel = 'glm-4.7'
   private temperature = 0.3
-  private maxTokens = 8192
+  private maxTokens = config.ai.largeText.maxOutputTokens
 
   setDefaultModel(model: string) {
     this.defaultModel = model
@@ -80,26 +86,70 @@ export class AIProcessor {
 
     const prompt = this.buildEnhancedPrompt(segment)
 
-    console.log(`[AI处理器] Prompt长度: ${prompt.length}`)
+    console.log(`[AI处理器] Prompt长度: ${prompt.length}，max_tokens: ${this.maxTokens}`)
 
-    const response = await provider.chat([
+    const messagesBase = [
+      { role: 'system' as const, content: AI_PROCESSOR_PROMPTS.systemPrompt },
+    ]
+
+    let response = await provider.chat(
+      [...messagesBase, { role: 'user' as const, content: prompt }],
       {
-        role: 'system',
-        content: AI_PROCESSOR_PROMPTS.systemPrompt
-      },
-      {
-        role: 'user',
-        content: prompt
+        model: model,
+        temperature: this.temperature,
+        maxTokens: this.maxTokens,
       }
-    ], {
-      model: model,
-      temperature: this.temperature,
-      maxTokens: this.maxTokens
-    })
+    )
 
-    console.log(`[AI处理器] AI响应长度: ${response.content?.length || 0}`)
+    console.log(
+      `[AI处理器] AI响应长度: ${response.content?.length || 0}，truncated: ${response.truncated === true}`
+    )
 
-    return this.parseAndValidateResponse(response.content, segment.id)
+    try {
+      return this.parseAndValidateResponse(response.content, segment.id)
+    } catch (firstError) {
+      const incomplete =
+        response.truncated === true ||
+        this.isIncompleteJsonPayload(response.content ?? '')
+
+      if (!incomplete) {
+        throw firstError
+      }
+
+      console.warn(
+        `[AI处理器] 片段 ${segment.id} 疑似输出截断或 JSON 不完整，使用简练模式重试一次`
+      )
+
+      response = await provider.chat(
+        [
+          ...messagesBase,
+          {
+            role: 'user' as const,
+            content: prompt + CONCISE_RETRY_USER_SUFFIX,
+          },
+        ],
+        {
+          model: model,
+          temperature: this.temperature,
+          maxTokens: this.maxTokens,
+        }
+      )
+
+      console.log(
+        `[AI处理器] 重试后响应长度: ${response.content?.length || 0}，truncated: ${response.truncated === true}`
+      )
+
+      return this.parseAndValidateResponse(response.content, segment.id)
+    }
+  }
+
+  /** 平衡括号无法闭合时视为不完整（常见于 max_tokens 截断在字符串中间） */
+  private isIncompleteJsonPayload(raw: string): boolean {
+    const stripped = this.stripMarkdownCodeFence(raw)
+    if (!stripped.includes('{')) {
+      return false
+    }
+    return this.extractBalancedJsonObject(stripped) === null
   }
 
   private buildEnhancedPrompt(segment: TextSegment): string {
@@ -113,39 +163,121 @@ export class AIProcessor {
       .replace('{{characters}}', segment.metadata.characters.join(', ') || '无');
   }
 
+  /**
+   * 去掉 ```json ... ``` 等围栏，避免首字符不是 `{`
+   */
+  private stripMarkdownCodeFence(raw: string): string {
+    let t = raw.trim()
+    if (!t.startsWith('```')) {
+      return t
+    }
+    const firstNl = t.indexOf('\n')
+    if (firstNl === -1) {
+      return t.replace(/^```\w*\s*/, '').replace(/```\s*$/, '').trim()
+    }
+    t = t.slice(firstNl + 1)
+    const endFence = t.lastIndexOf('```')
+    if (endFence !== -1) {
+      t = t.slice(0, endFence)
+    }
+    return t.trim()
+  }
+
+  /**
+   * 从首个 `{` 起按括号深度截取完整 JSON 对象（字符串内忽略 `{` `}`）。
+   * 比贪婪正则 `/\{[\s\S]*\}/` 可靠，避免截到文末无关 `}` 或截断不完整。
+   */
+  private extractBalancedJsonObject(text: string): string | null {
+    const start = text.indexOf('{')
+    if (start === -1) {
+      return null
+    }
+    let depth = 0
+    let inString = false
+    let i = start
+    while (i < text.length) {
+      const c = text[i]
+      if (inString) {
+        if (c === '\\') {
+          i++
+          if (i >= text.length) {
+            break
+          }
+          if (text[i] === 'u' && i + 4 < text.length && /^[0-9a-fA-F]{4}$/.test(text.slice(i + 1, i + 5))) {
+            i += 5
+          } else {
+            i++
+          }
+          continue
+        }
+        if (c === '"') {
+          inString = false
+        }
+        i++
+        continue
+      }
+      if (c === '"') {
+        inString = true
+        i++
+        continue
+      }
+      if (c === '{') {
+        depth++
+      } else if (c === '}') {
+        depth--
+        if (depth === 0) {
+          return text.slice(start, i + 1)
+        }
+      }
+      i++
+    }
+    return null
+  }
+
+  private parseJsonWithRepair(extractedJson: string): unknown {
+    const cleaned = this.cleanJsonControlChars(extractedJson)
+    try {
+      return JSON.parse(cleaned)
+    } catch (first) {
+      try {
+        const repaired = jsonrepair(cleaned)
+        console.warn('[AI响应解析] 使用 jsonrepair 修复后重试解析')
+        return JSON.parse(repaired)
+      } catch {
+        throw first
+      }
+    }
+  }
+
   private parseAndValidateResponse(content: string, segmentId: string): AISegmentResult {
     console.log(`[AI响应解析] 片段 ${segmentId}，响应长度: ${content.length}`)
     console.log(`[AI响应解析] 响应内容前500字符:`, content.substring(0, 500))
-    
+
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/)
-      if (!jsonMatch) {
+      const stripped = this.stripMarkdownCodeFence(content)
+      let extractedJson =
+        this.extractBalancedJsonObject(stripped) ??
+        stripped.match(/\{[\s\S]*\}/)?.[0] ??
+        null
+
+      if (!extractedJson) {
         console.error(`[AI响应解析] 无法从响应中提取JSON，完整响应:`, content)
         throw new Error('无法从响应中提取JSON')
       }
 
-      console.log(`[AI响应解析] 提取的JSON长度: ${jsonMatch[0].length}`)
-      
-      let extractedJson = jsonMatch[0]
-      
-      // 清理 JSON 字符串中的非法控制字符
-      // JSON 规范只允许在字符串中出现 \n, \r, \t（需要转义）
-      // 其他控制字符（0x00-0x1F）必须被转义或移除
-      extractedJson = this.cleanJsonControlChars(extractedJson)
-      
+      console.log(`[AI响应解析] 提取的JSON长度: ${extractedJson.length}`)
       console.log(`[AI响应解析] 清理后的JSON前100字符:`, extractedJson.substring(0, 100))
-      
-      const parsed = JSON.parse(extractedJson)
+
+      const parsed = this.parseJsonWithRepair(extractedJson) as Record<string, unknown>
 
       if (!parsed.segmentId || parsed.segmentId !== segmentId) {
         console.warn(`片段ID不匹配，期望 ${segmentId}，实际 ${parsed.segmentId}`)
       }
 
-      console.log(`[AI响应解析] 解析成功，scenes数量: ${parsed.scenes?.length || 0}, characters数量: ${parsed.characters?.length || 0}`)
-      console.log(`[AI响应解析] 第一个场景的dialogues:`, parsed.scenes?.[0]?.dialogues?.length || 0)
-      console.log(`[AI响应解析] 第一个场景的items:`, parsed.scenes?.[0]?.items?.length || 0)
-      console.log(`[AI响应解析] 解析后的完整数据:`, JSON.stringify(parsed, null, 2))
-      
+      console.log(`[AI响应解析] 解析成功，scenes数量: ${(parsed.scenes as unknown[])?.length || 0}, characters数量: ${(parsed.characters as unknown[])?.length || 0}`)
+      console.log(`[AI响应解析] 第一个场景的dialogues:`, (parsed.scenes as any)?.[0]?.dialogues?.length || 0)
+      console.log(`[AI响应解析] 第一个场景的items:`, (parsed.scenes as any)?.[0]?.items?.length || 0)
+
       return this.sanitizeOutput(parsed)
     } catch (error) {
       console.error('解析AI响应失败:', error)

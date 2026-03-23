@@ -1,7 +1,7 @@
 export interface AIProvider {
   id: string
   name: string
-  type: 'openai' | 'google' | 'antsk' | 'zhipu' | 'seedream' | 'deepseek'
+  type: 'openai' | 'google' | 'antsk' | 'zhipu' | 'seedream' | 'deepseek' | 'toapis'
   apiKey: string
   baseUrl?: string
   models: AIModel[]
@@ -42,7 +42,7 @@ export interface AIResponse {
 }
 
 export interface AIProviderConfig {
-  type: 'openai' | 'google' | 'antsk' | 'zhipu' | 'seedream' | 'deepseek'
+  type: 'openai' | 'google' | 'antsk' | 'zhipu' | 'seedream' | 'deepseek' | 'toapis'
   apiKey: string
   baseUrl?: string
   models?: {
@@ -80,10 +80,80 @@ export interface AICreateVideoRequest {
   duration?: number
   motion?: number
   aspectRatio?: string
+  /** 由控制器合并进 prompt，供需要音画同出的模型理解 */
+  subtitle_text?: string
+  sync_audio_video?: boolean
 }
 
 export interface AICreateVideoResponse {
   url: string
   duration?: number
   resolution?: string
+}
+
+export interface Sora2VideoRequest {
+  model?: 'sora-2' | 'sora-2-pro' | 'sora-2-vip'
+  prompt: string
+  duration?: number
+  aspect_ratio?: '16:9' | '9:16'
+  image_urls?: string[]
+  thumbnail?: boolean
+  metadata?: {
+    n?: number
+    watermark?: boolean
+    hd?: boolean
+    private?: boolean
+    style?: 'thanksgiving' | 'comic' | 'news' | 'selfie' | 'nostalgic' | 'anime'
+    storyboard?: boolean
+    character_url?: string
+    character_timestamps?: string
+    character_create?: boolean
+    character_from_task?: string
+  }
+}
+
+export interface Sora2VideoResponse {
+  id: string
+  object: string
+  model: string
+  status: 'queued' | 'in_progress' | 'completed' | 'failed'
+  progress: number
+  created_at: number
+  metadata?: any
+}
+
+export interface TTSRequest {
+  text: string
+  voice_id: string
+  speed?: number
+  pitch?: number
+  emotion?: string
+  language?: string
+  format?: 'mp3' | 'wav' | 'ogg'
+}
+
+export interface TTSResponse {
+  url: string
+  duration: number
+  format: string
+}
+
+export interface TTSVoice {
+  id: string
+  name: string
+  language: string
+  gender: string
+  style?: string
+  sample_url?: string
+}
+
+export interface LipSyncRequest {
+  image_url: string
+  audio_url: string
+  output_format?: 'mp4' | 'webm'
+}
+
+export interface LipSyncResponse {
+  url: string
+  duration: number
 }

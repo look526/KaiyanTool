@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import * as crypto from 'crypto'
 import { prisma } from '../lib/prisma'
+import { getOrCreateDefaultEpisode } from '../utils/episode-resolver'
 
 export class AssetController {
   async listCharacters(req: Request, res: Response): Promise<void> {
@@ -198,7 +199,7 @@ export class AssetController {
       }
 
       const scenes = await prisma.scene.findMany({
-        where: { projectId: project_id },
+        where: { project_id: project_id },
         include: {
           _count: {
             select: { Shot: true },
@@ -221,7 +222,7 @@ export class AssetController {
       }
 
       const { project_id } = req.params
-      const { location, time, atmosphere, reference_images } = req.body
+      const { location, time, atmosphere, description } = req.body
 
       if (!location || !time) {
         res.status(400).json({ error: 'Location and time are required' })
@@ -240,15 +241,26 @@ export class AssetController {
         return
       }
 
+      const episode = await getOrCreateDefaultEpisode(project_id)
+
+      // 获取下一个 scene_order
+      const maxScene = await prisma.scene.findFirst({
+        where: { episode_id: episode.id },
+        orderBy: { scene_order: 'desc' },
+        select: { scene_order: true },
+      })
+
+      const nextSceneOrder = (maxScene?.scene_order || 0) + 1
+
       const scene = await prisma.scene.create({
         data: {
           id: crypto.randomUUID(),
+          episode_id: episode.id,
           project_id: project_id,
           location,
           time,
-          atmosphere,
-          reference_images: reference_images || [],
-          created_at: new Date(),
+          description: description || atmosphere,
+          scene_order: nextSceneOrder,
           updated_at: new Date(),
         },
       })

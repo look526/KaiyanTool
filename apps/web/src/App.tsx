@@ -45,7 +45,10 @@ const HelpPage = lazy(() => import('./pages/HelpPage'))
 const AssetsPage = lazy(() => import('./pages/AssetsPage'))
 const ImageGenerationPage = lazy(() => import('./pages/ImageGenerationPage'))
 const VideoGenerationPage = lazy(() => import('./pages/VideoGenerationPage'))
+const WorkspacePage = lazy(() => import('./pages/WorkspacePage'))
 const ButtonShowcasePage = lazy(() => import('./pages/ButtonShowcasePage'))
+const TimelinePage = lazy(() => import('./pages/TimelinePage'))
+const ProductionPage = lazy(() => import('./pages/ProductionPage'))
 const AdminLoginPage = lazy(() => import('./pages/admin/AdminLoginPage'))
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'))
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
@@ -134,8 +137,9 @@ function App() {
                     <Route path="/help" element={<HelpPage />} />
                     <Route path="/projects" element={<ProjectsPage />} />
                     <Route path="/assets" element={<AssetsPage />} />
-                    <Route path="/image-generation" element={<ImageGenerationPage />} />
-                    <Route path="/video-generation" element={<VideoGenerationPage />} />
+                    <Route path="/workspace" element={<WorkspacePage />} />
+                    <Route path="/image-generation" element={<Navigate to="/workspace" replace />} />
+                    <Route path="/video-generation" element={<Navigate to="/workspace" replace />} />
                     <Route path="/analytics" element={<AnalyticsPage />} />
                     <Route path="/team" element={<TeamPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
@@ -166,6 +170,8 @@ function App() {
                     <Route path="/projects/:projectId/episodes/:episodeId" element={<EpisodeDetailPage />} />
                     <Route path="/projects/:id/items" element={<ItemsPageSimple />} />
                     <Route path="/projects/:id/video-merge" element={<VideoMergePage />} />
+                    <Route path="/projects/:id/episodes/:episodeId/timeline" element={<TimelinePage />} />
+                    <Route path="/projects/:id/production" element={<ProductionPage />} />
                   </Route>
                   <Route path="/shots/:id/panels" element={<ProtectedRoute><PanelsPage /></ProtectedRoute>} />
                 </Routes>

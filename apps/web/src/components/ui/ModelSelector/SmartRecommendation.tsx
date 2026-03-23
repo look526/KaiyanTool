@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Lightbulb, TrendingUp, Clock, Star, Zap, ChevronRight, X } from 'lucide-react'
-import { AIProviderModel, ContentType } from './ModelSelector'
+import { AIProviderModel, ContentType } from './types'
 
 export interface ModelRecommendation {
   modelId: string

@@ -311,12 +311,12 @@ function ModelSelectorSection({ selectedModel, onModelChange,
     <div>
       <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: '500' }}>选择AI模型</div>
       <ModelSelector 
-        contentType="script" 
+        content_type="script" 
         value={selectedModel} 
-        onChange={onModelChange} 
+        on_change={onModelChange} 
         placeholder="选择模型" 
-        showLastUsed={true} 
-        showDefault={true} 
+        show_last_used={true} 
+        show_default={true} 
       />
     </div>
   );

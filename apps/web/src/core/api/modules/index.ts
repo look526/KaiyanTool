@@ -1,12 +1,13 @@
 export * as authApi from './auth';
 export * as projectsApi from './projects';
+export { episodesApi } from './episodes';
 export * as aiProvidersApi from './ai-providers';
 export * as scriptsApi from './scripts';
 export * as documentsApi from './documents';
 export * as assetsApi from './assets';
 export * as charactersApi from './characters';
-export * as scenesApi from './scenes';
-export * as shotsApi from './shots';
+export { scenesApi } from './scenes';
+export { shotsApi } from './shots';
 export * as novelsApi from './novels';
 export * as promptsApi from './prompts';
 export * as analyticsApi from './analytics';

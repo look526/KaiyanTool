@@ -15,9 +15,9 @@ export type OptimizationDirection =
 export type OptimizationIntensity = 'light' | 'medium' | 'deep';
 
 export interface OptimizationResult {
-  sceneId: string;
-  originalContent: string;
-  optimizedContent: string;
+  scene_id: string;
+  original_content: string;
+  optimized_content: string;
   suggestions: string[];
   changes: {
     type: string;
@@ -32,25 +32,25 @@ export interface OptimizationTemplate {
   id: string;
   name: string;
   direction: OptimizationDirection;
-  customPrompt: string;
+  custom_prompt: string;
   intensity: OptimizationIntensity;
-  createdAt: string;
+  created_at: string;
 }
 
 export interface SceneOptimizationDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
+  is_open: boolean;
+  on_close: () => void;
   scenes: ParsedScene[];
-  selectedSceneIds: string[];
-  onSceneSelect: (sceneIds: string[]) => void;
-  onOptimize: (params: {
-    sceneIds: string[];
+  selected_scene_ids: string[];
+  on_scene_select: (scene_ids: string[]) => void;
+  on_optimize: (params: {
+    scene_ids: string[];
     direction: OptimizationDirection;
-    customPrompt: string;
+    custom_prompt: string;
     intensity: OptimizationIntensity;
-    stylePreference?: string;
+    style_preference?: string;
   }) => Promise<OptimizationResult[]>;
-  onApplyOptimization: (results: OptimizationResult[]) => void;
+  on_apply_optimization: (results: OptimizationResult[]) => void;
   templates: OptimizationTemplate[];
-  onSaveTemplate: (template: Omit<OptimizationTemplate, 'id' | 'createdAt'>) => void;
+  on_save_template: (template: Omit<OptimizationTemplate, 'id' | 'created_at'>) => void;
 }

@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import { apiClient } from '@/lib/api';
-import { useToast, type ToastContextType } from '@/components/ui/Toast';
+import { apiClient } from '../../../lib/api';
+import { useToast, type ToastContextType } from '../../ui/Toast';
 import { 
   getFullUrl, 
   getStylePrompt, 
@@ -29,6 +29,13 @@ interface UseImageSelectorActionsProps {
   referenceImage: string | null;
   imageCount: number;
   selectedCategory: string;
+  // 新增状态
+  gender: string;
+  age: string;
+  resolution: '2K' | '3K';
+  aspectRatio: string;
+  enableThreeViews: boolean;
+  // Setter 函数
   setGeneratedImages: (images: string[]) => void;
   setSelectedImage: (image: string | null) => void;
   setGenerating: (generating: boolean) => void;
@@ -40,6 +47,11 @@ interface UseImageSelectorActionsProps {
   setImageCount: (count: number) => void;
   setLocalThreeViewsMode: (mode: 'separate' | 'combined') => void;
   setCurrentView: (view: 'front' | 'side' | 'top') => void;
+  setGender: (gender: string) => void;
+  setAge: (age: string) => void;
+  setResolution: (resolution: '2K' | '3K') => void;
+  setAspectRatio: (ratio: string) => void;
+  setEnableThreeViews: (enabled: boolean) => void;
   loadAssets: () => Promise<void>;
   addToast: ToastContextType['addToast'];
 }
@@ -67,6 +79,11 @@ export function useImageSelectorActions({
   referenceImage,
   imageCount,
   selectedCategory,
+  gender,
+  age,
+  resolution,
+  aspectRatio,
+  enableThreeViews,
   setGeneratedImages,
   setSelectedImage,
   setGenerating,
@@ -78,6 +95,11 @@ export function useImageSelectorActions({
   setImageCount,
   setLocalThreeViewsMode,
   setCurrentView,
+  setGender,
+  setAge,
+  setResolution,
+  setAspectRatio,
+  setEnableThreeViews,
   loadAssets,
   addToast,
 }: UseImageSelectorActionsProps) {
@@ -134,14 +156,78 @@ export function useImageSelectorActions({
     }
 
     setGenerating(true);
+    setGeneratedImages([]); // 清空之前的生成结果
     try {
-      const stylePrompt = getStylePrompt(prompt.trim(), style);
+      // 构建完整提示词：性别 + 年龄 + 外貌描述
+      const buildFullPrompt = () => {
+        const parts = [];
+        
+        // 性别（必填）
+        if (gender) {
+          parts.push(gender);
+        }
+        
+        // 年龄（可选）
+        if (age && age.trim() !== '') {
+          parts.push(`${age}岁`);
+        }
+        
+        // 外貌描述（必填）
+        if (prompt) {
+          parts.push(prompt);
+        }
+        
+        return parts.join(',');
+      };
       
+      const fullPrompt = buildFullPrompt();
+      const stylePrompt = getStylePrompt(fullPrompt, style);
+      
+      // 根据宽高比计算实际尺寸
+      const getDimensions = () => {
+        const [width, height] = aspectRatio.split(':').map(Number);
+        const baseSize = width === height ? 1024 : (width > height ? 1920 : 1080);
+        return {
+          width: Math.round(baseSize * (width / height)),
+          height: baseSize,
+        };
+      };
+      
+      const { width, height } = getDimensions();
+      
+      const referenceImageUrl = referenceImage
+        ? getFullUrl(referenceImage) ?? undefined
+        : undefined;
+
       if (true) { // eslint-disable-line no-constant-condition
         const results = await apiClient.batchGenerateImages({
           prompt: stylePrompt,
           count: imageCount,
+          style: style,
+          negativePrompt: getNegativePrompt(style),
+          width,
+          height,
+          resolution,
+          providerId: selectedModel,
+          projectId,
+          referenceImageUrl,
+          three_view: enableThreeViews,
         });
+        
+        console.log('[DEBUG] Batch results:', results);
+        console.log('[DEBUG] Results assets:', results.assets);
+        
+        if (!results.assets || results.assets.length === 0) {
+          console.error('[DEBUG] No assets returned!');
+          addToast({
+            type: 'error',
+            title: '生成失败',
+            message: '未返回任何图片',
+          });
+          setGenerating(false);
+          return;
+        }
+        
         const imageUrls = results.assets.map((asset: any) => asset.url);
         
         setGeneratedImages(imageUrls);
@@ -215,7 +301,8 @@ export function useImageSelectorActions({
     }
   }, [
     prompt, selectedModel, style, imageCount, shouldUseThreeViews, 
-    effectiveThreeViewsMode, type, referenceImage, projectId, 
+    effectiveThreeViewsMode, type, referenceImage, projectId,
+    gender, age, resolution, aspectRatio, enableThreeViews,
     setGenerating, setGeneratedImages, setSelectedImage, loadAssets, addToast, onChange
   ]);
 
@@ -354,5 +441,6 @@ export function useImageSelectorActions({
     handleSelectAsset,
     handleUpdateAssetCategory,
     handleDeleteAsset,
+    loadAssets,
   };
 }

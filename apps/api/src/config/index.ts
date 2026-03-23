@@ -33,6 +33,12 @@ export const config = {
       apiKey: process.env.ZHIPU_API_KEY || '',
       baseUrl: process.env.ZHIPU_BASE_URL || 'https://open.bigmodel.cn/api/paas/v4',
     },
+    /** Node fetch(undici) 默认首包/正文超时偏短，长 Prompt 易触发 HeadersTimeoutError */
+    http: {
+      connectTimeoutMs: parseInt(process.env.AI_HTTP_CONNECT_TIMEOUT_MS || '120000', 10),
+      headersTimeoutMs: parseInt(process.env.AI_HTTP_HEADERS_TIMEOUT_MS || '600000', 10),
+      bodyTimeoutMs: parseInt(process.env.AI_HTTP_BODY_TIMEOUT_MS || '600000', 10),
+    },
     antsk: {
       apiKey: process.env.ANTSK_API_KEY || '',
       baseUrl: process.env.ANTSK_BASE_URL || 'https://api.antsk.com/v1',
@@ -59,6 +65,12 @@ export const config = {
     script: {
       defaultModel: process.env.AI_SCRIPT_DEFAULT_MODEL || 'glm-4',
       continueWordCount: parseInt(process.env.AI_SCRIPT_CONTINUE_WORDS || '500', 10),
+    },
+    /** 大文本剧本解析：输出易超 max_tokens 截断，需提高上限并控制单段输入量 */
+    largeText: {
+      maxOutputTokens: parseInt(process.env.AI_LARGE_TEXT_MAX_OUTPUT_TOKENS || '16384', 10),
+      maxSegmentTokens: parseInt(process.env.AI_LARGE_TEXT_MAX_SEGMENT_TOKENS || '4500', 10),
+      maxConcurrency: parseInt(process.env.AI_LARGE_TEXT_MAX_CONCURRENCY || '5', 10),
     },
   },
   

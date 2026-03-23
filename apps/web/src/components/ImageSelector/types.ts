@@ -50,6 +50,10 @@ export interface ImageSelectorProps {
   disabled?: boolean;
   /** Character description for AI generation context */
   characterDescription?: string;
+  /** Character gender for AI generation */
+  characterGender?: string;
+  /** Character age for AI generation */
+  characterAge?: number;
   /** Enable reference image upload */
   enableReferenceImage?: boolean;
   /** Enable batch image generation */
@@ -64,6 +68,8 @@ export interface ImageSelectorProps {
   onThreeViewsChange?: (views: { front: string | null; side: string | null; top: string | null }) => void;
   /** Automatically filter by category based on type */
   autoCategoryFilter?: boolean;
+  /** 打开弹窗时默认激活的标签页 */
+  defaultTab?: TabType;
 }
 
 /**

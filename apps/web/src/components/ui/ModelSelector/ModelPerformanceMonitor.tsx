@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Activity, Clock, CheckCircle2, XCircle, TrendingUp, TrendingDown, AlertTriangle, RefreshCw, BarChart3 } from 'lucide-react'
-import { AIProviderModel } from './ModelSelector'
+import { AIProviderModel } from './types'
 import { apiClient } from '../../../lib/api-client'
 
 export interface PerformanceMetric {

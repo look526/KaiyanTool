@@ -33,10 +33,20 @@ export interface SeedreamTask {
   status: 'queued' | 'in_progress' | 'completed' | 'failed'
   progress: number
   created_at: number
+  completed_at?: number
+  expires_at?: number
   metadata: {
     width: number
     height: number
     resolution: string
+    output_url?: string
+  }
+  url?: string
+  result?: {
+    type: string
+    data: Array<{
+      url: string
+    }>
   }
 }
 

@@ -12,7 +12,8 @@ export interface ProcessingTask {
 }
 
 export class ParallelProcessor {
-  private maxConcurrency = 3
+  /** 默认与 config.ai.largeText.maxConcurrency 一致；可由 configure 覆盖 */
+  private maxConcurrency = 5
   private taskQueue: Map<string, ProcessingTask> = new Map()
   private activeTasks = new Set<string>()
   private maxRetries = 2
