@@ -198,6 +198,7 @@ class ShotController {
         duration,
         aspect_ratio,
         visual_style,
+        subtitle_text,
       } = req.body
 
       const shot = await prisma.shot.findFirst({
@@ -236,6 +237,7 @@ class ShotController {
           duration,
           aspect_ratio,
           visual_style,
+          ...(subtitle_text !== undefined ? { subtitle_text } : {}),
         },
         include: {
           Scene: true,

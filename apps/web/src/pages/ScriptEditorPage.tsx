@@ -1,26 +1,26 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
-  Save,
-  FileText,
   Sparkles,
-  Loader2,
-  Eye,
-  Type,
-  FileDown,
-  Upload,
-  ChevronDown,
-  LayoutGrid,
-  FileEdit,
-  MapPin,
-  Clock,
-  ChevronRight,
-  Maximize2,
-  Minimize2,
-  AlertCircle,
-  Zap,
+  TrendingUp,
+  History,
   Wand2,
+  ArrowRightLeft,
+  BarChart3,
+  Mountain,
+  Maximize,
+  ChevronDown,
+  Bell,
+  Zap,
+  Moon,
+  Sun,
+  Loader2,
+  Save,
+  RotateCcw,
+  FileText,
+  Eye,
+  Pencil,
 } from 'lucide-react';
 import MonacoEditor from '../components/MonacoEditor';
 import { ModelSelector } from '../components/ui';
@@ -32,6 +32,9 @@ import { SceneOptimizer } from '../components/SceneOptimizer/index';
 import { AIProcessingProgress, AIProcessingTask } from '../components/AIProcessingProgress';
 import { ScriptPreviewPanel, Scene, Character } from '../components/ScriptPreviewPanel';
 import { FormatConfirmDialog } from '../components/editor/FormatConfirmDialog';
+import { useAuth } from '../contexts/AuthContext';
+import { ConfirmModal } from '../components/ui/ModalModern';
+import { getApiErrorMessage } from '../lib/api-error';
 
 const SCRIPT_TEMPLATES = [
   {
@@ -73,7 +76,7 @@ const SCRIPT_TEMPLATES = [
 function ScriptEditorContent() {
   const { projectId } = useParams<{ projectId: string }>();
   const projectIdStr = projectId || '';
-  const { theme } = useTheme();
+  const { resolvedTheme, toggleTheme } = useTheme();
   const {
     mode,
     setMode,
@@ -88,7 +91,6 @@ function ScriptEditorContent() {
     selectedChapterId,
     setSelectedChapterId,
     lastSaved,
-    setLastSaved,
     autoSaveEnabled,
     setAutoSaveEnabled,
     isSaving,
@@ -112,7 +114,6 @@ function ScriptEditorContent() {
   const [editorMode, setEditorMode] = useState<'edit' | 'preview'>('edit');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string>('');
-  const [showAIPanel, setShowAIPanel] = useState(true);
   const [tasks, setTasks] = useState<AIProcessingTask[]>([]);
   const [showReparseConfirm, setShowReparseConfirm] = useState(false);
   const [hasParsedResult, setHasParsedResult] = useState(false);
@@ -124,17 +125,22 @@ function ScriptEditorContent() {
     metadata?: { episodes: number; minutes_per_episode: number };
   } | null>(null);
   const [isFormatting, setIsFormatting] = useState(false);
+  const [serverBaseline, setServerBaseline] = useState<string | null>(null);
+  const [lastServerSavedAt, setLastServerSavedAt] = useState<Date | null>(null);
+  const [undoStack, setUndoStack] = useState<string[]>([]);
+  const [pendingDestructive, setPendingDestructive] = useState<
+    | null
+    | { kind: 'template'; text: string }
+    | { kind: 'ai'; op: 'continue' | 'rewrite' | 'optimize' | 'format' }
+  >(null);
   const { addToast } = useToast();
+  const { user } = useAuth();
+  const templateMenuRef = useRef<HTMLDivElement>(null);
 
   const addTask = (type: AIProcessingTask['type'], title: string) => {
     const id = Date.now().toString();
     const newTask: AIProcessingTask = { id, type, title, progress: 0, status: 'pending' };
-    console.log('[addTask] Creating new task:', newTask);
-    setTasks(prev => {
-      const updated = [...prev, newTask];
-      console.log('[addTask] Updated tasks:', updated);
-      return updated;
-    });
+    setTasks(prev => [...prev, newTask]);
     return id;
   };
 
@@ -163,6 +169,20 @@ function ScriptEditorContent() {
   const setTitle = mode === 'script' ? setScriptTitle : setNovelTitle;
   const content = mode === 'script' ? scriptContent : novelContent;
   const setContent = mode === 'script' ? setScriptContent : setNovelContent;
+
+  const pushUndoSnapshot = useCallback(() => {
+    setUndoStack((s) => [...s.slice(-9), content]);
+  }, [content]);
+
+  const handleUndoLast = useCallback(() => {
+    setUndoStack((s) => {
+      if (s.length === 0) return s;
+      const prev = s[s.length - 1];
+      setContent(prev);
+      addToast({ type: 'info', title: '已撤销上一步内容' });
+      return s.slice(0, -1);
+    });
+  }, [setContent, addToast]);
 
   const PARSED_RESULT_KEY = `parsed_result_${projectIdStr}`;
 
@@ -250,7 +270,11 @@ function ScriptEditorContent() {
       setEditorMode('preview');
     } catch (error) {
       console.error('解析剧本失败:', error);
-      addToast({ type: 'error', title: '解析失败', message: '请检查剧本格式后再试。' });
+      addToast({
+        type: 'error',
+        title: '解析失败',
+        message: getApiErrorMessage(error, '请检查剧本格式后再试。'),
+      });
     } finally {
       setLoading(false);
     }
@@ -261,11 +285,18 @@ function ScriptEditorContent() {
     try {
       setIsSaving(true);
       await apiClient.saveScript(projectIdStr, title, content);
-      addToast({ type: 'success', title: '保存成功' });
+      const snap = `${title}\n${content}`;
+      setServerBaseline(snap);
+      setLastServerSavedAt(new Date());
+      addToast({ type: 'success', title: '已保存到服务器' });
       saveToLocalStorage(mode);
     } catch (error) {
       console.error('保存失败:', error);
-      addToast({ type: 'error', title: '保存失败', message: '请稍后重试。' });
+      addToast({
+        type: 'error',
+        title: '保存失败',
+        message: getApiErrorMessage(error, '请检查网络后重试。'),
+      });
     } finally {
       setIsSaving(false);
     }
@@ -304,14 +335,26 @@ function ScriptEditorContent() {
     input.click();
   };
 
-  const applyTemplate = (template: string) => {
+  const commitTemplate = (template: string) => {
     setContent(template);
     setShowTemplateMenu(false);
+    addToast({ type: 'success', title: '已套用模板' });
   };
 
-  const handleContinueScript = async () => {
+  const requestApplyTemplate = (template: string) => {
+    if (content.trim().length > 0) {
+      setPendingDestructive({ kind: 'template', text: template });
+    } else {
+      commitTemplate(template);
+    }
+  };
+
+  const executeContinueScript = async () => {
     if (!content.trim() || isContinuing) return;
-    if (!selectedModel) { addToast({ type: 'warning', title: '请选择模型' }); return; }
+    if (!selectedModel) {
+      addToast({ type: 'warning', title: '请选择模型' });
+      return;
+    }
     const taskId = addTask('continuing', 'AI 续写剧本');
     try {
       setIsContinuing(true);
@@ -322,16 +365,35 @@ function ScriptEditorContent() {
       updateTask(taskId, { status: 'completed', progress: 100 });
       saveToLocalStorage(mode);
     } catch (error) {
-      updateTask(taskId, { status: 'failed', error: error instanceof Error ? error.message : '未知错误' });
-      addToast({ type: 'error', title: 'AI续写失败' });
+      updateTask(taskId, {
+        status: 'failed',
+        error: getApiErrorMessage(error, '未知错误'),
+      });
+      addToast({
+        type: 'error',
+        title: 'AI 续写失败',
+        message: getApiErrorMessage(error, '请稍后重试'),
+      });
     } finally {
       setIsContinuing(false);
     }
   };
 
-  const handleRewriteScript = async () => {
+  const requestContinueScript = () => {
+    if (!content.trim() || isContinuing) return;
+    if (!selectedModel) {
+      addToast({ type: 'warning', title: '请选择模型' });
+      return;
+    }
+    setPendingDestructive({ kind: 'ai', op: 'continue' });
+  };
+
+  const executeRewriteScript = async () => {
     if (!content.trim() || isRewriting) return;
-    if (!selectedModel) { addToast({ type: 'warning', title: '请选择模型' }); return; }
+    if (!selectedModel) {
+      addToast({ type: 'warning', title: '请选择模型' });
+      return;
+    }
     const taskId = addTask('rewriting', 'AI 改写剧本');
     try {
       setIsRewriting(true);
@@ -342,16 +404,35 @@ function ScriptEditorContent() {
       updateTask(taskId, { status: 'completed', progress: 100 });
       saveToLocalStorage(mode);
     } catch (error) {
-      updateTask(taskId, { status: 'failed', error: error instanceof Error ? error.message : '未知错误' });
-      addToast({ type: 'error', title: 'AI改写失败' });
+      updateTask(taskId, {
+        status: 'failed',
+        error: getApiErrorMessage(error, '未知错误'),
+      });
+      addToast({
+        type: 'error',
+        title: 'AI 改写失败',
+        message: getApiErrorMessage(error, '请稍后重试'),
+      });
     } finally {
       setIsRewriting(false);
     }
   };
 
-  const handleOptimizeScript = async () => {
+  const requestRewriteScript = () => {
+    if (!content.trim() || isRewriting) return;
+    if (!selectedModel) {
+      addToast({ type: 'warning', title: '请选择模型' });
+      return;
+    }
+    setPendingDestructive({ kind: 'ai', op: 'rewrite' });
+  };
+
+  const executeOptimizeScript = async () => {
     if (!content.trim() || isOptimizing) return;
-    if (!selectedModel) { addToast({ type: 'warning', title: '请选择模型' }); return; }
+    if (!selectedModel) {
+      addToast({ type: 'warning', title: '请选择模型' });
+      return;
+    }
     const taskId = addTask('optimizing', 'AI 优化剧本');
     try {
       setIsOptimizing(true);
@@ -363,11 +444,27 @@ function ScriptEditorContent() {
       saveToLocalStorage(mode);
       addToast({ type: 'success', title: '优化完成' });
     } catch (error) {
-      updateTask(taskId, { status: 'failed', error: error instanceof Error ? error.message : '未知错误' });
-      addToast({ type: 'error', title: 'AI优化失败' });
+      updateTask(taskId, {
+        status: 'failed',
+        error: getApiErrorMessage(error, '未知错误'),
+      });
+      addToast({
+        type: 'error',
+        title: 'AI 优化失败',
+        message: getApiErrorMessage(error, '请稍后重试'),
+      });
     } finally {
       setIsOptimizing(false);
     }
+  };
+
+  const requestOptimizeScript = () => {
+    if (!content.trim() || isOptimizing) return;
+    if (!selectedModel) {
+      addToast({ type: 'warning', title: '请选择模型' });
+      return;
+    }
+    setPendingDestructive({ kind: 'ai', op: 'optimize' });
   };
 
   const handleParseScenes = async () => {
@@ -408,8 +505,15 @@ function ScriptEditorContent() {
         addToast({ type: 'info', title: '未检测到场景' });
       }
     } catch (error) {
-      updateTask(taskId, { status: 'failed', error: error instanceof Error ? error.message : '未知错误' });
-      addToast({ type: 'error', title: '剧本解析失败' });
+      updateTask(taskId, {
+        status: 'failed',
+        error: getApiErrorMessage(error, '未知错误'),
+      });
+      addToast({
+        type: 'error',
+        title: '剧本解析失败',
+        message: getApiErrorMessage(error, '请稍后重试'),
+      });
     } finally {
       setIsParsingScenes(false);
     }
@@ -420,9 +524,7 @@ function ScriptEditorContent() {
       addToast({ type: 'warning', title: '无法生成', message: '请先解析剧本' });
       return;
     }
-    console.log('[GenerateAssets] Starting asset generation...');
     const taskId = addTask('converting', '生成资产生成中');
-    console.log('[GenerateAssets] Task created with ID:', taskId);
     try {
       setIsGeneratingAssets(true);
       const stopProgress = simulateProgress(taskId, 5000);
@@ -453,7 +555,9 @@ function ScriptEditorContent() {
             description: `尺寸: ${item.size || '未知'}, 形状: ${item.shape || '未知'}, 颜色: ${item.color || '未知'}`,
           } as any);
           createdAssets.items++;
-        } catch (err) { console.warn(`创建物品失败:`, item); }
+        } catch (err) {
+          console.warn('创建物品失败:', err, item);
+        }
       }
 
       for (let i = 0; i < parsedScenes.length; i++) {
@@ -464,7 +568,7 @@ function ScriptEditorContent() {
             time: scene.time || '白天',
             description: scene.description || scene.heading || '',
           } as any);
-          
+
           const dialogues = scene.dialogues || scene.dialogue || [];
           if (dialogues.length > 0) {
             for (let j = 0; j < dialogues.length; j++) {
@@ -489,7 +593,7 @@ function ScriptEditorContent() {
               } catch (err) { console.warn(`创建分镜失败:`, err); }
             }
           }
-          
+
           const actions = scene.actions || [];
           for (let k = 0; k < actions.length; k++) {
             const action = actions[k];
@@ -512,7 +616,7 @@ function ScriptEditorContent() {
               } catch (err) { console.warn(`创建动作分镜失败:`, err); }
             }
           }
-          
+
           createdAssets.scenes++;
         } catch (err) { console.warn(`创建场景失败:`, err); }
       }
@@ -521,14 +625,21 @@ function ScriptEditorContent() {
       updateTask(taskId, { status: 'completed', progress: 100 });
       addToast({ type: 'success', title: '生成完成', message: `已创建 ${createdAssets.characters} 个角色、${createdAssets.scenes} 个场景、${createdAssets.items} 个物品、${createdAssets.shots} 个分镜` });
     } catch (error) {
-      updateTask(taskId, { status: 'failed', error: error instanceof Error ? error.message : '未知错误' });
-      addToast({ type: 'error', title: '生成失败' });
+      updateTask(taskId, {
+        status: 'failed',
+        error: getApiErrorMessage(error, '未知错误'),
+      });
+      addToast({
+        type: 'error',
+        title: '生成失败',
+        message: getApiErrorMessage(error, '请稍后重试'),
+      });
     } finally {
       setIsGeneratingAssets(false);
     }
   };
 
-  const handleFormatScript = async () => {
+  const executeFormatScript = async () => {
     if (!content.trim() || isFormatting) {
       if (!content.trim()) addToast({ type: 'warning', title: '内容为空' });
       return;
@@ -542,35 +653,52 @@ function ScriptEditorContent() {
     try {
       setIsFormatting(true);
       const stopProgress = simulateProgress(taskId, 5000);
-      
+
       const result = await apiClient.formatToScript(
         content,
         formatEpisodes,
         formatMinutes,
         selectedModel
       );
-      
+
       stopProgress();
       updateTask(taskId, { status: 'completed', progress: 100 });
-      
+
       setFormattedResult({
         formatted_text: result.formatted_text,
         metadata: result.metadata,
       });
       setShowFormatDialog(true);
     } catch (error) {
-      updateTask(taskId, { 
-        status: 'failed', 
-        error: error instanceof Error ? error.message : '未知错误' 
+      updateTask(taskId, {
+        status: 'failed',
+        error: getApiErrorMessage(error, '未知错误'),
       });
-      addToast({ type: 'error', title: '格式转换失败' });
+      addToast({
+        type: 'error',
+        title: '格式转换失败',
+        message: getApiErrorMessage(error, '请稍后重试'),
+      });
     } finally {
       setIsFormatting(false);
     }
   };
 
+  const requestFormatScript = () => {
+    if (!content.trim() || isFormatting) {
+      if (!content.trim()) addToast({ type: 'warning', title: '内容为空' });
+      return;
+    }
+    if (!selectedModel) {
+      addToast({ type: 'warning', title: '请选择模型' });
+      return;
+    }
+    setPendingDestructive({ kind: 'ai', op: 'format' });
+  };
+
   const handleConfirmFormat = () => {
     if (formattedResult) {
+      pushUndoSnapshot();
       setScriptContent(formattedResult.formatted_text);
       setMode('script');
       setShowFormatDialog(false);
@@ -578,6 +706,15 @@ function ScriptEditorContent() {
       addToast({ type: 'success', title: '已保存为剧本' });
     }
   };
+
+  const aiActions = [
+    { icon: Sparkles, label: 'AI 续写', color: 'var(--accent)' },
+    { icon: History, label: 'AI 改写', color: 'var(--secondary)' },
+    { icon: Wand2, label: 'AI 优化', color: 'var(--tertiary)' },
+    { icon: ArrowRightLeft, label: '格式转换', color: 'var(--text-secondary)' },
+    { icon: BarChart3, label: '剧本解析', color: 'var(--text-secondary)' },
+    { icon: Mountain, label: '场景优化', color: 'var(--text-secondary)' },
+  ];
 
   const editorOptions = {
     fontSize: 15,
@@ -593,379 +730,955 @@ function ScriptEditorContent() {
     padding: { top: 20, bottom: 20 },
   };
 
-  const aiTools = [
-    { id: 'continue', label: 'AI续写', icon: Sparkles, color: '#007AFF', handler: handleContinueScript, loading: isContinuing, disabled: isContinuing || isRewriting || isOptimizing || !content.trim() || !selectedModel, requiresModel: true },
-    { id: 'rewrite', label: 'AI改写', icon: Wand2, color: '#10b981', handler: handleRewriteScript, loading: isRewriting, disabled: isContinuing || isRewriting || isOptimizing || !content.trim() || !selectedModel, requiresModel: true },
-    { id: 'optimize', label: 'AI优化', icon: Zap, color: '#f59e0b', handler: handleOptimizeScript, loading: isOptimizing, disabled: isContinuing || isRewriting || isOptimizing || !content.trim() || !selectedModel, requiresModel: true },
-    { id: 'format', label: '小说转剧本格式', icon: FileText, color: '#06b6d4', handler: handleFormatScript, loading: isFormatting, disabled: isFormatting || !content.trim() || !selectedModel, requiresModel: true },
-    { id: 'parse', label: '剧本解析', icon: MapPin, color: '#ec4899', handler: handleParseScenes, loading: isParsingScenes, disabled: isParsingScenes || !content.trim(), requiresModel: false },
-    { id: 'scene-optimizer', label: '场景优化', icon: FileEdit, color: '#8b5cf6', handler: () => setShowSceneOptimizerModal(true), loading: false, disabled: !content.trim(), requiresModel: false },
-  ];
+  const savedTimeLabel = lastSaved
+    ? lastSaved.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    : null;
+  const snapshot = `${title}\n${content}`;
+  const serverDirty =
+    snapshot.trim().length > 0 &&
+    (serverBaseline === null || snapshot !== serverBaseline);
+  const serverTimeLabel = lastServerSavedAt
+    ? lastServerSavedAt.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    : null;
+  const aiBusy = isContinuing || isRewriting || isOptimizing || isParsingScenes || isFormatting || isGeneratingAssets;
+
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (templateMenuRef.current && !templateMenuRef.current.contains(e.target as Node)) {
+        setShowTemplateMenu(false);
+      }
+    };
+    document.addEventListener('click', onDocClick);
+    return () => document.removeEventListener('click', onDocClick);
+  }, []);
+
+  const handleSharePage = async () => {
+    const url = window.location.href;
+    try {
+      await navigator.clipboard.writeText(url);
+      addToast({ type: 'success', title: '链接已复制' });
+    } catch {
+      addToast({ type: 'info', title: '当前链接', message: url });
+    }
+  };
+
+  const runAiAction = (label: string) => {
+    switch (label) {
+      case 'AI 续写':
+        return requestContinueScript();
+      case 'AI 改写':
+        return requestRewriteScript();
+      case 'AI 优化':
+        return requestOptimizeScript();
+      case '格式转换':
+        return requestFormatScript();
+      case '剧本解析':
+        return handleParseScenes();
+      case '场景优化':
+        return setShowSceneOptimizerModal(true);
+      default:
+        return undefined;
+    }
+  };
+
+  const handleConfirmDestructive = () => {
+    if (!pendingDestructive) return;
+    if (pendingDestructive.kind === 'template') {
+      pushUndoSnapshot();
+      setContent(pendingDestructive.text);
+      setShowTemplateMenu(false);
+      setPendingDestructive(null);
+      addToast({ type: 'success', title: '已套用模板' });
+      return;
+    }
+    const op = pendingDestructive.op;
+    setPendingDestructive(null);
+    pushUndoSnapshot();
+    void (async () => {
+      switch (op) {
+        case 'continue':
+          await executeContinueScript();
+          break;
+        case 'rewrite':
+          await executeRewriteScript();
+          break;
+        case 'optimize':
+          await executeOptimizeScript();
+          break;
+        case 'format':
+          await executeFormatScript();
+          break;
+      }
+    })();
+  };
+
+  const destructiveModalCopy =
+    pendingDestructive?.kind === 'template'
+      ? {
+          title: '套用模板',
+          description: '将用模板替换编辑器中的全部正文。若需保留当前稿，请先导出或先保存到服务器。',
+          confirm: '替换正文',
+        }
+      : pendingDestructive?.kind === 'ai'
+        ? {
+            continue: {
+              title: '确认 AI 续写',
+              description: '续写结果将替换当前编辑器中的全文。可先保存到服务器再操作。',
+              confirm: '开始续写',
+            },
+            rewrite: {
+              title: '确认 AI 改写',
+              description: '改写将替换当前全文。',
+              confirm: '开始改写',
+            },
+            optimize: {
+              title: '确认 AI 优化',
+              description: '优化将替换当前全文。',
+              confirm: '开始优化',
+            },
+            format: {
+              title: '确认格式转换',
+              description: '将调用模型把当前正文转为剧本格式，完成后可在预览中确认再写入正文。',
+              confirm: '开始转换',
+            },
+          }[pendingDestructive.op]
+        : null;
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg-page)', minHeight: '100vh' }}>
-      {/* Header */}
+    <div style={{
+      flex: 1,
+      minHeight: 0,
+      height: '100%',
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      background: 'var(--bg-base)',
+      color: 'var(--text-primary)',
+      fontFamily: 'Manrope, sans-serif',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
       <header style={{
-        height: '64px',
-        backgroundColor: 'var(--bg-header)',
-        backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid var(--border-primary)',
-        padding: '0 20px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
         flexShrink: 0,
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
+        zIndex: 40,
+        minHeight: '64px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        padding: '12px 32px',
+        background: 'var(--bg-header)',
+        backdropFilter: 'blur(24px)',
+        borderBottom: '1px solid var(--border-primary)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <Link to={`/projects/${projectId}`} style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: '36px', height: '36px', borderRadius: '10px',
-            textDecoration: 'none', color: 'var(--text-muted)',
-            transition: 'all 0.2s ease', backgroundColor: 'var(--bg-hover)',
-            border: '1px solid var(--border-primary)',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'; e.currentTarget.style.color = '#fff'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }}>
+            <Link
+              to={projectIdStr ? `/projects/${projectIdStr}` : '/projects'}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                color: 'var(--text-secondary)',
+                textDecoration: 'none',
+                fontSize: '13px',
+                fontWeight: 600,
+                flexShrink: 0,
+              }}
+            >
+              <ArrowLeft style={{ width: '18px', height: '18px' }} />
+              项目
+            </Link>
+            <div style={{ height: '16px', width: '1px', background: 'var(--border-secondary)', flexShrink: 0 }} />
+            <h1 style={{
+              fontSize: '18px',
+              fontWeight: 800,
+              background: 'var(--gradient-accent)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              letterSpacing: '-0.02em',
+              margin: 0,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}>
+              剧本编辑器
+            </h1>
+          </div>
+          <div
+            style={{
+              fontSize: '11px',
+              color: 'var(--text-tertiary)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              flexWrap: 'wrap',
+            }}
+            title="主流程：撰写 → 保存到服务器 → 解析预览 → 后续在资产页同步"
           >
-            <ArrowLeft style={{ width: '18px', height: '18px' }} />
-          </Link>
-          <div>
-            <h1 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>剧本编辑器</h1>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>{title || '未命名剧本'}</p>
+            <span style={{ fontWeight: 700, color: editorMode === 'edit' ? 'var(--accent)' : undefined }}>① 撰写</span>
+            <span style={{ opacity: 0.6 }}>→</span>
+            <span style={{ fontWeight: 700, color: !serverDirty && serverBaseline !== null ? 'var(--secondary)' : serverDirty ? 'var(--warning, #f59e0b)' : undefined }}>
+              ② 保存服务器
+            </span>
+            <span style={{ opacity: 0.6 }}>→</span>
+            <span style={{ fontWeight: 700, color: editorMode === 'preview' || hasParsedResult ? 'var(--accent)' : undefined }}>③ 解析预览</span>
+            <span style={{ opacity: 0.6 }}>→</span>
+            <span style={{ opacity: 0.75 }}>④ 同步资产</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+            {isSaving ? (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Loader2 style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite' }} />
+                正在保存到服务器…
+              </span>
+            ) : serverDirty ? (
+              <span style={{ color: 'var(--warning, #f59e0b)', fontWeight: 600 }}>有修改未保存到服务器（Ctrl+S）</span>
+            ) : serverBaseline !== null ? (
+              <span style={{ color: 'var(--secondary)' }}>服务器已保存 {serverTimeLabel ?? ''}</span>
+            ) : (
+              <span>尚未保存到服务器</span>
+            )}
+            <span style={{ opacity: 0.5 }}>|</span>
+            <span>
+              {autoSaveEnabled
+                ? savedTimeLabel
+                  ? `本地草稿 ${savedTimeLabel}`
+                  : '本地草稿将自动缓存'
+                : '本地自动缓存已关闭'}
+            </span>
+            {undoStack.length > 0 && (
+              <button
+                type="button"
+                onClick={handleUndoLast}
+                title="撤销上一次正文替换（如 AI 或模板）"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-primary)',
+                  background: 'var(--bg-input)',
+                  color: 'var(--text-primary)',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                <RotateCcw style={{ width: '12px', height: '12px' }} />
+                撤销
+              </button>
+            )}
           </div>
         </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button onClick={() => setAutoSaveEnabled(!autoSaveEnabled)} style={{
-            display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px',
-            borderRadius: '10px', border: '1px solid var(--border-primary)',
-            background: autoSaveEnabled ? 'rgba(99, 102, 241, 0.15)' : 'var(--bg-hover)',
-            color: autoSaveEnabled ? '#6366f1' : 'var(--text-secondary)',
-            fontSize: '13px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.2s ease',
-          }}>
-            <Clock style={{ width: '14px', height: '14px' }} />
-            {autoSaveEnabled ? '自动保存' : '手动保存'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0, paddingTop: '2px' }}>
+          <button
+            type="button"
+            onClick={() => toggleTheme()}
+            title="切换主题"
+            style={{
+              width: '40px',
+              height: '40px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '12px',
+              background: 'var(--bg-input)',
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--border-primary)',
+              cursor: 'pointer',
+            }}
+          >
+            {resolvedTheme === 'dark' ? (
+              <Moon style={{ width: '20px', height: '20px' }} />
+            ) : (
+              <Sun style={{ width: '20px', height: '20px' }} />
+            )}
           </button>
-
-          <div style={{ position: 'relative' }}>
-            <button onClick={() => setShowTemplateMenu(!showTemplateMenu)} style={{
-              display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px',
-              borderRadius: '10px', border: '1px solid var(--border-primary)',
-              background: 'var(--bg-hover)', color: 'var(--text-primary)',
-              fontSize: '13px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.2s ease',
-            }}>
-              <Type style={{ width: '14px', height: '14px' }} />
-              模板
-              <ChevronDown style={{ width: '12px', height: '12px', transform: showTemplateMenu ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+          <button
+            type="button"
+            onClick={() => void handleSave()}
+            disabled={isSaving || !title.trim() || !content.trim() || !serverDirty}
+            title="保存到服务器（Ctrl+S）"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 16px',
+              borderRadius: '12px',
+              background: serverDirty ? 'var(--accent)' : 'var(--bg-input)',
+              color: serverDirty ? 'var(--accent-text, #fff)' : 'var(--text-tertiary)',
+              border: serverDirty ? 'none' : '1px solid var(--border-primary)',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: isSaving || !title.trim() || !content.trim() || !serverDirty ? 'not-allowed' : 'pointer',
+              opacity: !title.trim() || !content.trim() ? 0.5 : 1,
+            }}
+          >
+            {isSaving ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Save style={{ width: '16px', height: '16px' }} />}
+            保存
+          </button>
+          <div ref={templateMenuRef} style={{ position: 'relative' }}>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowTemplateMenu((v) => !v);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 16px',
+                borderRadius: '9999px',
+                border: '1px solid var(--border-primary)',
+                background: 'var(--bg-input)',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              剧本模板
+              <ChevronDown style={{ width: '18px', height: '18px' }} />
             </button>
             {showTemplateMenu && (
-              <div style={{
-                position: 'absolute', top: '100%', right: 0, marginTop: '8px',
-                background: 'var(--bg-card)', backdropFilter: 'blur(20px)',
-                border: '1px solid var(--border-primary)', borderRadius: '14px',
-                boxShadow: '0 20px 40px rgba(0,0,0,0.15)', minWidth: '200px', zIndex: 100, overflow: 'hidden',
-              }} onClick={(e) => e.stopPropagation()}>
-                {SCRIPT_TEMPLATES.map((tmpl, idx) => (
-                  <div key={idx} onClick={() => applyTemplate(tmpl.template)} style={{
-                    padding: '14px 18px', cursor: 'pointer',
-                    borderBottom: idx < SCRIPT_TEMPLATES.length - 1 ? '1px solid var(--border-primary)' : 'none',
-                    color: 'var(--text-primary)', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '10px',
-                    transition: 'background-color 0.2s ease',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '8px',
+                  minWidth: '220px',
+                  padding: '8px',
+                  borderRadius: '12px',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-primary)',
+                  boxShadow: 'var(--shadow-card)',
+                  zIndex: 60,
+                }}
+              >
+                {SCRIPT_TEMPLATES.map((t) => (
+                  <button
+                    key={t.name}
+                    type="button"
+                    onClick={() => requestApplyTemplate(t.template)}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: 'transparent',
+                      color: 'var(--text-primary)',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                    }}
                   >
-                    <span style={{ fontSize: '18px' }}>{tmpl.icon}</span>
-                    {tmpl.name}
-                  </div>
+                    {t.icon} {t.name}
+                  </button>
                 ))}
               </div>
             )}
           </div>
-
-          <button onClick={handleImport} style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: '36px', height: '36px', borderRadius: '10px',
-            border: '1px solid var(--border-primary)', background: 'var(--bg-hover)',
-            color: 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.2s ease',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-input)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+          <button
+            type="button"
+            onClick={handleSharePage}
+            style={{
+              padding: '6px 16px',
+              borderRadius: '9999px',
+              background: 'var(--bg-elevated)',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-primary)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
           >
-            <Upload style={{ width: '16px', height: '16px' }} />
+            分享
           </button>
-
-          <button onClick={handleExport} style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: '36px', height: '36px', borderRadius: '10px',
-            border: '1px solid var(--border-primary)', background: 'var(--bg-hover)',
-            color: 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.2s ease',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-input)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+          <button
+            type="button"
+            onClick={handleExport}
+            style={{
+              padding: '6px 20px',
+              borderRadius: '9999px',
+              background: 'var(--gradient-accent)',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: 'var(--accent-text)',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: 'var(--shadow-accent)',
+            }}
           >
-            <FileDown style={{ width: '16px', height: '16px' }} />
+            导出文本
           </button>
-
-          <button onClick={handleSave} disabled={isSaving || !title || !content} style={{
-            display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
-            borderRadius: '10px', border: 'none',
-            background: isSaving || !title || !content ? 'var(--bg-hover)' : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-            color: isSaving || !title || !content ? 'var(--text-muted)' : '#fff',
-            fontSize: '13px', fontWeight: '500', cursor: isSaving || !title || !content ? 'not-allowed' : 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: isSaving || !title || !content ? 'none' : '0 4px 14px rgba(99, 102, 241, 0.3)',
-          }}>
-            {isSaving ? <Loader2 style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite' }} /> : <Save style={{ width: '14px', height: '14px' }} />}
-            {isSaving ? '保存中...' : '保存'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '4px' }}>
+            <Bell style={{ width: '20px', height: '20px', color: 'var(--text-secondary)', cursor: 'default', opacity: 0.5 }} title="通知即将推出" />
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              background: 'var(--accent-bg)',
+              border: '1px solid var(--accent)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: 'var(--accent)',
+            }}>
+              {user?.avatar_url ? (
+                <img
+                  alt=""
+                  src={user.avatar_url}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                (user?.name || user?.email || '?').slice(0, 1).toUpperCase()
+              )}
+            </div>
+          </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        {/* Editor */}
-        <div style={{ flex: 1, overflowY: 'auto', display: editorMode === 'edit' ? 'block' : 'none' }}>
-          <div style={{ height: '100%', padding: '16px', paddingRight: showAIPanel ? '280px' : '16px', transition: 'padding-right 0.3s ease' }}>
-            <div style={{
-              height: 'calc(100vh - 112px)', borderRadius: '16px', overflow: 'hidden',
-              border: '1px solid var(--border-primary)', background: 'var(--bg-card)',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-            }}>
-              <MonacoEditor height="100%" language="plaintext" theme={theme === 'dark' ? 'vs-dark' : 'vs-light'} value={content} onChange={(value) => setContent(value || '')} options={editorOptions} onSave={handleSave} />
-            </div>
-            <div style={{ height: '32px', marginTop: '8px', padding: '0 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><FileText style={{ width: '10px', height: '10px' }} />{content.length} 字符</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><LayoutGrid style={{ width: '10px', height: '10px' }} />{content.split('\n').length} 行</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: autoSaveEnabled ? '#10b981' : 'var(--text-muted)', boxShadow: autoSaveEnabled ? '0 0 8px rgba(16, 185, 129, 0.5)' : 'none' }} />
-                <span>{lastSaved ? `已保存 ${lastSaved.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}` : '准备就绪'}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Preview */}
-        {editorMode === 'preview' && (
-          <ScriptPreviewPanel
-            scenes={parsedScenes}
-            characters={characters}
-            items={parsedItems}
-            onEdit={() => setEditorMode('edit')}
-            onGenerateAssets={handleGenerateAssets}
-            isGenerating={isGeneratingAssets}
-            onParse={parseScript}
-            isParsing={loading || isParsingScenes}
-            hasContent={!!content}
-          />
-        )}
-      </div>
-
-      {/* AI Panel */}
-      <div style={{
-        position: 'fixed', top: '80px',
-        right: showAIPanel ? '16px' : '-260px',
-        width: '240px', display: 'flex', flexDirection: 'column', gap: '12px',
-        zIndex: 50, transition: 'right 0.3s ease',
+      <main style={{
+        flex: 1,
+        minHeight: 0,
+        display: 'flex',
+        overflow: 'hidden',
       }}>
-        <button onClick={() => setShowAIPanel(!showAIPanel)} style={{
-          position: 'absolute', left: '-36px', top: '0',
-          width: '32px', height: '32px', borderRadius: '10px 0 0 10px',
-          border: '1px solid var(--border-primary)', borderRight: 'none',
-          background: 'var(--bg-card)', backdropFilter: 'blur(20px)',
-          color: 'var(--text-muted)', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'all 0.2s ease',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'; e.currentTarget.style.color = '#fff'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
-        >
-          <ChevronRight style={{ width: '16px', height: '16px', transform: showAIPanel ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease' }} />
-        </button>
-
-        <div style={{
-          display: 'flex', flexDirection: 'column', gap: '12px', padding: '20px',
-          background: 'var(--bg-card)', backdropFilter: 'blur(20px)',
-          borderRadius: '16px', border: '1px solid var(--border-primary)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+        <section style={{
+          flex: 1,
+          background: 'var(--bg-page)',
+          display: 'flex',
+          flexDirection: 'column',
+          minWidth: 0,
+          overflow: 'hidden',
         }}>
-          <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-            <div style={{
-              width: '44px', height: '44px', borderRadius: '12px',
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 12px', boxShadow: '0 4px 14px rgba(99, 102, 241, 0.3)',
-            }}>
-              <Sparkles style={{ width: '22px', height: '22px', color: 'white' }} />
-            </div>
-            <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>AI 剧本助手</div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>智能创作辅助工具</div>
-          </div>
-
-          <div style={{ padding: '10px', borderRadius: '10px', background: 'var(--bg-hover)', marginBottom: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: '500' }}>剧本解析模式</span>
-              <span style={{
-                fontSize: '10px', color: useAIParsing ? '#10b981' : '#f59e0b',
-                fontWeight: '600', padding: '2px 6px', borderRadius: '4px',
-                background: useAIParsing ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)'
-              }}>
-                {useAIParsing ? 'AI智能' : '快速正则'}
-              </span>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', background: 'var(--bg-input)', borderRadius: '6px', padding: '3px' }}>
-              <button onClick={() => setUseAIParsing(true)} style={{
-                flex: 1, padding: '6px 8px', borderRadius: '5px', border: 'none',
-                background: useAIParsing ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' : 'transparent',
-                color: useAIParsing ? '#fff' : 'var(--text-muted)',
-                fontSize: '11px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.2s ease'
-              }}>AI智能解析</button>
-              <button onClick={() => setUseAIParsing(false)} style={{
-                flex: 1, padding: '6px 8px', borderRadius: '5px', border: 'none',
-                background: !useAIParsing ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' : 'transparent',
-                color: !useAIParsing ? '#fff' : 'var(--text-muted)',
-                fontSize: '11px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.2s ease'
-              }}>快速正则</button>
-            </div>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: '1.4' }}>
-              {useAIParsing ? '使用AI深度理解上下文，适合复杂剧本' : '快速解析，适合标准格式剧本'}
-            </div>
-          </div>
-
-          <div style={{ padding: '10px', borderRadius: '10px', background: 'var(--bg-hover)', marginBottom: '12px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: '500', marginBottom: '10px' }}>
-              小说转剧本格式配置
-            </div>
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>集数</label>
-                <input
-                  type="number"
-                  value={formatEpisodes}
-                  onChange={(e) => setFormatEpisodes(parseInt(e.target.value) || 1)}
-                  min={1}
-                  max={100}
-                  style={{
-                    width: '100%',
-                    padding: '6px 10px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border-primary)',
-                    background: 'var(--bg-input)',
-                    color: 'var(--text-primary)',
-                    fontSize: '12px',
-                    outline: 'none',
-                  }}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>每集时长(分钟)</label>
-                <input
-                  type="number"
-                  value={formatMinutes}
-                  onChange={(e) => setFormatMinutes(parseInt(e.target.value) || 1)}
-                  min={1}
-                  max={180}
-                  style={{
-                    width: '100%',
-                    padding: '6px 10px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border-primary)',
-                    background: 'var(--bg-input)',
-                    color: 'var(--text-primary)',
-                    fontSize: '12px',
-                    outline: 'none',
-                  }}
-                />
-              </div>
-            </div>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-              总时长约 {formatEpisodes * formatMinutes} 分钟
-            </div>
-          </div>
-
-          {aiTools.map((tool) => {
-            const toolColors: Record<string, string> = { '#007AFF': '#3b82f6', '#10b981': '#10b981', '#f59e0b': '#f59e0b', '#ec4899': '#ec4899', '#8b5cf6': '#8b5cf6', '#06b6d4': '#06b6d4' };
-            const color = toolColors[tool.color] || tool.color;
-            
-            const handleClick = () => {
-              if (tool.disabled) {
-                if (!content.trim()) {
-                  addToast({ type: 'warning', title: '请先输入内容' });
-                } else if (tool.requiresModel && !selectedModel) {
-                  addToast({ type: 'warning', title: '请先选择AI模型' });
-                }
-                return;
-              }
-              tool.handler();
-            };
-            
-            return (
-              <button key={tool.id} onClick={handleClick} disabled={tool.loading} style={{
-                display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px',
-                borderRadius: '12px', border: `1px solid ${tool.disabled ? 'var(--border-primary)' : `${color}30`}`,
-                background: `${color}08`, color: tool.disabled ? 'var(--text-muted)' : color,
-                fontSize: '13px', fontWeight: '500', cursor: tool.loading ? 'wait' : 'pointer',
-                transition: 'all 0.2s ease', width: '100%', textAlign: 'left', opacity: tool.disabled ? 0.6 : 1,
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+            padding: '12px 32px',
+            borderBottom: '1px solid var(--border-primary)',
+            background: 'var(--bg-surface)',
+            backdropFilter: 'blur(12px)',
+          }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                padding: '3px',
+                borderRadius: '10px',
+                background: 'var(--bg-page)',
+                border: '1px solid var(--border-primary)',
+                gap: '2px',
               }}
-              onMouseEnter={(e) => { if (!tool.disabled) { e.currentTarget.style.background = `${color}15`; e.currentTarget.style.borderColor = `${color}50`; e.currentTarget.style.transform = 'translateX(4px)'; } }}
-              onMouseLeave={(e) => { if (!tool.disabled) { e.currentTarget.style.background = `${color}08`; e.currentTarget.style.borderColor = `${color}30`; e.currentTarget.style.transform = 'translateX(0)'; } }}
+              title="在正文编辑与解析预览（含生成资产）之间切换"
+            >
+              <button
+                type="button"
+                onClick={() => setEditorMode('edit')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: editorMode === 'edit' ? 'var(--accent-bg)' : 'transparent',
+                  color: editorMode === 'edit' ? 'var(--accent)' : 'var(--text-muted)',
+                }}
               >
-                {tool.loading ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <tool.icon style={{ width: '16px', height: '16px' }} />}
-                {tool.loading ? `${tool.label}中...` : tool.label}
+                <Pencil style={{ width: '14px', height: '14px' }} />
+                编辑
               </button>
-            );
-          })}
-
-          <div style={{ height: '1px', background: 'var(--border-primary)', margin: '4px 0' }} />
-
-          <div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: '500' }}>选择AI模型</div>
-            <ModelSelector content_type="script" value={selectedModel} on_change={setSelectedModel} placeholder="选择模型" show_last_used={true} show_default={true} />
+              <button
+                type="button"
+                disabled={!hasParsedResult || parsedScenes.length === 0}
+                onClick={() => setEditorMode('preview')}
+                title={
+                  !hasParsedResult || parsedScenes.length === 0
+                    ? '请先点击「剧本解析」或侧栏解析，成功解析后可在此预览并生成资产'
+                    : '查看解析结果并生成角色 / 场景 / 分镜等资产'
+                }
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor:
+                    !hasParsedResult || parsedScenes.length === 0 ? 'not-allowed' : 'pointer',
+                  opacity: !hasParsedResult || parsedScenes.length === 0 ? 0.45 : 1,
+                  background: editorMode === 'preview' ? 'var(--accent-bg)' : 'transparent',
+                  color: editorMode === 'preview' ? 'var(--accent)' : 'var(--text-muted)',
+                }}
+              >
+                <Eye style={{ width: '14px', height: '14px' }} />
+                预览与资产
+              </button>
+            </div>
+            <div style={{ height: '16px', width: '1px', background: 'var(--border-secondary)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} title="纯文本剧本，请直接按剧本文法书写">
+              <FileText style={{ width: '18px', height: '18px', color: 'var(--text-tertiary)', opacity: 0.6 }} />
+              <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>纯文本编辑</span>
+            </div>
+            <div style={{ height: '16px', width: '1px', background: 'var(--border-secondary)' }} />
+            <button
+              type="button"
+              disabled={aiBusy || !content.trim()}
+              onClick={requestRewriteScript}
+              title="使用右侧所选模型改写全文（确认后执行）"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '4px 12px',
+                borderRadius: '8px',
+                background: 'var(--accent-bg)',
+                color: 'var(--accent)',
+                fontSize: '12px',
+                fontWeight: 700,
+                border: 'none',
+                cursor: aiBusy || !content.trim() ? 'not-allowed' : 'pointer',
+                opacity: aiBusy || !content.trim() ? 0.55 : 1,
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {isRewriting ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Zap style={{ width: '16px', height: '16px' }} />}
+              AI 改写
+            </button>
+            <button
+              type="button"
+              disabled={aiBusy || !content.trim()}
+              onClick={handleParseScenes}
+              title="解析场景结构（与侧栏「剧本解析」相同）"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '4px 12px',
+                borderRadius: '8px',
+                background: 'var(--secondary-bg)',
+                color: 'var(--secondary)',
+                fontSize: '12px',
+                fontWeight: 700,
+                border: 'none',
+                cursor: aiBusy || !content.trim() ? 'not-allowed' : 'pointer',
+                opacity: aiBusy || !content.trim() ? 0.55 : 1,
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {isParsingScenes ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <TrendingUp style={{ width: '16px', height: '16px' }} />}
+              剧本解析
+            </button>
           </div>
 
-          <div style={{ height: '1px', background: 'var(--border-primary)', margin: '4px 0' }} />
+          <div style={{
+            flex: 1,
+            overflow: 'hidden',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+            {editorMode === 'edit' ? (
+              <div style={{ flex: 1, minHeight: 0, borderRadius: '16px', overflow: 'hidden' }}>
+                <MonacoEditor
+                  height="100%"
+                  language="plaintext"
+                  theme={resolvedTheme === 'dark' ? 'vs-dark' : 'vs-light'}
+                  value={content}
+                  onChange={(value) => setContent(value || '')}
+                  options={{ ...editorOptions, wordWrap: 'on' }}
+                  onSave={handleSave}
+                />
+              </div>
+            ) : (
+              <ScriptPreviewPanel
+                scenes={parsedScenes}
+                characters={characters}
+                items={parsedItems}
+                onEdit={() => setEditorMode('edit')}
+                onGenerateAssets={handleGenerateAssets}
+                isGenerating={isGeneratingAssets}
+                onParse={parseScript}
+                isParsing={loading || isParsingScenes}
+                hasContent={!!content}
+              />
+            )}
+          </div>
+        </section>
 
-          <button onClick={() => setEditorMode(editorMode === 'edit' ? 'preview' : 'edit')} style={{
-            display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px',
-            borderRadius: '12px', border: '1px solid var(--border-primary)',
-            background: 'var(--bg-hover)', color: 'var(--text-primary)',
-            fontSize: '13px', fontWeight: '500', cursor: 'pointer',
-            transition: 'all 0.2s ease', width: '100%', textAlign: 'left',
+        {!isFullscreen && (
+        <aside style={{
+          width: '320px',
+          minWidth: '320px',
+          maxWidth: '320px',
+          background: 'var(--bg-card)',
+          backdropFilter: 'blur(40px)',
+          borderLeft: '1px solid var(--border-primary)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            padding: '24px',
+            borderBottom: '1px solid var(--border-primary)',
+          }}>
+            <h2 style={{
+              fontSize: '14px',
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: 'var(--accent)',
+              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              letterSpacing: '-0.02em',
+            }}>
+              <Sparkles style={{ width: '20px', height: '20px' }} />
+              AI 剧本助手
+            </h2>
+          </div>
+
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px', overflowX: 'hidden' }}>
+            <div style={{ marginBottom: '32px' }}>
+              <p style={{
+                fontSize: '10px',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.15em',
+                color: 'var(--text-secondary)',
+                marginBottom: '16px',
+              }}>
+                剧本解析模式
+              </p>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '4px',
+                padding: '4px',
+                background: 'var(--bg-page)',
+                borderRadius: '12px',
+                border: '1px solid var(--border-primary)',
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setUseAIParsing(true)}
+                  style={{
+                    padding: '8px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    borderRadius: '8px',
+                    background: useAIParsing ? 'var(--bg-elevated)' : 'transparent',
+                    color: useAIParsing ? 'var(--accent)' : 'var(--text-secondary)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxShadow: useAIParsing ? '0 2px 8px var(--shadow-md)' : 'none',
+                  }}
+                >
+                  AI 智能
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUseAIParsing(false)}
+                  style={{
+                    padding: '8px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    borderRadius: '8px',
+                    background: !useAIParsing ? 'var(--bg-elevated)' : 'transparent',
+                    color: !useAIParsing ? 'var(--accent)' : 'var(--text-secondary)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxShadow: !useAIParsing ? '0 2px 8px var(--shadow-md)' : 'none',
+                  }}
+                >
+                  快速正则
+                </button>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '32px' }}>
+              <p style={{
+                fontSize: '10px',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.15em',
+                color: 'var(--text-secondary)',
+                marginBottom: '16px',
+              }}>
+                小说转剧本格式配置
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>预期集数</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={formatEpisodes}
+                    onChange={(e) => setFormatEpisodes(Math.max(1, Number(e.target.value) || 1))}
+                    style={{
+                      width: '64px',
+                      background: 'var(--bg-page)',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '8px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      color: 'var(--accent)',
+                      textAlign: 'center',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>单集时长 (min)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={formatMinutes}
+                    onChange={(e) => setFormatMinutes(Math.max(1, Number(e.target.value) || 1))}
+                    style={{
+                      width: '64px',
+                      background: 'var(--bg-page)',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '8px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      color: 'var(--accent)',
+                      textAlign: 'center',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <p style={{
+                fontSize: '10px',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.15em',
+                color: 'var(--text-secondary)',
+                marginBottom: '16px',
+              }}>
+                核心指令
+              </p>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '12px',
+              }}>
+                {aiActions.map((action, index) => {
+                  const needsContent = action.label !== '场景优化';
+                  const needsModel =
+                    action.label === 'AI 续写' ||
+                    action.label === 'AI 改写' ||
+                    action.label === 'AI 优化' ||
+                    action.label === '格式转换' ||
+                    (action.label === '剧本解析' && useAIParsing);
+                  const disabled =
+                    aiBusy ||
+                    (needsContent && !content.trim()) ||
+                    (needsModel && !selectedModel);
+                  return (
+                  <button
+                    key={index}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => runAiAction(action.label)}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '12px',
+                      borderRadius: '16px',
+                      background: 'var(--bg-surface)',
+                      border: '1px solid var(--border-primary)',
+                      cursor: disabled ? 'not-allowed' : 'pointer',
+                      opacity: disabled ? 0.5 : 1,
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (disabled) return;
+                      e.currentTarget.style.borderColor = action.color;
+                      e.currentTarget.style.background = 'var(--bg-hover)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-primary)';
+                      e.currentTarget.style.background = 'var(--bg-surface)';
+                    }}
+                  >
+                    <action.icon style={{ width: '22px', height: '22px', color: action.color, marginBottom: '4px' }} />
+                    <span style={{
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      color: 'var(--text-primary)',
+                      textAlign: 'center',
+                    }}>
+                      {action.label}
+                    </span>
+                  </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            padding: '24px',
+            background: 'var(--bg-surface)',
+            backdropFilter: 'blur(24px)',
+            borderTop: '1px solid var(--border-primary)',
+          }}>
+            <div style={{ marginBottom: '16px' }}>
+              <p style={{
+                fontSize: '10px',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                color: 'var(--text-secondary)',
+                marginBottom: '8px',
+              }}>
+                模型
+              </p>
+              <ModelSelector
+                content_type="script"
+                value={selectedModel}
+                on_change={setSelectedModel}
+                auto_select_when_empty={true}
+                show_last_used={true}
+                show_default={true}
+                placeholder="选择剧本模型"
+                style={{ width: '100%' }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsFullscreen((v) => !v)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '12px',
+                borderRadius: '14px',
+                background: 'var(--bg-elevated)',
+                backdropFilter: 'blur(40px)',
+                border: '1px solid var(--border-primary)',
+                fontSize: '12px',
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+                color: 'var(--text-primary)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <Maximize style={{ width: '20px', height: '20px' }} />
+              {isFullscreen ? '退出全屏编辑' : '进入全屏编辑'}
+            </button>
+          </div>
+        </aside>
+        )}
+      </main>
+
+      {isFullscreen && (
+        <button
+          type="button"
+          onClick={() => setIsFullscreen(false)}
+          style={{
+            position: 'absolute',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 45,
+            padding: '10px 16px',
+            borderRadius: '12px',
+            border: '1px solid var(--border-primary)',
+            background: 'var(--bg-elevated)',
+            color: 'var(--text-primary)',
+            fontSize: '12px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: 'var(--shadow-card)',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-input)'; e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.borderColor = 'var(--border-primary)'; }}
-          >
-            {editorMode === 'edit' ? <Eye style={{ width: '16px', height: '16px' }} /> : <FileEdit style={{ width: '16px', height: '16px' }} />}
-            {editorMode === 'edit' ? '预览模式' : '编辑模式'}
-          </button>
+        >
+          显示 AI 助手
+        </button>
+      )}
 
-          <button onClick={() => setIsFullscreen(!isFullscreen)} style={{
-            display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px',
-            borderRadius: '12px', border: '1px solid var(--border-primary)',
-            background: 'var(--bg-hover)', color: 'var(--text-primary)',
-            fontSize: '13px', fontWeight: '500', cursor: 'pointer',
-            transition: 'all 0.2s ease', width: '100%', textAlign: 'left',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-input)'; e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.borderColor = 'var(--border-primary)'; }}
-          >
-            {isFullscreen ? <Minimize2 style={{ width: '16px', height: '16px' }} /> : <Maximize2 style={{ width: '16px', height: '16px' }} />}
-            {isFullscreen ? '退出全屏' : '全屏编辑'}
-          </button>
-        </div>
-      </div>
+      <div style={{
+        position: 'fixed',
+        top: '-10%',
+        right: '-10%',
+        width: '40%',
+        height: '40%',
+        background: 'var(--accent-glow)',
+        borderRadius: '50%',
+        filter: 'blur(120px)',
+        pointerEvents: 'none',
+        zIndex: -1,
+      }} />
+      <div style={{
+        position: 'fixed',
+        bottom: '-10%',
+        left: '5%',
+        width: '30%',
+        height: '30%',
+        background: 'var(--tertiary-glow)',
+        borderRadius: '50%',
+        filter: 'blur(100px)',
+        pointerEvents: 'none',
+        zIndex: -1,
+      }} />
 
-      {/* Modals */}
+      <ConfirmModal
+        open={!!pendingDestructive && !!destructiveModalCopy}
+        onClose={() => setPendingDestructive(null)}
+        onConfirm={handleConfirmDestructive}
+        title={destructiveModalCopy?.title ?? ''}
+        description={destructiveModalCopy?.description ?? ''}
+        confirmText={destructiveModalCopy?.confirm ?? '确定'}
+        cancelText="取消"
+        confirmVariant={pendingDestructive?.kind === 'template' ? 'danger' : 'primary'}
+        icon="warning"
+      />
+
+      <ConfirmModal
+        open={showReparseConfirm}
+        onClose={() => setShowReparseConfirm(false)}
+        onConfirm={() => void executeParse()}
+        title="重新解析剧本"
+        description="当前已有解析结果，重新解析将用新结果替换场景列表与预览。是否继续？"
+        confirmText="重新解析"
+        cancelText="取消"
+        confirmVariant="primary"
+        icon="warning"
+      />
+
       <SceneOptimizer
         is_open={showSceneOptimizerModal}
         on_close={() => setShowSceneOptimizerModal(false)}
         script_content={content}
         on_apply_optimization={(optimized_content) => {
+          pushUndoSnapshot();
           setContent(optimized_content);
           addToast({ type: 'success', title: '优化已应用' });
         }}
@@ -982,77 +1695,14 @@ function ScriptEditorContent() {
         metadata={formattedResult?.metadata}
       />
 
-      {/* Reparse Confirm Modal */}
-      {showReparseConfirm && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.6)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          backdropFilter: 'blur(4px)',
-        }}>
-          <div style={{
-            background: 'var(--bg-surface)',
-            borderRadius: '16px',
-            padding: '24px',
-            maxWidth: '400px',
-            width: '90%',
-            border: '1px solid var(--border-primary)',
-            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <AlertCircle style={{ width: '24px', height: '24px', color: '#f59e0b' }} />
-              <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--text-primary)' }}>重新解析确认</h3>
-            </div>
-            <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-              已有解析结果（{parsedScenes.length} 个场景、{characters.length} 个角色、{parsedItems.length} 个物品）。<br />
-              是否要重新解析？这将覆盖当前结果。
-            </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setShowReparseConfirm(false)}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-primary)',
-                  background: 'transparent',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                }}
-              >
-                取消
-              </button>
-              <button
-                onClick={executeParse}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: '#f59e0b',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                }}
-              >
-                重新解析
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <AIProcessingProgress tasks={tasks} onClear={removeCompletedTasks} />
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--accent-bg); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
       `}</style>
     </div>
   );

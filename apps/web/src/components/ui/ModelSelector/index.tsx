@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { Star, Clock } from 'lucide-react';
 import { apiClient } from '../../../lib/api';
 import { ModelSelectorProps, ContentType, AIProviderModel } from './types';
@@ -22,12 +22,32 @@ export function ModelSelector({
   style,
   disabled = false,
   placeholder = '选择模型',
+  auto_select_when_empty = false,
 }: ModelSelectorProps) {
   const [is_open, set_is_open] = useState(false);
   const [search_value, set_search_value] = useState('');
   const container_ref = useRef<HTMLDivElement>(null);
 
   const { state, actions } = use_model_selector_state(content_type);
+
+  useEffect(() => {
+    if (!auto_select_when_empty || value) return;
+    if (state.loading || state.models.length === 0) return;
+    const def_id = state.default_models[content_type];
+    const pick =
+      def_id && state.models.some(m => m.id === def_id)
+        ? def_id
+        : state.models[0].id;
+    if (pick) on_change(pick);
+  }, [
+    auto_select_when_empty,
+    value,
+    state.loading,
+    state.models,
+    state.default_models,
+    content_type,
+    on_change,
+  ]);
 
   const handle_refresh = useCallback(() => {
     actions.load_models(true);

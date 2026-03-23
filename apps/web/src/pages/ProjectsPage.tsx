@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, MoreVertical, FolderKanban, FileText, BookOpen, Layers, Calendar, LayoutGrid, LayoutList, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { apiClient, Project } from '../lib/api';
+import { StatCard } from '../components/projects/StatCard';
+import { FilterSelect } from '../components/projects/FilterSelect';
+import { ProjectCard } from '../components/projects/ProjectCard';
 import { useTheme } from '../contexts/ThemeContext';
 
 export default function ProjectsPage() {
+  const navigate = useNavigate();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   const [projects, setProjects] = useState<Project[]>([]);
@@ -15,7 +18,60 @@ export default function ProjectsPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const navigate = useNavigate();
+  const [newProjectHover, setNewProjectHover] = useState(false);
+  const [createHover, setCreateHover] = useState(false);
+
+  const colors = isDark ? {
+    bgBase: '#05050a',
+    bgSurface: '#0a0a12',
+    bgElevated: '#0f0f1a',
+    bgPage: '#050505',
+    bgHeader: 'rgba(5, 5, 10, 0.95)',
+    bgGlass: 'rgba(5, 5, 10, 0.6)',
+    bgGlassHover: 'rgba(255, 255, 255, 0.06)',
+    bgSecondary: 'rgba(255, 255, 255, 0.03)',
+    bgInput: 'rgba(255, 255, 255, 0.04)',
+    textPrimary: '#dfe4fe',
+    textSecondary: '#a5aac2',
+    textMuted: 'rgba(165, 170, 194, 0.8)',
+    border: 'rgba(65, 71, 91, 0.15)',
+    borderLight: 'rgba(255, 255, 255, 0.05)',
+    borderHover: 'rgba(139, 92, 246, 0.25)',
+    accent: '#ba9eff',
+    accentLight: '#ae8dff',
+    accentDim: '#8455ef',
+    onAccent: '#39008c',
+    shadowAccent: 'rgba(186, 158, 255, 0.3)',
+    surfaceContainerLow: '#0c1326',
+    surfaceContainerHigh: '#1c253e',
+    hoverBg: 'rgba(255, 255, 255, 0.05)',
+    glassBg: 'rgba(28, 37, 62, 0.4)',
+  } : {
+    bgBase: '#f5f5f5',
+    bgSurface: '#ffffff',
+    bgElevated: '#ffffff',
+    bgPage: '#f5f5f5',
+    bgHeader: 'rgba(255, 255, 255, 0.95)',
+    bgGlass: 'rgba(255, 255, 255, 0.8)',
+    bgGlassHover: 'rgba(0, 0, 0, 0.04)',
+    bgSecondary: 'rgba(0, 0, 0, 0.02)',
+    bgInput: 'rgba(0, 0, 0, 0.04)',
+    textPrimary: '#18181b',
+    textSecondary: 'rgba(24, 24, 27, 0.6)',
+    textMuted: 'rgba(24, 24, 27, 0.4)',
+    border: 'rgba(0, 0, 0, 0.06)',
+    borderLight: 'rgba(0, 0, 0, 0.04)',
+    borderHover: 'rgba(139, 92, 246, 0.25)',
+    accent: '#8b5cf6',
+    accentLight: '#a78bfa',
+    accentDim: '#7c3aed',
+    onAccent: '#ffffff',
+    shadowAccent: 'rgba(139, 92, 246, 0.3)',
+    surfaceContainerLow: '#f1f5f9',
+    surfaceContainerHigh: '#e2e8f0',
+    hoverBg: 'rgba(0, 0, 0, 0.04)',
+    glassBg: 'rgba(255, 255, 255, 0.9)',
+  };
 
   useEffect(() => {
     setPage(1);
@@ -26,7 +82,7 @@ export default function ProjectsPage() {
       setLoading(true);
       const response = await apiClient.getProjects({
         page,
-        limit: viewMode === 'grid' ? 9 : 10,
+        limit: viewMode === 'grid' ? 12 : 10,
         search: searchQuery || undefined,
         type: filterType !== 'all' ? filterType : undefined,
         status: filterStatus !== 'all' ? filterStatus : undefined,
@@ -47,68 +103,28 @@ export default function ProjectsPage() {
   const getProjectTypeConfig = useCallback((type: string) => {
     switch (type) {
       case 'SCRIPT':
-        return {
-          icon: FileText,
-          gradient: 'linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%)',
-          label: '剧本',
-          color: '#0ea5e9',
-        };
+        return { icon: 'description' as any, gradient: 'linear-gradient(135deg, #ba9eff 0%, #ae8dff 100%)', label: '剧本', color: '#ba9eff' };
       case 'NOVEL':
-        return {
-          icon: BookOpen,
-          gradient: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
-          label: '小说',
-          color: '#8b5cf6',
-        };
+        return { icon: 'menu_book' as any, gradient: 'linear-gradient(135deg, #ec63ff 0%, #f487ff 100%)', label: '小说', color: '#ec63ff' };
       case 'MIXED':
-        return {
-          icon: Layers,
-          gradient: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)',
-          label: '混合',
-          color: '#f59e0b',
-        };
+        return { icon: 'auto_awesome' as any, gradient: 'linear-gradient(135deg, #34b5fa 0%, #81ccff 100%)', label: '混合', color: '#34b5fa' };
       default:
-        return {
-          icon: FolderKanban,
-          gradient: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%)',
-          label: '项目',
-          color: 'var(--accent)',
-        };
+        return { icon: 'folder_open' as any, gradient: 'linear-gradient(135deg, #ba9eff 0%, #ae8dff 100%)', label: '项目', color: '#ba9eff' };
     }
   }, []);
 
   const getStatusConfig = useCallback((status: string) => {
     switch (status) {
       case 'ACTIVE':
-        return {
-          label: '进行中',
-          color: '#10b981',
-          bg: 'rgba(16, 185, 129, 0.1)',
-        };
+        return { label: '进行中', color: '#34b5fa', bg: 'rgba(52, 181, 250, 0.15)' };
       case 'COMPLETED':
-        return {
-          label: '已完成',
-          color: 'var(--accent)',
-          bg: 'var(--accent-bg)',
-        };
+        return { label: '已完成', color: '#ba9eff', bg: 'rgba(186, 158, 255, 0.15)' };
       case 'PAUSED':
-        return {
-          label: '已暂停',
-          color: '#f59e0b',
-          bg: 'rgba(245, 158, 11, 0.1)',
-        };
+        return { label: '已暂停', color: '#f487ff', bg: 'rgba(244, 135, 255, 0.15)' };
       case 'ARCHIVED':
-        return {
-          label: '已归档',
-          color: '#6b7280',
-          bg: 'rgba(107, 114, 128, 0.1)',
-        };
+        return { label: '已归档', color: '#a5aac2', bg: 'rgba(165, 170, 194, 0.15)' };
       default:
-        return {
-          label: '草稿',
-          color: '#6b7280',
-          bg: 'rgba(107, 114, 128, 0.1)',
-        };
+        return { label: '草稿', color: '#a5aac2', bg: 'rgba(165, 170, 194, 0.15)' };
     }
   }, []);
 
@@ -116,15 +132,7 @@ export default function ProjectsPage() {
     if (!date) return '未知';
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     if (isNaN(dateObj.getTime())) return '未知';
-    const now = new Date();
-    const diffMs = now.getTime() - dateObj.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return '今天';
-    if (diffDays === 1) return '昨天';
-    if (diffDays < 7) return `${diffDays}天前`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)}周前`;
-    return `${Math.floor(diffDays / 30)}月前`;
+    return dateObj.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
   }, []);
 
   const stats = useMemo(() => ({
@@ -136,543 +144,365 @@ export default function ProjectsPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'var(--bg-base)',
+      background: colors.bgPage,
       display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden',
+      fontFamily: "'Manrope', sans-serif",
+      color: colors.textPrimary,
     }}>
-      <header style={{
-        height: '80px',
-        background: 'var(--bg-elevated)',
-        borderBottom: '1px solid var(--border-primary)',
-        padding: '0 48px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexShrink: 0,
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-      }}>
-        <div>
-          <h1 style={{
-            fontSize: '24px',
-            fontWeight: '700',
-            color: 'var(--text-primary)',
-            margin: 0,
-            letterSpacing: '-0.01em',
-          }}>
-            我的项目
-          </h1>
-          <p style={{
-            fontSize: '13px',
-            color: 'var(--text-muted)',
-            margin: '4px 0 0 0',
-          }}>
-            管理您的创作项目
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-          <button
-            onClick={() => setViewMode('grid')}
-            style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
-              border: viewMode === 'grid' ? '2px solid var(--accent)' : '1px solid var(--border-primary)',
-              background: viewMode === 'grid' ? 'var(--accent-bg)' : 'transparent',
-              color: viewMode === 'grid' ? 'var(--accent)' : 'var(--text-muted)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <LayoutGrid style={{ width: '18px', height: '18px' }} />
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
-              border: viewMode === 'list' ? '2px solid var(--accent)' : '1px solid var(--border-primary)',
-              background: viewMode === 'list' ? 'var(--accent-bg)' : 'transparent',
-              color: viewMode === 'list' ? 'var(--accent)' : 'var(--text-muted)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <LayoutList style={{ width: '18px', height: '18px' }} />
-          </button>
-
-          <button
-            onClick={() => navigate('/projects/new')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 20px',
-              borderRadius: '10px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              border: 'none',
-              background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%)',
-              color: '#ffffff',
-              boxShadow: '0 4px 14px rgba(139, 92, 246, 0.3)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(139, 92, 246, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 14px rgba(139, 92, 246, 0.3)';
-            }}
-          >
-            <Plus style={{ width: '16px', height: '16px' }} />
-            <span>新建项目</span>
-          </button>
-        </div>
-      </header>
-
-      <div style={{
-        padding: '32px 48px',
+      <main style={{
+        marginLeft: '256px',
         flex: 1,
-        overflowY: 'auto',
-        overflowX: 'hidden',
+        position: 'relative',
       }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '20px',
-          marginBottom: '32px',
-        }}>
-          <div style={{
-            padding: '20px',
-            borderRadius: '16px',
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-          }}>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}>
-              <FolderKanban style={{ width: '24px', height: '24px', color: 'white' }} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{
-                fontSize: '28px',
-                fontWeight: '700',
-                color: 'var(--text-primary)',
-                lineHeight: 1,
-              }}>
-                {stats.total}
-              </div>
-              <div style={{
-                fontSize: '13px',
-                color: 'var(--text-muted)',
-                marginTop: '4px',
-              }}>
-                全部项目
-              </div>
-            </div>
-          </div>
-
-          <div style={{
-            padding: '20px',
-            borderRadius: '16px',
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-          }}>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}>
-              <Sparkles style={{ width: '24px', height: '24px', color: 'white' }} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{
-                fontSize: '28px',
-                fontWeight: '700',
-                color: 'var(--text-primary)',
-                lineHeight: 1,
-              }}>
-                {stats.active}
-              </div>
-              <div style={{
-                fontSize: '13px',
-                color: 'var(--text-muted)',
-                marginTop: '4px',
-              }}>
-                进行中
-              </div>
-            </div>
-          </div>
-
-          <div style={{
-            padding: '20px',
-            borderRadius: '16px',
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-          }}>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}>
-              <Layers style={{ width: '24px', height: '24px', color: 'white' }} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{
-                fontSize: '28px',
-                fontWeight: '700',
-                color: 'var(--text-primary)',
-                lineHeight: 1,
-              }}>
-                {stats.completed}
-              </div>
-              <div style={{
-                fontSize: '13px',
-                color: 'var(--text-muted)',
-                marginTop: '4px',
-              }}>
-                已完成
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div style={{
+        {/* Header */}
+        <header style={{
+          position: 'fixed',
+          top: 0,
+          right: 0,
+          left: '256px',
+          height: '80px',
+          background: colors.bgHeader,
+          backdropFilter: 'blur(24px)',
           display: 'flex',
-          gap: '12px',
-          marginBottom: '32px',
-          flexWrap: 'wrap',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '0 32px',
+          zIndex: 40,
+          borderBottom: `1px solid ${colors.borderLight}`,
         }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: '200px', maxWidth: '400px' }}>
-            <Search style={{
-              position: 'absolute',
-              left: '14px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: '16px',
-              height: '16px',
-              color: 'var(--text-muted)',
-            }} />
-            <input
-              type="text"
-              placeholder="搜索项目..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: '100%',
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <h2 style={{
+              fontSize: '20px',
+              fontWeight: 700,
+              color: colors.textPrimary,
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              margin: 0,
+            }}>项目列表</h2>
+            <div style={{ width: '1px', height: '24px', background: colors.border }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: colors.textSecondary, fontSize: '14px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>trending_up</span>
+              <span>状态统计</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              background: colors.surfaceContainerLow,
+              padding: '8px 16px',
+              borderRadius: '16px',
+              border: `1px solid ${colors.border}`,
+              gap: '8px',
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px', color: colors.textSecondary }}>search</span>
+              <input
+                type="text"
+                placeholder="搜索项目..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '14px',
+                  width: '256px',
+                  color: colors.textPrimary,
+                }}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <button style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '40px',
                 height: '40px',
-                padding: '0 14px 0 42px',
-                border: '1px solid var(--border-primary)',
-                borderRadius: '10px',
-                background: 'var(--bg-input)',
-                color: 'var(--text-primary)',
-                fontSize: '14px',
-                outline: 'none',
-                transition: 'border-color 0.2s ease',
+                borderRadius: '12px',
+                border: 'none',
+                background: 'transparent',
+                color: colors.textSecondary,
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
               }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = 'var(--accent)';
+              onMouseEnter={(e) => { e.currentTarget.style.color = colors.accent; e.currentTarget.style.background = colors.hoverBg; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = colors.textSecondary; e.currentTarget.style.background = 'transparent'; }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>notifications</span>
+              </button>
+              <button style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
+                border: 'none',
+                background: 'transparent',
+                color: colors.textSecondary,
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
               }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = 'var(--border-primary)';
+              onMouseEnter={(e) => { e.currentTarget.style.color = colors.accent; e.currentTarget.style.background = colors.hoverBg; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = colors.textSecondary; e.currentTarget.style.background = 'transparent'; }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>grid_view</span>
+              </button>
+              <button style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
+                border: 'none',
+                background: 'transparent',
+                color: colors.textSecondary,
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = colors.accent; e.currentTarget.style.background = colors.hoverBg; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = colors.textSecondary; e.currentTarget.style.background = 'transparent'; }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>account_circle</span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Content */}
+        <div style={{ padding: '120px 48px 48px' }}>
+          {/* Page Header */}
+          <section style={{ marginBottom: '40px' }}>
+            <h1 style={{
+              fontSize: '36px',
+              fontWeight: 800,
+              color: colors.textPrimary,
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              letterSpacing: '-0.02em',
+              margin: '0 0 8px 0',
+            }}>我的项目</h1>
+            <p style={{ fontSize: '14px', fontWeight: 500, color: colors.textSecondary, margin: 0 }}>管理您的创作项目</p>
+          </section>
+
+          {/* Statistics */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '24px',
+            marginBottom: '40px',
+          }}>
+            <StatCard
+              icon="dataset"
+              value={stats.total}
+              label="全部项目"
+              gradient="linear-gradient(135deg, #ba9eff 0%, #ae8dff 100%)"
+              iconColor="#ba9eff"
+              hoverGlow="rgba(186, 158, 255, 0.15)"
+            />
+            <StatCard
+              icon="pending"
+              value={stats.active}
+              label="进行中"
+              gradient="linear-gradient(135deg, #34b5fa 0%, #81ccff 100%)"
+              iconColor="#34b5fa"
+              hoverGlow="rgba(52, 181, 250, 0.15)"
+            />
+            <StatCard
+              icon="check_circle"
+              value={stats.completed}
+              label="已完成"
+              gradient="linear-gradient(135deg, #ec63ff 0%, #f487ff 100%)"
+              iconColor="#ec63ff"
+              hoverGlow="rgba(236, 99, 255, 0.15)"
             />
           </div>
 
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            style={{
-              height: '40px',
-              padding: '0 36px 0 14px',
-              fontSize: '14px',
-              fontWeight: '500',
-              backgroundColor: 'var(--bg-input)',
-              border: '1px solid var(--border-primary)',
-              borderRadius: '10px',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              outline: 'none',
-              appearance: 'none',
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 12px center',
-              transition: 'border-color 0.2s ease',
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = 'var(--accent)';
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = 'var(--border-primary)';
-            }}
-          >
-            <option value="all">全部类型</option>
-            <option value="SCRIPT">剧本</option>
-            <option value="NOVEL">小说</option>
-            <option value="MIXED">混合</option>
-          </select>
-
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            style={{
-              height: '40px',
-              padding: '0 36px 0 14px',
-              fontSize: '14px',
-              fontWeight: '500',
-              backgroundColor: 'var(--bg-input)',
-              border: '1px solid var(--border-primary)',
-              borderRadius: '10px',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              outline: 'none',
-              appearance: 'none',
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 12px center',
-              transition: 'border-color 0.2s ease',
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = 'var(--accent)';
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = 'var(--border-primary)';
-            }}
-          >
-            <option value="all">全部状态</option>
-            <option value="ACTIVE">进行中</option>
-            <option value="COMPLETED">已完成</option>
-            <option value="PAUSED">已暂停</option>
-          </select>
-        </div>
-
-        {loading ? (
+          {/* Filters & Actions */}
           <div style={{
             display: 'flex',
-            justifyContent: 'center',
+            justifyContent: 'space-between',
             alignItems: 'center',
-            padding: '120px 0',
+            marginBottom: '32px',
+            flexWrap: 'wrap',
+            gap: '16px',
           }}>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              border: '3px solid var(--border-primary)',
-              borderTopColor: 'var(--accent)',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-            }} />
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+              <FilterSelect value={filterType} onChange={setFilterType} options={[
+                { value: 'all', label: '全部类型' },
+                { value: 'SCRIPT', label: '剧本' },
+                { value: 'NOVEL', label: '小说' },
+                { value: 'MIXED', label: '混合' },
+              ]} />
+              <FilterSelect value={filterStatus} onChange={setFilterStatus} options={[
+                { value: 'all', label: '全部状态' },
+                { value: 'ACTIVE', label: '进行中' },
+                { value: 'COMPLETED', label: '已完成' },
+                { value: 'PAUSED', label: '已暂停' },
+                { value: 'ARCHIVED', label: '已归档' },
+              ]} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                display: 'flex',
+                background: colors.surfaceContainerLow,
+                padding: '4px',
+                borderRadius: '16px',
+                border: `1px solid ${colors.border}`,
+                gap: '4px',
+              }}>
+                <button
+                  onClick={() => setViewMode('grid')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: viewMode === 'grid' ? colors.surfaceContainerHigh : 'transparent',
+                    color: viewMode === 'grid' ? colors.accent : colors.textSecondary,
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>grid_view</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: viewMode === 'list' ? colors.surfaceContainerHigh : 'transparent',
+                    color: viewMode === 'list' ? colors.accent : colors.textSecondary,
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>view_list</span>
+                </button>
+              </div>
+              <button
+                onClick={() => navigate('/projects/new')}
+                onMouseEnter={() => setNewProjectHover(true)}
+                onMouseLeave={() => setNewProjectHover(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 24px',
+                  borderRadius: '16px',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  border: 'none',
+                  background: newProjectHover
+                    ? `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentDim} 100%)`
+                    : `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentLight} 100%)`,
+                  color: colors.onAccent,
+                  cursor: 'pointer',
+                  boxShadow: `0 4px 15px ${colors.shadowAccent}`,
+                  transform: newProjectHover ? 'scale(1.05)' : 'scale(1)',
+                  transition: 'all 0.3s ease',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', fill: 'white' }}>add</span>
+                <span>新建项目</span>
+              </button>
+            </div>
           </div>
-        ) : projects.length === 0 ? (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '120px 0',
-            textAlign: 'center',
-          }}>
+
+          {/* Project Grid */}
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '120px 0' }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                border: `3px solid ${colors.surfaceContainerHigh}`,
+                borderTopColor: colors.accent,
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+              }} />
+            </div>
+          ) : projects.length === 0 ? (
             <div style={{
-              width: '80px',
-              height: '80px',
-              borderRadius: '20px',
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border-primary)',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              marginBottom: '24px',
+              padding: '120px 0',
+              textAlign: 'center',
             }}>
-              <FolderKanban style={{ width: '40px', height: '40px', color: 'var(--text-muted)' }} />
-            </div>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: 'var(--text-primary)',
-              margin: '0 0 8px 0',
-            }}>
-              暂无项目
-            </h3>
-            <p style={{
-              fontSize: '14px',
-              color: 'var(--text-secondary)',
-              margin: '0 0 24px 0',
-              maxWidth: '300px',
-            }}>
-              创建您的第一个项目，开始精彩的创作之旅
-            </p>
-            <button
-              onClick={() => navigate('/projects/new')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 20px',
-                borderRadius: '10px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                border: 'none',
-                background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%)',
-                color: '#ffffff',
-                boxShadow: '0 4px 14px rgba(139, 92, 246, 0.3)',
-              }}
-            >
-              <Plus style={{ width: '16px', height: '16px' }} />
-              <span>创建项目</span>
-            </button>
-          </div>
-        ) : viewMode === 'grid' ? (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: '20px',
-            paddingBottom: '40px',
-          }}>
-            {projects.map((project) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                getProjectTypeConfig={getProjectTypeConfig}
-                getStatusConfig={getStatusConfig}
-                formatDate={formatDate}
-              />
-            ))}
-          </div>
-        ) : (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-            paddingBottom: '40px',
-          }}>
-            {projects.map((project) => (
-              <ProjectListItem
-                key={project.id}
-                project={project}
-                getProjectTypeConfig={getProjectTypeConfig}
-                getStatusConfig={getStatusConfig}
-                formatDate={formatDate}
-              />
-            ))}
-          </div>
-        )}
-
-        {totalPages > 1 && (
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '12px',
-            marginTop: '24px',
-            paddingBottom: '24px',
-          }}>
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              style={{
+              <div style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '24px',
+                background: colors.glassBg,
+                backdropFilter: 'blur(30px)',
+                border: `1px solid ${colors.border}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-primary)',
-                background: page === 1 ? 'var(--bg-surface)' : 'var(--bg-elevated)',
-                color: page === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: page === 1 ? 'not-allowed' : 'pointer',
-                opacity: page === 1 ? 0.5 : 1,
-                transition: 'all 0.2s ease',
-              }}
-            >
-              上一页
-            </button>
-
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 16px',
-              borderRadius: '8px',
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border-primary)',
-            }}>
-              <span style={{
-                color: 'var(--text-primary)',
-                fontSize: '15px',
-                fontWeight: '600',
+                marginBottom: '24px',
               }}>
-                {page}
-              </span>
-              <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>/</span>
-              <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-                {totalPages}
-              </span>
+                <span className="material-symbols-outlined" style={{ fontSize: '40px', color: colors.textSecondary }}>folder_open</span>
+              </div>
+              <h3 style={{ fontSize: '18px', fontWeight: 600, color: colors.textPrimary, marginBottom: '8px', margin: '0 0 8px 0' }}>暂无项目</h3>
+              <p style={{ fontSize: '14px', color: colors.textSecondary, marginBottom: '24px', maxWidth: '300px', margin: '0 0 24px 0' }}>创建您的第一个项目，开始精彩的创作之旅</p>
+              <button
+                onClick={() => navigate('/projects/new')}
+                onMouseEnter={() => setCreateHover(true)}
+                onMouseLeave={() => setCreateHover(false)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 24px',
+                  borderRadius: '16px',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  border: 'none',
+                  background: createHover
+                    ? `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentDim} 100%)`
+                    : `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentLight} 100%)`,
+                  color: colors.onAccent,
+                  cursor: 'pointer',
+                  boxShadow: `0 4px 15px ${colors.shadowAccent}`,
+                  transform: createHover ? 'scale(1.05)' : 'scale(1)',
+                  transition: 'all 0.3s ease',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', fill: 'white' }}>add</span>
+                <span>创建项目</span>
+              </button>
             </div>
-
-            <button
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-primary)',
-                background: page === totalPages ? 'var(--bg-surface)' : 'var(--bg-elevated)',
-                color: page === totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: page === totalPages ? 'not-allowed' : 'pointer',
-                opacity: page === totalPages ? 0.5 : 1,
-                transition: 'all 0.2s ease',
-              }}
-            >
-              下一页
-            </button>
-          </div>
-        )}
-      </div>
+          ) : (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: viewMode === 'grid'
+                ? 'repeat(auto-fill, minmax(320px, 1fr))'
+                : '1fr',
+              gap: '24px',
+              paddingBottom: '40px',
+            }}>
+              {projects.map((project) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  viewMode={viewMode}
+                  typeConfig={getProjectTypeConfig(project.type)}
+                  statusConfig={getStatusConfig(project.status)}
+                  formatDate={formatDate}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
 
       <style>{`
         @keyframes spin {
@@ -683,276 +513,3 @@ export default function ProjectsPage() {
     </div>
   );
 }
-
-interface ProjectCardProps {
-  project: Project;
-  getProjectTypeConfig: (type: string) => { icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; gradient: string; label: string; color: string; shadow?: string };
-  getStatusConfig: (status: string) => { label: string; color: string; bg: string; border?: string };
-  formatDate: (date: Date | string | undefined | null) => string;
-}
-
-const ProjectCard = ({ project, getProjectTypeConfig, getStatusConfig, formatDate }: ProjectCardProps) => {
-  const typeConfig = getProjectTypeConfig(project.type);
-  const statusConfig = getStatusConfig(project.status);
-  const TypeIcon = typeConfig.icon;
-  const [isHovered, setIsHovered] = useState(false);
-
-  return (
-    <Link to={`/projects/${project.id}`} style={{ textDecoration: 'none', display: 'block' }}>
-      <div
-        style={{
-          background: 'var(--bg-surface)',
-          borderRadius: '16px',
-          padding: '20px',
-          border: '1px solid var(--border-primary)',
-          transition: 'all 0.2s ease',
-          cursor: 'pointer',
-        }}
-        onMouseEnter={(e) => {
-          setIsHovered(true);
-          e.currentTarget.style.borderColor = 'var(--accent)';
-          e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.08)';
-          e.currentTarget.style.transform = 'translateY(-2px)';
-        }}
-        onMouseLeave={(e) => {
-          setIsHovered(false);
-          e.currentTarget.style.borderColor = 'var(--border-primary)';
-          e.currentTarget.style.boxShadow = 'none';
-          e.currentTarget.style.transform = 'translateY(0)';
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '16px' }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '12px',
-            background: typeConfig.gradient,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <TypeIcon style={{ width: '24px', height: '24px', color: 'white' }} />
-          </div>
-
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 style={{
-              fontSize: '16px',
-              fontWeight: '600',
-              color: 'var(--text-primary)',
-              margin: '0 0 6px 0',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}>
-              {project.name}
-            </h3>
-            <p style={{
-              fontSize: '13px',
-              color: 'var(--text-secondary)',
-              margin: 0,
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              lineHeight: '1.5',
-            }}>
-              {project.description || '暂无描述'}
-            </p>
-          </div>
-        </div>
-
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          paddingTop: '16px',
-          borderTop: '1px solid var(--border-primary)',
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '4px 10px',
-            borderRadius: '6px',
-            background: statusConfig.bg,
-            fontSize: '12px',
-            fontWeight: '600',
-            color: statusConfig.color,
-          }}>
-            {statusConfig.label}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Calendar style={{ width: '14px', height: '14px', color: 'var(--text-muted)' }} />
-              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                {formatDate(project.updated_at)}
-              </span>
-            </div>
-
-            <button
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                border: 'none',
-                background: 'transparent',
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--bg-hover)';
-                e.currentTarget.style.color = 'var(--text-primary)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = 'var(--text-muted)';
-              }}
-            >
-              <MoreVertical size={16} />
-            </button>
-          </div>
-        </div>
-      </div>
-    </Link>
-  );
-};
-
-interface ProjectListItemProps {
-  project: Project;
-  getProjectTypeConfig: (type: string) => { icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; gradient: string; label: string; color: string; shadow?: string };
-  getStatusConfig: (status: string) => { label: string; color: string; bg: string; border?: string };
-  formatDate: (date: Date | string | undefined | null) => string;
-}
-
-const ProjectListItem = ({ project, getProjectTypeConfig, getStatusConfig, formatDate }: ProjectListItemProps) => {
-  const typeConfig = getProjectTypeConfig(project.type);
-  const statusConfig = getStatusConfig(project.status);
-  const TypeIcon = typeConfig.icon;
-  const [isHovered, setIsHovered] = useState(false);
-
-  return (
-    <Link
-      to={`/projects/${project.id}`}
-      style={{ textDecoration: 'none', display: 'block' }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px',
-          padding: '16px 20px',
-          borderRadius: '12px',
-          border: '1px solid var(--border-primary)',
-          background: 'var(--bg-surface)',
-          transition: 'all 0.2s ease',
-        }}
-        onMouseEnter={(e) => {
-          setIsHovered(true);
-          e.currentTarget.style.borderColor = 'var(--accent)';
-          e.currentTarget.style.boxShadow = '0 2px 12px rgba(0, 0, 0, 0.06)';
-          e.currentTarget.style.transform = 'translateX(2px)';
-        }}
-        onMouseLeave={(e) => {
-          setIsHovered(false);
-          e.currentTarget.style.borderColor = 'var(--border-primary)';
-          e.currentTarget.style.boxShadow = 'none';
-          e.currentTarget.style.transform = 'translateX(0)';
-        }}
-      >
-        <div style={{
-          width: '44px',
-          height: '44px',
-          borderRadius: '10px',
-          background: typeConfig.gradient,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}>
-          <TypeIcon style={{ width: '22px', height: '22px', color: 'white' }} />
-        </div>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h3 style={{
-            fontSize: '15px',
-            fontWeight: '600',
-            color: 'var(--text-primary)',
-            margin: '0 0 4px 0',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}>
-            {project.name}
-          </h3>
-          <p style={{
-            fontSize: '13px',
-            color: 'var(--text-secondary)',
-            margin: 0,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}>
-            {project.description || '暂无描述'}
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0 }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '4px 10px',
-            borderRadius: '6px',
-            background: statusConfig.bg,
-            fontSize: '12px',
-            fontWeight: '600',
-            color: statusConfig.color,
-          }}>
-            {statusConfig.label}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Calendar style={{ width: '14px', height: '14px', color: 'var(--text-muted)' }} />
-            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-              {formatDate(project.updated_at)}
-            </span>
-          </div>
-
-          <button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              border: 'none',
-              background: 'transparent',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--bg-hover)';
-              e.currentTarget.style.color = 'var(--text-primary)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = 'var(--text-muted)';
-            }}
-          >
-            <MoreVertical size={16} />
-          </button>
-        </div>
-      </div>
-    </Link>
-  );
-};

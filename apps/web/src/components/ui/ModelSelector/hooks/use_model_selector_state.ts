@@ -3,6 +3,16 @@ import { apiClient } from '../../../../lib/api';
 import { cacheUtils } from '../../../../lib/modelCache';
 import { AIProviderModel, ContentType } from '../types';
 
+/** 与剧本/小说等文本类任务兼容：仅标了 text 的模型也可用于 script 等 */
+function model_matches_content_type(m: { types?: string[] }, content_type: ContentType): boolean {
+  const types = m.types ?? [];
+  if (types.length === 0) return true;
+  if (types.includes(content_type)) return true;
+  const text_like: ContentType[] = ['script', 'novel', 'storyline', 'outline'];
+  if (text_like.includes(content_type) && types.includes('text')) return true;
+  return false;
+}
+
 export interface ModelSelectorState {
   models: AIProviderModel[];
   default_models: Record<string, string>;
@@ -38,13 +48,15 @@ export function use_model_selector_state(content_type: ContentType) {
       const should_use_cache = !force_refresh && cached_data && !cacheUtils.getCacheInfo().models.expired;
 
       if (should_use_cache) {
-        const models_by_type = cached_data!.modelsByType;
-        const filtered_models = (models_by_type[content_type] || []).filter((m: any) => {
-          const provider = cached_data!.providers.find((p: any) =>
-            p.models?.some((pm: any) => pm.id === m.id)
-          );
-          return provider?.enabled;
-        });
+        const enabled = cached_data!.providers.filter((p: any) => p.enabled);
+        const flat = enabled.flatMap((p: any) => p.models || []);
+        const unique = new Map<string, AIProviderModel>();
+        for (const m of flat) {
+          if (!unique.has(m.id)) unique.set(m.id, m as AIProviderModel);
+        }
+        const filtered_models = [...unique.values()].filter((m) =>
+          model_matches_content_type(m, content_type)
+        );
         set_models(filtered_models);
         set_loading(false);
         return;
@@ -55,13 +67,14 @@ export function use_model_selector_state(content_type: ContentType) {
 
       const enabled_providers = providers_data.filter(p => p.enabled);
 
-      const all_models = enabled_providers
-        .flatMap(provider => {
-          return (provider.models || []).filter(m => {
-            const has_script = m.types?.includes(content_type);
-            return has_script;
-          });
-        });
+      const flat = enabled_providers.flatMap(provider =>
+        (provider.models || []).filter(m => model_matches_content_type(m, content_type))
+      );
+      const unique_models = new Map<string, AIProviderModel>();
+      for (const m of flat) {
+        if (!unique_models.has(m.id)) unique_models.set(m.id, m as AIProviderModel);
+      }
+      const all_models = [...unique_models.values()];
 
       const models_by_type: Record<string, typeof models> = {};
       providers_data

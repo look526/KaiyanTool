@@ -1,15 +1,17 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useParams } from 'react-router-dom';
 import { episodesApi, shotsApi } from '../core/api/modules';
 import { aiProvidersApi } from '../core/api/modules/ai-providers';
 import { charactersApi, type Character } from '../core/api/modules/characters';
 import { StandardPageHeader } from '../components/ui/StandardPageHeader';
 import { GlassButton } from '../components/ui/GlassButton';
+import { useToast } from '../components/ui/Toast';
 import { ShotNineGridWorkbench } from '../components/episode/ShotNineGridWorkbench';
 import { ImageSelector } from '../components/ImageSelector';
 import { MentionInput } from '../components/ui/MentionInput';
-import { Loader2, Film, CheckSquare, Square, Trash2, Save, Image, Clapperboard, FileText, Plus, User, Video, ChevronDown, Play, RefreshCw, AlertCircle, XCircle, Layers } from 'lucide-react';
+import { Loader2, Film, CheckSquare, Square, Trash2, Save, Image, Clapperboard, FileText, Plus, User, Video, Play, RefreshCw, AlertCircle, XCircle, Layers, Sparkles, Filter, Undo2, Redo2, Clock, Mic } from 'lucide-react';
 import type { AIProvider } from '../types';
 import type { Episode } from '../types/episode';
 import type { Shot, UpdateShotInput } from '../core/api/modules/shots/shots-api';
@@ -53,6 +55,14 @@ interface ShotEditorState {
   start_image_url: string | null;
   end_image_url: string | null;
   visual_style: string;
+  /** 对白/口播，用于音画同出时并入视频提示 */
+  subtitle_text: string;
+}
+
+const MAX_EDITOR_HISTORY = 50;
+
+function cloneEditorState(s: ShotEditorState): ShotEditorState {
+  return JSON.parse(JSON.stringify(s)) as ShotEditorState;
 }
 
 export default function EpisodeDetailPage() {
@@ -70,6 +80,19 @@ export default function EpisodeDetailPage() {
   const [generatingShotId, setGeneratingShotId] = useState<string | null>(null);
   const [videoProviders, setVideoProviders] = useState<AIProvider[]>([]);
   const [selectedProviderId, setSelectedProviderId] = useLocalStorageState<string | null>('episode_selected_provider', null);
+  const [imageProviderId, setImageProviderId] = useLocalStorageState<string | null>('episode_image_provider_id', null);
+  const [batchConcurrency, setBatchConcurrency] = useLocalStorageState<number>('episode_batch_concurrency', 2);
+  const [autoAdvanceAfterVideo, setAutoAdvanceAfterVideo] = useLocalStorageState<boolean>('episode_auto_advance_after_video', true);
+  const [syncAudioVideo, setSyncAudioVideo] = useLocalStorageState<boolean>('episode_sync_audio_video', false);
+  const [listFilterRaw, setListFilterRaw] = useLocalStorageState<string>('episode_shot_list_filter', 'all');
+  const listFilter: 'all' | 'ready' | 'video' | 'failed' =
+    listFilterRaw === 'all' || listFilterRaw === 'ready' || listFilterRaw === 'video' || listFilterRaw === 'failed'
+      ? listFilterRaw
+      : 'all';
+  const setListFilter = (v: 'all' | 'ready' | 'video' | 'failed') => setListFilterRaw(v);
+  const [generatingFrame, setGeneratingFrame] = useState<null | 'start' | 'end' | 'both'>(null);
+  const [videoGenElapsedSec, setVideoGenElapsedSec] = useState(0);
+  const [videoGenProgress, setVideoGenProgress] = useState(0);
   const [saveMessage, setSaveMessage] = useState('');
   const [saveMessageTone, setSaveMessageTone] = useState<'success' | 'error' | 'info'>('success');
   const previousActiveShotIdRef = useRef<string | null>(null);
@@ -85,6 +108,19 @@ export default function EpisodeDetailPage() {
   const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0, success: 0, failed: 0 });
   const [batchResults, setBatchResults] = useState<{ shotId: string; success: boolean; error?: string }[]>([]);
   const [shotErrors, setShotErrors] = useState<Record<string, string>>({});
+  const { addToast } = useToast();
+  const undoStackRef = useRef<ShotEditorState[]>([]);
+  const redoStackRef = useRef<ShotEditorState[]>([]);
+  const undoBurstTimerRef = useRef<number | null>(null);
+  const undoBurstStartRef = useRef<ShotEditorState | null>(null);
+  const skipHistoryRef = useRef(false);
+  const [historyTick, setHistoryTick] = useState(0);
+  const listScrollParentRef = useRef<HTMLDivElement>(null);
+  const shotsRef = useRef(shots);
+  const activeShotIdRef = useRef(activeShotId);
+  const handleSaveShotRef = useRef<() => Promise<void>>(async () => {});
+  const handleUndoRef = useRef<() => void>(() => {});
+  const handleRedoRef = useRef<() => void>(() => {});
   const [editorState, setEditorState] = useState<ShotEditorState>({
     character_id: null,
     action_summary: '',
@@ -94,11 +130,156 @@ export default function EpisodeDetailPage() {
     start_image_url: null,
     end_image_url: null,
     visual_style: '',
+    subtitle_text: '',
   });
 
   useEffect(() => {
     editorStateRef.current = editorState;
   }, [editorState]);
+
+  const bumpHistory = useCallback(() => setHistoryTick((t) => t + 1), []);
+
+  const discardBurst = useCallback(() => {
+    if (undoBurstTimerRef.current) {
+      window.clearTimeout(undoBurstTimerRef.current);
+      undoBurstTimerRef.current = null;
+    }
+    undoBurstStartRef.current = null;
+  }, []);
+
+  const flushBurstToUndo = useCallback(() => {
+    if (undoBurstTimerRef.current) {
+      window.clearTimeout(undoBurstTimerRef.current);
+      undoBurstTimerRef.current = null;
+    }
+    const start = undoBurstStartRef.current;
+    if (!start) return;
+    undoBurstStartRef.current = null;
+    undoStackRef.current = [...undoStackRef.current, cloneEditorState(start)].slice(-MAX_EDITOR_HISTORY);
+    redoStackRef.current = [];
+    bumpHistory();
+  }, [bumpHistory]);
+
+  const handleUndo = useCallback(() => {
+    flushBurstToUndo();
+    if (undoStackRef.current.length === 0) return;
+    const prev = undoStackRef.current.pop()!;
+    const cur = cloneEditorState(editorStateRef.current!);
+    redoStackRef.current.push(cur);
+    skipHistoryRef.current = true;
+    setEditorState(prev);
+    isDirtyRef.current = true;
+    setIsDirty(true);
+    setSaveMessage('');
+    window.setTimeout(() => {
+      skipHistoryRef.current = false;
+    }, 0);
+    bumpHistory();
+  }, [flushBurstToUndo, bumpHistory]);
+
+  const handleRedo = useCallback(() => {
+    flushBurstToUndo();
+    if (redoStackRef.current.length === 0) return;
+    const next = redoStackRef.current.pop()!;
+    const cur = cloneEditorState(editorStateRef.current!);
+    undoStackRef.current.push(cur);
+    skipHistoryRef.current = true;
+    setEditorState(next);
+    isDirtyRef.current = true;
+    setIsDirty(true);
+    setSaveMessage('');
+    window.setTimeout(() => {
+      skipHistoryRef.current = false;
+    }, 0);
+    bumpHistory();
+  }, [flushBurstToUndo, bumpHistory]);
+
+  shotsRef.current = shots;
+  activeShotIdRef.current = activeShotId;
+  const generatingVideoRef = useRef(false);
+  const batchGeneratingRef = useRef(false);
+  generatingVideoRef.current = generatingVideo;
+  batchGeneratingRef.current = batchGenerating;
+
+  useEffect(() => {
+    if (!generatingVideo) {
+      setVideoGenElapsedSec(0);
+      return;
+    }
+    setVideoGenElapsedSec(0);
+    const t = window.setInterval(() => {
+      setVideoGenElapsedSec((s) => s + 1);
+    }, 1000);
+    return () => clearInterval(t);
+  }, [generatingVideo]);
+
+  useEffect(() => {
+    if (!generatingVideo) {
+      setVideoGenProgress(0);
+      return;
+    }
+    setVideoGenProgress(6);
+    const t = window.setInterval(() => {
+      setVideoGenProgress((p) => (p >= 94 ? p : p + Math.min(5, 93 - p)));
+    }, 850);
+    return () => clearInterval(t);
+  }, [generatingVideo]);
+
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirtyRef.current || generatingVideoRef.current || batchGeneratingRef.current) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        void handleSaveShotRef.current();
+        return;
+      }
+
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      const inField =
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable;
+      if (inField) return;
+
+      if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) handleRedoRef.current();
+        else handleUndoRef.current();
+        return;
+      }
+      if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        handleRedoRef.current();
+        return;
+      }
+
+      if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        const s = shotsRef.current;
+        const curId = activeShotIdRef.current;
+        if (s.length === 0 || !curId) return;
+        const idx = s.findIndex((x) => x.id === curId);
+        if (idx < 0) return;
+        e.preventDefault();
+        const delta = e.key === 'ArrowUp' ? -1 : 1;
+        const next = s[idx + delta];
+        if (next) setActiveShotId(next.id);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, []);
 
   const loadEpisodeData = useCallback(async () => {
     if (!episodeId || !projectId) {
@@ -174,6 +355,10 @@ export default function EpisodeDetailPage() {
     }
 
     previousActiveShotIdRef.current = activeShot.id;
+    discardBurst();
+    undoStackRef.current = [];
+    redoStackRef.current = [];
+    bumpHistory();
     if (autoSaveTimerRef.current) {
       window.clearTimeout(autoSaveTimerRef.current);
       autoSaveTimerRef.current = null;
@@ -190,10 +375,11 @@ export default function EpisodeDetailPage() {
       start_image_url: activeShot.start_image_url || null,
       end_image_url: activeShot.end_image_url || null,
       visual_style: activeShot.visual_style || '',
+      subtitle_text: activeShot.subtitle_text || '',
     });
     setSaveMessage('');
     setSaveMessageTone('success');
-  }, [activeShot]);
+  }, [activeShot, discardBurst, bumpHistory]);
 
   const stats = useMemo(() => {
     return shots.reduce(
@@ -215,30 +401,82 @@ export default function EpisodeDetailPage() {
     [characters, editorState.character_id]
   );
 
+  const enabledProviders = useMemo(
+    () => videoProviders.filter((p) => p.enabled !== false),
+    [videoProviders]
+  );
+
   const activeVideoProvider = useMemo(() => {
-    const enabledProviders = videoProviders.filter((provider) => provider.enabled !== false);
     if (selectedProviderId) {
-      const selected = enabledProviders.find(p => (p.type || p.id) === selectedProviderId);
+      const selected = enabledProviders.find((p) => p.id === selectedProviderId);
       if (selected) return selected;
     }
-    return enabledProviders[0] || videoProviders[0] || null;
-  }, [videoProviders, selectedProviderId]);
+    return enabledProviders[0] || null;
+  }, [enabledProviders, selectedProviderId]);
 
-  const activeVideoProviderId = useMemo(() => {
-    if (!activeVideoProvider) {
-      return null;
+  /** 视频生成 API 使用 provider 数据库主键 */
+  const activeVideoProviderId = activeVideoProvider?.id ?? null;
+
+  const activeImageProvider = useMemo(() => {
+    if (imageProviderId) {
+      const selected = enabledProviders.find((p) => p.id === imageProviderId);
+      if (selected) return selected;
     }
-    return activeVideoProvider.type || activeVideoProvider.id;
-  }, [activeVideoProvider]);
+    return activeVideoProvider || enabledProviders[0] || null;
+  }, [enabledProviders, imageProviderId, activeVideoProvider]);
+
+  const activeImageProviderId = activeImageProvider?.id ?? null;
+
+  const filteredShots = useMemo(() => {
+    const base = shots.filter((shot) => {
+      if (listFilter === 'ready') {
+        return !!(shot.start_image_url && shot.end_image_url && !shot.video_url);
+      }
+      if (listFilter === 'video') {
+        return !!shot.video_url;
+      }
+      if (listFilter === 'failed') {
+        return !!shotErrors[shot.id];
+      }
+      return true;
+    });
+    if (activeShotId && !base.some((s) => s.id === activeShotId)) {
+      const cur = shots.find((s) => s.id === activeShotId);
+      if (cur) return [cur, ...base];
+    }
+    return base;
+  }, [shots, listFilter, shotErrors, activeShotId]);
+
+  void historyTick;
+  const canUndo = undoStackRef.current.length > 0;
+  const canRedo = redoStackRef.current.length > 0;
+
+  const rowVirtualizer = useVirtualizer({
+    count: filteredShots.length,
+    getScrollElement: () => listScrollParentRef.current,
+    estimateSize: () => 148,
+    overscan: 8,
+  });
+
+  const virtualActiveIndex = useMemo(
+    () => filteredShots.findIndex((s) => s.id === activeShotId),
+    [filteredShots, activeShotId]
+  );
+
+  useLayoutEffect(() => {
+    if (virtualActiveIndex < 0) return;
+    rowVirtualizer.scrollToIndex(virtualActiveIndex, { align: 'center', behavior: 'smooth' });
+  }, [virtualActiveIndex, listFilter, rowVirtualizer]);
 
   const getGenerateButtonDisabledReason = useMemo(() => {
     if (!activeShot) return '请先选择一个分镜';
     if (generatingVideo) return '当前正在生成中，请勿重复点击';
     if (!editorState.start_image_url) return '缺少开始帧';
     if (!editorState.end_image_url) return '缺少结束帧';
+    if (syncAudioVideo && !editorState.subtitle_text?.trim()) return '音画同出需填写对白/口播';
     if (!activeVideoProviderId) return '暂无可用视频 Provider';
     return null;
-  }, [activeShot, generatingVideo, editorState.start_image_url, editorState.end_image_url, activeVideoProviderId]);
+  }, [activeShot, generatingVideo, editorState.start_image_url, editorState.end_image_url, editorState.subtitle_text, syncAudioVideo, activeVideoProviderId]);
 
   const canGenerateVideo = useMemo(() => {
     return Boolean(
@@ -248,9 +486,10 @@ export default function EpisodeDetailPage() {
       activeVideoProviderId &&
       !savingShot &&
       !autoSaving &&
-      !generatingVideo
+      !generatingVideo &&
+      !(syncAudioVideo && !editorState.subtitle_text?.trim())
     );
-  }, [activeShot, activeVideoProviderId, editorState.end_image_url, editorState.start_image_url, generatingVideo, savingShot, autoSaving]);
+  }, [activeShot, activeVideoProviderId, editorState.end_image_url, editorState.start_image_url, editorState.subtitle_text, syncAudioVideo, generatingVideo, savingShot, autoSaving]);
 
   const syncShot = useCallback((nextShot: Shot) => {
     setShots((prev) => prev.map((shot) => (shot.id === nextShot.id ? nextShot : shot)));
@@ -266,6 +505,7 @@ export default function EpisodeDetailPage() {
       start_image_url: editorState.start_image_url,
       end_image_url: editorState.end_image_url,
       visual_style: editorState.visual_style.trim() || undefined,
+      subtitle_text: editorState.subtitle_text.trim() || null,
       aspect_ratio: shot.aspect_ratio,
       resolution: shot.resolution,
       duration: shot.duration,
@@ -285,8 +525,10 @@ export default function EpisodeDetailPage() {
       });
       setShots(prev => [...prev, newShot]);
       setActiveShotId(newShot.id);
+      addToast({ type: 'success', title: '已新建分镜', duration: 2400 });
     } catch (error) {
       console.error('Failed to create shot:', error);
+      addToast({ type: 'error', title: '新建分镜失败', message: '请稍后重试', duration: 5000 });
     }
   };
 
@@ -323,8 +565,10 @@ export default function EpisodeDetailPage() {
       }
       setShots(prev => prev.filter(shot => !selectedIds.has(shot.id)));
       setSelectedIds(new Set());
+      addToast({ type: 'success', title: '已删除所选分镜', duration: 2800 });
     } catch (error) {
       console.error('Failed to delete shots:', error);
+      addToast({ type: 'error', title: '删除失败', message: '请稍后重试', duration: 5000 });
     } finally {
       setBatchDeleteLoading(false);
     }
@@ -352,10 +596,12 @@ export default function EpisodeDetailPage() {
       setIsDirty(false);
 
       setSaveMessage('已保存');
+      addToast({ type: 'success', title: '分镜已保存', duration: 2800 });
     } catch (error) {
       console.error('Failed to save shot:', error);
       setSaveMessage('保存失败，请稍后重试');
       setSaveMessageTone('error');
+      addToast({ type: 'error', title: '保存失败', message: '请稍后重试', duration: 5000 });
     } finally {
       setSavingShot(false);
     }
@@ -389,7 +635,11 @@ export default function EpisodeDetailPage() {
 
       const result = await shotsApi.generateShot(activeShot.id, {
         provider_id: activeVideoProviderId,
+        sync_audio_video: syncAudioVideo,
+        subtitle_text: editorState.subtitle_text.trim() || undefined,
       });
+
+      setVideoGenProgress(100);
 
       const nextShot: Shot = result.shot
         ? result.shot
@@ -410,10 +660,12 @@ export default function EpisodeDetailPage() {
       setIsDirty(false);
       setSaveMessage('视频已生成');
       setSaveMessageTone('success');
+      const toastDuration = typeof document !== 'undefined' && document.hidden ? 8000 : 3200;
+      addToast({ type: 'success', title: '视频已生成', duration: toastDuration });
 
       const currentIndex = shots.findIndex(s => s.id === activeShot.id);
       const nextShotItem = shots[currentIndex + 1];
-      if (nextShotItem) {
+      if (nextShotItem && autoAdvanceAfterVideo) {
         setTimeout(() => setActiveShotId(nextShotItem.id), 800);
       }
     } catch (error: any) {
@@ -421,6 +673,7 @@ export default function EpisodeDetailPage() {
       const errorMsg = error?.message || '视频生成失败，请稍后重试';
       setSaveMessage(errorMsg);
       setSaveMessageTone('error');
+      addToast({ type: 'error', title: '视频生成失败', message: errorMsg, duration: 6000 });
       setShotErrors(prev => ({ ...prev, [activeShot.id]: errorMsg }));
     } finally {
       setGeneratingVideo(false);
@@ -431,16 +684,22 @@ export default function EpisodeDetailPage() {
   const handleBatchGenerate = async () => {
     if (!activeVideoProviderId || batchGenerating) return;
 
-    const readyShotIds = Array.from(selectedIds).filter(id => {
-      const shot = shots.find(s => s.id === id);
+    const readyShotIds = Array.from(selectedIds).filter((id) => {
+      const shot = shots.find((s) => s.id === id);
       return shot?.start_image_url && shot?.end_image_url;
     });
 
     if (readyShotIds.length === 0) {
       setSaveMessage('所选分镜中没有就绪的双帧分镜');
       setSaveMessageTone('error');
+      addToast({ type: 'warning', title: '无法批量生成', message: '所选分镜中没有双帧就绪的分镜', duration: 4000 });
       return;
     }
+
+    const concurrency = Math.max(1, Math.min(4, batchConcurrency || 2));
+    let successCount = 0;
+    let failedCount = 0;
+    let completed = 0;
 
     try {
       setBatchGenerating(true);
@@ -449,58 +708,86 @@ export default function EpisodeDetailPage() {
       setSaveMessage('');
       setSaveMessageTone('success');
 
-      for (const shotId of readyShotIds) {
-        const shot = shots.find(s => s.id === shotId);
-        if (!shot) continue;
+      const processOne = async (shotId: string) => {
+        const shot = shots.find((s) => s.id === shotId);
+        if (!shot?.start_image_url || !shot?.end_image_url) return;
 
-        setBatchProgress(prev => ({ ...prev, current: prev.current + 1 }));
         setGeneratingShotId(shotId);
-
         try {
-          if (shot.start_image_url && shot.end_image_url) {
-            await shotsApi.updateShot(shotId, {
-              character_id: shot.character_id || null,
-              action_summary: shot.action_summary || shot.description || '未填写镜头描述',
-              camera_movement: shot.camera_movement || undefined,
-              start_prompt: shot.start_prompt || undefined,
-              end_prompt: shot.end_prompt || undefined,
-              start_image_url: shot.start_image_url,
-              end_image_url: shot.end_image_url,
-              visual_style: shot.visual_style || undefined,
-              aspect_ratio: shot.aspect_ratio,
-              resolution: shot.resolution,
-              duration: shot.duration,
-            });
-
-            const result = await shotsApi.generateShot(shotId, {
-              provider_id: activeVideoProviderId,
-            });
-
-            const updatedShot = result.shot || {
-              ...shot,
-              video_url: result.video_url || shot.video_url,
-              duration: result.duration || shot.duration,
-              resolution: result.resolution || shot.resolution,
-            };
-            syncShot(updatedShot);
-            setShotErrors(prev => {
-              const newErrors = { ...prev };
-              delete newErrors[shotId];
-              return newErrors;
-            });
-            setBatchProgress(prev => ({ ...prev, success: prev.success + 1 }));
-            setBatchResults(prev => [...prev, { shotId, success: true }]);
+          if (syncAudioVideo && !(shot.subtitle_text?.trim())) {
+            const errorMsg = '音画同出需对白：请先在各镜填写对白/口播并保存后再批量生成';
+            setShotErrors((prev) => ({ ...prev, [shotId]: errorMsg }));
+            failedCount += 1;
+            setBatchProgress((prev) => ({ ...prev, failed: prev.failed + 1 }));
+            setBatchResults((prev) => [...prev, { shotId, success: false, error: errorMsg }]);
+            return;
           }
+
+          await shotsApi.updateShot(shotId, {
+            character_id: shot.character_id || null,
+            action_summary: shot.action_summary || shot.description || '未填写镜头描述',
+            camera_movement: shot.camera_movement || undefined,
+            start_prompt: shot.start_prompt || undefined,
+            end_prompt: shot.end_prompt || undefined,
+            start_image_url: shot.start_image_url,
+            end_image_url: shot.end_image_url,
+            visual_style: shot.visual_style || undefined,
+            subtitle_text: shot.subtitle_text?.trim() || null,
+            aspect_ratio: shot.aspect_ratio,
+            resolution: shot.resolution,
+            duration: shot.duration,
+          });
+
+          const result = await shotsApi.generateShot(shotId, {
+            provider_id: activeVideoProviderId,
+            sync_audio_video: syncAudioVideo,
+          });
+
+          const updatedShot = result.shot || {
+            ...shot,
+            video_url: result.video_url || shot.video_url,
+            duration: result.duration || shot.duration,
+            resolution: result.resolution || shot.resolution,
+          };
+          syncShot(updatedShot);
+          setShotErrors((prev) => {
+            const next = { ...prev };
+            delete next[shotId];
+            return next;
+          });
+          successCount += 1;
+          setBatchProgress((prev) => ({ ...prev, success: prev.success + 1 }));
+          setBatchResults((prev) => [...prev, { shotId, success: true }]);
         } catch (error: any) {
           const errorMsg = error?.message || '生成失败';
-          setShotErrors(prev => ({ ...prev, [shotId]: errorMsg }));
-          setBatchProgress(prev => ({ ...prev, failed: prev.failed + 1 }));
-          setBatchResults(prev => [...prev, { shotId, success: false, error: errorMsg }]);
+          setShotErrors((prev) => ({ ...prev, [shotId]: errorMsg }));
+          failedCount += 1;
+          setBatchProgress((prev) => ({ ...prev, failed: prev.failed + 1 }));
+          setBatchResults((prev) => [...prev, { shotId, success: false, error: errorMsg }]);
+        } finally {
+          completed += 1;
+          setBatchProgress((prev) => ({ ...prev, current: completed }));
         }
-      }
+      };
 
-      setSaveMessage(`批量生成完成：成功 ${batchProgress.success}，失败 ${batchProgress.failed}`);
-      setSaveMessageTone(batchProgress.failed > 0 ? 'error' : 'success');
+      let cursor = 0;
+      const workers = Array.from({ length: Math.min(concurrency, readyShotIds.length) }, async () => {
+        while (true) {
+          const i = cursor++;
+          if (i >= readyShotIds.length) break;
+          await processOne(readyShotIds[i]);
+        }
+      });
+      await Promise.all(workers);
+
+      setSaveMessage(`批量生成完成：成功 ${successCount}，失败 ${failedCount}`);
+      setSaveMessageTone(failedCount > 0 ? 'error' : 'success');
+      addToast({
+        type: failedCount > 0 ? 'warning' : 'success',
+        title: '批量生成完成',
+        message: `成功 ${successCount}，失败 ${failedCount}`,
+        duration: 5000,
+      });
     } finally {
       setBatchGenerating(false);
       setGeneratingShotId(null);
@@ -509,6 +796,18 @@ export default function EpisodeDetailPage() {
   };
 
   const handleEditorChange = <K extends keyof ShotEditorState>(key: K, value: ShotEditorState[K]) => {
+    if (!skipHistoryRef.current) {
+      if (!undoBurstStartRef.current) {
+        const snap = editorStateRef.current;
+        if (snap) undoBurstStartRef.current = cloneEditorState(snap);
+      }
+      if (undoBurstTimerRef.current) window.clearTimeout(undoBurstTimerRef.current);
+      undoBurstTimerRef.current = window.setTimeout(() => {
+        flushBurstToUndo();
+        undoBurstTimerRef.current = null;
+      }, 450);
+    }
+
     setEditorState(prev => ({ ...prev, [key]: value }));
     setIsDirty(true);
     isDirtyRef.current = true;
@@ -540,6 +839,7 @@ export default function EpisodeDetailPage() {
             start_image_url: stateToSave.start_image_url,
             end_image_url: stateToSave.end_image_url,
             visual_style: stateToSave.visual_style.trim() || undefined,
+            subtitle_text: stateToSave.subtitle_text.trim() || null,
             aspect_ratio: shot.aspect_ratio,
             resolution: shot.resolution,
             duration: shot.duration,
@@ -571,6 +871,144 @@ export default function EpisodeDetailPage() {
     );
   };
 
+  const persistEditorToServer = async (): Promise<Shot | null> => {
+    const shot = activeShotRef.current;
+    const state = editorStateRef.current;
+    if (!shot || !state) return null;
+    if (!isDirtyRef.current) return shot;
+    const updated = await shotsApi.updateShot(shot.id, {
+      character_id: state.character_id || null,
+      action_summary: state.action_summary.trim() || '未填写镜头描述',
+      camera_movement: state.camera_movement.trim() || undefined,
+      start_prompt: state.start_prompt.trim() || undefined,
+      end_prompt: state.end_prompt.trim() || undefined,
+      start_image_url: state.start_image_url,
+      end_image_url: state.end_image_url,
+      visual_style: state.visual_style.trim() || undefined,
+      subtitle_text: state.subtitle_text.trim() || null,
+      aspect_ratio: shot.aspect_ratio,
+      resolution: shot.resolution,
+      duration: shot.duration,
+    });
+    syncShot(updated);
+    isDirtyRef.current = false;
+    setIsDirty(false);
+    return updated;
+  };
+
+  const handleGenerateStartFrame = async () => {
+    if (!activeShot || !activeImageProviderId) {
+      setSaveMessage('请先配置出图模型（输出设置）');
+      setSaveMessageTone('error');
+      return;
+    }
+    if (!editorState.start_prompt?.trim()) {
+      setSaveMessage('请填写开始提示词');
+      setSaveMessageTone('error');
+      return;
+    }
+    try {
+      setGeneratingFrame('start');
+      setSaveMessage('');
+      await persistEditorToServer();
+      const res = await shotsApi.generateStartFrame(activeShot.id, {
+        provider_id: activeImageProviderId,
+        prompt: editorState.start_prompt.trim(),
+      });
+      const url = res.shot?.start_image_url || (res as any).imageUrl;
+      if (url) {
+        handleEditorChange('start_image_url', url);
+        if (res.shot) syncShot(res.shot);
+        setSaveMessage('开始帧已生成');
+        setSaveMessageTone('success');
+        addToast({ type: 'success', title: '开始帧已生成', duration: 2800 });
+      }
+    } catch (e: any) {
+      setSaveMessage(e?.message || '生成开始帧失败');
+      setSaveMessageTone('error');
+      addToast({ type: 'error', title: '生成开始帧失败', message: e?.message || '请稍后重试', duration: 5000 });
+    } finally {
+      setGeneratingFrame(null);
+    }
+  };
+
+  const handleGenerateEndFrame = async () => {
+    if (!activeShot || !activeImageProviderId) {
+      setSaveMessage('请先配置出图模型（输出设置）');
+      setSaveMessageTone('error');
+      return;
+    }
+    if (!editorState.end_prompt?.trim()) {
+      setSaveMessage('请填写结束提示词');
+      setSaveMessageTone('error');
+      return;
+    }
+    try {
+      setGeneratingFrame('end');
+      setSaveMessage('');
+      await persistEditorToServer();
+      const res = await shotsApi.generateEndFrame(activeShot.id, {
+        provider_id: activeImageProviderId,
+        prompt: editorState.end_prompt.trim(),
+      });
+      const url = res.shot?.end_image_url || (res as any).imageUrl;
+      if (url) {
+        handleEditorChange('end_image_url', url);
+        if (res.shot) syncShot(res.shot);
+        setSaveMessage('结束帧已生成');
+        setSaveMessageTone('success');
+        addToast({ type: 'success', title: '结束帧已生成', duration: 2800 });
+      }
+    } catch (e: any) {
+      setSaveMessage(e?.message || '生成结束帧失败');
+      setSaveMessageTone('error');
+      addToast({ type: 'error', title: '生成结束帧失败', message: e?.message || '请稍后重试', duration: 5000 });
+    } finally {
+      setGeneratingFrame(null);
+    }
+  };
+
+  const handleGenerateBothFrames = async () => {
+    if (!activeShot || !activeImageProviderId) {
+      setSaveMessage('请先配置出图模型（输出设置）');
+      setSaveMessageTone('error');
+      return;
+    }
+    try {
+      setGeneratingFrame('both');
+      setSaveMessage('');
+      await persistEditorToServer();
+      const res = await shotsApi.generateBothFrames(activeShot.id, {
+        provider_id: activeImageProviderId,
+      });
+      if (res.shot) {
+        syncShot(res.shot);
+        skipHistoryRef.current = true;
+        setEditorState((prev) => ({
+          ...prev,
+          start_image_url: res.shot!.start_image_url ?? prev.start_image_url,
+          end_image_url: res.shot!.end_image_url ?? prev.end_image_url,
+        }));
+        window.setTimeout(() => {
+          skipHistoryRef.current = false;
+        }, 0);
+      }
+      setSaveMessage('首尾帧已生成');
+      setSaveMessageTone('success');
+      addToast({ type: 'success', title: '首尾帧已生成', duration: 2800 });
+    } catch (e: any) {
+      setSaveMessage(e?.message || '生成首尾帧失败');
+      setSaveMessageTone('error');
+      addToast({ type: 'error', title: '生成首尾帧失败', message: e?.message || '请稍后重试', duration: 5000 });
+    } finally {
+      setGeneratingFrame(null);
+    }
+  };
+
+  handleSaveShotRef.current = handleSaveShot;
+  handleUndoRef.current = handleUndo;
+  handleRedoRef.current = handleRedo;
+
   if (loading) {
     return (
       <div style={loadingPageStyle}>
@@ -579,8 +1017,16 @@ export default function EpisodeDetailPage() {
     );
   }
 
+  const batchProgressRatio =
+    batchGenerating && batchProgress.total > 0 ? Math.min(1, batchProgress.current / batchProgress.total) : 0;
+
   return (
     <div style={pageStyle}>
+      {batchGenerating && batchProgress.total > 0 && (
+        <div style={batchProgressTrackStyle} role="progressbar" aria-valuenow={batchProgress.current} aria-valuemin={0} aria-valuemax={batchProgress.total}>
+          <div style={{ ...batchProgressFillStyle, width: `${batchProgressRatio * 100}%` }} />
+        </div>
+      )}
       <StandardPageHeader
         title={episode?.title || '分镜详情'}
         subtitle={`第${episode?.episode_number}集 · 共 ${shots.length} 个分镜`}
@@ -610,6 +1056,21 @@ export default function EpisodeDetailPage() {
                     >
                       删除 ({selectedIds.size})
                     </GlassButton>
+                    <label style={batchConcurrencyLabelStyle}>
+                      <span>并发</span>
+                      <select
+                        value={Math.max(1, Math.min(4, batchConcurrency || 2))}
+                        onChange={(e) => setBatchConcurrency(parseInt(e.target.value, 10))}
+                        style={batchConcurrencySelectStyle}
+                        disabled={batchGenerating}
+                      >
+                        {[1, 2, 3, 4].map((n) => (
+                          <option key={n} value={n}>
+                            {n}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                     <GlassButton
                       variant="primary"
                       icon={batchGenerating ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Layers style={{ width: '16px', height: '16px' }} />}
@@ -652,25 +1113,78 @@ export default function EpisodeDetailPage() {
               <div style={panelHeaderStyle}>
                 <div>
                   <h3 style={panelTitleStyle}>分镜列表</h3>
-                  <p style={panelSubtitleStyle}>点击左侧分镜，在右侧编辑描述、提示词和引用素材。</p>
+                  <p style={panelSubtitleStyle}>
+                    点击左侧分镜编辑；未聚焦输入框时 Alt+↑/↓ 切换分镜，Ctrl+S 保存，Ctrl+Alt+Z 撤销、Ctrl+Alt+Shift+Z 或 Ctrl+Alt+Y 重做编辑。
+                  </p>
                 </div>
               </div>
 
-              <div style={listScrollStyle}>
-                {shots.map((shot, index) => (
-                  <ShotListItem
-                    key={shot.id}
-                    shot={shot}
-                    index={index}
-                    active={shot.id === activeShotId}
-                    selected={selectedIds.has(shot.id)}
-                    isGenerating={generatingShotId === shot.id}
-                    hasError={!!shotErrors[shot.id]}
-                    errorMessage={shotErrors[shot.id]}
-                    onActive={() => setActiveShotId(shot.id)}
-                    onToggleSelect={() => toggleSelect(shot.id)}
-                  />
+              <div style={listFilterBarStyle}>
+                <Filter style={{ width: '14px', height: '14px', color: 'var(--text-muted)' }} />
+                {(
+                  [
+                    { key: 'all' as const, label: '全部', title: '显示本集全部分镜' },
+                    { key: 'ready' as const, label: '可生成', title: '双帧已齐、尚无成片的分镜' },
+                    { key: 'video' as const, label: '已有视频', title: '已生成视频成片的分镜' },
+                    { key: 'failed' as const, label: '失败', title: '上次生成失败的分镜' },
+                  ] as const
+                ).map(({ key, label, title }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    title={title}
+                    aria-pressed={listFilter === key}
+                    onClick={() => setListFilter(key)}
+                    style={{
+                      ...listFilterChipStyle,
+                      ...(listFilter === key ? listFilterChipActiveStyle : null),
+                    }}
+                  >
+                    {label}
+                  </button>
                 ))}
+              </div>
+
+              <div ref={listScrollParentRef} style={listScrollStyle} role="list" aria-label="分镜列表">
+                <div
+                  style={{
+                    height: `${rowVirtualizer.getTotalSize()}px`,
+                    width: '100%',
+                    position: 'relative',
+                  }}
+                >
+                  {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                    const shot = filteredShots[virtualRow.index];
+                    if (!shot) return null;
+                    return (
+                      <div
+                        key={shot.id}
+                        role="presentation"
+                        data-index={virtualRow.index}
+                        ref={rowVirtualizer.measureElement}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          transform: `translateY(${virtualRow.start}px)`,
+                        }}
+                      >
+                        <ShotListItem
+                          shot={shot}
+                          index={shots.findIndex((s) => s.id === shot.id)}
+                          active={shot.id === activeShotId}
+                          selected={selectedIds.has(shot.id)}
+                          isGenerating={generatingShotId === shot.id}
+                          hasError={!!shotErrors[shot.id]}
+                          errorMessage={shotErrors[shot.id]}
+                          onActive={() => setActiveShotId(shot.id)}
+                          onToggleSelect={() => toggleSelect(shot.id)}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
@@ -685,23 +1199,6 @@ export default function EpisodeDetailPage() {
                       </p>
                     </div>
                     <div style={detailHeaderActionsStyle}>
-                      <div style={providerSelectorStyle}>
-                        <select
-                          value={selectedProviderId || activeVideoProvider?.id || ''}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setSelectedProviderId(value || null);
-                          }}
-                          style={providerSelectStyle}
-                        >
-                          {videoProviders.filter(p => p.enabled !== false).map(provider => (
-                            <option key={provider.id} value={provider.type || provider.id}>
-                              {provider.name || provider.type || 'Provider'}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown style={{ width: '14px', height: '14px', pointerEvents: 'none' }} />
-                      </div>
                       <span
                         style={{
                           ...statusBadgeStyle,
@@ -712,7 +1209,7 @@ export default function EpisodeDetailPage() {
                       >
                         {getShotStatusLabel(getShotStatus(activeShot as any))}
                       </span>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
                         <GlassButton
                           variant="secondary"
                           icon={generatingVideo ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Video style={{ width: '16px', height: '16px' }} />}
@@ -720,9 +1217,19 @@ export default function EpisodeDetailPage() {
                           loading={generatingVideo}
                           disabled={!canGenerateVideo}
                           onClick={handleGenerateVideo}
+                          title="云端渲染耗时因模型、分辨率与时长而异，通常需数分钟"
                         >
                           生成视频
                         </GlassButton>
+                        <label style={autoAdvanceLabelStyle}>
+                          <input
+                            type="checkbox"
+                            checked={autoAdvanceAfterVideo}
+                            onChange={(e) => setAutoAdvanceAfterVideo(e.target.checked)}
+                            disabled={generatingVideo}
+                          />
+                          生成成功后自动切到下一镜
+                        </label>
                         {!canGenerateVideo && getGenerateButtonDisabledReason && (
                           <span style={disabledReasonStyle}>
                             <AlertCircle style={{ width: '10px', height: '10px' }} />
@@ -730,15 +1237,139 @@ export default function EpisodeDetailPage() {
                           </span>
                         )}
                       </div>
-                      <GlassButton
-                        variant="primary"
-                        icon={savingShot ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Save style={{ width: '16px', height: '16px' }} />}
-                        isDark={false}
-                        loading={savingShot}
-                        onClick={handleSaveShot}
-                      >
-                        保存分镜
-                      </GlassButton>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <GlassButton
+                          variant="secondary"
+                          icon={<Undo2 style={{ width: '16px', height: '16px' }} />}
+                          isDark={false}
+                          disabled={!canUndo || savingShot || generatingVideo}
+                          onClick={handleUndo}
+                          title="撤销（Ctrl+Alt+Z）"
+                        >
+                          撤销
+                        </GlassButton>
+                        <GlassButton
+                          variant="secondary"
+                          icon={<Redo2 style={{ width: '16px', height: '16px' }} />}
+                          isDark={false}
+                          disabled={!canRedo || savingShot || generatingVideo}
+                          onClick={handleRedo}
+                          title="重做（Ctrl+Alt+Shift+Z 或 Ctrl+Alt+Y）"
+                        >
+                          重做
+                        </GlassButton>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                        <GlassButton
+                          variant="primary"
+                          icon={savingShot || autoSaving ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Save style={{ width: '16px', height: '16px' }} />}
+                          isDark={false}
+                          loading={savingShot}
+                          onClick={handleSaveShot}
+                          title="快捷键 Ctrl+S"
+                        >
+                          保存分镜
+                        </GlassButton>
+                        {(isDirty || autoSaving) && (
+                          <span style={dirtyHintStyle}>{autoSaving ? '自动保存中…' : '有未保存的修改'}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={outputStripStyle}>
+                    <div style={outputStripTitleRowStyle}>
+                      <Video style={{ width: '16px', height: '16px', color: '#8b5cf6' }} />
+                      <span style={outputStripTitleTextStyle}>输出设置</span>
+                      <span style={outputStripHintStyle}>视频模型、出图模型与成片规格（本镜生效）</span>
+                    </div>
+                    <div style={outputStripGridStyle}>
+                      <label style={outputFieldLabelStyle}>
+                        视频模型
+                        <select
+                          value={selectedProviderId || activeVideoProvider?.id || ''}
+                          onChange={(e) => setSelectedProviderId(e.target.value || null)}
+                          style={outputSelectStyle}
+                        >
+                          {enabledProviders.map((provider) => (
+                            <option key={provider.id} value={provider.id}>
+                              {provider.name || provider.type || 'Provider'}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label style={outputFieldLabelStyle}>
+                        出图模型（首尾帧）
+                        <select
+                          value={imageProviderId || activeImageProvider?.id || ''}
+                          onChange={(e) => setImageProviderId(e.target.value || null)}
+                          style={outputSelectStyle}
+                        >
+                          {enabledProviders.map((provider) => (
+                            <option key={`img-${provider.id}`} value={provider.id}>
+                              {provider.name || provider.type || 'Provider'}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label style={outputFieldLabelStyle}>
+                        画幅
+                        <select
+                          value={activeShot.aspect_ratio || '16:9'}
+                          onChange={(e) => {
+                            const shot = activeShot;
+                            const v = e.target.value;
+                            const updated = { ...shot, aspect_ratio: v };
+                            syncShot(updated);
+                            shotsApi.updateShot(shot.id, { aspect_ratio: v }).catch(console.error);
+                          }}
+                          style={outputSelectStyle}
+                        >
+                          <option value="16:9">16:9</option>
+                          <option value="9:16">9:16</option>
+                          <option value="1:1">1:1</option>
+                          <option value="4:3">4:3</option>
+                        </select>
+                      </label>
+                      <label style={outputFieldLabelStyle}>
+                        分辨率
+                        <select
+                          value={activeShot.resolution || '1080p'}
+                          onChange={(e) => {
+                            const shot = activeShot;
+                            const v = e.target.value;
+                            const updated = { ...shot, resolution: v };
+                            syncShot(updated);
+                            shotsApi.updateShot(shot.id, { resolution: v }).catch(console.error);
+                          }}
+                          style={outputSelectStyle}
+                        >
+                          <option value="480p">480p</option>
+                          <option value="720p">720p</option>
+                          <option value="1080p">1080p</option>
+                          <option value="2k">2K</option>
+                          <option value="4k">4K</option>
+                        </select>
+                      </label>
+                      <label style={outputFieldLabelStyle}>
+                        时长
+                        <select
+                          value={activeShot.duration || 8}
+                          onChange={(e) => {
+                            const shot = activeShot;
+                            const d = parseInt(e.target.value, 10);
+                            const updated = { ...shot, duration: d };
+                            syncShot(updated);
+                            shotsApi.updateShot(shot.id, { duration: d }).catch(console.error);
+                          }}
+                          style={outputSelectStyle}
+                        >
+                          <option value="4">4s</option>
+                          <option value="6">6s</option>
+                          <option value="8">8s</option>
+                          <option value="10">10s</option>
+                        </select>
+                      </label>
                     </div>
                   </div>
 
@@ -751,10 +1382,35 @@ export default function EpisodeDetailPage() {
                       <MentionInput
                         value={editorState.action_summary}
                         onChange={(val) => handleEditorChange('action_summary', val)}
-                        placeholder="填写镜头内容、表演动作、画面重点，使用 @ 提及角色、场景或物品..."
+                        placeholder="填写镜头内容、表演动作、画面重点。使用 @ 角色 · # 场景 · $ 物品 · * 图片素材"
                         projectId={projectId || ''}
                         rows={6}
                       />
+                    </section>
+
+                    <section style={editorSectionStyle}>
+                      <div style={sectionTitleStyle}>
+                        <Mic style={{ width: '16px', height: '16px' }} />
+                        对白 / 口播（音画同出）
+                      </div>
+                      <p style={sectionHintStyle}>
+                        开启下方「音画同出」时，将把台词一并写入视频生成提示；实际是否有声画、口型是否同步取决于所选模型与接口能力。
+                      </p>
+                      <textarea
+                        value={editorState.subtitle_text}
+                        onChange={(e) => handleEditorChange('subtitle_text', e.target.value)}
+                        placeholder="例如：角色台词、旁白（与镜头描述配合使用）"
+                        style={textareaCompactStyle}
+                        rows={3}
+                      />
+                      <label style={syncAudioVideoRowStyle}>
+                        <input
+                          type="checkbox"
+                          checked={syncAudioVideo}
+                          onChange={(e) => setSyncAudioVideo(e.target.checked)}
+                        />
+                        音画同出（将上述对白并入视频生成提示）
+                      </label>
                     </section>
 
                     <section style={editorGridStyle}>
@@ -816,7 +1472,7 @@ export default function EpisodeDetailPage() {
                         <MentionInput
                           value={editorState.start_prompt}
                           onChange={(val) => handleEditorChange('start_prompt', val)}
-                          placeholder="输入提示词，使用 @ 提及角色、场景或物品..."
+                          placeholder="开始提示词。@ 角色 · # 场景 · $ 物品 · * 图片素材"
                           projectId={projectId || ''}
                           rows={4}
                         />
@@ -826,10 +1482,70 @@ export default function EpisodeDetailPage() {
                         <MentionInput
                           value={editorState.end_prompt}
                           onChange={(val) => handleEditorChange('end_prompt', val)}
-                          placeholder="输入提示词，使用 @ 提及角色、场景或物品..."
+                          placeholder="结束提示词。@ 角色 · # 场景 · $ 物品 · * 图片素材"
                           projectId={projectId || ''}
                           rows={4}
                         />
+                      </div>
+                    </section>
+
+                    <section style={editorSectionStyle}>
+                      <div style={sectionTitleStyle}>
+                        <Sparkles style={{ width: '16px', height: '16px' }} />
+                        由提示词生成首尾帧
+                      </div>
+                      <p style={sectionHintStyle}>
+                        使用上方开始/结束提示词与「输出设置」中的出图模型。生成后会自动填入引用素材。
+                      </p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '8px' }}>
+                        <GlassButton
+                          variant="secondary"
+                          icon={
+                            generatingFrame === 'start' ? (
+                              <Loader2 style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite' }} />
+                            ) : (
+                              <Sparkles style={{ width: '14px', height: '14px' }} />
+                            )
+                          }
+                          isDark={false}
+                          loading={generatingFrame === 'start'}
+                          disabled={!!generatingFrame || !activeImageProviderId}
+                          onClick={() => void handleGenerateStartFrame()}
+                        >
+                          生成开始帧
+                        </GlassButton>
+                        <GlassButton
+                          variant="secondary"
+                          icon={
+                            generatingFrame === 'end' ? (
+                              <Loader2 style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite' }} />
+                            ) : (
+                              <Sparkles style={{ width: '14px', height: '14px' }} />
+                            )
+                          }
+                          isDark={false}
+                          loading={generatingFrame === 'end'}
+                          disabled={!!generatingFrame || !activeImageProviderId}
+                          onClick={() => void handleGenerateEndFrame()}
+                        >
+                          生成结束帧
+                        </GlassButton>
+                        <GlassButton
+                          variant="primary"
+                          icon={
+                            generatingFrame === 'both' ? (
+                              <Loader2 style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite' }} />
+                            ) : (
+                              <Layers style={{ width: '14px', height: '14px' }} />
+                            )
+                          }
+                          isDark={false}
+                          loading={generatingFrame === 'both'}
+                          disabled={!!generatingFrame || !activeImageProviderId}
+                          onClick={() => void handleGenerateBothFrames()}
+                        >
+                          同时生成首尾帧
+                        </GlassButton>
                       </div>
                     </section>
 
@@ -871,66 +1587,33 @@ export default function EpisodeDetailPage() {
                       onApplyImage={handleApplyPanelImage}
                     />
 
+                    {generatingVideo && (
+                      <section style={videoGeneratingPanelStyle}>
+                        <div style={videoGeneratingIconWrapStyle}>
+                          <Loader2 style={{ width: '28px', height: '28px', animation: 'spin 1s linear infinite', color: '#8b5cf6' }} />
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={videoGeneratingTitleStyle}>正在生成视频</div>
+                          <div style={videoGeneratingMetaStyle}>
+                            <Clock style={{ width: '14px', height: '14px', flexShrink: 0 }} />
+                            已等待 {videoGenElapsedSec} 秒
+                            <span style={{ opacity: 0.7 }}>·</span>
+                            {activeShot.resolution || '1080p'} · {activeShot.duration ?? 8}s · {activeVideoProvider?.name || '当前模型'}
+                            {syncAudioVideo ? ' · 音画同出' : ''}
+                          </div>
+                          <div style={videoGenProgressTrackStyle}>
+                            <div style={{ ...videoGenProgressFillStyle, width: `${videoGenProgress}%` }} />
+                          </div>
+                          <p style={videoGeneratingHintStyle}>
+                            下方为估算进度（非云端真实百分比）。云端排队与渲染可能需要数分钟；请勿关闭或刷新本页。切换标签后完成时仍会弹出提示。
+                          </p>
+                        </div>
+                      </section>
+                    )}
+
                     <section style={metaBarStyle}>
-                      <div style={metaBadgeStyle}>
-                        <span style={{ marginRight: '4px', color: 'var(--text-muted)' }}>比例</span>
-                        <select
-                          value={activeShot.aspect_ratio || '16:9'}
-                          onChange={(e) => {
-                            const shot = activeShot;
-                            if (!shot) return;
-                            const updated = { ...shot, aspect_ratio: e.target.value };
-                            syncShot(updated);
-                            shotsApi.updateShot(shot.id, { aspect_ratio: e.target.value }).catch(console.error);
-                          }}
-                          style={metaSelectStyle}
-                        >
-                          <option value="16:9">16:9</option>
-                          <option value="9:16">9:16</option>
-                          <option value="1:1">1:1</option>
-                          <option value="4:3">4:3</option>
-                        </select>
-                      </div>
-                      <div style={metaBadgeStyle}>
-                        <span style={{ marginRight: '4px', color: 'var(--text-muted)' }}>分辨率</span>
-                        <select
-                          value={activeShot.resolution || '1080p'}
-                          onChange={(e) => {
-                            const shot = activeShot;
-                            if (!shot) return;
-                            const updated = { ...shot, resolution: e.target.value };
-                            syncShot(updated);
-                            shotsApi.updateShot(shot.id, { resolution: e.target.value }).catch(console.error);
-                          }}
-                          style={metaSelectStyle}
-                        >
-                          <option value="480p">480p</option>
-                          <option value="720p">720p</option>
-                          <option value="1080p">1080p</option>
-                          <option value="2k">2k</option>
-                          <option value="4k">4k</option>
-                        </select>
-                      </div>
-                      <div style={metaBadgeStyle}>
-                        <span style={{ marginRight: '4px', color: 'var(--text-muted)' }}>时长</span>
-                        <select
-                          value={activeShot.duration || 8}
-                          onChange={(e) => {
-                            const shot = activeShot;
-                            if (!shot) return;
-                            const updated = { ...shot, duration: parseInt(e.target.value) };
-                            syncShot(updated);
-                            shotsApi.updateShot(shot.id, { duration: parseInt(e.target.value) }).catch(console.error);
-                          }}
-                          style={metaSelectStyle}
-                        >
-                          <option value="4">4s</option>
-                          <option value="6">6s</option>
-                          <option value="8">8s</option>
-                          <option value="10">10s</option>
-                        </select>
-                      </div>
-                      <span style={metaBadgeStyle}>视频引擎 {activeVideoProvider?.name || '未配置'}</span>
+                      <span style={metaBadgeStyle}>视频 {activeVideoProvider?.name || '未配置'}</span>
+                      <span style={metaBadgeStyle}>出图 {activeImageProvider?.name || '未配置'}</span>
                       <span style={metaBadgeStyle}>{editorState.start_image_url && editorState.end_image_url ? '双帧已就绪' : '缺少起止帧'}</span>
                       {saveMessage && (
                         <span
@@ -1045,6 +1728,8 @@ function ShotListItem({
         ...(isGenerating ? shotItemGeneratingStyle : null),
       }}
       onClick={onActive}
+      role="listitem"
+      aria-current={active ? 'true' : undefined}
     >
       <button
         onClick={(event) => {
@@ -1058,6 +1743,24 @@ function ShotListItem({
       >
         {selected ? '✓' : ''}
       </button>
+
+      <div style={shotThumbWrapStyle} aria-hidden>
+        {shot.start_image_url || shot.end_image_url ? (
+          <img
+            src={(shot.start_image_url || shot.end_image_url) as string}
+            alt=""
+            style={shotThumbStyle}
+          />
+        ) : shot.video_url ? (
+          <div style={{ ...shotThumbPlaceholderStyle, color: '#8b5cf6' }} title="已有成片">
+            <Clapperboard style={{ width: '18px', height: '18px' }} />
+          </div>
+        ) : (
+          <div style={shotThumbPlaceholderStyle}>
+            <Image style={{ width: '18px', height: '18px', color: 'var(--text-muted)' }} />
+          </div>
+        )}
+      </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={shotItemHeaderStyle}>
@@ -1125,6 +1828,118 @@ const pageStyle: CSSProperties = {
   minHeight: 0,
   overflowY: 'auto',
   background: 'var(--bg-page)',
+  position: 'relative',
+};
+
+const batchProgressTrackStyle: CSSProperties = {
+  position: 'sticky',
+  top: 0,
+  zIndex: 50,
+  height: '3px',
+  width: '100%',
+  background: 'var(--border-primary)',
+};
+
+const batchProgressFillStyle: CSSProperties = {
+  height: '100%',
+  background: 'linear-gradient(90deg, #8b5cf6, #a78bfa)',
+  transition: 'width 0.25s ease',
+};
+
+const dirtyHintStyle: CSSProperties = {
+  fontSize: '11px',
+  fontWeight: 600,
+  color: '#f59e0b',
+  maxWidth: '140px',
+  textAlign: 'right',
+};
+
+const autoAdvanceLabelStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+  fontSize: '11px',
+  fontWeight: 600,
+  color: 'var(--text-muted)',
+  cursor: 'pointer',
+  userSelect: 'none',
+  maxWidth: '200px',
+  lineHeight: 1.35,
+};
+
+const videoGeneratingPanelStyle: CSSProperties = {
+  padding: '16px 18px',
+  borderRadius: '16px',
+  border: '1px solid rgba(139, 92, 246, 0.35)',
+  background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(99, 102, 241, 0.05) 100%)',
+  display: 'flex',
+  gap: '14px',
+  alignItems: 'flex-start',
+};
+
+const videoGeneratingIconWrapStyle: CSSProperties = {
+  flexShrink: 0,
+  width: '44px',
+  height: '44px',
+  borderRadius: '12px',
+  background: 'rgba(139, 92, 246, 0.12)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+};
+
+const videoGeneratingTitleStyle: CSSProperties = {
+  fontSize: '15px',
+  fontWeight: 700,
+  color: 'var(--text-primary)',
+  marginBottom: '6px',
+};
+
+const videoGeneratingMetaStyle: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  gap: '6px',
+  fontSize: '12px',
+  fontWeight: 600,
+  color: 'var(--text-secondary)',
+  marginBottom: '8px',
+};
+
+const videoGeneratingHintStyle: CSSProperties = {
+  margin: 0,
+  fontSize: '12px',
+  lineHeight: 1.55,
+  color: 'var(--text-muted)',
+};
+
+const syncAudioVideoRowStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: '10px',
+  marginTop: '12px',
+  fontSize: '13px',
+  fontWeight: 600,
+  color: 'var(--text-secondary)',
+  cursor: 'pointer',
+  userSelect: 'none',
+  lineHeight: 1.45,
+};
+
+const videoGenProgressTrackStyle: CSSProperties = {
+  width: '100%',
+  height: '6px',
+  borderRadius: '999px',
+  background: 'var(--border-primary)',
+  overflow: 'hidden',
+  marginBottom: '10px',
+};
+
+const videoGenProgressFillStyle: CSSProperties = {
+  height: '100%',
+  borderRadius: '999px',
+  background: 'linear-gradient(90deg, #8b5cf6, #c4b5fd)',
+  transition: 'width 0.35s ease',
 };
 
 const loadingPageStyle: CSSProperties = {
@@ -1235,6 +2050,139 @@ const listScrollStyle: CSSProperties = {
   maxHeight: 'calc(100vh - 220px)',
   overflow: 'auto',
   padding: '14px',
+};
+
+const listFilterBarStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  flexWrap: 'wrap',
+  padding: '0 14px 12px',
+  borderBottom: '1px solid var(--border-primary)',
+};
+
+const listFilterChipStyle: CSSProperties = {
+  padding: '6px 12px',
+  borderRadius: '999px',
+  border: '1px solid var(--border-primary)',
+  background: 'var(--bg-page)',
+  color: 'var(--text-secondary)',
+  fontSize: '12px',
+  fontWeight: 600,
+  cursor: 'pointer',
+};
+
+const listFilterChipActiveStyle: CSSProperties = {
+  border: '1px solid rgba(139, 92, 246, 0.45)',
+  background: 'rgba(139, 92, 246, 0.12)',
+  color: 'var(--text-primary)',
+};
+
+const outputStripStyle: CSSProperties = {
+  padding: '16px 22px',
+  borderBottom: '1px solid var(--border-primary)',
+  background: 'linear-gradient(180deg, rgba(139, 92, 246, 0.06) 0%, transparent 100%)',
+};
+
+const outputStripTitleRowStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  flexWrap: 'wrap',
+  marginBottom: '12px',
+};
+
+const outputStripTitleTextStyle: CSSProperties = {
+  fontSize: '14px',
+  fontWeight: 700,
+  color: 'var(--text-primary)',
+};
+
+const outputStripHintStyle: CSSProperties = {
+  fontSize: '12px',
+  color: 'var(--text-muted)',
+  fontWeight: 500,
+};
+
+const outputStripGridStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+  gap: '12px 16px',
+};
+
+const outputFieldLabelStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '6px',
+  fontSize: '12px',
+  fontWeight: 600,
+  color: 'var(--text-secondary)',
+};
+
+const outputSelectStyle: CSSProperties = {
+  width: '100%',
+  height: '38px',
+  borderRadius: '10px',
+  border: '1px solid var(--border-primary)',
+  background: 'var(--bg-page)',
+  color: 'var(--text-primary)',
+  fontSize: '13px',
+  fontWeight: 600,
+  padding: '0 10px',
+  cursor: 'pointer',
+  outline: 'none',
+};
+
+const shotThumbWrapStyle: CSSProperties = {
+  width: '56px',
+  height: '56px',
+  flexShrink: 0,
+  borderRadius: '10px',
+  overflow: 'hidden',
+  border: '1px solid var(--border-primary)',
+  background: 'var(--bg-elevated)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+};
+
+const shotThumbStyle: CSSProperties = {
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
+  display: 'block',
+};
+
+const shotThumbPlaceholderStyle: CSSProperties = {
+  width: '100%',
+  height: '100%',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: 'var(--bg-page)',
+};
+
+const batchConcurrencyLabelStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '6px',
+  fontSize: '13px',
+  fontWeight: 600,
+  color: 'var(--text-secondary)',
+};
+
+const batchConcurrencySelectStyle: CSSProperties = {
+  height: '36px',
+  minWidth: '52px',
+  padding: '0 10px',
+  borderRadius: '10px',
+  border: '1px solid var(--border-primary)',
+  background: 'var(--bg-elevated)',
+  color: 'var(--text-primary)',
+  fontSize: '13px',
+  fontWeight: 600,
+  cursor: 'pointer',
+  outline: 'none',
 };
 
 const shotItemStyle: CSSProperties = {
@@ -1591,18 +2539,6 @@ const disabledReasonStyle: CSSProperties = {
   fontSize: '11px',
   color: '#f59e0b',
   fontWeight: 500,
-};
-
-const metaSelectStyle: CSSProperties = {
-  appearance: 'none',
-  background: 'transparent',
-  border: 'none',
-  color: 'var(--text-primary)',
-  fontSize: '12px',
-  fontWeight: 600,
-  cursor: 'pointer',
-  outline: 'none',
-  padding: '0',
 };
 
 const playingIndicatorStyle: CSSProperties = {

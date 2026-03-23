@@ -45,6 +45,7 @@ const HelpPage = lazy(() => import('./pages/HelpPage'))
 const AssetsPage = lazy(() => import('./pages/AssetsPage'))
 const ImageGenerationPage = lazy(() => import('./pages/ImageGenerationPage'))
 const VideoGenerationPage = lazy(() => import('./pages/VideoGenerationPage'))
+const WorkspacePage = lazy(() => import('./pages/WorkspacePage'))
 const ButtonShowcasePage = lazy(() => import('./pages/ButtonShowcasePage'))
 const TimelinePage = lazy(() => import('./pages/TimelinePage'))
 const ProductionPage = lazy(() => import('./pages/ProductionPage'))
@@ -136,8 +137,9 @@ function App() {
                     <Route path="/help" element={<HelpPage />} />
                     <Route path="/projects" element={<ProjectsPage />} />
                     <Route path="/assets" element={<AssetsPage />} />
-                    <Route path="/image-generation" element={<ImageGenerationPage />} />
-                    <Route path="/video-generation" element={<VideoGenerationPage />} />
+                    <Route path="/workspace" element={<WorkspacePage />} />
+                    <Route path="/image-generation" element={<Navigate to="/workspace" replace />} />
+                    <Route path="/video-generation" element={<Navigate to="/workspace" replace />} />
                     <Route path="/analytics" element={<AnalyticsPage />} />
                     <Route path="/team" element={<TeamPage />} />
                     <Route path="/settings" element={<SettingsPage />} />

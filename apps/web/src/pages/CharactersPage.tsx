@@ -22,6 +22,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { CharacterCard } from '../components/CharacterCard';
 import { PageHeader } from '../components/ui/PageHeader';
 import { GlassButton } from '../components/ui/GlassButton';
+import { GlassDropdown } from '../components/ui/GlassDropdown';
 
 interface CharacterFormData {
   name: string;
@@ -413,65 +414,33 @@ export default function CharactersPage() {
 
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: colors.textSecondary, marginBottom: '8px' }}>性别筛选</label>
-                <select
+                <GlassDropdown
+                  options={[
+                    { value: '', label: '全部' },
+                    { value: '男', label: '男' },
+                    { value: '女', label: '女' },
+                    { value: '其他', label: '其他' },
+                  ]}
                   value={filterGender}
-                  onChange={(e) => setFilterGender(e.target.value)}
-                  style={{
-                    width: '100%',
-                    height: '44px',
-                    padding: '0 14px',
-                    border: `1px solid ${colors.border}`,
-                    borderRadius: '14px',
-                    background: colors.bgSecondary,
-                    color: colors.textPrimary,
-                    fontSize: '14px',
-                    outline: 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.25s ease',
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = accentColor;
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = colors.border;
-                  }}
-                >
-                  <option value="">全部</option>
-                  <option value="男">男</option>
-                  <option value="女">女</option>
-                  <option value="其他">其他</option>
-                </select>
+                  onChange={setFilterGender}
+                  colors={colors}
+                  accentColor={accentColor}
+                />
               </div>
 
               <div style={{ marginBottom: '24px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: colors.textSecondary, marginBottom: '8px' }}>排序方式</label>
-                <select
+                <GlassDropdown
+                  options={[
+                    { value: 'name', label: '按名称' },
+                    { value: 'shots', label: '按出镜次数' },
+                    { value: 'created', label: '按创建时间' },
+                  ]}
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  style={{
-                    width: '100%',
-                    height: '44px',
-                    padding: '0 14px',
-                    border: `1px solid ${colors.border}`,
-                    borderRadius: '14px',
-                    background: colors.bgSecondary,
-                    color: colors.textPrimary,
-                    fontSize: '14px',
-                    outline: 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.25s ease',
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = accentColor;
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = colors.border;
-                  }}
-                >
-                  <option value="name">按名称</option>
-                  <option value="shots">按出镜次数</option>
-                  <option value="created">按创建时间</option>
-                </select>
+                  onChange={(val) => setSortBy(val as 'name' | 'created' | 'shots')}
+                  colors={colors}
+                  accentColor={accentColor}
+                />
               </div>
 
               <button
@@ -903,34 +872,19 @@ export default function CharactersPage() {
 
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: colors.textSecondary, marginBottom: '8px' }}>性别</label>
-                  <select
+                  <GlassDropdown
+                    options={[
+                      { value: '', label: '请选择' },
+                      { value: '男', label: '男' },
+                      { value: '女', label: '女' },
+                      { value: '其他', label: '其他' },
+                    ]}
                     value={characterForm.gender}
-                    onChange={(e) => setCharacterForm({ ...characterForm, gender: e.target.value })}
-                    style={{
-                      width: '100%',
-                      height: '44px',
-                      padding: '0 14px',
-                      border: `1px solid ${colors.border}`,
-                      borderRadius: '12px',
-                      background: colors.bgSecondary,
-                      color: colors.textPrimary,
-                      fontSize: '14px',
-                      outline: 'none',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = accentColor;
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = colors.border;
-                    }}
-                  >
-                    <option value="">请选择</option>
-                    <option value="男">男</option>
-                    <option value="女">女</option>
-                    <option value="其他">其他</option>
-                  </select>
+                    onChange={(val) => setCharacterForm({ ...characterForm, gender: val })}
+                    colors={colors}
+                    accentColor={accentColor}
+                    size="sm"
+                  />
                 </div>
               </div>
 

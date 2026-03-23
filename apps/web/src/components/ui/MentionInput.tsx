@@ -11,6 +11,13 @@ interface MentionInputProps {
   rows?: number;
 }
 
+const TRIGGERS = [
+  { char: '@', type: 'character' as const, label: '角色' },
+  { char: '#', type: 'scene' as const, label: '场景' },
+  { char: '$', type: 'item' as const, label: '物品' },
+  { char: '*', type: 'asset' as const, label: '素材' },
+] as const;
+
 const TYPE_ICONS: Record<string, React.ReactNode> = {
   character: <User style={{ width: '14px', height: '14px' }} />,
   scene: <MapPin style={{ width: '14px', height: '14px' }} />,
@@ -25,10 +32,31 @@ const TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> 
   asset: { bg: 'rgba(59, 130, 246, 0.12)', text: '#3b82f6', border: 'rgba(59, 130, 246, 0.3)' },
 };
 
+function findActiveMention(textBeforeCursor: string): {
+  index: number;
+  char: string;
+  type: MentionItem['type'];
+  query: string;
+} | null {
+  let best: { index: number; char: string; type: MentionItem['type'] } | null = null;
+  for (const t of TRIGGERS) {
+    const idx = textBeforeCursor.lastIndexOf(t.char);
+    if (idx === -1) continue;
+    const after = textBeforeCursor.slice(idx + 1);
+    if (/\s/.test(after)) continue;
+    if (!best || idx > best.index) {
+      best = { index: idx, char: t.char, type: t.type };
+    }
+  }
+  if (!best) return null;
+  const query = textBeforeCursor.slice(best.index + 1);
+  return { index: best.index, char: best.char, type: best.type, query };
+}
+
 export function MentionInput({
   value,
   onChange,
-  placeholder = '输入提示词，使用 @ 提及角色、物品或场景...',
+  placeholder = '输入内容，使用 @ 角色 · # 场景 · $ 物品 · * 图片素材',
   projectId,
   disabled = false,
   rows = 4,
@@ -38,43 +66,52 @@ export function MentionInput({
   const [mentions, setMentions] = useState<MentionItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [activeKind, setActiveKind] = useState<MentionItem['type']>('character');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const mentionStartRef = useRef<number>(0);
+  const triggerCharRef = useRef<string>('@');
+  const fetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchMentions = useCallback(async (searchQuery: string) => {
-    try {
-      setLoading(true);
-      const results = await mentionsApi.getMentions(projectId, searchQuery);
-      setMentions(results);
-      setSelectedIndex(0);
-    } catch (error) {
-      console.error('Failed to fetch mentions:', error);
-      setMentions([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [projectId]);
+  const fetchMentions = useCallback(
+    async (searchQuery: string, resourceType: MentionItem['type']) => {
+      try {
+        setLoading(true);
+        const results = await mentionsApi.getMentions(projectId, searchQuery, resourceType);
+        setMentions(results);
+        setSelectedIndex(0);
+      } catch (error) {
+        console.error('Failed to fetch mentions:', error);
+        setMentions([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [projectId]
+  );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
-    const cursorPos = e.target.selectionStart;
+    const cursorPos = e.target.selectionStart ?? 0;
     onChange(newValue);
 
     const textBeforeCursor = newValue.slice(0, cursorPos);
-    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    const active = findActiveMention(textBeforeCursor);
 
-    if (lastAtIndex !== -1) {
-      const textAfterAt = textBeforeCursor.slice(lastAtIndex + 1);
-      const hasSpaceAfterAt = textAfterAt.includes(' ');
+    if (active) {
+      mentionStartRef.current = active.index;
+      triggerCharRef.current = active.char;
+      setActiveKind(active.type);
+      setQuery(active.query);
+      setIsOpen(true);
 
-      if (!hasSpaceAfterAt) {
-        mentionStartRef.current = lastAtIndex;
-        setQuery(textAfterAt);
-        setIsOpen(true);
-        fetchMentions(textAfterAt);
-        return;
+      if (fetchTimerRef.current) {
+        clearTimeout(fetchTimerRef.current);
       }
+      fetchTimerRef.current = setTimeout(() => {
+        fetchMentions(active.query, active.type);
+      }, 140);
+      return;
     }
 
     setIsOpen(false);
@@ -85,10 +122,11 @@ export function MentionInput({
     const textarea = textareaRef.current;
     if (!textarea) return;
 
-    const cursorPos = textarea.selectionStart;
+    const cursorPos = textarea.selectionStart ?? 0;
     const textBeforeCursor = value.slice(0, mentionStartRef.current);
     const textAfterCursor = value.slice(cursorPos);
-    const mentionText = `@${mention.name} `;
+    const trigger = triggerCharRef.current;
+    const mentionText = `${trigger}${mention.name} `;
 
     const newValue = textBeforeCursor + mentionText + textAfterCursor;
     onChange(newValue);
@@ -117,6 +155,7 @@ export function MentionInput({
         setSelectedIndex((prev) => (prev - 1 + mentions.length) % mentions.length);
         break;
       case 'Enter':
+      case 'Tab':
         e.preventDefault();
         if (mentions[selectedIndex]) {
           insertMention(mentions[selectedIndex]);
@@ -132,10 +171,19 @@ export function MentionInput({
 
   const filteredMentions = useMemo(() => {
     if (!query) return mentions;
-    return mentions.filter((m) =>
-      m.name.toLowerCase().includes(query.toLowerCase())
-    );
+    const q = query.toLowerCase();
+    return mentions.filter((m) => m.name.toLowerCase().includes(q));
   }, [mentions, query]);
+
+  const activeKindLabel = useMemo(
+    () => TRIGGERS.find((t) => t.type === activeKind)?.label ?? '资源',
+    [activeKind]
+  );
+
+  const activeTriggerChar = useMemo(
+    () => TRIGGERS.find((t) => t.type === activeKind)?.char ?? '@',
+    [activeKind]
+  );
 
   const dropdownStyle: React.CSSProperties = {
     position: 'absolute',
@@ -143,7 +191,7 @@ export function MentionInput({
     left: 0,
     right: 0,
     marginTop: '4px',
-    maxHeight: '200px',
+    maxHeight: '240px',
     overflowY: 'auto',
     background: 'var(--bg-elevated)',
     border: '1px solid var(--border-primary)',
@@ -165,14 +213,26 @@ export function MentionInput({
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
-          textareaRef.current && !textareaRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node) &&
+        textareaRef.current &&
+        !textareaRef.current.contains(e.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (fetchTimerRef.current) {
+        clearTimeout(fetchTimerRef.current);
+      }
+    };
   }, []);
 
   return (
@@ -212,51 +272,78 @@ export function MentionInput({
 
       {isOpen && (
         <div ref={dropdownRef} style={dropdownStyle}>
+          <div
+            style={{
+              padding: '8px 12px',
+              fontSize: '11px',
+              color: 'var(--text-muted)',
+              borderBottom: '1px solid var(--border-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <span style={{ fontWeight: 600, color: TYPE_COLORS[activeKind]?.text ?? 'inherit' }}>
+              {activeTriggerChar} {activeKindLabel}
+            </span>
+            <span>↑↓ 选择 · Enter / Tab 插入 · Esc 关闭</span>
+          </div>
           {loading ? (
             <div style={{ padding: '12px 14px', color: 'var(--text-muted)', fontSize: '13px' }}>
               加载中...
             </div>
           ) : filteredMentions.length === 0 ? (
             <div style={{ padding: '12px 14px', color: 'var(--text-muted)', fontSize: '13px' }}>
-              未找到匹配的{query ? '资源' : '资源，请输入搜索词'}
+              {query ? `未找到匹配的${activeKindLabel}` : `暂无${activeKindLabel}，可先在本项目创建`}
             </div>
           ) : (
             filteredMentions.map((mention, index) => {
               const colors = TYPE_COLORS[mention.type] || TYPE_COLORS.asset;
               return (
                 <div
-                  key={mention.id}
+                  key={`${mention.type}-${mention.id}`}
                   style={mentionItemStyle(index)}
                   onClick={() => insertMention(mention)}
                   onMouseEnter={() => setSelectedIndex(index)}
                 >
-                  <span style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '8px',
-                    background: colors.bg,
-                    color: colors.text,
-                  }}>
+                  <span
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '8px',
+                      background: colors.bg,
+                      color: colors.text,
+                    }}
+                  >
                     {TYPE_ICONS[mention.type] || TYPE_ICONS.asset}
                   </span>
                   <span style={{ flex: 1 }}>
                     <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
                       {mention.name}
                     </span>
-                    <span style={{
-                      marginLeft: '8px',
-                      padding: '2px 8px',
-                      borderRadius: '999px',
-                      fontSize: '10px',
-                      fontWeight: 600,
-                      background: colors.bg,
-                      color: colors.text,
-                      border: `1px solid ${colors.border}`,
-                    }}>
-                      {mention.type === 'character' ? '角色' : mention.type === 'scene' ? '场景' : mention.type === 'item' ? '物品' : '素材'}
+                    <span
+                      style={{
+                        marginLeft: '8px',
+                        padding: '2px 8px',
+                        borderRadius: '999px',
+                        fontSize: '10px',
+                        fontWeight: 600,
+                        background: colors.bg,
+                        color: colors.text,
+                        border: `1px solid ${colors.border}`,
+                      }}
+                    >
+                      {mention.type === 'character'
+                        ? '角色'
+                        : mention.type === 'scene'
+                          ? '场景'
+                          : mention.type === 'item'
+                            ? '物品'
+                            : '素材'}
                     </span>
                   </span>
                 </div>
@@ -266,30 +353,35 @@ export function MentionInput({
         </div>
       )}
 
-      <div style={{
-        marginTop: '8px',
-        display: 'flex',
-        gap: '8px',
-        flexWrap: 'wrap',
-      }}>
-        {(['character', 'scene', 'item', 'asset'] as const).map((type) => (
+      <div
+        style={{
+          marginTop: '8px',
+          display: 'flex',
+          gap: '6px',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+        }}
+      >
+        <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginRight: '4px' }}>快捷提及</span>
+        {TRIGGERS.map((t) => (
           <span
-            key={type}
+            key={t.char}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '4px',
-              padding: '2px 8px',
-              borderRadius: '6px',
+              padding: '3px 10px',
+              borderRadius: '8px',
               fontSize: '11px',
-              fontWeight: 500,
-              background: TYPE_COLORS[type].bg,
-              color: TYPE_COLORS[type].text,
-              border: `1px solid ${TYPE_COLORS[type].border}`,
+              fontWeight: 600,
+              background: TYPE_COLORS[t.type].bg,
+              color: TYPE_COLORS[t.type].text,
+              border: `1px solid ${TYPE_COLORS[t.type].border}`,
             }}
           >
-            {TYPE_ICONS[type]}
-            {type === 'character' ? '@角色' : type === 'scene' ? '@场景' : type === 'item' ? '@物品' : '@素材'}
+            {TYPE_ICONS[t.type]}
+            <span>{t.char}</span>
+            <span style={{ opacity: 0.85 }}>{t.label}</span>
           </span>
         ))}
       </div>

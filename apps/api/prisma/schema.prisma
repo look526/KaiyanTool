@@ -188,6 +188,21 @@ model Character {
   @@index([project_id])
 }
 
+model Item {
+  id          String   @id @db.Uuid
+  project_id  String   @db.Uuid
+  name        String
+  type        String?
+  image       String?
+  description String?
+  prompt      String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime
+  Project     Project  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id])
+}
+
 model ChatSession {
   id         String   @id @db.Uuid
   user_id    String   @db.Uuid
@@ -365,6 +380,7 @@ model Project {
   Content        Content[]
   Document       Document[]
   Episode        Episode[]
+  Item             Item[]
   Novel          Novel[]
   Outline        Outline[]
   User             User              @relation(fields: [owner_id], references: [id], onDelete: Cascade)
@@ -521,15 +537,16 @@ model Episode {
 }
 
 model Scene {
-  id          String   @id @db.Uuid
-  episode_id  String   @db.Uuid
-  location    String
-  time        String
-  description String?
-  scene_order Int      @default(0)
-  status      String   @default("pending")
-  created_at  DateTime @default(now())
-  updated_at  DateTime
+  id               String   @id @db.Uuid
+  episode_id       String   @db.Uuid
+  location         String
+  time             String
+  description      String?
+  scene_order      Int      @default(0)
+  status           String   @default("pending")
+  reference_images String[] @default([])
+  created_at       DateTime @default(now())
+  updated_at       DateTime
 
   Episode   Episode  @relation(fields: [episode_id], references: [id], onDelete: Cascade)
   Shot      Shot[]
@@ -711,6 +728,7 @@ model User {
   PromptTemplate  PromptTemplate[]
   Session         Session[]
   UserPreferences UserPreferences?
+  Workspace       Workspace[]
 
   @@index([email])
 }
@@ -1029,4 +1047,49 @@ model ProductionTask {
   @@index([project_id])
   @@index([episode_id])
   @@index([status])
+}
+
+model Workspace {
+  id         String       @id @db.Uuid
+  user_id    String       @db.Uuid
+  name       String       @default("默认工作台")
+  config     Json         @default("{}")
+  snapshot   Json?
+  created_at DateTime     @default(now())
+  updated_at DateTime
+  User       User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  CanvasNode CanvasNode[]
+  CanvasEdge CanvasEdge[]
+
+  @@index([user_id])
+}
+
+model CanvasNode {
+  id          String    @id @db.Uuid
+  workspace_id String   @db.Uuid
+  type        String
+  position_x  Float    @default(0)
+  position_y  Float    @default(0)
+  config      Json     @default("{}")
+  content     Json?
+  output_url  String?
+  history     Json     @default("[]")
+  labels      String[] @default([])
+  is_starred  Boolean  @default(false)
+  created_at  DateTime @default(now())
+  updated_at  DateTime
+  Workspace   Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+
+  @@index([workspace_id])
+}
+
+model CanvasEdge {
+  id           String    @id @db.Uuid
+  workspace_id String   @db.Uuid
+  source_node_id String @db.Uuid
+  target_node_id String @db.Uuid
+  created_at   DateTime @default(now())
+  Workspace    Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+
+  @@index([workspace_id])
 }

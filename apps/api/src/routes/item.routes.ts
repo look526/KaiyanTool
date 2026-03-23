@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { authMiddleware } from '../middleware/auth.middleware';
+import * as crypto from 'crypto';
+import { prisma } from '../lib/prisma';
+import { authMiddleware, AuthRequest } from '../middleware/auth.middleware';
 import { aiProviderService } from '../services/ai/provider.service';
 
-const prisma = new PrismaClient();
 const router = Router();
 
 router.use(authMiddleware);
@@ -11,10 +11,27 @@ router.use(authMiddleware);
 router.get('/projects/:projectId/items', async (req: Request, res: Response) => {
   try {
     const { projectId } = req.params;
-    const items = await (prisma as any).item?.findMany({
+    const userId = (req as AuthRequest).user_id;
+
+    const project = await prisma.project.findFirst({
+      where: {
+        id: projectId,
+        OR: [
+          { owner_id: userId },
+          { ProjectMember: { some: { user_id: userId } } },
+        ],
+      },
+    });
+
+    if (!project) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
+
+    const items = await prisma.item.findMany({
       where: { project_id: projectId },
       orderBy: { created_at: 'desc' },
-    }) || [];
+    });
     res.json(items);
   } catch (error) {
     console.error('Failed to fetch items:', error);
@@ -25,16 +42,44 @@ router.get('/projects/:projectId/items', async (req: Request, res: Response) => 
 router.post('/projects/:projectId/items', async (req: Request, res: Response) => {
   try {
     const { projectId } = req.params;
+    const userId = (req as AuthRequest).user_id;
     const { name, type, image, description, prompt } = req.body;
 
-    if (!name || !name.trim()) {
-      return res.status(400).json({ error: 'Name is required' });
+    if (!name || !String(name).trim()) {
+      res.status(400).json({ error: 'Name is required' });
+      return;
     }
 
-    const item = await (prisma as any).item?.create({
-      data: { name, type, image, description, prompt, project_id: projectId },
+    const project = await prisma.project.findFirst({
+      where: {
+        id: projectId,
+        OR: [
+          { owner_id: userId },
+          { ProjectMember: { some: { user_id: userId } } },
+        ],
+      },
     });
-    res.json(item);
+
+    if (!project) {
+      res.status(404).json({ error: 'Project not found' });
+      return;
+    }
+
+    const item = await prisma.item.create({
+      data: {
+        id: crypto.randomUUID(),
+        project_id: projectId,
+        name: String(name).trim(),
+        type: type ?? null,
+        image: image ?? null,
+        description: description ?? null,
+        prompt: prompt ?? null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+    });
+
+    res.status(201).json(item);
   } catch (error) {
     console.error('Failed to create item:', error);
     res.status(500).json({ error: 'Failed to create item' });
@@ -44,11 +89,36 @@ router.post('/projects/:projectId/items', async (req: Request, res: Response) =>
 router.put('/items/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = (req as AuthRequest).user_id;
     const { name, type, image, description, prompt } = req.body;
 
-    const item = await (prisma as any).item?.update({
+    const existing = await prisma.item.findFirst({
+      where: {
+        id,
+        Project: {
+          OR: [
+            { owner_id: userId },
+            { ProjectMember: { some: { user_id: userId } } },
+          ],
+        },
+      },
+    });
+
+    if (!existing) {
+      res.status(404).json({ error: 'Item not found' });
+      return;
+    }
+
+    const item = await prisma.item.update({
       where: { id },
-      data: { name, type, image, description, prompt },
+      data: {
+        ...(name !== undefined ? { name } : {}),
+        ...(type !== undefined ? { type } : {}),
+        ...(image !== undefined ? { image } : {}),
+        ...(description !== undefined ? { description } : {}),
+        ...(prompt !== undefined ? { prompt } : {}),
+        updated_at: new Date(),
+      },
     });
     res.json(item);
   } catch (error) {
@@ -60,7 +130,26 @@ router.put('/items/:id', async (req: Request, res: Response) => {
 router.delete('/items/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    await (prisma as any).item?.delete({
+    const userId = (req as AuthRequest).user_id;
+
+    const existing = await prisma.item.findFirst({
+      where: {
+        id,
+        Project: {
+          OR: [
+            { owner_id: userId },
+            { ProjectMember: { some: { user_id: userId } } },
+          ],
+        },
+      },
+    });
+
+    if (!existing) {
+      res.status(404).json({ error: 'Item not found' });
+      return;
+    }
+
+    await prisma.item.delete({
       where: { id },
     });
     res.json({ success: true });

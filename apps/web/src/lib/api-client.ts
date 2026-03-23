@@ -89,6 +89,20 @@ export class ApiClient {
     return response.json()
   }
 
+  /** 兼容 legacyResponseMiddleware：裸对象会被包成 { success: true, data: T } */
+  private unwrapSuccessData<T>(result: any): T {
+    if (
+      result &&
+      typeof result === 'object' &&
+      result.success === true &&
+      result.data !== undefined &&
+      result.data !== null
+    ) {
+      return result.data as T
+    }
+    return result as T
+  }
+
   private saveCsrfToken(token: string): void {
     localStorage.setItem('csrfToken', token)
   }
@@ -287,8 +301,13 @@ export class ApiClient {
     console.log('[api-client] parseScript 调用', { contentLength: content.length, model })
     try {
       const result = await this.post<any>('/script/parse', { content, model })
-      console.log('[api-client] parseScript 成功', result)
-      return result
+      const unwrapped = this.unwrapSuccessData<{
+        scenes: unknown[]
+        characters: unknown[]
+        items?: unknown[]
+      }>(result)
+      console.log('[api-client] parseScript 成功', unwrapped)
+      return unwrapped
     } catch (error) {
       console.error('[api-client] parseScript 失败', error)
       throw error
@@ -299,8 +318,14 @@ export class ApiClient {
     console.log('[api-client] parseScriptWithAI 调用', { contentLength: content.length, model })
     try {
       const result = await this.post<any>('/script/parse-ai', { content, model })
-      console.log('[api-client] parseScriptWithAI 成功', result)
-      return result
+      const unwrapped = this.unwrapSuccessData<{
+        scenes: unknown[]
+        characters: unknown[]
+        items?: unknown[]
+        metadata?: unknown
+      }>(result)
+      console.log('[api-client] parseScriptWithAI 成功', unwrapped)
+      return unwrapped
     } catch (error) {
       console.error('[api-client] parseScriptWithAI 失败', error)
       throw error
@@ -434,7 +459,10 @@ export class ApiClient {
     if (category && category !== 'all') params.append('category', category)
     if (source && source !== 'all') params.append('source', source)
     const query = params.toString() ? `?${params.toString()}` : ''
-    return this.get<any[]>(`/upload/assets${query}`)
+    console.log('[GetAssets] Request:', `/upload/assets${query}`)
+    const result = await this.get<any[]>(`/upload/assets${query}`)
+    console.log('[GetAssets] Response count:', result?.length)
+    return result
   }
 
   async getAssetCategories() {
@@ -445,32 +473,54 @@ export class ApiClient {
     return this.patch<any>(`/upload/assets/${assetId}/category`, { category })
   }
 
-  async uploadAssetGlobal(file: File) {
+  async uploadAssetGlobal(file: File, retryCount: number = 0): Promise<any> {
     const formData = new FormData()
     formData.append('file', file)
-    
+
     const token = await getCsrfToken()
     const headers: Record<string, string> = {}
     if (token) {
       headers['X-CSRF-Token'] = token
     }
-    
+
+    console.log('[Upload] Starting upload:', file.name)
     const response = await fetch(`${this.baseUrl}/upload/assets`, {
       method: 'POST',
       body: formData,
       headers,
       credentials: 'include',
     })
-    
+    console.log('[Upload] Response status:', response.status)
+
     if (!response.ok) {
-      const error = await response.text()
-      throw new Error(error || 'Upload failed')
+      const errorText = await response.text()
+      console.error('[Upload] Error response:', errorText)
+      let isCsrfError = false
+      try {
+        const errorJson = JSON.parse(errorText)
+        if (errorJson.error?.code === 'CSRF_TOKEN_INVALID' ||
+            errorJson.error?.code === 'CSRF_TOKEN_EXPIRED') {
+          isCsrfError = true
+        }
+      } catch {}
+
+      if (response.status === 403 && isCsrfError) {
+        clearCsrfToken()
+        if (retryCount < 1) {
+          await refreshCsrfToken()
+          return this.uploadAssetGlobal(file, retryCount + 1)
+        }
+      }
+
+      throw new Error(errorText || 'Upload failed')
     }
-    
-    return response.json()
+
+    const result = await response.json()
+    console.log('[Upload] Success:', result)
+    return result
   }
 
-  async uploadImage(file: File, projectId?: string) {
+  async uploadImage(file: File, projectId?: string, retryCount: number = 0): Promise<any> {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('category', 'character')
@@ -478,25 +528,42 @@ export class ApiClient {
     if (projectId) {
       formData.append('projectId', projectId)
     }
-    
+
     const token = await getCsrfToken()
     const headers: Record<string, string> = {}
     if (token) {
       headers['X-CSRF-Token'] = token
     }
-    
+
     const response = await fetch(`${this.baseUrl}/upload/assets`, {
       method: 'POST',
       body: formData,
       headers,
       credentials: 'include',
     })
-    
+
     if (!response.ok) {
-      const error = await response.text()
-      throw new Error(error || 'Upload failed')
+      const errorText = await response.text()
+      let isCsrfError = false
+      try {
+        const errorJson = JSON.parse(errorText)
+        if (errorJson.error?.code === 'CSRF_TOKEN_INVALID' ||
+            errorJson.error?.code === 'CSRF_TOKEN_EXPIRED') {
+          isCsrfError = true
+        }
+      } catch {}
+
+      if (response.status === 403 && isCsrfError) {
+        clearCsrfToken()
+        if (retryCount < 1) {
+          await refreshCsrfToken()
+          return this.uploadImage(file, projectId, retryCount + 1)
+        }
+      }
+
+      throw new Error(errorText || 'Upload failed')
     }
-    
+
     return response.json()
   }
 
@@ -514,29 +581,46 @@ export class ApiClient {
     return this.get<any[]>(`/upload/projects/${projectId}/assets${queryString ? `?${queryString}` : ''}`)
   }
 
-  async uploadProjectAsset(projectId: string, file: File, type: string) {
+  async uploadProjectAsset(projectId: string, file: File, type: string, retryCount: number = 0): Promise<any> {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('type', type)
-    
+
     const token = await getCsrfToken()
     const headers: Record<string, string> = {}
     if (token) {
       headers['X-CSRF-Token'] = token
     }
-    
+
     const response = await fetch(`${this.baseUrl}/upload/projects/${projectId}/assets`, {
       method: 'POST',
       body: formData,
       headers,
       credentials: 'include',
     })
-    
+
     if (!response.ok) {
-      const error = await response.text()
-      throw new Error(error || 'Upload failed')
+      const errorText = await response.text()
+      let isCsrfError = false
+      try {
+        const errorJson = JSON.parse(errorText)
+        if (errorJson.error?.code === 'CSRF_TOKEN_INVALID' ||
+            errorJson.error?.code === 'CSRF_TOKEN_EXPIRED') {
+          isCsrfError = true
+        }
+      } catch {}
+
+      if (response.status === 403 && isCsrfError) {
+        clearCsrfToken()
+        if (retryCount < 1) {
+          await refreshCsrfToken()
+          return this.uploadProjectAsset(projectId, file, type, retryCount + 1)
+        }
+      }
+
+      throw new Error(errorText || 'Upload failed')
     }
-    
+
     return response.json()
   }
 

@@ -13,7 +13,8 @@ export interface TextSegment {
 }
 
 export class IntelligentSegmenter {
-  private maxSegmentTokens = 8000
+  /** 与 config.ai.largeText.maxSegmentTokens 默认一致；实际以 LargeTextProcessingService.configure 为准 */
+  private maxSegmentTokens = 4500
   private contextWindowTokens = 500
 
   setMaxSegmentTokens(tokens: number) {

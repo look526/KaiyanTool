@@ -14,18 +14,25 @@ export interface MentionItem {
   icon: string;
 }
 
+export type MentionResourceType = MentionItem['type'] | 'all';
+
+/**
+ * @description 获取可提及的资源。`type` 与触发符对应：character=@、scene=#、item=$、asset=*
+ */
 export const mentionsApi = {
-  /**
-   * 获取可提及的资源
-   */
   async getMentions(
     projectId: string,
-    query?: string
+    query?: string,
+    type?: MentionResourceType
   ): Promise<MentionItem[]> {
-    const queryParams = query ? `?q=${encodeURIComponent(query)}` : '';
-    const response = await api.get(`/projects/${projectId}/mentions${queryParams}`);
+    const params = new URLSearchParams();
+    if (query) params.set('q', query);
+    if (type && type !== 'all') params.set('type', type);
+    const qs = params.toString();
+    const response = await api.get(
+      `/projects/${projectId}/mentions${qs ? `?${qs}` : ''}`
+    );
     return unwrapResponse<MentionItem[]>(response);
   },
 };
-
 

@@ -80,6 +80,9 @@ export interface AICreateVideoRequest {
   duration?: number
   motion?: number
   aspectRatio?: string
+  /** 由控制器合并进 prompt，供需要音画同出的模型理解 */
+  subtitle_text?: string
+  sync_audio_video?: boolean
 }
 
 export interface AICreateVideoResponse {

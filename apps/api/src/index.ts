@@ -60,6 +60,7 @@ import ttsRoutes from './routes/tts.routes'
 import subtitleRoutes from './routes/subtitle.routes'
 import timelineRoutes from './routes/timeline.routes'
 import productionRoutes from './routes/production.routes'
+import workspaceRoutes from './routes/workspace.routes'
 import logger, { requestLogger } from './lib/logger'
 import { initSentry, sentryRequestHandler, sentryErrorHandler, sentryTracingHandler } from './lib/sentry'
 import { getMetrics } from './lib/metrics'
@@ -197,6 +198,7 @@ app.use('/api', ttsRoutes)
 app.use('/api', subtitleRoutes)
 app.use('/api', timelineRoutes)
 app.use('/api', productionRoutes)
+app.use('/api/workspace', workspaceRoutes)
 app.use('/temp', express.static(path.join(process.cwd(), 'temp')))
 
 app.use(sentryErrorHandler)

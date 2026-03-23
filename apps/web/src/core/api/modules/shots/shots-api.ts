@@ -30,6 +30,7 @@ export interface Shot {
   resolution: string;
   duration?: number;
   visual_style?: string | null;
+  subtitle_text?: string | null;
   status: 'pending' | 'generating' | 'completed' | 'failed' | string;
   video_url: string | null;
   Scene?: {
@@ -69,10 +70,14 @@ export interface UpdateShotInput {
   end_image_url?: string | null;
   duration?: number;
   visual_style?: string;
+  subtitle_text?: string | null;
 }
 
 export interface GenerateShotInput {
   provider_id: string;
+  /** 将台词并入视频提示，依赖模型是否支持有声/口型 */
+  sync_audio_video?: boolean;
+  subtitle_text?: string;
 }
 
 export interface GenerateShotResponse {
@@ -143,8 +148,32 @@ export const shotsApi = {
     id: string,
     input: GenerateShotInput
   ): Promise<GenerateShotResponse> {
-    const response = await api.post(`/shots/${id}/generate`, input);
+    const response = await api.post(`/shots/${id}/generate/video`, input);
     return unwrapResponse<GenerateShotResponse>(response);
+  },
+
+  async generateStartFrame(
+    id: string,
+    body: { provider_id: string; prompt?: string; quality?: string }
+  ): Promise<{ imageUrl: string; shot?: Shot }> {
+    const response = await api.post(`/shots/${id}/generate/start-image`, body);
+    return unwrapResponse(response);
+  },
+
+  async generateEndFrame(
+    id: string,
+    body: { provider_id: string; prompt?: string; quality?: string }
+  ): Promise<{ imageUrl: string; shot?: Shot }> {
+    const response = await api.post(`/shots/${id}/generate/end-image`, body);
+    return unwrapResponse(response);
+  },
+
+  async generateBothFrames(
+    id: string,
+    body: { provider_id: string; quality?: string }
+  ): Promise<{ startImage: string; endImage: string; shot?: Shot }> {
+    const response = await api.post(`/shots/${id}/generate/both-images`, body);
+    return unwrapResponse(response);
   },
 
   /**

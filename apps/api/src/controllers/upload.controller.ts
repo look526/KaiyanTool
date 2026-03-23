@@ -10,6 +10,14 @@ const UPLOAD_DIR = path.join(process.cwd(), 'uploads')
 const MAX_FILE_SIZE = 5 * 1024 * 1024
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
 
+function fixFilename(filename: string): string {
+  try {
+    return Buffer.from(filename, 'latin1').toString('utf8')
+  } catch {
+    return filename
+  }
+}
+
 class UploadController {
   constructor() {
     this.ensureUploadDir()
@@ -214,7 +222,8 @@ class UploadController {
       }
 
       const timestamp = Date.now()
-      const ext = path.extname(file.originalname) || '.bin'
+      const originalName = fixFilename(file.originalname)
+      const ext = path.extname(originalName) || '.bin'
       const filename = `asset-${timestamp}-${Math.random().toString(36).substr(2, 9)}${ext}`
       const filepath = path.join(UPLOAD_DIR, filename)
 
@@ -237,7 +246,7 @@ class UploadController {
           url,
           project_id,
           metadata: {
-            original_name: file.originalname,
+            original_name: originalName,
             size: file.size,
             mimetype: file.mimetype,
           },

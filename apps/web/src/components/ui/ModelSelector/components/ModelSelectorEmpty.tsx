@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2, Settings } from 'lucide-react';
 import styles from '../ModelSelector.module.css';
 
 export interface ModelSelectorEmptyProps {
@@ -17,17 +17,33 @@ export function ModelSelectorEmpty({
     <div className={styles.emptyState}>
       <AlertCircle className={styles.emptyIcon} />
       <div className={styles.emptyText}>未找到匹配的模型</div>
-      {allow_custom && (
-        <button
-          onClick={() => {
-            on_close();
-            on_manage_models?.();
-          }}
-          className={styles.addButton}
-        >
-          添加新模型
-        </button>
-      )}
+      <div className={styles.emptyHint}>请先配置AI模型</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+        {on_manage_models && (
+          <button
+            onClick={() => {
+              on_close();
+              on_manage_models();
+            }}
+            className={styles.addButton}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+          >
+            <Settings style={{ width: '14px', height: '14px' }} />
+            管理模型
+          </button>
+        )}
+        {allow_custom && (
+          <button
+            onClick={() => {
+              on_close();
+              on_manage_models?.();
+            }}
+            className={styles.addButton}
+          >
+            添加新模型
+          </button>
+        )}
+      </div>
     </div>
   );
 }
