@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Mail, Lock, User, ArrowRight, Sparkles, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getCsrfToken } from '../lib/csrf';
@@ -18,7 +18,6 @@ export default function RegisterPage() {
   const [focused, setFocused] = useState<string | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   
-  const navigate = useNavigate();
   const { register } = useAuth();
 
   useEffect(() => {
@@ -66,8 +65,9 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await register(formData.email, formData.password, formData.name);
-      navigate('/projects', { replace: true });
+      // 与 AuthContext.register(name, email, password) 顺序一致
+      await register(formData.name, formData.email, formData.password);
+      // AuthContext 内已成功后会 navigate('/projects')，此处不再重复跳转
     } catch (err) {
       setError(err instanceof Error ? err.message : '注册失败');
     } finally {
