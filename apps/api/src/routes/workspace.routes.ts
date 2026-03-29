@@ -20,10 +20,13 @@ import {
   importWorkspace,
 } from '../services/workspace.service';
 import { authMiddleware } from '../middleware/auth.middleware';
+import aiRoutes from './workspace/ai.routes';
 
 const router = Router();
 
 router.use(authMiddleware);
+
+router.use('/ai', aiRoutes);
 
 router.get('/', async (req, res) => {
   try {
