@@ -80,7 +80,6 @@ export default function ProjectsPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [newProjectHover, setNewProjectHover] = useState(false);
   const [createHover, setCreateHover] = useState(false);
 
   const colors = useMemo(() => isDark ? {
@@ -268,6 +267,32 @@ export default function ProjectsPage() {
               }}
             />
           </div>
+          <button
+            onClick={() => navigate('/projects/new')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '36px',
+              height: '36px',
+              borderRadius: '12px',
+              border: 'none',
+              background: 'transparent',
+              color: colors.textMuted,
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = colors.accent + '20';
+              e.currentTarget.style.color = colors.accent;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = colors.textMuted;
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '22px', fontVariationSettings: "'FILL' 1" }}>add</span>
+          </button>
           <button style={{
             display: 'flex',
             alignItems: 'center',
@@ -280,7 +305,16 @@ export default function ProjectsPage() {
             color: colors.textMuted,
             cursor: 'pointer',
             transition: 'all 0.3s ease',
-          }}>
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = colors.bgGlassHover;
+            e.currentTarget.style.color = colors.textPrimary;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = colors.textMuted;
+          }}
+          >
             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>notifications</span>
           </button>
           <button style={{
@@ -415,44 +449,6 @@ export default function ProjectsPage() {
                   <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>view_list</span>
                 </button>
               </div>
-              <button
-                onClick={() => navigate('/projects/new')}
-                onMouseEnter={() => setNewProjectHover(true)}
-                onMouseLeave={() => setNewProjectHover(false)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  padding: '14px 28px',
-                  borderRadius: '16px',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  fontFamily: "'Manrope', sans-serif",
-                  border: 'none',
-                  background: isDark
-                    ? (newProjectHover
-                        ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.9) 0%, rgba(124, 58, 237, 0.95) 100%)'
-                        : 'rgba(139, 92, 246, 0.7)')
-                    : (newProjectHover
-                        ? 'linear-gradient(135deg, rgba(124, 58, 237, 0.95) 0%, rgba(139, 92, 246, 0.9) 100%)'
-                        : 'rgba(124, 58, 237, 0.85)'),
-                  color: '#ffffff',
-                  cursor: 'pointer',
-                  backdropFilter: 'blur(20px)',
-                  WebkitBackdropFilter: 'blur(20px)',
-                  boxShadow: newProjectHover
-                    ? `0 8px 32px ${colors.accent}40, 0 0 60px ${colors.accent}20`
-                    : `0 4px 16px ${colors.accent}20`,
-                  transform: newProjectHover ? 'translateY(-2px) scale(1.02)' : 'translateY(0) scale(1)',
-                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                }}
-              >
-                <span className="material-symbols-outlined" style={{
-                  fontSize: '20px',
-                  fontVariationSettings: "'FILL' 1, 'wght' 500",
-                }}>add</span>
-                <span>新建项目</span>
-              </button>
             </div>
           </div>
 
