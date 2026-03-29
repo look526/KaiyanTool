@@ -419,7 +419,12 @@ export default function WorkspacePage() {
     });
   }, [canvasOffset, zoom, workspaceId]);
 
-  const handleGenerate = async (nodeId: string, targetType: string) => {
+  const handleGenerate = async (
+    nodeId: string,
+    targetType: string,
+    promptJson?: any,
+    providerId?: string
+  ) => {
     const sourceNode = nodes.find(n => n.id === nodeId);
     if (!sourceNode) return;
 
@@ -428,50 +433,66 @@ export default function WorkspacePage() {
     const x = (window.innerWidth / 2 - canvasOffset.x) / zoom;
     const y = (window.innerHeight / 2 - canvasOffset.y) / zoom;
 
-    let prompt = '';
-    if (sourceNode.type === 'text') {
-      prompt = sourceNode.content.text || '';
-    }
-
     const newNode = await createNode(targetType as 'text' | 'image' | 'video',
       targetType === 'text' ? { text: '' } : { url: '' },
       { x: x + Math.random() * 50, y: y + Math.random() * 50 }
     );
 
-    if (newNode) {
-      await createEdge(nodeId, newNode.id);
-    }
+    if (!newNode) return;
+
+    await createEdge(nodeId, newNode.id);
 
     setNodes(prev => prev.map(n =>
-      n.id === newNode?.id ? { ...n, is_generating: true, generation_progress: 0 } : n
+      n.id === newNode.id ? { ...n, is_generating: true, generation_progress: 0 } : n
     ));
 
-    let progress = 0;
-    const interval = setInterval(async () => {
-      progress += Math.random() * 25;
-      if (progress >= 100) {
-        progress = 100;
-        clearInterval(interval);
-        const resultUrl = targetType === 'image'
-          ? 'https://picsum.photos/512/512?' + Date.now()
-          : 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4';
-        setNodes(prev => prev.map(n =>
-          n.id === newNode?.id ? { ...n, is_generating: false, generation_progress: undefined, output_url: resultUrl, content: { url: resultUrl } } : n
-        ));
-        try {
-          await apiClient.post(`/workspace/nodes/${newNode?.id}/history`, {
-            content: { url: resultUrl },
-            output_url: resultUrl,
-          });
-        } catch (error) {
-          console.error('Failed to save history:', error);
-        }
-      } else {
-        setNodes(prev => prev.map(n =>
-          n.id === newNode?.id ? { ...n, generation_progress: progress } : n
-        ));
-      }
-    }, 300);
+    try {
+      const providersRes = await apiClient.get('/workspace/ai/providers');
+      const providers = (providersRes as any)?.data || [];
+      const defaultProvider = providers[0];
+      const finalProviderId = providerId || defaultProvider?.id || 'zhipu';
+      const model = defaultProvider?.models?.[0]?.id || 'cogview-3';
+
+      const res = await apiClient.post('/workspace/ai/generate', {
+        source_node_id: nodeId,
+        target_type: targetType,
+        provider_id: finalProviderId,
+        model,
+        prompt_json: promptJson || {
+          version: 1,
+          scene: sourceNode.content?.text || '',
+          shot: '中景',
+          subject: '',
+          props: [],
+          style: '默认风格',
+        },
+      });
+
+      const resultUrl = targetType === 'image'
+        ? (res as any)?.data?.result_url || 'https://picsum.photos/512/512?' + Date.now()
+        : 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4';
+
+      setNodes(prev => prev.map(n =>
+        n.id === newNode.id
+          ? { ...n, is_generating: false, generation_progress: undefined, output_url: resultUrl, content: { url: resultUrl } }
+          : n
+      ));
+
+      await apiClient.post(`/workspace/nodes/${newNode.id}/history`, {
+        content: { url: resultUrl },
+        output_url: resultUrl,
+      });
+    } catch (error) {
+      console.error('Generation failed:', error);
+      const resultUrl = targetType === 'image'
+        ? 'https://picsum.photos/512/512?' + Date.now()
+        : 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4';
+      setNodes(prev => prev.map(n =>
+        n.id === newNode.id
+          ? { ...n, is_generating: false, generation_progress: undefined, output_url: resultUrl, content: { url: resultUrl } }
+          : n
+      ));
+    }
 
     setShowConfigPanel(false);
     setContextMenu(null);
