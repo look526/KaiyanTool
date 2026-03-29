@@ -103,6 +103,70 @@ export class ApiClient {
     return result as T
   }
 
+  /** ParsedScriptV1（snake_case）→ 剧本预览/资产生成使用的 camelCase 场景结构 */
+  private normalizeParsedScriptV1ForPreview(v1: Record<string, unknown>): {
+    scenes: unknown[]
+    characters: unknown[]
+    items: unknown[]
+    metadata?: unknown
+    parse_schema_version?: number
+  } {
+    const scenesRaw = Array.isArray(v1.scenes) ? v1.scenes : []
+    const scenes = scenesRaw.map((s: Record<string, unknown>) => {
+      const dialoguesRaw = Array.isArray(s.dialogues) ? s.dialogues : []
+      const dialogues = dialoguesRaw.map((d: Record<string, unknown>) => ({
+        characterName: typeof d.character_name === 'string' ? d.character_name : '角色',
+        text: typeof d.text === 'string' ? d.text : '',
+        shot: d.shot,
+      }))
+      const charNames = Array.isArray(s.character_names)
+        ? s.character_names.filter((x): x is string => typeof x === 'string')
+        : []
+      const desc =
+        (typeof s.description === 'string' && s.description) ||
+        (typeof s.heading === 'string' && s.heading) ||
+        ''
+      return {
+        id: s.id,
+        number: s.number,
+        heading: s.heading,
+        location: s.location,
+        time: s.time,
+        description: desc,
+        characters: charNames,
+        dialogues,
+        actions: Array.isArray(s.actions) ? s.actions : [],
+        items: Array.isArray(s.items) ? s.items : undefined,
+        segmentId: s.segment_id,
+      }
+    })
+    const charsRaw = Array.isArray(v1.characters) ? v1.characters : []
+    const characters = charsRaw.map((c: Record<string, unknown>) => ({
+      id: c.id,
+      name: c.name,
+      description: c.description,
+      lines: c.lines,
+      personality: c.personality,
+      costume: c.costume,
+      appearance: c.appearance,
+    }))
+    const itemsRaw = Array.isArray(v1.items) ? v1.items : []
+    const items = itemsRaw.map((i: Record<string, unknown>) => ({
+      name: i.name,
+      size: i.size,
+      shape: i.shape,
+      color: i.color,
+    }))
+    return {
+      scenes,
+      characters,
+      items,
+      metadata: v1.metadata,
+      parse_schema_version:
+        typeof v1.parse_schema_version === 'number' ? v1.parse_schema_version : undefined,
+    }
+  }
+
   private saveCsrfToken(token: string): void {
     localStorage.setItem('csrfToken', token)
   }
@@ -297,35 +361,54 @@ export class ApiClient {
     }
   }
 
-  async parseScript(content: string, model?: string) {
+  async parseScript(content: string, model?: string, script_kind?: string) {
     console.log('[api-client] parseScript 调用', { contentLength: content.length, model })
     try {
-      const result = await this.post<any>('/script/parse', { content, model })
-      const unwrapped = this.unwrapSuccessData<{
+      const result = await this.post<any>('/script/parse', { content, model, script_kind })
+      const unwrapped = this.unwrapSuccessData<Record<string, unknown>>(result)
+      if (unwrapped && typeof unwrapped === 'object' && unwrapped.parse_schema_version === 1) {
+        const normalized = this.normalizeParsedScriptV1ForPreview(unwrapped)
+        console.log('[api-client] parseScript 成功 (V1→preview)', normalized)
+        return normalized
+      }
+      console.log('[api-client] parseScript 成功', unwrapped)
+      return unwrapped as {
         scenes: unknown[]
         characters: unknown[]
         items?: unknown[]
-      }>(result)
-      console.log('[api-client] parseScript 成功', unwrapped)
-      return unwrapped
+      }
     } catch (error) {
       console.error('[api-client] parseScript 失败', error)
       throw error
     }
   }
 
-  async parseScriptWithAI(content: string, model?: string) {
+  async parseScriptWithAI(
+    content: string,
+    model?: string,
+    options?: { use_cache?: boolean; script_kind?: string }
+  ) {
     console.log('[api-client] parseScriptWithAI 调用', { contentLength: content.length, model })
     try {
-      const result = await this.post<any>('/script/parse-ai', { content, model })
-      const unwrapped = this.unwrapSuccessData<{
+      const result = await this.post<any>('/script/parse-ai', {
+        content,
+        model,
+        use_cache: options?.use_cache,
+        script_kind: options?.script_kind,
+      })
+      const unwrapped = this.unwrapSuccessData<Record<string, unknown>>(result)
+      if (unwrapped && typeof unwrapped === 'object' && unwrapped.parse_schema_version === 1) {
+        const normalized = this.normalizeParsedScriptV1ForPreview(unwrapped)
+        console.log('[api-client] parseScriptWithAI 成功 (V1→preview)', normalized)
+        return normalized
+      }
+      console.log('[api-client] parseScriptWithAI 成功', unwrapped)
+      return unwrapped as {
         scenes: unknown[]
         characters: unknown[]
         items?: unknown[]
         metadata?: unknown
-      }>(result)
-      console.log('[api-client] parseScriptWithAI 成功', unwrapped)
-      return unwrapped
+      }
     } catch (error) {
       console.error('[api-client] parseScriptWithAI 失败', error)
       throw error
@@ -396,6 +479,35 @@ export class ApiClient {
       minutes_per_episode: minutesPerEpisode,
       model
     })
+  }
+
+  async getProjectEpisodes(
+    projectId: string,
+    params?: { search?: string; sort?: string; order?: 'asc' | 'desc' }
+  ) {
+    const q = new URLSearchParams()
+    if (params?.search) q.append('search', params.search)
+    if (params?.sort) q.append('sort', params.sort)
+    if (params?.order) q.append('order', params.order)
+    const qs = q.toString()
+    const result = await this.get<any>(`/projects/${projectId}/episodes${qs ? `?${qs}` : ''}`)
+    return this.unwrapSuccessData<any[]>(result) ?? result
+  }
+
+  async applyParseToEpisode(
+    episodeId: string,
+    body: {
+      parse_result: Record<string, unknown>
+      mode?: 'append_scenes' | 'fill_empty_only'
+      create_shot_drafts?: boolean
+    }
+  ) {
+    const result = await this.post<any>(`/episodes/${episodeId}/apply-parse`, body)
+    return this.unwrapSuccessData<{
+      created_scene_ids: string[]
+      updated_scene_ids: string[]
+      created_shot_ids: string[]
+    }>(result)
   }
 
   // Character endpoints

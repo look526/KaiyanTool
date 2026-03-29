@@ -93,7 +93,7 @@ export interface ApiClientInterface {
   deleteDocumentById(id: string): Promise<{ message: string }>;
   generateVideo(projectId: string, documentId: string, data: { aiProviderId: string; model: string }): Promise<{ video: Video }>;
   generateShotVideo(shotId: string, providerId: string): Promise<{ success: boolean; videoUrl?: string }>;
-  parseScript(content: string, model?: string): Promise<{ scenes: any[]; characters: string[] }>;
+  parseScript(content: string, model?: string, script_kind?: string): Promise<any>;
   saveScript(projectId: string, title: string, content: string): Promise<{ success: boolean; project: Project }>;
   getScript(scriptId: string): Promise<{ id: string; title: string; content: string; createdAt: string; updatedAt: string }>;
   getProjectScripts(projectId: string): Promise<Array<{ id: string; title: string; content: string; createdAt: string; updatedAt: string }>>;
@@ -111,7 +111,27 @@ export interface ApiClientInterface {
   getProjectAssets(projectId: string, type?: string, search?: string, category?: string, source?: string): Promise<any[]>;
   polishPrompt(prompt: string, type?: string, style?: string): Promise<{ polished: string }>;
   processContentWithFile(content: string, mode: 'continue' | 'rewrite' | 'optimize', model?: string): Promise<any>;
-  parseScriptWithAI(content: string, model?: string): Promise<any>;
+  parseScriptWithAI(
+    content: string,
+    model?: string,
+    options?: { use_cache?: boolean; script_kind?: string }
+  ): Promise<any>;
+  getProjectEpisodes(
+    projectId: string,
+    params?: { search?: string; sort?: string; order?: 'asc' | 'desc' }
+  ): Promise<any[]>;
+  applyParseToEpisode(
+    episodeId: string,
+    body: {
+      parse_result: Record<string, unknown>;
+      mode?: 'append_scenes' | 'fill_empty_only';
+      create_shot_drafts?: boolean;
+    }
+  ): Promise<{
+    created_scene_ids: string[];
+    updated_scene_ids: string[];
+    created_shot_ids: string[];
+  }>;
   optimizePrompt(prompt: string, model?: string, type?: string): Promise<any>;
   getModelPreferences(): Promise<any>;
   setDefaultModels(configurations: any[]): Promise<any>;

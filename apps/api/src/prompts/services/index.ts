@@ -219,6 +219,10 @@ export const AI_PROCESSOR_PROMPTS = {
 【角色列表】
 {{characters}}
 
+【剧本体裁】
+标签: {{script_kind}}
+解析侧重: {{script_kind_guidance}}
+
 请以JSON格式返回，结构如下：
 {
   "segmentId": "{{segmentId}}",
@@ -468,3 +472,4 @@ export const CLOTHING_VARIANT_PROMPTS = {
 };
 
 export * from './tts-prompts'
+export * from './script-parse-v1'

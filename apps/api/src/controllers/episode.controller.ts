@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import * as crypto from 'crypto';
+import { applyParseToEpisode, type ApplyParseMode } from '../services/script/apply-parse.service';
 
 export class EpisodeController {
   async getEpisodes(req: Request, res: Response): Promise<void> {
@@ -197,6 +198,57 @@ export class EpisodeController {
     } catch (error) {
       console.error('Error deleting episode:', error);
       res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to delete episode' } });
+    }
+  }
+
+  /**
+   * POST /episodes/:episodeId/apply-parse
+   * body: { parse_result, mode?, create_shot_drafts? }
+   */
+  async applyParse(req: Request, res: Response): Promise<void> {
+    try {
+      const user_id = (req as { user_id?: string }).user_id;
+      if (!user_id) {
+        res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: '未登录' } });
+        return;
+      }
+
+      const { episodeId } = req.params;
+      const { parse_result, mode, create_shot_drafts } = req.body ?? {};
+
+      if (!parse_result || typeof parse_result !== 'object') {
+        res.status(400).json({
+          success: false,
+          error: { code: 'BAD_REQUEST', message: 'parse_result 必填且须为对象' },
+        });
+        return;
+      }
+
+      const m: ApplyParseMode = mode === 'fill_empty_only' ? 'fill_empty_only' : 'append_scenes';
+      const drafts = create_shot_drafts !== false;
+
+      const result = await applyParseToEpisode({
+        user_id,
+        episode_id: episodeId,
+        parse_result,
+        mode: m,
+        create_shot_drafts: drafts,
+      });
+
+      res.status(201).json({ success: true, data: result });
+    } catch (error) {
+      const e = error as Error & { statusCode?: number };
+      const code = e.statusCode;
+      if (code === 404) {
+        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: e.message } });
+        return;
+      }
+      if (code === 400) {
+        res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message: e.message } });
+        return;
+      }
+      console.error('applyParse error:', error);
+      res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'apply-parse 失败' } });
     }
   }
 
