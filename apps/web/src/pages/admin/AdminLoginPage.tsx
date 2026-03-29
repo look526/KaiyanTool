@@ -29,12 +29,12 @@ export default function AdminLoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await api.post<{ user: any; token: string }>('/admin/auth/login', {
+      const response = await api.post<{ user: any }>('/admin/auth/login', {
         email,
         password,
       });
 
-      setTokens(response.token);
+      setTokens('admin-session');
       navigate('/admin');
     } catch (err: any) {
       setError(err.message || '登录失败，请检查邮箱和密码');
