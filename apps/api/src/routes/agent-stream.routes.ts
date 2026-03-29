@@ -7,6 +7,7 @@ import logger from '../lib/logger';
 import { AIChatMessage } from '../types/ai.types';
 import { AGENT_STREAM_PROMPTS } from '../prompts/routes';
 import crypto from 'crypto';
+import { getOrCreateDefaultEpisode } from '../utils/episode-resolver';
 
 const router = Router();
 
@@ -221,16 +222,20 @@ async function runStoryboardAgentStream(context: StreamContext, outlineId: strin
     const parsedResult = parseJsonResponse(response.content || response);
 
     if (parsedResult.shots && Array.isArray(parsedResult.shots)) {
+      const episode = await getOrCreateDefaultEpisode(projectId);
+      const now = new Date();
       for (const shot of parsedResult.shots) {
         await prisma.shot.create({
           data: {
             id: crypto.randomUUID(),
             project_id: projectId,
+            episode_id: episode.id,
             action_summary: shot.description || '',
             start_prompt: shot.prompt || '',
             duration: shot.duration || 5,
             camera_movement: shot.camera?.movement || null,
-            updated_at: new Date(),
+            created_at: now,
+            updated_at: now,
           },
         });
       }

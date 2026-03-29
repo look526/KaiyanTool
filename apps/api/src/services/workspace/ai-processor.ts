@@ -111,10 +111,21 @@ export async function generateFromPrompt(
 ): Promise<{ taskId: string; status: string }> {
   const sourceNode = await prisma.canvasNode.findUnique({
     where: { id: sourceNodeId },
+    include: { Workspace: { select: { user_id: true } } },
   });
 
-  if (!sourceNode) {
+  if (!sourceNode?.Workspace) {
     throw new Error('Source node not found');
+  }
+
+  const project = await prisma.project.findFirst({
+    where: { owner_id: sourceNode.Workspace.user_id },
+    orderBy: { created_at: 'asc' },
+    select: { id: true },
+  });
+
+  if (!project) {
+    throw new Error('No project found for workspace owner; cannot create render task');
   }
 
   const isSimple = isSimplePrompt(promptJson);
@@ -128,9 +139,10 @@ export async function generateFromPrompt(
       type: targetType,
       status: 'processing',
       progress: 0,
+      project_id: sourceNode.workspace_id,
       params: {
         prompt: finalPrompt,
-        promptJson,
+        promptJson: JSON.parse(JSON.stringify(promptJson)),
         providerId,
         model,
         style,
@@ -154,10 +166,10 @@ export async function generateFromPrompt(
 
     providerManager.addProvider({
       id: providerConfig.id,
-      name: providerConfig.name,
+      name: providerConfig.type,
       type: providerConfig.type,
-      apiKey: providerConfig.apiKey,
-      baseUrl: providerConfig.baseUrl || undefined,
+      apiKey: providerConfig.api_key,
+      baseUrl: providerConfig.base_url || undefined,
     });
 
     const provider = providerManager.getProvider(providerId);
@@ -173,12 +185,13 @@ export async function generateFromPrompt(
         n: 1,
       });
 
+      const taskParams = task.params as Record<string, any>;
       await prisma.renderTask.update({
         where: { id: task.id },
         data: {
           status: 'completed',
           progress: 100,
-          params: { ...task.params, resultUrl: result.url },
+          params: { ...taskParams, resultUrl: result.url },
         },
       });
 
@@ -209,12 +222,12 @@ export async function generateFromPrompt(
 export async function getAvailableProviders() {
   const providers = await prisma.aIProvider.findMany({
     where: { enabled: true },
-    include: { models: true },
+    include: { AIProviderModel: true },
   });
 
   return providers.map(p => ({
     id: p.id,
-    name: p.name,
+    name: p.type,
     type: p.type,
     models: p.AIProviderModel?.map(m => ({
       id: m.id,

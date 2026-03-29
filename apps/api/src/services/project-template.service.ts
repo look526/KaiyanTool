@@ -37,39 +37,15 @@ export class ProjectTemplateService {
     });
 
     if (validated.defaultAssets?.length) {
-      for (const asset of validated.defaultAssets) {
-        switch (asset.type) {
-          case 'character':
-            await prisma.character.create({
-              data: {
-                id: crypto.randomUUID(),
-                project_id: null,
-                name: asset.name,
-                appearance: JSON.stringify({
-                  description: asset.description || '',
-                  prompt: asset.prompt
-                }),
-                created_at: new Date(),
-                updated_at: new Date()
-              }
-            });
-            break;
-          case 'scene':
-            await prisma.scene.create({
-              data: {
-                id: crypto.randomUUID(),
-                project_id: null,
-                location: asset.name || '',
-                time: '未知',
-                atmosphere: asset.description || '',
-                reference_images: [],
-                created_at: new Date(),
-                updated_at: new Date()
-              }
-            });
-            break;
-        }
-      }
+      return prisma.projectTemplate.update({
+        where: { id: template.id },
+        data: {
+          config: {
+            ...(validated.settings as Record<string, unknown>),
+            default_assets: validated.defaultAssets,
+          } as object,
+        },
+      });
     }
 
     return template;

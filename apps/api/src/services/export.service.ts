@@ -2,6 +2,7 @@ import { prisma } from '../lib/prisma';
 import JSZip from 'jszip';
 import logger from '../lib/logger';
 import crypto from 'crypto';
+import { getOrCreateDefaultEpisode } from '../utils/episode-resolver';
 
 interface ProjectExportData {
   project: any;
@@ -119,6 +120,8 @@ class ExportService {
       },
     });
 
+    const defaultEpisode = await getOrCreateDefaultEpisode(project.id);
+
     const characterMap = new Map<string, string>();
     for (const character of exportData.characters) {
       const created = await prisma.character.create({
@@ -140,11 +143,17 @@ class ExportService {
       const created = await prisma.scene.create({
         data: {
           id: crypto.randomUUID(),
+          episode_id: defaultEpisode.id,
           project_id: project.id,
           location: scene.location,
-          time: scene.time,
-          atmosphere: scene.mood || '',
-          reference_images: scene.referenceImages || [],
+          time: scene.time || '',
+          description:
+            scene.description ??
+            scene.mood ??
+            (scene as { atmosphere?: string }).atmosphere ??
+            null,
+          scene_order: scene.scene_order ?? 0,
+          reference_images: scene.reference_images || scene.referenceImages || [],
           created_at: new Date(),
           updated_at: new Date(),
         },
@@ -153,26 +162,31 @@ class ExportService {
     }
 
     for (const shot of exportData.shots) {
+      const s = shot as Record<string, unknown>;
+      const legacySceneId = (s.scene_id ?? s.sceneId) as string | undefined;
+      const mappedSceneId = legacySceneId ? sceneMap.get(legacySceneId) : undefined;
+      const charKey = (s.character_id ?? s.characterId) as string | undefined;
       await prisma.shot.create({
         data: {
           id: crypto.randomUUID(),
           project_id: project.id,
-          scene_id: sceneMap.get(shot.sceneId),
-          character_id: shot.characterId ? characterMap.get(shot.characterId) : null,
-          chapter_number: shot.chapterNumber,
-          episode_number: shot.episodeNumber,
-          segment_id: shot.segmentId,
-          cell_id: shot.cellId,
-          action_summary: shot.actionSummary,
-          camera_movement: shot.cameraMovement,
-          start_prompt: shot.startPrompt,
-          end_prompt: shot.endPrompt,
-          start_image_url: shot.startImageUrl,
-          end_image_url: shot.endImageUrl,
-          duration: shot.duration,
-          aspect_ratio: shot.aspectRatio,
-          visual_style: shot.visualStyle,
-          video_url: shot.videoUrl,
+          episode_id: defaultEpisode.id,
+          scene_id: mappedSceneId ?? null,
+          character_id: charKey ? characterMap.get(charKey) ?? null : null,
+          chapter_number: (s.chapter_number ?? s.chapterNumber) as number | null | undefined,
+          episode_number: (s.episode_number ?? s.episodeNumber) as number | null | undefined,
+          segment_id: (s.segment_id ?? s.segmentId) as number | null | undefined,
+          cell_id: (s.cell_id ?? s.cellId) as number | null | undefined,
+          action_summary: String(s.action_summary ?? s.actionSummary ?? ''),
+          camera_movement: (s.camera_movement ?? s.cameraMovement) as string | null | undefined,
+          start_prompt: (s.start_prompt ?? s.startPrompt) as string | null | undefined,
+          end_prompt: (s.end_prompt ?? s.endPrompt) as string | null | undefined,
+          start_image_url: (s.start_image_url ?? s.startImageUrl) as string | null | undefined,
+          end_image_url: (s.end_image_url ?? s.endImageUrl) as string | null | undefined,
+          duration: (s.duration as number | undefined) ?? 8,
+          aspect_ratio: ((s.aspect_ratio ?? s.aspectRatio) as string | undefined) ?? '16:9',
+          visual_style: (s.visual_style ?? s.visualStyle) as string | null | undefined,
+          video_url: (s.video_url ?? s.videoUrl) as string | null | undefined,
           created_at: new Date(),
           updated_at: new Date(),
         },

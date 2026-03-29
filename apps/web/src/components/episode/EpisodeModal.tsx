@@ -156,12 +156,14 @@ export function EpisodeModal({ projectId, episode, onClose, onSaved }: EpisodeMo
                 transition: 'all 0.2s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.background = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)';
-                e.currentTarget.color = isDark ? '#fafafa' : '#18181b';
+                const t = e.currentTarget;
+                t.style.background = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)';
+                t.style.color = isDark ? '#fafafa' : '#18181b';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.background = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)';
-                e.currentTarget.color = isDark ? 'rgba(250, 250, 250, 0.6)' : 'rgba(24, 24, 27, 0.6)';
+                const t = e.currentTarget;
+                t.style.background = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)';
+                t.style.color = isDark ? 'rgba(250, 250, 250, 0.6)' : 'rgba(24, 24, 27, 0.6)';
               }}
             >
               <X style={{ width: '20px', height: '20px' }} />
@@ -213,14 +215,16 @@ export function EpisodeModal({ projectId, episode, onClose, onSaved }: EpisodeMo
                 }}
                 onFocus={(e) => {
                   if (!error) {
-                    e.currentTarget.borderColor = accentColor;
-                    e.currentTarget.boxShadow = `0 0 0 4px ${accentColor}15`;
+                    const t = e.currentTarget;
+                    t.style.borderColor = accentColor;
+                    t.style.boxShadow = `0 0 0 4px ${accentColor}15`;
                   }
                 }}
                 onBlur={(e) => {
                   if (!error) {
-                    e.currentTarget.borderColor = isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)';
-                    e.currentTarget.boxShadow = 'none';
+                    const t = e.currentTarget;
+                    t.style.borderColor = isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)';
+                    t.style.boxShadow = 'none';
                   }
                 }}
               />
@@ -281,12 +285,14 @@ export function EpisodeModal({ projectId, episode, onClose, onSaved }: EpisodeMo
                   fontFamily: 'inherit',
                 }}
                 onFocus={(e) => {
-                  e.currentTarget.borderColor = accentColor;
-                  e.currentTarget.boxShadow = `0 0 0 4px ${accentColor}15`;
+                  const t = e.currentTarget;
+                  t.style.borderColor = accentColor;
+                  t.style.boxShadow = `0 0 0 4px ${accentColor}15`;
                 }}
                 onBlur={(e) => {
-                  e.currentTarget.borderColor = isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)';
-                  e.currentTarget.boxShadow = 'none';
+                  const t = e.currentTarget;
+                  t.style.borderColor = isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)';
+                  t.style.boxShadow = 'none';
                 }}
               />
             </div>

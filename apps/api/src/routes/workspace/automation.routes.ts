@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authMiddleware } from '../../middleware/auth.middleware';
-import { triggerWorkflow, getTemplateDescription, getNodeCount, WorkflowTemplateType } from '../../services/workspace/automation';
+import { triggerWorkflow, getTemplateDescription, getNodeCount, getWorkflowExecutions } from '../../services/workspace/automation';
 
 const router = Router();
 
@@ -33,6 +33,20 @@ router.get('/templates', async (req, res) => {
   } catch (error) {
     console.error('Failed to get templates:', error);
     res.status(500).json({ success: false, error: { code: 'TEMPLATE_ERROR' } });
+  }
+});
+
+router.get('/executions', async (req, res) => {
+  try {
+    const { workspace_id, limit } = req.query;
+    if (!workspace_id || typeof workspace_id !== 'string') {
+      return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT' } });
+    }
+    const executions = await getWorkflowExecutions(workspace_id, Number(limit) || 50);
+    res.json({ success: true, data: executions });
+  } catch (error) {
+    console.error('Failed to get executions:', error);
+    res.status(500).json({ success: false, error: { code: 'EXECUTION_ERROR' } });
   }
 });
 

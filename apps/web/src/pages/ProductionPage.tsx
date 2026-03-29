@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Clapperboard, Loader2, Play, RefreshCw } from 'lucide-react';
 import { StandardPageHeader } from '../components/ui/StandardPageHeader';
@@ -20,7 +20,8 @@ export default function ProductionPage() {
     try {
       setLoading(true);
       const result = await apiClient.listProductionTasks(projectId);
-      setTasks(result?.data || result || []);
+      const list = Array.isArray(result) ? result : (result as { data?: unknown[] })?.data;
+      setTasks(Array.isArray(list) ? list : []);
     } finally {
       setLoading(false);
     }

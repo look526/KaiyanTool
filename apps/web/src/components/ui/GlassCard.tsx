@@ -46,8 +46,8 @@ export const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
       },
       glass: {
         background: 'var(--bg-glass)',
-        border: '1px solid var(--border-primary)',
-        backdropFilter: 'var(--glass-blur)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        backdropFilter: 'blur(40px)',
         boxShadow: 'var(--shadow-md)',
       },
     };
@@ -62,8 +62,8 @@ export const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
     };
 
     const interactiveStyles = interactive ? {
-      transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
-      boxShadow: isHovered ? 'var(--shadow-card-hover)' : variantStyles[variant].boxShadow,
+      transform: isHovered ? 'translateY(-4px) scale(1.02)' : 'translateY(0) scale(1)',
+      boxShadow: isHovered ? '0 0 40px rgba(186, 158, 255, 0.15)' : variantStyles[variant].boxShadow,
       borderColor: isHovered ? 'var(--border-hover)' : 'var(--border-primary)',
     } : {};
 

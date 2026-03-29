@@ -295,13 +295,13 @@ export default function NodeConfigPanel({
               borderRadius: '12px',
               border: `1px solid ${colors.border}`,
             }}>
-              {node.history.map((version: any, index: number) => (
+              {(node.history ?? []).map((version: any, index: number) => (
                 <div
                   key={index}
                   onClick={() => onRevertToVersion(node.id, version)}
                   style={{
                     padding: '10px 12px',
-                    borderBottom: index < node.history.length - 1 ? `1px solid ${colors.border}` : 'none',
+                    borderBottom: index < (node.history?.length ?? 0) - 1 ? `1px solid ${colors.border}` : 'none',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',

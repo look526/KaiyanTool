@@ -45,12 +45,15 @@ export class ToapisProvider extends AIProvider {
   }
 
   async createVideo(request: AICreateVideoRequest): Promise<AICreateVideoResponse> {
+    const imageUrls = [request.imageUrl, request.endImageUrl].filter(
+      (u): u is string => typeof u === 'string' && u.length > 0
+    )
     const sora2Request: Sora2VideoRequest = {
       model: 'sora-2',
       prompt: request.prompt || '',
       duration: request.duration ?? 10,
       aspect_ratio: request.aspectRatio === '9:16' ? '9:16' : '16:9',
-      image_urls: request.imageUrl ? [request.imageUrl] : undefined,
+      image_urls: imageUrls.length > 0 ? imageUrls : undefined,
       thumbnail: true,
     }
 

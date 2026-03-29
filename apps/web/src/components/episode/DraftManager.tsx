@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { shotDraftsApi, ShotDraft } from '../core/api/modules/shot-drafts';
-import { useTheme } from '../contexts/ThemeContext';
+import { shotDraftsApi, ShotDraft } from '../../core/api/modules/shot-drafts';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Clock, Trash2, RotateCcw } from 'lucide-react';
 
 interface DraftManagerProps {

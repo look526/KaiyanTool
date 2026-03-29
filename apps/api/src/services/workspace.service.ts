@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -195,8 +196,17 @@ export async function addNodeHistory(nodeId: string, entry: NodeHistoryEntry) {
     throw new Error('Node not found');
   }
 
-  const history = Array.isArray(node.history) ? node.history : [];
-  history.push(entry);
+  const history = Array.isArray(node.history)
+    ? ([...node.history] as Prisma.JsonArray)
+    : [];
+  const serializable: Prisma.JsonObject = {
+    content: entry.content as Prisma.JsonValue,
+    timestamp: entry.timestamp.toISOString(),
+  };
+  if (entry.output_url != null) {
+    serializable.output_url = entry.output_url;
+  }
+  history.push(serializable);
 
   if (history.length > 50) {
     history.shift();

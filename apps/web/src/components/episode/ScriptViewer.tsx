@@ -1,4 +1,4 @@
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Film } from 'lucide-react';
 import type { Scene } from '../../types/episode';
 

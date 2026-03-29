@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma';
 import crypto from 'crypto';
+import { getOrCreateDefaultEpisode } from '../utils/episode-resolver';
 
 interface MigrationSource {
   type: 'bigbanana' | 'toonflow' | 'cinegen' | 'custom';
@@ -193,15 +194,17 @@ export class DataMigrationService {
         result.migratedProjects++;
 
         if (project.scenes?.length) {
+          const episode = await getOrCreateDefaultEpisode(newProject.id);
           for (const scene of project.scenes) {
             try {
               await prisma.scene.create({
                 data: {
                   id: crypto.randomUUID(),
+                  episode_id: episode.id,
                   project_id: newProject.id,
                   location: scene.location,
                   time: scene.timeOfDay,
-                  atmosphere: '',
+                  description: null,
                   created_at: new Date(),
                   updated_at: new Date()
                 }

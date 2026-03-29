@@ -870,9 +870,9 @@ export default function ModelConfigurationPage() {
                   </div>
                   <div style={{ width: '320px' }}>
                     <ModelSelector
-                      contentType={config.contentType}
+                      content_type={config.contentType}
                       value={configurations[config.contentType]}
-                      onChange={(modelId) => handleModelChange(config.contentType, modelId)}
+                      on_change={(model_id: string) => handleModelChange(config.contentType, model_id)}
                       placeholder="选择默认模型"
                     />
                   </div>

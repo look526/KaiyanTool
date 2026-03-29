@@ -76,6 +76,8 @@ export interface AICreateImageResponse {
 
 export interface AICreateVideoRequest {
   imageUrl: string
+  /** 第二参考帧（如九宫格末格），提供商不支持时忽略 */
+  endImageUrl?: string
   prompt?: string
   duration?: number
   motion?: number

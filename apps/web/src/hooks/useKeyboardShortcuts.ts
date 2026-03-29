@@ -6,6 +6,8 @@ interface ShortcutConfig {
   ctrlKey?: boolean;
   shiftKey?: boolean;
   altKey?: boolean;
+  /** 默认 true；设为 false 时不调用 preventDefault（如空格键用于平移画布） */
+  preventDefault?: boolean;
 }
 
 export function useKeyboardShortcuts(shortcuts: ShortcutConfig[]) {
@@ -17,7 +19,9 @@ export function useKeyboardShortcuts(shortcuts: ShortcutConfig[]) {
       const keyMatch = event.key === shortcut.key || event.code === shortcut.key;
 
       if (ctrlMatch && shiftMatch && altMatch && keyMatch) {
-        event.preventDefault();
+        if (shortcut.preventDefault !== false) {
+          event.preventDefault();
+        }
         shortcut.handler();
         break;
       }

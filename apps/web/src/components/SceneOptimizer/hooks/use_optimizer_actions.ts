@@ -21,6 +21,7 @@ export function use_optimizer_actions(
     custom_prompt: string;
     scenes: Scene[];
     optimization_result: Record<number, string> | null;
+    expanded_scenes: Set<number>;
   },
   actions: {
     set_step: (step: Step) => void;

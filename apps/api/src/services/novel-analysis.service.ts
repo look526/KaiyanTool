@@ -2,6 +2,7 @@ import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
 import { NOVEL_ANALYSIS_PROMPTS } from '../prompts/services';
 import crypto from 'crypto';
+import { getOrCreateDefaultEpisode } from '../utils/episode-resolver';
 
 interface NovelInput {
   title: string;
@@ -240,14 +241,16 @@ export class NovelAnalysisService {
       });
     }
 
+    const episode = await getOrCreateDefaultEpisode(project_id);
     for (const chapter of analysis.chapters) {
       await prisma.scene.create({
         data: {
           id: crypto.randomUUID(),
+          episode_id: episode.id,
           project_id,
-          location: chapter.locations[0],
+          location: chapter.locations[0] || '',
           time: chapter.tone,
-          atmosphere: '',
+          description: null,
           created_at: new Date(),
           updated_at: new Date()
         }

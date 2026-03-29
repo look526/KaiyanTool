@@ -19,14 +19,54 @@ export interface WorkflowExecution {
   completed_at?: Date;
 }
 
+const executions: Map<string, WorkflowExecution> = new Map();
+
 export async function triggerWorkflow(
   workspaceId: string,
   templateType: WorkflowTemplateType,
-  params: Record<string, unknown>
+  params: Record<string, unknown> = {}
 ): Promise<{ success: boolean; execution_id: string }> {
   const executionId = crypto.randomUUID();
+  const execution: WorkflowExecution = {
+    id: executionId,
+    workspace_id: workspaceId,
+    template_type: templateType,
+    status: 'pending',
+    params,
+    created_at: new Date(),
+  };
+  executions.set(executionId, execution);
   console.log(`[Automation] Triggering workflow ${templateType} for workspace ${workspaceId}`, params);
   return { success: true, execution_id: executionId };
+}
+
+export async function getWorkflowExecutions(
+  workspaceId: string,
+  limit: number = 50
+): Promise<WorkflowExecution[]> {
+  const result: WorkflowExecution[] = [];
+  for (const exec of executions.values()) {
+    if (exec.workspace_id === workspaceId) {
+      result.push(exec);
+    }
+    if (result.length >= limit) break;
+  }
+  return result.sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
+}
+
+export async function updateWorkflowExecution(
+  id: string,
+  data: { status?: string; result?: Record<string, unknown>; error?: string }
+): Promise<void> {
+  const execution = executions.get(id);
+  if (execution) {
+    if (data.status) execution.status = data.status as WorkflowExecution['status'];
+    if (data.result) execution.result = data.result;
+    if (data.error) execution.error = data.error;
+    if (data.status === 'completed' || data.status === 'failed') {
+      execution.completed_at = new Date();
+    }
+  }
 }
 
 export function getTemplateDescription(type: WorkflowTemplateType): string {

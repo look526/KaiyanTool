@@ -1,4 +1,4 @@
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import type { Scene } from '../../types/episode';
 
 interface SceneSelectorProps {
@@ -30,7 +30,7 @@ export function SceneSelector({ scenes, selectedSceneId, onSceneSelect }: SceneS
       <option value="">全部场景</option>
       {scenes.map(scene => (
         <option key={scene.id} value={scene.id}>
-          {scene.location} ({scene.time})
+          {scene.location} ({scene.time_of_day ?? ''})
         </option>
       ))}
     </select>

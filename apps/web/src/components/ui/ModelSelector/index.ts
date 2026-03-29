@@ -1,4 +1,4 @@
-export { ModelSelector } from './index.tsx'
+export { ModelSelector } from './ModelSelectorCore'
 export { BatchOperations, BatchModelItem } from './BatchOperations'
 export { SmartRecommendation, useModelRecommendation } from './SmartRecommendation'
 export { ModelErrorProvider, useModelError, ModelErrorMessages } from './ModelErrorHandling'

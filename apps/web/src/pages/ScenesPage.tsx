@@ -16,7 +16,6 @@ import {
   CheckSquare,
   Square,
 } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
 import { GlassCard } from '../components/ui/GlassCard';
 import { GlassButton } from '../components/ui/GlassButton';
 import { GlassSelect } from '../components/ui/GlassSelect';
@@ -58,10 +57,8 @@ const SORT_OPTIONS = [
 ];
 
 export default function ScenesPage() {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
-  const accentColor = '#8b5cf6';
-  const accentLight = '#a78bfa';
+  const accentColor = '#ba9eff';
+  const accentLight = '#d4bfff';
 
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [filteredScenes, setFilteredScenes] = useState<Scene[]>([]);

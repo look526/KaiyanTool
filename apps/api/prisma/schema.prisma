@@ -644,6 +644,11 @@ model Shot {
   audio_duration  Int?
   nine_grid_image_url String?
   nine_grid_created_at DateTime?
+  /// end_frame | nine_grid
+  video_generation_mode String         @default("end_frame")
+  /// { include_action, include_dialogue, include_camera, include_style }
+  video_prompt_flags    Json?
+  generation_prompt_json Json?
   created_at      DateTime          @default(now())
   updated_at      DateTime
   Episode         Episode           @relation(fields: [episode_id], references: [id], onDelete: Cascade)

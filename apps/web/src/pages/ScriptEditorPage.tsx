@@ -1120,7 +1120,9 @@ function ScriptEditorContent() {
             导出文本
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '4px' }}>
-            <Bell style={{ width: '20px', height: '20px', color: 'var(--text-secondary)', cursor: 'default', opacity: 0.5 }} title="通知即将推出" />
+            <span title="通知即将推出">
+              <Bell style={{ width: '20px', height: '20px', color: 'var(--text-secondary)', cursor: 'default', opacity: 0.5 }} />
+            </span>
             <div style={{
               width: '32px',
               height: '32px',

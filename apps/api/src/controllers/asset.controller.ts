@@ -298,13 +298,20 @@ export class AssetController {
         return
       }
 
+      const merged_description =
+        description !== undefined
+          ? description
+          : atmosphere !== undefined
+            ? atmosphere
+            : undefined
+
       const updated = await prisma.scene.update({
         where: { id },
         data: {
-          location,
-          time,
-          atmosphere,
-          reference_images,
+          ...(location !== undefined && { location }),
+          ...(time !== undefined && { time }),
+          ...(merged_description !== undefined && { description: merged_description }),
+          ...(reference_images !== undefined && { reference_images }),
         },
       })
 

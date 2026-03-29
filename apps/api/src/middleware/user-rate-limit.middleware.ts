@@ -1,4 +1,4 @@
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import rateLimit from 'express-rate-limit';
 import { Request, Response } from 'express';
 
 interface RateLimitConfig {
@@ -17,7 +17,7 @@ export const createUserRateLimit = (config: RateLimitConfig) => {
       if (userId) {
         return `user:${userId}`;
       }
-      return ipKeyGenerator(req.ip || '');
+      return `ip:${req.ip || 'unknown'}`;
     }),
     message: {
       success: false,

@@ -48,18 +48,33 @@ export class EpisodeController {
   async getEpisode(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
+      const user_id = (req as { user_id?: string }).user_id;
 
-      const episode = await prisma.episode.findUnique({
-        where: { id },
+      if (!user_id) {
+        res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: '未登录' } });
+        return;
+      }
+
+      // 与分镜列表接口一致：校验项目访问权；避免 findUnique + 深层带 where 的关联在部分环境下触发 Prisma/SQL 异常
+      const episode = await prisma.episode.findFirst({
+        where: {
+          id,
+          Project: {
+            OR: [
+              { owner_id: user_id },
+              { ProjectMember: { some: { user_id } } },
+            ],
+          },
+        },
         include: {
           Scene: {
             orderBy: { scene_order: 'asc' },
           },
           Shot: {
+            orderBy: { created_at: 'asc' },
             include: {
               ShotAlternative: {
-                where: { is_recommended: true },
-                select: { id: true, video_url: true },
+                select: { id: true, video_url: true, is_recommended: true },
               },
             },
           },
@@ -74,7 +89,8 @@ export class EpisodeController {
 
       res.json({ success: true, data: episode });
     } catch (error) {
-      console.error('Error getting episode:', error);
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('Error getting episode:', message, error);
       res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to get episode' } });
     }
   }

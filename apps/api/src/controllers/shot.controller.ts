@@ -199,6 +199,9 @@ class ShotController {
         aspect_ratio,
         visual_style,
         subtitle_text,
+        video_generation_mode,
+        video_prompt_flags,
+        generation_prompt_json,
       } = req.body
 
       const shot = await prisma.shot.findFirst({
@@ -238,6 +241,11 @@ class ShotController {
           aspect_ratio,
           visual_style,
           ...(subtitle_text !== undefined ? { subtitle_text } : {}),
+          ...(video_generation_mode === 'end_frame' || video_generation_mode === 'nine_grid'
+            ? { video_generation_mode }
+            : {}),
+          ...(video_prompt_flags !== undefined ? { video_prompt_flags } : {}),
+          ...(generation_prompt_json !== undefined ? { generation_prompt_json } : {}),
         },
         include: {
           Scene: true,
@@ -386,6 +394,7 @@ class ShotController {
           data: {
             id: crypto.randomUUID(),
             project_id: project_id,
+            episode_id: scene.episode_id,
             scene_id: scene.id,
             action_summary: scene.location || `Scene ${scene.id}`,
             duration: 8,
@@ -438,8 +447,7 @@ class ShotController {
 
       const shots = await prisma.shot.findMany({
         where: {
-          project_id: episode.project_id,
-          episode_number: episode.episode_number,
+          episode_id: episode.id,
         },
         include: {
           Scene: true,
@@ -450,6 +458,7 @@ class ShotController {
           { episode_number: 'asc' },
           { segment_id: 'asc' },
           { cell_id: 'asc' },
+          { created_at: 'asc' },
         ],
       })
 
@@ -497,6 +506,7 @@ class ShotController {
         data: {
           id: crypto.randomUUID(),
           project_id: episode.project_id,
+          episode_id: episodeId,
           episode_number: episode.episode_number,
           scene_id,
           action_summary: description || '新分镜',

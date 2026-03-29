@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma'
 import { aiProviderService } from '../services/ai/provider.service'
 import logger from '../lib/logger'
 import * as crypto from 'crypto'
+import { generationPromptFromShot, generationPromptToPlainText } from '@ai-content-platform/shared'
 
 class NineGridController {
   async getNineGridByShot(req: Request, res: Response): Promise<void> {
@@ -356,7 +357,7 @@ class NineGridController {
     }
   }
 
-  async generateAllPanels(req: Request, res: Response): Promise<void> {
+  async ensurePanels(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user_id) {
         res.status(401).json({ error: 'Unauthorized' })
@@ -375,6 +376,7 @@ class NineGridController {
             ],
           },
         },
+        include: { Scene: true, Character: true },
       })
 
       if (!shot) {
@@ -382,29 +384,229 @@ class NineGridController {
         return
       }
 
-      const existingPanels = await prisma.nineGridPanel.findMany({
+      const existing = await prisma.nineGridPanel.findMany({
+        where: { shot_id },
+        orderBy: { position: 'asc' },
+      })
+      const byPos = new Set(existing.map((p) => p.position))
+
+      for (let pos = 0; pos < 9; pos++) {
+        if (!byPos.has(pos)) {
+          await prisma.nineGridPanel.create({
+            data: {
+              id: crypto.randomUUID(),
+              shot_id,
+              position: pos,
+              prompt: this.buildDefaultPanelPrompt(shot, pos),
+              created_at: new Date(),
+            },
+          })
+        }
+      }
+
+      const panels = await prisma.nineGridPanel.findMany({
+        where: { shot_id },
+        orderBy: { position: 'asc' },
+      })
+      res.json(panels)
+    } catch (error) {
+      logger.error('补齐九宫格面板失败', { error, shot_id: req.params.shot_id })
+      res.status(500).json({ error: 'Failed to ensure panels' })
+    }
+  }
+
+  async generatePanel(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user_id) {
+        res.status(401).json({ error: 'Unauthorized' })
+        return
+      }
+
+      const { shot_id, panelId } = req.params
+      const { provider_id } = req.body as { provider_id?: string }
+
+      const shot = await prisma.shot.findFirst({
+        where: {
+          id: shot_id,
+          Project: {
+            OR: [
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id, role: { in: ['owner', 'editor'] } } } },
+            ],
+          },
+        },
+      })
+
+      if (!shot) {
+        res.status(404).json({ error: 'Shot not found' })
+        return
+      }
+
+      if (!provider_id) {
+        res.status(400).json({ error: 'Provider ID is required' })
+        return
+      }
+
+      const resolvedProviderId = await this.resolveProviderId(provider_id)
+      if (!resolvedProviderId) {
+        res.status(400).json({ error: 'Invalid provider' })
+        return
+      }
+
+      const panel = await prisma.nineGridPanel.findFirst({
+        where: { id: panelId, shot_id },
+      })
+
+      if (!panel) {
+        res.status(404).json({ error: 'Panel not found' })
+        return
+      }
+
+      const prompt = (panel.prompt || '').trim() || this.buildDefaultPanelPrompt(shot, panel.position)
+      const imagePrompt = `${prompt}\n\nSingle full-frame cinematic still, one composition only, no collage, high quality.`
+
+      const response = await aiProviderService.createImage(resolvedProviderId, {
+        prompt: imagePrompt,
+        size: '1024x1024',
+        quality: 'standard',
+        style: 'vivid',
+      })
+
+      const updated = await prisma.nineGridPanel.update({
+        where: { id: panel.id },
+        data: { image_url: response.url },
+      })
+
+      await prisma.asset.create({
+        data: {
+          id: crypto.randomUUID(),
+          type: 'image',
+          url: response.url,
+          project_id: shot.project_id,
+          metadata: {
+            name: `九宫格格 ${panel.position + 1} - ${shot.id}`,
+            prompt: imagePrompt,
+            revised_prompt: response.revisedPrompt,
+            shot_id: shot.id,
+            panel_id: panel.id,
+            type: 'nine-grid-panel',
+          },
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      })
+
+      res.json(updated)
+    } catch (error) {
+      logger.error('单格生成失败', { error, panel_id: req.params.panelId })
+      res.status(500).json({ error: 'Failed to generate panel' })
+    }
+  }
+
+  async generateAllPanels(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user_id) {
+        res.status(401).json({ error: 'Unauthorized' })
+        return
+      }
+
+      const { shot_id } = req.params
+      const { provider_id } = req.body as { provider_id?: string }
+
+      const shot = await prisma.shot.findFirst({
+        where: {
+          id: shot_id,
+          Project: {
+            OR: [
+              { owner_id: req.user_id },
+              { ProjectMember: { some: { user_id: req.user_id, role: { in: ['owner', 'editor'] } } } },
+            ],
+          },
+        },
+        include: { Scene: true, Character: true },
+      })
+
+      if (!shot) {
+        res.status(404).json({ error: 'Shot not found' })
+        return
+      }
+
+      if (!provider_id) {
+        res.status(400).json({ error: 'Provider ID is required' })
+        return
+      }
+
+      const resolvedProviderId = await this.resolveProviderId(provider_id)
+      if (!resolvedProviderId) {
+        res.status(400).json({ error: 'Invalid provider' })
+        return
+      }
+
+      let existingPanels = await prisma.nineGridPanel.findMany({
         where: { shot_id },
         orderBy: { position: 'asc' },
       })
 
-      if (existingPanels.length === 0) {
-        res.status(400).json({ error: 'No panels to generate' })
-        return
+      if (existingPanels.length < 9) {
+        const byPos = new Set(existingPanels.map((p) => p.position))
+        for (let pos = 0; pos < 9; pos++) {
+          if (!byPos.has(pos)) {
+            await prisma.nineGridPanel.create({
+              data: {
+                id: crypto.randomUUID(),
+                shot_id,
+                position: pos,
+                prompt: this.buildDefaultPanelPrompt(shot, pos),
+                created_at: new Date(),
+              },
+            })
+          }
+        }
+        existingPanels = await prisma.nineGridPanel.findMany({
+          where: { shot_id },
+          orderBy: { position: 'asc' },
+        })
       }
 
       const results = await Promise.allSettled(
-        existingPanels.map(async (panel: any, _index: number) => {
-          return prisma.nineGridPanel.update({
+        existingPanels.map(async (panel) => {
+          const prompt =
+            (panel.prompt || '').trim() || this.buildDefaultPanelPrompt(shot, panel.position)
+          const imagePrompt = `${prompt}\n\nSingle full-frame cinematic still, one composition only, no collage, high quality.`
+          const response = await aiProviderService.createImage(resolvedProviderId, {
+            prompt: imagePrompt,
+            size: '1024x1024',
+            quality: 'standard',
+            style: 'vivid',
+          })
+          await prisma.nineGridPanel.update({
             where: { id: panel.id },
+            data: { image_url: response.url },
+          })
+          await prisma.asset.create({
             data: {
-              image_url: `https://placeholder.example.com/panel-${panel.id}.jpg`,
+              id: crypto.randomUUID(),
+              type: 'image',
+              url: response.url,
+              project_id: shot.project_id,
+              metadata: {
+                name: `九宫格格 ${panel.position + 1} - ${shot.id}`,
+                prompt: imagePrompt,
+                revised_prompt: response.revisedPrompt,
+                shot_id: shot.id,
+                panel_id: panel.id,
+                type: 'nine-grid-panel',
+              },
+              created_at: new Date(),
+              updated_at: new Date(),
             },
           })
+          return panel.id
         })
       )
 
-      const successful = results.filter((r: any) => r.status === 'fulfilled').length
-      const failed = results.filter((r: any) => r.status === 'rejected').length
+      const successful = results.filter((r) => r.status === 'fulfilled').length
+      const failed = results.filter((r) => r.status === 'rejected').length
 
       logger.info('九宫格面板生成完成', { user_id: req.user_id, shot_id, successful, failed })
       res.json({
@@ -417,6 +619,13 @@ class NineGridController {
       logger.error('生成九宫格面板失败', { error, shot_id: req.params.shot_id })
       res.status(500).json({ error: 'Failed to generate panels' })
     }
+  }
+
+  private buildDefaultPanelPrompt(shot: any, position: number): string {
+    const gp = generationPromptFromShot(shot)
+    gp.extra = { ...gp.extra, nine_grid_cell: position + 1, nine_grid_total: 9 }
+    const base = generationPromptToPlainText(gp)
+    return `${base}\n\n九宫格第 ${position + 1}/9 格：独立关键帧，叙事连贯中的瞬间，与全片风格一致。`
   }
 
   async reorderPanels(req: Request, res: Response): Promise<void> {

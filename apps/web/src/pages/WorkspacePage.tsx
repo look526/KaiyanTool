@@ -72,8 +72,11 @@ export default function WorkspacePage() {
     workspaceIdRef.current = workspaceId;
   }, [workspaceId]);
 
-  const history = useHistory({ nodes: [], edges: [] });
-  const [historyState, setHistoryState] = useState({ nodes: [], edges: [] });
+  const history = useHistory({ nodes: [] as CanvasNode[], edges: [] as CanvasEdge[] });
+  const [historyState, setHistoryState] = useState<{ nodes: CanvasNode[]; edges: CanvasEdge[] }>({
+    nodes: [],
+    edges: [],
+  });
 
   const colors = isDark ? {
     bgPrimary: 'rgba(5, 5, 10, 0.95)',

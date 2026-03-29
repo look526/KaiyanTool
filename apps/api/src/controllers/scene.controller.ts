@@ -31,7 +31,7 @@ export class SceneController {
           Shot: {
             select: {
               id: true,
-              shot_number: true,
+              action_summary: true,
               status: true,
               aspect_ratio: true,
               resolution: true,
@@ -59,7 +59,7 @@ export class SceneController {
           Shot: {
             select: {
               id: true,
-              shot_number: true,
+              action_summary: true,
               status: true,
               aspect_ratio: true,
               resolution: true,
@@ -83,7 +83,7 @@ export class SceneController {
         where: { id },
         include: {
           Shot: {
-            orderBy: { shot_number: 'asc' },
+            orderBy: { created_at: 'asc' },
           },
         },
       });

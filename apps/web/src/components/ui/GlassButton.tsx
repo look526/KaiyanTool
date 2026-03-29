@@ -15,8 +15,8 @@ export function GlassButton({
   variant = 'primary',
   icon,
   children,
-  accentColor = '#8b5cf6',
-  accentLight = '#a78bfa',
+  accentColor = '#ba9eff',
+  accentLight = '#d4bfff',
   isDark = true,
   size = 'md',
   loading = false,
@@ -44,13 +44,15 @@ export function GlassButton({
   const variants: Record<string, React.CSSProperties> = {
     primary: {
       background: `linear-gradient(135deg, ${accentColor} 0%, ${accentLight} 100%)`,
-      color: '#fff',
-      boxShadow: `0 4px 14px ${accentColor}40`,
+      color: '#39008c',
+      fontWeight: 700,
+      boxShadow: '0 8px 24px rgba(186, 158, 255, 0.2)',
     },
     secondary: {
-      background: 'transparent',
-      color: isDark ? '#fafafa' : '#18181b',
-      border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
+      background: 'rgba(28, 37, 62, 0.4)',
+      color: isDark ? '#dfe4fe' : '#18181b',
+      border: `1px solid rgba(255, 255, 255, 0.08)`,
+      backdropFilter: 'blur(40px)',
     },
     danger: {
       background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',

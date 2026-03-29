@@ -12,7 +12,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@shared': path.resolve(__dirname, '../../packages/shared'),
+      '@shared': path.resolve(__dirname, '../../packages/shared/src'),
       '@ui': path.resolve(__dirname, '../../packages/ui'),
       '@/lib': path.resolve(__dirname, './src/lib'),
       '@/components': path.resolve(__dirname, './src/components'),
@@ -67,7 +67,7 @@ export default defineConfig({
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
-        '@shared': path.resolve(__dirname, '../../packages/shared'),
+        '@shared': path.resolve(__dirname, '../../packages/shared/src'),
         '@ui': path.resolve(__dirname, '../../packages/ui'),
         '@/lib': path.resolve(__dirname, './src/lib'),
         '@/components': path.resolve(__dirname, './src/components'),
