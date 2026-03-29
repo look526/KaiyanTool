@@ -11,8 +11,16 @@ interface ProjectCardProps {
   formatDate: (date: Date | string | undefined | null) => string;
 }
 
+function getCoverImageUrl(project: Project): string {
+  if (project.thumbnail_url) {
+    return project.thumbnail_url;
+  }
+  return `https://picsum.photos/seed/${project.id}/800/600`;
+}
+
 export function ProjectCard({ project, viewMode, typeConfig, statusConfig, formatDate }: ProjectCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [moreHover, setMoreHover] = useState(false);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
@@ -26,6 +34,8 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
     cardGradientTop: '#11192e',
     cardBg: '#171f36',
     avatarBorder: '#070d1f',
+    overlayGradient: 'linear-gradient(to top, rgba(17, 25, 46, 0.95) 0%, rgba(17, 25, 46, 0.6) 40%, transparent 100%)',
+    hoverOverlay: 'rgba(0, 0, 0, 0.5)',
   } : {
     glassBg: 'rgba(255, 255, 255, 0.9)',
     border: 'rgba(0, 0, 0, 0.06)',
@@ -35,6 +45,8 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
     cardGradientTop: 'rgba(0, 0, 0, 0.05)',
     cardBg: 'rgba(139, 92, 246, 0.1)',
     avatarBorder: 'rgba(255, 255, 255, 0.9)',
+    overlayGradient: 'linear-gradient(to top, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.6) 40%, transparent 100%)',
+    hoverOverlay: 'rgba(0, 0, 0, 0.3)',
   };
 
   if (viewMode === 'list') {
@@ -48,11 +60,11 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
             alignItems: 'center',
             gap: '16px',
             padding: '16px 20px',
-            borderRadius: '16px',
+            borderRadius: '18px',
             background: colors.glassBg,
             backdropFilter: 'blur(30px)',
             border: `1px solid ${colors.border}`,
-            transition: 'all 0.3s ease',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             transform: isHovered ? 'translateX(4px)' : 'translateX(0)',
           }}
         >
@@ -65,12 +77,22 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
+            overflow: 'hidden',
           }}>
-            <span className="material-symbols-outlined" style={{
-              fontSize: '22px',
-              color: 'white',
-              fontVariationSettings: "'FILL' 1, 'wght' 500",
-            }}>{typeConfig.icon}</span>
+            {project.thumbnail_url || !typeConfig ? (
+              <img
+                src={getCoverImageUrl(project)}
+                alt={project.name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onLoad={() => setImageLoaded(true)}
+              />
+            ) : (
+              <span className="material-symbols-outlined" style={{
+                fontSize: '22px',
+                color: 'white',
+                fontVariationSettings: "'FILL' 1, 'wght' 500",
+              }}>{typeConfig.icon}</span>
+            )}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h3 style={{
@@ -131,6 +153,8 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
     );
   }
 
+  const coverUrl = getCoverImageUrl(project);
+
   return (
     <Link to={`/projects/${project.id}`} style={{ textDecoration: 'none', display: 'block' }}>
       <div
@@ -138,124 +162,144 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
         onMouseLeave={() => setIsHovered(false)}
         style={{
           position: 'relative',
-          borderRadius: '16px',
+          borderRadius: '24px',
           background: colors.glassBg,
           backdropFilter: 'blur(30px)',
-          border: `1px solid ${colors.border}`,
+          border: `1px solid ${isHovered ? 'rgba(139, 92, 246, 0.25)' : colors.border}`,
           overflow: 'hidden',
-          transition: 'all 0.5s ease',
+          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
           transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
-          boxShadow: isHovered ? '0 20px 40px rgba(186, 158, 255, 0.15)' : 'none',
+          boxShadow: isHovered ? '0 20px 40px rgba(139, 92, 246, 0.15), 0 0 60px rgba(139, 92, 246, 0.05)' : 'none',
         }}
       >
-        {/* 封面图片区域 */}
         <div style={{
           position: 'relative',
-          height: '192px',
+          height: '200px',
           overflow: 'hidden',
           background: colors.cardBg,
         }}>
-          {/* 封面图 - 使用渐变色块代替 */}
           <div style={{
             position: 'absolute',
             inset: 0,
             background: typeConfig.gradient,
-            opacity: 0.6,
-            transition: 'transform 0.7s ease',
-            transform: isHovered ? 'scale(1.1)' : 'scale(1)',
+            opacity: isHovered ? 0.7 : 0.6,
+            transition: 'opacity 0.6s ease',
           }} />
 
-          {/* 渐变覆盖层 */}
+          <img
+            src={coverUrl}
+            alt={project.name}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              opacity: imageLoaded ? 0.8 : 0,
+              transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+              transform: isHovered ? 'scale(1.08)' : 'scale(1)',
+            }}
+            onLoad={() => setImageLoaded(true)}
+          />
+
           <div style={{
             position: 'absolute',
             inset: 0,
-            background: `linear-gradient(to top, ${colors.cardGradientTop}, transparent)`,
+            background: colors.overlayGradient,
+            opacity: isHovered ? 1 : 0.7,
+            transition: 'opacity 0.4s ease',
           }} />
 
-          {/* 状态标签 */}
           <div style={{
             position: 'absolute',
             top: '16px',
             left: '16px',
-            padding: '6px 12px',
+            padding: '6px 14px',
             borderRadius: '9999px',
-            background: `${typeConfig.color}20`,
+            background: isHovered ? typeConfig.color : `${typeConfig.color}90`,
             backdropFilter: 'blur(10px)',
             fontSize: '10px',
             fontWeight: 700,
-            color: typeConfig.color,
+            color: 'white',
             textTransform: 'uppercase',
             letterSpacing: '0.1em',
-          }}>{typeConfig.label}</div>
+            transition: 'all 0.4s ease',
+            boxShadow: isHovered ? `0 4px 12px ${typeConfig.color}40` : 'none',
+          }}>
+            {typeConfig.label}
+          </div>
 
-          {/* Hover 时的覆盖层 */}
-          {isHovered && (
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'rgba(0, 0, 0, 0.4)',
-              transition: 'all 0.3s ease',
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px',
+            opacity: isHovered ? 1 : 0,
+            transition: 'opacity 0.4s ease',
+          }}>
+            <span style={{
+              padding: '12px 28px',
+              borderRadius: '9999px',
+              background: `linear-gradient(135deg, ${typeConfig.color} 0%, ${typeConfig.color}cc 100%)`,
+              color: 'white',
+              fontSize: '13px',
+              fontWeight: 600,
+              boxShadow: `0 8px 24px ${typeConfig.color}50`,
+              transform: isHovered ? 'translateY(0)' : 'translateY(10px)',
+              transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
             }}>
-              <span style={{
-                padding: '8px 16px',
-                borderRadius: '9999px',
-                background: `linear-gradient(135deg, ${typeConfig.color} 0%, ${typeConfig.color}cc 100%)`,
-                color: 'white',
-                fontSize: '12px',
-                fontWeight: 600,
-              }}>点击查看</span>
-            </div>
-          )}
+              点击查看
+            </span>
+          </div>
         </div>
 
-        {/* 卡片内容 */}
-        <div style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '12px' }}>
+        <div style={{ padding: '20px 24px 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '14px' }}>
             <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
+              width: '44px',
+              height: '44px',
+              borderRadius: '12px',
               background: typeConfig.gradient,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
+              boxShadow: `0 4px 12px ${typeConfig.color}30`,
             }}>
               <span className="material-symbols-outlined" style={{
-                fontSize: '20px',
+                fontSize: '22px',
                 color: 'white',
                 fontVariationSettings: "'FILL' 1, 'wght' 500",
               }}>{typeConfig.icon}</span>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <h3 style={{
-                fontSize: '20px',
+                fontSize: '18px',
                 fontWeight: 700,
                 color: colors.textPrimary,
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
-                marginBottom: '8px',
+                marginBottom: '6px',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
-                margin: '0 0 8px 0',
+                margin: '0 0 6px 0',
               }}>{project.name}</h3>
               <p style={{
-                fontSize: '14px',
+                fontSize: '13px',
                 color: colors.textSecondary,
                 margin: 0,
                 display: '-webkit-box',
                 WebkitLineClamp: 2,
                 WebkitBoxOrient: 'vertical',
                 overflow: 'hidden',
-                lineHeight: 1.6,
+                lineHeight: 1.5,
               }}>{project.description || '暂无描述'}</p>
             </div>
           </div>
 
-          {/* 底部信息 */}
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -264,32 +308,32 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
             borderTop: `1px solid ${colors.border}`,
           }}>
             <span style={{
-              padding: '4px 10px',
-              borderRadius: '6px',
+              padding: '5px 12px',
+              borderRadius: '8px',
               background: statusConfig.bg,
               fontSize: '12px',
               fontWeight: 600,
               color: statusConfig.color,
             }}>{statusConfig.label}</span>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '16px', color: colors.textSecondary }}>calendar_today</span>
-              <span style={{ fontSize: '12px', color: colors.textSecondary }}>{formatDate(project.updated_at)}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: colors.textSecondary }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>calendar_today</span>
+                <span style={{ fontSize: '12px' }}>{formatDate(project.updated_at)}</span>
+              </div>
 
-              {/* 用户头像 */}
               <div style={{
-                width: '24px',
-                height: '24px',
+                width: '26px',
+                height: '26px',
                 borderRadius: '50%',
-                border: `1px solid ${colors.avatarBorder}`,
-                background: `${typeConfig.color}30`,
+                border: `1.5px solid ${colors.avatarBorder}`,
+                background: `${typeConfig.color}20`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '10px',
+                fontSize: '11px',
                 fontWeight: 600,
                 color: typeConfig.color,
-                marginLeft: '8px',
               }}>
                 {project.name?.[0]?.toUpperCase() || 'K'}
               </div>
