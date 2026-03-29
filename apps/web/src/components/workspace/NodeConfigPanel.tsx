@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { X, Star, Clock, Image, Video, Type, Sparkles } from 'lucide-react';
 import { AIPromptEditor } from './AIPromptEditor';
 import { WorkspacePromptJson, AIProvider } from '../../types/workspace';
+import { getModelCapabilities, isVideoModel, isVEO3Model, getModelDefaultParams } from '../../types/ai';
+import { ModelParameters } from '../ai/ModelParameters';
 
 interface CanvasNode {
   id: string;
@@ -21,9 +23,16 @@ interface NodeConfigPanelProps {
   onClose: () => void;
   onUpdate: (nodeId: string, data: Partial<CanvasNode>) => void;
   onStar: (nodeId: string, isStarred: boolean) => void;
-  onGenerate: (nodeId: string, type: string, promptJson?: WorkspacePromptJson, providerId?: string) => void;
+  onGenerate: (
+    nodeId: string,
+    type: string,
+    promptJson?: WorkspacePromptJson,
+    providerId?: string,
+    modelId?: string,
+    modelParams?: Record<string, any>
+  ) => void;
   onRevertToVersion: (nodeId: string, version: any) => void;
-  isDark: boolean;
+  isDark?: boolean;
   colors: Record<string, string>;
 }
 
@@ -50,7 +59,7 @@ export default function NodeConfigPanel({
   onStar,
   onGenerate,
   onRevertToVersion,
-  isDark,
+  isDark = true,
   colors,
 }: NodeConfigPanelProps) {
   const [providers, setProviders] = useState<AIProvider[]>([]);
@@ -59,6 +68,7 @@ export default function NodeConfigPanel({
   const [selectedStyle, setSelectedStyle] = useState<string>('pixar');
   const [promptJson, setPromptJson] = useState<WorkspacePromptJson | undefined>();
   const [showAIPromptEditor, setShowAIPromptEditor] = useState(false);
+  const [modelParams, setModelParams] = useState<Record<string, any>>({});
 
   const accentColor = '#8b5cf6';
 
@@ -97,7 +107,7 @@ export default function NodeConfigPanel({
 
   const handleGenerateWithAI = () => {
     if (!node) return;
-    onGenerate(node.id, 'image', promptJson, selectedProvider);
+    onGenerate(node.id, 'image', promptJson, selectedProvider, selectedModel, modelParams);
   };
 
   if (!node) return null;
@@ -187,7 +197,10 @@ export default function NodeConfigPanel({
                 onChange={(e) => {
                   setSelectedProvider(e.target.value);
                   const provider = providers.find(p => p.id === e.target.value);
-                  if (provider?.models?.length) setSelectedModel(provider.models[0].id);
+                  if (provider?.models?.length) {
+                    setSelectedModel(provider.models[0].id);
+                    setModelParams(getModelDefaultParams(provider.models[0].id));
+                  }
                 }}
                 style={{
                   width: '100%', padding: '10px 12px', borderRadius: '10px',
@@ -200,6 +213,42 @@ export default function NodeConfigPanel({
                 ))}
               </select>
             </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '12px', color: colors.textMuted, marginBottom: '4px', display: 'block' }}>
+                模型
+              </label>
+              <select
+                value={selectedModel}
+                onChange={(e) => {
+                  setSelectedModel(e.target.value);
+                  setModelParams(getModelDefaultParams(e.target.value));
+                }}
+                style={{
+                  width: '100%', padding: '10px 12px', borderRadius: '10px',
+                  border: `1px solid ${colors.border}`, background: colors.bgSecondary,
+                  color: colors.textPrimary, fontSize: '13px',
+                }}
+              >
+                {(providers.find(p => p.id === selectedProvider)?.models || []).map(m => (
+                  <option key={m.id} value={m.id}>{m.name} ({m.type})</option>
+                ))}
+              </select>
+            </div>
+
+            {isVideoModel(selectedModel) && (
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ fontSize: '12px', color: colors.textMuted, marginBottom: '8px', display: 'block' }}>
+                  模型参数
+                </label>
+                <ModelParameters
+                  capabilities={getModelCapabilities(selectedModel)}
+                  showVEO3Params={isVEO3Model(selectedModel)}
+                  value={modelParams}
+                  onChange={setModelParams}
+                />
+              </div>
+            )}
 
             <div style={{ marginBottom: '12px' }}>
               <label style={{ fontSize: '12px', color: colors.textMuted, marginBottom: '4px', display: 'block' }}>
@@ -228,7 +277,7 @@ export default function NodeConfigPanel({
               <AIPromptEditor
                 sourceText={node.content?.text || ''}
                 initialPrompt={promptJson}
-                isDark={isDark}
+               
                 onPromptChange={setPromptJson}
                 onAnalyze={() => {}}
                 onOptimize={() => {}}

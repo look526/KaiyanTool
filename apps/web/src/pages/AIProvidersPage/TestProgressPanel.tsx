@@ -4,11 +4,11 @@ import { CheckCircle, XCircle, Loader2, TestTube } from 'lucide-react';
 interface TestProgressPanelProps {
   testingProvider: string | null;
   testingModel: string | null;
-  isDark: boolean;
-  accentColor: string;
+  isDark?: boolean;
+  accentColor?: string;
 }
 
-export function TestProgressPanel({ testingProvider, testingModel, isDark, accentColor }: TestProgressPanelProps) {
+export function TestProgressPanel({ testingProvider, testingModel, isDark = true, accentColor = '#ba9eff' }: TestProgressPanelProps) {
   const [show, setShow] = useState(false);
   const [message, setMessage] = useState('');
   const [type, setType] = useState<'testing' | 'success' | 'error'>('testing');

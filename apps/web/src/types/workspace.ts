@@ -89,4 +89,5 @@ export interface AIProvider {
 export interface AIModel {
   id: string;
   name: string;
+  type?: 'chat' | 'image' | 'video';
 }

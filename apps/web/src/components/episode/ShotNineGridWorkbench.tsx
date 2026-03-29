@@ -341,7 +341,7 @@ export function ShotNineGridWorkbench({
             <GlassButton
               variant="secondary"
               icon={<RotateCcw style={{ width: '16px', height: '16px' }} />}
-              isDark={false}
+             
               onClick={handleGenerateComposite}
               disabled={generating || !nineGrid?.image_url}
             >
@@ -350,7 +350,7 @@ export function ShotNineGridWorkbench({
             <GlassButton
               variant="primary"
               icon={generating ? <Loader2 style={spinnerStyle} /> : <Sparkles style={{ width: '16px', height: '16px' }} />}
-              isDark={false}
+             
               loading={generating}
               onClick={handleGenerateComposite}
             >
@@ -384,10 +384,10 @@ export function ShotNineGridWorkbench({
                 </div>
               </div>
               <div style={actionsContainerStyle}>
-                <GlassButton variant="secondary" icon={<Upload style={{ width: '16px', height: '16px' }} />} isDark={false} onClick={() => handleApplyImage('start')}>
+                <GlassButton variant="secondary" icon={<Upload style={{ width: '16px', height: '16px' }} />} onClick={() => handleApplyImage('start')}>
                   回填开始帧
                 </GlassButton>
-                <GlassButton variant="secondary" icon={<Upload style={{ width: '16px', height: '16px' }} />} isDark={false} onClick={() => handleApplyImage('end')}>
+                <GlassButton variant="secondary" icon={<Upload style={{ width: '16px', height: '16px' }} />} onClick={() => handleApplyImage('end')}>
                   回填结束帧
                 </GlassButton>
               </div>
@@ -400,7 +400,7 @@ export function ShotNineGridWorkbench({
             <GlassButton
               variant="primary"
               icon={generatingAll ? <Loader2 style={spinnerStyle} /> : <Layers style={{ width: '16px', height: '16px' }} />}
-              isDark={false}
+             
               loading={generatingAll}
               onClick={() => void handleGenerateAllPanels()}
             >
@@ -433,7 +433,7 @@ export function ShotNineGridWorkbench({
                       <Sparkles style={{ width: '14px', height: '14px' }} />
                     )
                   }
-                  isDark={false}
+                 
                   loading={generatingPanelId === panel.id}
                   disabled={!resolvedProviderId || generatingAll}
                   onClick={() => void handleGeneratePanel(panel.id)}
@@ -451,10 +451,10 @@ export function ShotNineGridWorkbench({
             ))}
           </div>
           <div style={actionsContainerStyle}>
-            <GlassButton variant="secondary" icon={<Upload style={{ width: '16px', height: '16px' }} />} isDark={false} onClick={() => handleApplyImage('start')}>
+            <GlassButton variant="secondary" icon={<Upload style={{ width: '16px', height: '16px' }} />} onClick={() => handleApplyImage('start')}>
               回填开始帧
             </GlassButton>
-            <GlassButton variant="secondary" icon={<Upload style={{ width: '16px', height: '16px' }} />} isDark={false} onClick={() => handleApplyImage('end')}>
+            <GlassButton variant="secondary" icon={<Upload style={{ width: '16px', height: '16px' }} />} onClick={() => handleApplyImage('end')}>
               回填结束帧
             </GlassButton>
           </div>

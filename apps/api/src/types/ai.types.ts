@@ -159,3 +159,14 @@ export interface LipSyncResponse {
   url: string
   duration: number
 }
+
+export interface VEO3VideoRequest {
+  model?: 'veo3' | 'veo3-pro'
+  prompt: string
+  duration?: number
+  aspect_ratio?: '16:9' | '9:16' | '1:1'
+  image_urls?: string[]
+  end_image_url?: string
+  prompt_strength?: number
+  metadata?: any
+}

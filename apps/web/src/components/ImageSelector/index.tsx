@@ -111,7 +111,7 @@ export function ImageSelector({
           currentView={state.currentView}
           onViewSelect={actions.handleViewSelect}
           onRemove={actions.handleThreeViewsRemove}
-          isDark={isDark}
+         
         />
       ) : value ? (
         <SingleImageDisplay
@@ -119,14 +119,14 @@ export function ImageSelector({
           disabled={disabled}
           onRemove={actions.handleRemove}
           onClick={() => state.setShowModal(true)}
-          isDark={isDark}
+         
         />
       ) : (
         <ImageSelectorTrigger
           onClick={() => !disabled && state.setShowModal(true)}
           disabled={disabled}
           placeholder={placeholder}
-          isDark={isDark}
+         
         />
       )}
 
@@ -137,7 +137,7 @@ export function ImageSelector({
           activeTab={state.activeTab}
           effectiveThreeViewsMode={state.effectiveThreeViewsMode}
           currentView={state.currentView}
-          isDark={isDark}
+         
         >
           <ImageSelectorTabs
             activeTab={state.activeTab as TabType}
@@ -190,20 +190,20 @@ export function ImageSelector({
   );
 }
 
-function ThreeViewsDisplay({ 
-  value, 
-  disabled, 
-  currentView, 
-  onViewSelect, 
+function ThreeViewsDisplay({
+  value,
+  disabled,
+  currentView,
+  onViewSelect,
   onRemove,
-  isDark 
-}: { 
+  isDark = true
+}: {
   value: { front: string | null; side: string | null; top: string | null };
   disabled: boolean;
   currentView: 'front' | 'side' | 'top';
   onViewSelect: (view: 'front' | 'side' | 'top') => void;
   onRemove: (view: 'front' | 'side' | 'top') => void;
-  isDark: boolean;
+  isDark?: boolean;
 }) {
   const views = [
     { key: 'front' as const, label: '正视图' },
@@ -313,18 +313,18 @@ function ThreeViewsDisplay({
   );
 }
 
-function SingleImageDisplay({ 
-  value, 
-  disabled, 
-  onRemove, 
+function SingleImageDisplay({
+  value,
+  disabled,
+  onRemove,
   onClick,
-  isDark 
-}: { 
+  isDark = true
+}: {
   value: string;
   disabled: boolean;
   onRemove: () => void;
   onClick: () => void;
-  isDark: boolean;
+  isDark?: boolean;
 }) {
   return (
     <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -377,16 +377,16 @@ function SingleImageDisplay({
   );
 }
 
-function ImageSelectorTrigger({ 
-  onClick, 
-  disabled, 
+function ImageSelectorTrigger({
+  onClick,
+  disabled,
   placeholder,
-  isDark 
-}: { 
+  isDark = true
+}: {
   onClick: () => void;
   disabled: boolean;
   placeholder: string;
-  isDark: boolean;
+  isDark?: boolean;
 }) {
   return (
     <button
@@ -418,22 +418,22 @@ function ImageSelectorTrigger({
   );
 }
 
-function ImageSelectorModal({ 
-  onClose, 
-  children, 
-  showReferenceImagePicker, 
-  activeTab, 
-  effectiveThreeViewsMode, 
+function ImageSelectorModal({
+  onClose,
+  children,
+  showReferenceImagePicker,
+  activeTab,
+  effectiveThreeViewsMode,
   currentView,
-  isDark 
-}: { 
+  isDark = true
+}: {
   onClose: () => void;
   children: React.ReactNode;
   showReferenceImagePicker: boolean;
   activeTab: string;
   effectiveThreeViewsMode: ThreeViewsMode;
   currentView: 'front' | 'side' | 'top';
-  isDark: boolean;
+  isDark?: boolean;
 }) {
   const getTitle = () => {
     if (showReferenceImagePicker) return '选择参考图';

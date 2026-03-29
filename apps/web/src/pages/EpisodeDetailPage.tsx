@@ -1133,7 +1133,7 @@ export default function EpisodeDetailPage() {
                 <GlassButton
                   variant="secondary"
                   icon={selectedIds.size === shots.length ? <Square style={{ width: '16px', height: '16px' }} /> : <CheckSquare style={{ width: '16px', height: '16px' }} />}
-                  isDark={false}
+                 
                   onClick={selectAll}
                 >
                   {selectedIds.size > 0 ? `${selectedIds.size}/${shots.length}` : '全选'}
@@ -1143,7 +1143,7 @@ export default function EpisodeDetailPage() {
                     <GlassButton
                       variant="danger"
                       icon={batchDeleteLoading ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Trash2 style={{ width: '16px', height: '16px' }} />}
-                      isDark={false}
+                     
                       loading={batchDeleteLoading}
                       onClick={handleBulkDelete}
                     >
@@ -1167,7 +1167,7 @@ export default function EpisodeDetailPage() {
                     <GlassButton
                       variant="primary"
                       icon={batchGenerating ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Layers style={{ width: '16px', height: '16px' }} />}
-                      isDark={false}
+                     
                       loading={batchGenerating}
                       disabled={batchGenerating}
                       onClick={handleBatchGenerate}
@@ -1181,7 +1181,7 @@ export default function EpisodeDetailPage() {
             <GlassButton
               variant="primary"
               icon={<Plus style={{ width: '18px', height: '18px' }} />}
-              isDark={false}
+             
               onClick={handleCreateShot}
             >
               新建分镜
@@ -1313,7 +1313,7 @@ export default function EpisodeDetailPage() {
                         <GlassButton
                           variant="secondary"
                           icon={generatingVideo ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Video style={{ width: '16px', height: '16px' }} />}
-                          isDark={false}
+                         
                           loading={generatingVideo}
                           disabled={!canGenerateVideo}
                           onClick={handleGenerateVideo}
@@ -1341,7 +1341,7 @@ export default function EpisodeDetailPage() {
                         <GlassButton
                           variant="secondary"
                           icon={<Undo2 style={{ width: '16px', height: '16px' }} />}
-                          isDark={false}
+                         
                           disabled={!canUndo || savingShot || generatingVideo}
                           onClick={handleUndo}
                           title="撤销（Ctrl+Alt+Z）"
@@ -1351,7 +1351,7 @@ export default function EpisodeDetailPage() {
                         <GlassButton
                           variant="secondary"
                           icon={<Redo2 style={{ width: '16px', height: '16px' }} />}
-                          isDark={false}
+                         
                           disabled={!canRedo || savingShot || generatingVideo}
                           onClick={handleRedo}
                           title="重做（Ctrl+Alt+Shift+Z 或 Ctrl+Alt+Y）"
@@ -1363,7 +1363,7 @@ export default function EpisodeDetailPage() {
                         <GlassButton
                           variant="primary"
                           icon={savingShot || autoSaving ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Save style={{ width: '16px', height: '16px' }} />}
-                          isDark={false}
+                         
                           loading={savingShot}
                           onClick={handleSaveShot}
                           title="快捷键 Ctrl+S"
@@ -1670,7 +1670,7 @@ export default function EpisodeDetailPage() {
                                   <Sparkles style={{ width: '14px', height: '14px' }} />
                                 )
                               }
-                              isDark={false}
+                             
                               loading={generatingFrame === 'start'}
                               disabled={!!generatingFrame || !activeImageProviderId}
                               onClick={() => void handleGenerateStartFrame()}
@@ -1686,7 +1686,7 @@ export default function EpisodeDetailPage() {
                                   <Sparkles style={{ width: '14px', height: '14px' }} />
                                 )
                               }
-                              isDark={false}
+                             
                               loading={generatingFrame === 'end'}
                               disabled={!!generatingFrame || !activeImageProviderId}
                               onClick={() => void handleGenerateEndFrame()}
@@ -1702,7 +1702,7 @@ export default function EpisodeDetailPage() {
                                   <Layers style={{ width: '14px', height: '14px' }} />
                                 )
                               }
-                              isDark={false}
+                             
                               loading={generatingFrame === 'both'}
                               disabled={!!generatingFrame || !activeImageProviderId}
                               onClick={() => void handleGenerateBothFrames()}
@@ -1871,7 +1871,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
       <GlassButton
         variant="primary"
         icon={<Plus style={{ width: '16px', height: '16px' }} />}
-        isDark={false}
+       
         onClick={onCreate}
       >
         添加分镜

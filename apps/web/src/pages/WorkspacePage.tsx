@@ -925,7 +925,7 @@ export default function WorkspacePage() {
         onStar={handleStar}
         onGenerate={handleGenerate}
         onRevertToVersion={handleRevertToVersion}
-        isDark={isDark}
+       
         colors={colors}
       />
 
@@ -936,7 +936,7 @@ export default function WorkspacePage() {
         canvasWidth={canvasSize.width}
         canvasHeight={canvasSize.height}
         onNavigate={handleMiniMapNavigate}
-        isDark={isDark}
+       
         colors={colors}
       />
 

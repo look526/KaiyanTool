@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
-import { ArrowLeft, Palette, CheckCircle, Type, Moon, Sun, Layout } from 'lucide-react';
+import { ArrowLeft, Palette, CheckCircle, Type, Moon, Sun } from 'lucide-react';
 
 export default function AppearanceSettingsPage() {
   const navigate = useNavigate();
@@ -10,12 +10,16 @@ export default function AppearanceSettingsPage() {
   const [hoveredColor, setHoveredColor] = useState<string | null>(null);
 
   const accentColors = [
-    { name: 'Indigo', value: '#6366f1' },
-    { name: 'Purple', value: '#8b5cf6' },
-    { name: 'Pink', value: '#ec4899' },
-    { name: 'Rose', value: '#f43f5e' },
-    { name: 'Orange', value: '#f97316' },
-    { name: 'Green', value: '#10b981' },
+    { name: '星芒紫', value: '#ba9eff' },
+    { name: '琥珀金', value: '#f0a030' },
+    { name: '海洋蓝', value: '#34b5fa' },
+    { name: '翡翠绿', value: '#10b981' },
+    { name: '玫瑰红', value: '#f43f5e' },
+    { name: '珊瑚橙', value: '#f97316' },
+    { name: '樱花粉', value: '#ec63ff' },
+    { name: '薄荷青', value: '#14b8a6' },
+    { name: '石墨蓝', value: '#6366f1' },
+    { name: '午夜靛', value: '#8b5cf6' },
   ];
 
   const fontSizes = [
@@ -24,109 +28,58 @@ export default function AppearanceSettingsPage() {
     { name: '大', value: '18px' },
   ];
 
-  const handleAccentColorChange = (color: string) => {
-    setAccentColor(color);
+  const sectionStyle: React.CSSProperties = {
+    background: 'var(--bg-glass)',
+    backdropFilter: 'blur(40px)',
+    borderRadius: '20px',
+    padding: '32px',
+    border: '1px solid var(--border-primary)',
   };
 
-  const handleFontSizeChange = (size: string) => {
-    setFontSize(size);
+  const headingStyle: React.CSSProperties = {
+    fontSize: '18px',
+    fontWeight: 600,
+    color: 'var(--text-primary)',
+    margin: 0,
   };
 
-  const handleThemeChange = (newTheme: 'light' | 'dark') => {
-    setTheme(newTheme);
+  const descStyle: React.CSSProperties = {
+    fontSize: '14px',
+    color: 'var(--text-muted)',
+    marginBottom: '24px',
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: isDark 
-        ? 'linear-gradient(180deg, #05050a 0%, #0a0a12 50%, #0f0f1a 100%)'
-        : 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
-      position: 'relative',
-    }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-page)', position: 'relative' }}>
       <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: '60vh',
-        background: isDark 
-          ? 'radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.05) 0%, transparent 60%)'
-          : 'radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 60%)',
+        position: 'absolute', top: 0, left: 0, right: 0, height: '60vh',
+        background: `radial-gradient(ellipse at 20% 20%, var(--accent-bg) 0%, transparent 60%)`,
         pointerEvents: 'none',
       }} />
 
       <header style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
-        background: isDark ? 'rgba(5, 5, 10, 0.95)' : 'rgba(255, 255, 255, 0.92)',
-        backdropFilter: 'blur(40px)',
-        borderBottom: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
+        position: 'sticky', top: 0, zIndex: 10,
+        background: 'var(--bg-header)',
+        backdropFilter: 'blur(48px)',
+        borderBottom: '1px solid var(--border-primary)',
         padding: '20px 48px',
       }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: 900, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <button
-              onClick={() => navigate('/settings')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '44px',
-                height: '44px',
-                borderRadius: '12px',
-                background: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.02)',
-                border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                color: isDark ? '#fafafa' : '#18181b',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)';
-                e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.25)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.02)';
-                e.currentTarget.style.borderColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
-              }}
+            <button onClick={() => navigate('/settings')} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: '44px', height: '44px', borderRadius: '12px',
+              background: 'var(--bg-glass)', border: '1px solid var(--border-primary)',
+              cursor: 'pointer', transition: 'all 0.2s ease', color: 'var(--text-primary)',
+            }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-glass-hover)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-glass)'}
             >
               <ArrowLeft style={{ width: '20px', height: '20px' }} />
             </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '14px',
-                background: `linear-gradient(135deg, ${accentColor} 0%, #8b5cf6 100%)`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: `0 8px 24px ${accentColor}40`,
-              }}>
-                <Palette style={{ width: '24px', height: '24px', color: '#ffffff' }} />
-              </div>
-              <div>
-                <h1 style={{
-                  fontSize: '24px',
-                  fontWeight: 700,
-                  color: isDark ? '#fafafa' : '#18181b',
-                  margin: 0,
-                }}>
-                  外观设置
-                </h1>
-                <p style={{
-                  fontSize: '14px',
-                  color: isDark ? 'rgba(250, 250, 250, 0.6)' : 'rgba(24, 24, 27, 0.6)',
-                  margin: '4px 0 0 0',
-                }}>
-                  个性化您的界面体验
-                </p>
-              </div>
+            <div>
+              <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>外观设置</h1>
+              <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>个性化您的界面体验</p>
             </div>
           </div>
         </div>
@@ -134,154 +87,95 @@ export default function AppearanceSettingsPage() {
 
       <main style={{ padding: '32px 48px', position: 'relative' }}>
         <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
-          
-          <div style={{
-            background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
-            backdropFilter: 'blur(20px)',
-            borderRadius: '24px',
-            padding: '32px',
-            border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-              <Palette style={{ width: '20px', height: '20px', color: accentColor }} />
-              <h2 style={{
-                fontSize: '18px',
-                fontWeight: 600,
-                color: isDark ? '#fafafa' : '#18181b',
-                margin: 0,
-              }}>
-                强调色
-              </h2>
+
+          {/* Accent Color Section */}
+          <div style={sectionStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <Palette style={{ width: '20px', height: '20px', color: 'var(--accent)' }} />
+              <h2 style={headingStyle}>强调色</h2>
             </div>
-            <p style={{
-              fontSize: '14px',
-              color: isDark ? 'rgba(250, 250, 250, 0.6)' : 'rgba(24, 24, 27, 0.6)',
-              marginBottom: '24px',
-            }}>
-              选择一个强调色来个性化您的界面
-            </p>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '20px',
-            }}>
+            <p style={descStyle}>选择一个强调色来个性化您的界面</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px' }}>
               {accentColors.map((color) => {
                 const isSelected = accentColor === color.value;
                 const isHovered = hoveredColor === color.value;
                 return (
                   <button
                     key={color.value}
-                    onClick={() => handleAccentColorChange(color.value)}
+                    onClick={() => setAccentColor(color.value)}
                     onMouseEnter={() => setHoveredColor(color.value)}
                     onMouseLeave={() => setHoveredColor(null)}
                     style={{
                       width: '100%',
-                      height: '88px',
+                      aspectRatio: '1.2',
                       backgroundColor: color.value,
-                      border: isSelected ? '3px solid #fff' : '3px solid transparent',
+                      border: isSelected ? '3px solid var(--text-primary)' : '3px solid transparent',
                       borderRadius: '16px',
                       cursor: 'pointer',
                       transition: 'all 0.25s ease',
-                      boxShadow: isSelected 
-                        ? `0 8px 32px ${color.value}60` 
-                        : isHovered 
-                        ? `0 4px 24px ${color.value}40` 
+                      boxShadow: isSelected
+                        ? `0 8px 32px ${color.value}60`
+                        : isHovered
+                        ? `0 4px 24px ${color.value}40`
                         : 'none',
                       display: 'flex',
+                      flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      gap: '6px',
                     }}
                   >
-                    {isSelected && <CheckCircle style={{ width: '32px', height: '32px', color: '#fff' }} />}
+                    {isSelected && <CheckCircle style={{ width: '28px', height: '28px', color: '#fff' }} />}
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.9)', textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>
+                      {color.name}
+                    </span>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <div style={{
-            background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
-            backdropFilter: 'blur(20px)',
-            borderRadius: '24px',
-            padding: '32px',
-            border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-              <Moon style={{ width: '20px', height: '20px', color: accentColor }} />
-              <h2 style={{
-                fontSize: '18px',
-                fontWeight: 600,
-                color: isDark ? '#fafafa' : '#18181b',
-                margin: 0,
-              }}>
-                主题模式
-              </h2>
+          {/* Theme Mode Section */}
+          <div style={sectionStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <Moon style={{ width: '20px', height: '20px', color: 'var(--accent)' }} />
+              <h2 style={headingStyle}>主题模式</h2>
             </div>
-            <p style={{
-              fontSize: '14px',
-              color: isDark ? 'rgba(250, 250, 250, 0.6)' : 'rgba(24, 24, 27, 0.6)',
-              marginBottom: '24px',
-            }}>
-              选择适合您的主题模式
-            </p>
+            <p style={descStyle}>选择适合您的主题模式</p>
             <div style={{ display: 'flex', gap: '16px' }}>
-              {[
+              {([
                 { value: 'light' as const, label: '浅色', icon: Sun },
                 { value: 'dark' as const, label: '深色', icon: Moon },
-              ].map((mode) => {
+              ]).map((mode) => {
                 const isSelected = theme === mode.value;
                 const Icon = mode.icon;
                 return (
                   <button
                     key={mode.value}
-                    onClick={() => handleThemeChange(mode.value)}
+                    onClick={() => setTheme(mode.value)}
                     style={{
                       flex: 1,
                       display: 'flex',
-                      flexDirection: 'column',
                       alignItems: 'center',
-                      gap: '12px',
-                      padding: '24px',
+                      gap: '14px',
+                      padding: '20px',
                       borderRadius: '16px',
-                      border: `2px solid ${isSelected ? accentColor : isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
-                      background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+                      border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border-primary)'}`,
+                      background: isSelected ? 'var(--accent-bg)' : 'var(--bg-glass)',
                       cursor: 'pointer',
                       transition: 'all 0.25s ease',
                     }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.25)';
-                        e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
-                        e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)';
-                      }
-                    }}
                   >
                     <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '12px',
-                      background: isSelected 
-                        ? `linear-gradient(135deg, ${accentColor} 0%, #8b5cf6 100%)`
-                        : isDark 
-                        ? 'rgba(255, 255, 255, 0.06)'
-                        : 'rgba(0, 0, 0, 0.04)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: isSelected ? `0 8px 24px ${accentColor}40` : 'none',
+                      width: '48px', height: '48px', borderRadius: '12px',
+                      background: isSelected ? 'var(--gradient-primary)' : 'var(--bg-glass)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: isSelected ? 'var(--shadow-accent)' : 'none',
+                      transition: 'all 0.25s ease',
                     }}>
-                      <Icon style={{ width: '24px', height: '24px', color: isSelected ? '#fff' : isDark ? '#fafafa' : '#18181b' }} />
+                      <Icon style={{ width: '24px', height: '24px', color: isSelected ? '#fff' : 'var(--text-primary)' }} />
                     </div>
-                    <span style={{
-                      fontSize: '14px',
-                      fontWeight: 500,
-                      color: isDark ? '#fafafa' : '#18181b',
-                    }}>
+                    <span style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)' }}>
                       {mode.label}
                     </span>
                   </button>
@@ -290,77 +184,35 @@ export default function AppearanceSettingsPage() {
             </div>
           </div>
 
-          <div style={{
-            background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
-            backdropFilter: 'blur(20px)',
-            borderRadius: '24px',
-            padding: '32px',
-            border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-              <Type style={{ width: '20px', height: '20px', color: accentColor }} />
-              <h2 style={{
-                fontSize: '18px',
-                fontWeight: 600,
-                color: isDark ? '#fafafa' : '#18181b',
-                margin: 0,
-              }}>
-                字体大小
-              </h2>
+          {/* Font Size Section */}
+          <div style={sectionStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <Type style={{ width: '20px', height: '20px', color: 'var(--accent)' }} />
+              <h2 style={headingStyle}>字体大小</h2>
             </div>
-            <p style={{
-              fontSize: '14px',
-              color: isDark ? 'rgba(250, 250, 250, 0.6)' : 'rgba(24, 24, 27, 0.6)',
-              marginBottom: '24px',
-            }}>
-              调整界面的字体大小
-            </p>
+            <p style={descStyle}>调整界面的字体大小</p>
             <div style={{ display: 'flex', gap: '16px' }}>
               {fontSizes.map((size) => {
                 const isSelected = fontSize === size.value;
                 return (
                   <button
                     key={size.value}
-                    onClick={() => handleFontSizeChange(size.value)}
+                    onClick={() => setFontSize(size.value)}
                     style={{
-                      flex: 1,
-                      padding: '20px',
-                      borderRadius: '16px',
-                      border: `2px solid ${isSelected ? accentColor : isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)'}`,
-                      background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
-                      cursor: 'pointer',
-                      transition: 'all 0.25s ease',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '8px',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.25)';
-                        e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.borderColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
-                        e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)';
-                      }
+                      flex: 1, padding: '20px', borderRadius: '16px',
+                      border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border-primary)'}`,
+                      background: isSelected ? 'var(--accent-bg)' : 'var(--bg-glass)',
+                      cursor: 'pointer', transition: 'all 0.25s ease',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
                     }}
                   >
                     <span style={{
-                      fontSize: size.value,
-                      fontWeight: 600,
-                      color: isSelected ? accentColor : isDark ? '#fafafa' : '#18181b',
+                      fontSize: size.value, fontWeight: 600,
+                      color: isSelected ? 'var(--accent)' : 'var(--text-primary)',
                     }}>
                       {size.name}
                     </span>
-                    <span style={{
-                      fontSize: '12px',
-                      color: isDark ? 'rgba(250, 250, 250, 0.5)' : 'rgba(24, 24, 27, 0.5)',
-                    }}>
-                      {size.value}
-                    </span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{size.value}</span>
                   </button>
                 );
               })}

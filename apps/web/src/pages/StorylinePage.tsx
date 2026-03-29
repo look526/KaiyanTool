@@ -279,8 +279,8 @@ const StorylinePage: React.FC = () => {
           <GlassButton
             variant="primary"
             onClick={handleGenerate}
-            accentColor={accentColor}
-            accentLight={accentLight}
+           
+           
             style={{ marginTop: '8px', height: '52px', fontSize: '16px', justifyContent: 'center' }}
           >
             <Sparkles style={{ width: '18px', height: '18px' }} />
@@ -325,8 +325,8 @@ const StorylinePage: React.FC = () => {
             <GlassButton
               variant="primary"
               onClick={handleSave}
-              accentColor={savedId ? '#22c55e' : accentColor}
-              accentLight={savedId ? '#4ade80' : accentLight}
+             
+             
             >
               <Save style={{ width: '16px', height: '16px' }} />
               {savedId ? '已保存' : '保存故事线'}

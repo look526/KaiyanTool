@@ -1,6 +1,6 @@
 import { AIProvider } from './provider.interface'
 import { AIRequest, AIResponse, AIChatMessage, AICreateImageRequest, AICreateImageResponse, AICreateVideoRequest, AICreateVideoResponse } from '../../types/ai.types'
-import { Sora2VideoRequest, Sora2VideoResponse } from '../../types/ai.types'
+import { Sora2VideoRequest, Sora2VideoResponse, VEO3VideoRequest } from '../../types/ai.types'
 import logger from '../../lib/logger'
 
 export class ToapisProvider extends AIProvider {
@@ -9,8 +9,20 @@ export class ToapisProvider extends AIProvider {
   }
 
   async chat(messages: AIChatMessage[], options: Partial<AIRequest> = {}): Promise<AIResponse> {
+    const modelMap: Record<string, string> = {
+      'gpt-5': 'gpt-5',
+      'gpt-4o': 'gpt-4o',
+      'claude-3-5-sonnet': 'claude-3-5-sonnet',
+      'gemini-2.0-flash': 'gemini-2.0-flash',
+      'sora-2': 'sora-2',
+      'sora-2-pro': 'sora-2-pro',
+      'sora-2-vip': 'sora-2-vip',
+      'veo3': 'veo3',
+      'veo3-pro': 'veo3-pro',
+    }
+
     const requestBody = {
-      model: options.model || 'sora-2',
+      model: modelMap[options.model || ''] || options.model || 'gpt-4o',
       messages,
       temperature: options.temperature ?? 0.7,
       max_tokens: options.maxTokens ?? 4000,
@@ -152,6 +164,48 @@ export class ToapisProvider extends AIProvider {
       progress: response.progress || 0,
       created_at: response.created_at,
       metadata: response.metadata,
+    }
+  }
+
+  async createVEO3Video(request: VEO3VideoRequest): Promise<AICreateVideoResponse> {
+    const imageUrls = [request.image_urls?.[0], request.end_image_url].filter(
+      (u): u is string => typeof u === 'string' && u.length > 0
+    )
+
+    const veo3Request = {
+      model: request.model || 'veo3',
+      prompt: request.prompt,
+      duration: request.duration ?? 10,
+      aspect_ratio: request.aspect_ratio || '16:9',
+      image_urls: imageUrls.length > 0 ? imageUrls : undefined,
+      prompt_strength: request.prompt_strength ?? 0.8,
+    }
+
+    logger.info('ToAPIs VEO3 createVideo request', veo3Request)
+
+    const response = await this.request('/videos/generations', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(veo3Request),
+    })
+
+    if (!response.id) {
+      throw new Error('Failed to create VEO3 video generation task')
+    }
+
+    const taskManager = new Sora2TaskManager(this.apiKey, this.baseUrl || 'https://api.toapis.com/v1')
+
+    const result = await taskManager.waitForTaskCompletion(response.id, {
+      pollInterval: 3000,
+      maxPollAttempts: 200,
+    })
+
+    return {
+      url: result.url || '',
+      duration: result.metadata?.duration,
+      resolution: result.metadata?.resolution,
     }
   }
 }

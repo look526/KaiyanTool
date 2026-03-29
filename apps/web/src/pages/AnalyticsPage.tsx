@@ -189,7 +189,7 @@ const ModelUsageCard = ({ model, isDark }: {
     totalCost: number;
     lastError?: string;
   };
-  isDark: boolean;
+  isDark?: boolean;
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   
@@ -850,7 +850,7 @@ export default function AnalyticsPage() {
               {modelUsageStats.models
                 .sort((a, b) => b.totalRequests - a.totalRequests)
                 .map((model) => (
-                  <ModelUsageCard key={model.id} model={model} isDark={isDark} />
+                  <ModelUsageCard key={model.id} model={model} />
                 ))}
             </div>
           )}
@@ -1001,7 +1001,7 @@ export default function AnalyticsPage() {
                       tickLine={false}
                       axisLine={false}
                     />
-                    <Tooltip content={<CustomTooltip isDark={isDark} />} />
+                    <Tooltip content={<CustomTooltip />} />
                     <Legend />
                     <Area 
                       type="monotone" 

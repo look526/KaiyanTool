@@ -8,7 +8,7 @@ export interface GlassCardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
-  ({ 
+  ({
     variant = 'default',
     interactive = false,
     padding = 'md',
@@ -16,7 +16,7 @@ export const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
     style,
     onMouseEnter,
     onMouseLeave,
-    ...props 
+    ...props
   }, ref) => {
     const [isHovered, setIsHovered] = useState(false);
 
@@ -46,13 +46,14 @@ export const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
       },
       glass: {
         background: 'var(--bg-glass)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        backdropFilter: 'blur(40px)',
-        boxShadow: 'var(--shadow-md)',
+        border: '1px solid var(--border-primary)',
+        backdropFilter: 'var(--glass-blur)',
+        WebkitBackdropFilter: 'var(--glass-blur)',
+        boxShadow: 'var(--shadow-card)',
       },
     };
 
-    const baseStyles = {
+    const baseStyles: React.CSSProperties = {
       borderRadius: 'var(--radius-xl)',
       padding: paddingStyles[padding],
       transition: 'all var(--transition-slow)',
@@ -61,23 +62,19 @@ export const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
       ...style,
     };
 
-    const interactiveStyles = interactive ? {
-      transform: isHovered ? 'translateY(-4px) scale(1.02)' : 'translateY(0) scale(1)',
-      boxShadow: isHovered ? '0 0 40px rgba(186, 158, 255, 0.15)' : variantStyles[variant].boxShadow,
+    const interactiveStyles: React.CSSProperties = interactive ? {
+      transform: isHovered ? 'translateY(-4px) scale(1.01)' : 'translateY(0) scale(1)',
+      boxShadow: isHovered ? 'var(--shadow-card-hover)' : variantStyles[variant].boxShadow,
       borderColor: isHovered ? 'var(--border-hover)' : 'var(--border-primary)',
     } : {};
 
     const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
-      if (interactive) {
-        setIsHovered(true);
-      }
+      if (interactive) setIsHovered(true);
       onMouseEnter?.(e);
     };
 
     const handleMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
-      if (interactive) {
-        setIsHovered(false);
-      }
+      if (interactive) setIsHovered(false);
       onMouseLeave?.(e);
     };
 

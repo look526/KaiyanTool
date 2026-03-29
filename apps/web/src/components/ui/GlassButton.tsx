@@ -4,9 +4,6 @@ export interface GlassButtonProps extends React.ButtonHTMLAttributes<HTMLButtonE
   variant?: 'primary' | 'secondary' | 'danger' | 'success' | 'outline' | 'ghost';
   icon?: ReactNode;
   children: ReactNode;
-  accentColor?: string;
-  accentLight?: string;
-  isDark?: boolean;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   loading?: boolean;
 }
@@ -15,9 +12,6 @@ export function GlassButton({
   variant = 'primary',
   icon,
   children,
-  accentColor = '#ba9eff',
-  accentLight = '#d4bfff',
-  isDark = true,
   size = 'md',
   loading = false,
   ...props
@@ -33,45 +27,44 @@ export function GlassButton({
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    borderRadius: '14px',
+    borderRadius: 'var(--radius-lg)',
     border: 'none',
-    fontWeight: variant === 'primary' ? '600' : '500',
+    fontWeight: variant === 'primary' ? '700' : '500',
     cursor: loading ? 'not-allowed' : 'pointer',
-    transition: 'all 0.25s ease',
+    transition: 'all var(--transition-base)',
     ...sizeStyles[size],
   };
 
   const variants: Record<string, React.CSSProperties> = {
     primary: {
-      background: `linear-gradient(135deg, ${accentColor} 0%, ${accentLight} 100%)`,
-      color: '#39008c',
-      fontWeight: 700,
-      boxShadow: '0 8px 24px rgba(186, 158, 255, 0.2)',
+      background: 'var(--gradient-primary)',
+      color: '#fff',
+      boxShadow: 'var(--shadow-accent)',
     },
     secondary: {
-      background: 'rgba(28, 37, 62, 0.4)',
-      color: isDark ? '#dfe4fe' : '#18181b',
-      border: `1px solid rgba(255, 255, 255, 0.08)`,
-      backdropFilter: 'blur(40px)',
+      background: 'var(--bg-glass)',
+      backdropFilter: 'var(--glass-blur)',
+      color: 'var(--text-primary)',
+      border: '1px solid var(--border-primary)',
     },
     danger: {
-      background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+      background: 'var(--gradient-danger)',
       color: '#fff',
-      boxShadow: '0 4px 14px rgba(239, 68, 68, 0.3)',
+      boxShadow: 'var(--error-shadow)',
     },
     success: {
-      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+      background: 'var(--gradient-success)',
       color: '#fff',
-      boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+      boxShadow: 'var(--success-shadow)',
     },
     outline: {
       background: 'transparent',
-      color: isDark ? '#fafafa' : '#18181b',
-      border: `1px solid ${accentColor}`,
+      color: 'var(--text-primary)',
+      border: '1px solid var(--accent)',
     },
     ghost: {
       background: 'transparent',
-      color: isDark ? '#fafafa' : '#18181b',
+      color: 'var(--text-primary)',
     },
   };
 
@@ -82,12 +75,11 @@ export function GlassButton({
       onMouseEnter={(e) => {
         if (variant === 'primary' || variant === 'success' || variant === 'danger') {
           e.currentTarget.style.transform = 'translateY(-1px)';
-          const shadowColor = variant === 'primary' ? accentColor : variant === 'success' ? '#10b981' : '#ef4444';
-          e.currentTarget.style.boxShadow = `0 8px 24px ${shadowColor}60`;
+          e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
         } else if (variant === 'secondary' || variant === 'outline') {
-          e.currentTarget.style.borderColor = accentColor;
-          e.currentTarget.style.color = accentColor;
-          e.currentTarget.style.background = `${accentColor}08`;
+          e.currentTarget.style.borderColor = 'var(--accent)';
+          e.currentTarget.style.color = 'var(--accent)';
+          e.currentTarget.style.background = 'var(--accent-bg)';
         }
       }}
       onMouseLeave={(e) => {
@@ -95,9 +87,9 @@ export function GlassButton({
           e.currentTarget.style.transform = 'translateY(0)';
           e.currentTarget.style.boxShadow = variants[variant].boxShadow as string;
         } else if (variant === 'secondary' || variant === 'outline') {
-          e.currentTarget.style.borderColor = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)';
-          e.currentTarget.style.color = isDark ? '#fafafa' : '#18181b';
-          e.currentTarget.style.background = 'transparent';
+          e.currentTarget.style.borderColor = variant === 'outline' ? 'var(--accent)' : 'var(--border-primary)';
+          e.currentTarget.style.color = 'var(--text-primary)';
+          e.currentTarget.style.background = variant === 'secondary' ? 'var(--bg-glass)' : 'transparent';
         }
       }}
       {...props}

@@ -7,7 +7,7 @@ const accentColor = '#8b5cf6';
 interface AIPromptEditorProps {
   sourceText: string;
   initialPrompt?: WorkspacePromptJson;
-  isDark: boolean;
+  isDark?: boolean;
   onPromptChange: (prompt: WorkspacePromptJson) => void;
   onAnalyze: () => void;
   onOptimize: () => void;
@@ -18,7 +18,7 @@ interface AIPromptEditorProps {
 export function AIPromptEditor({
   sourceText,
   initialPrompt,
-  isDark,
+  isDark = true,
   onPromptChange,
   onAnalyze,
   onOptimize,

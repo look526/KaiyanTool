@@ -237,9 +237,9 @@ export default function AIProvidersPage() {
             providers={filteredProviders as any} 
             isMobile={isMobile} 
             isTablet={isTablet} 
-            isDark={isDark}
+           
             colors={colors}
-            accentColor={accentColor}
+           
           />
 
           <div style={{ 
@@ -335,9 +335,9 @@ export default function AIProvidersPage() {
             <EmptyState 
               type="providers" 
               onAddProvider={openAddProviderModal}
-              isDark={isDark}
+             
               colors={colors}
-              accentColor={accentColor}
+             
             />
           ) : (
             <div style={{ 
@@ -368,9 +368,9 @@ export default function AIProvidersPage() {
                   testingModel={testingModel}
                   isMobile={isMobile}
                   isTablet={isTablet}
-                  isDark={isDark}
+                 
                   colors={colors}
-                  accentColor={accentColor}
+                 
                 />
               ))}
             </div>
@@ -385,9 +385,9 @@ export default function AIProvidersPage() {
             saving={saving}
             isEdit={!!editingProvider}
             isMobile={isMobile}
-            isDark={isDark}
+           
             colors={colors}
-            accentColor={accentColor}
+           
           />
 
           <ModelModal
@@ -399,9 +399,9 @@ export default function AIProvidersPage() {
             saving={saving}
             isEdit={!!selectedProviderForModel?.models?.some((m) => m.id === modelFormData.model_id)}
             providerType={selectedProviderForModel?.type || ''}
-            isDark={isDark}
+           
             colors={colors}
-            accentColor={accentColor}
+           
           />
         </div>
       </main>
@@ -409,8 +409,8 @@ export default function AIProvidersPage() {
       <TestProgressPanel
         testingProvider={testingProvider}
         testingModel={testingModel}
-        isDark={isDark}
-        accentColor={accentColor}
+       
+       
       />
 
       <style>{`

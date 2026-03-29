@@ -22,7 +22,7 @@ interface CanvasNodeProps {
   onDoubleClick: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
   onTextChange?: (text: string) => void;
-  isDark: boolean;
+  isDark?: boolean;
 }
 
 export function CanvasNode({
@@ -35,7 +35,7 @@ export function CanvasNode({
   onDoubleClick,
   onContextMenu,
   onTextChange,
-  isDark,
+  isDark = true,
 }: CanvasNodeProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(node.content.text || '');

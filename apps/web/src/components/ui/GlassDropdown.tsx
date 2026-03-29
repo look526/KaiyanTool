@@ -19,7 +19,7 @@ interface GlassDropdownProps {
     textSecondary: string;
     textMuted: string;
   };
-  accentColor: string;
+  accentColor?: string;
   size?: 'sm' | 'md';
 }
 
@@ -29,7 +29,7 @@ export function GlassDropdown({
   onChange,
   placeholder = '请选择',
   colors,
-  accentColor,
+  accentColor = '#ba9eff',
   size = 'md',
 }: GlassDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);

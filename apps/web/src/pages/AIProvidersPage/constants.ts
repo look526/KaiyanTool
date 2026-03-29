@@ -34,7 +34,7 @@ export const PROVIDER_TYPES: ProviderType[] = [
   { value: 'zhipu', label: '智谱 AI', icon: Zap, color: '#6366f1', description: '国产大语言模型领导者' },
   { value: 'seedream', label: '豆包', icon: Coffee, color: '#ff8c00', description: '字节跳动AI模型' },
   { value: 'deepseek', label: 'DeepSeek', icon: SearchIcon, color: '#6b7280', description: '深度求索AI模型' },
-  { value: 'toapis', label: 'ToAPIs Sora2', icon: Video, color: '#ec4899', description: 'Sora2 视频生成服务' },
+  { value: 'toapis', label: 'ToAPIs', icon: Video, color: '#ec4899', description: '多模型 AI 服务（GPT、Claude、Gemini、Sora2、VEO3）' },
 ];
 
 export const INITIAL_PROVIDER_FORM_DATA = {

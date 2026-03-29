@@ -424,7 +424,7 @@ export default function CharactersPage() {
                   value={filterGender}
                   onChange={setFilterGender}
                   colors={colors}
-                  accentColor={accentColor}
+                 
                 />
               </div>
 
@@ -439,7 +439,7 @@ export default function CharactersPage() {
                   value={sortBy}
                   onChange={(val) => setSortBy(val as 'name' | 'created' | 'shots')}
                   colors={colors}
-                  accentColor={accentColor}
+                 
                 />
               </div>
 
@@ -720,10 +720,10 @@ export default function CharactersPage() {
                     onDelete={handleOpenDeleteModal}
                     onAddWardrobe={handleOpenWardrobeModal}
                     onDeleteWardrobe={handleDeleteWardrobe}
-                    isDark={isDark}
+                   
                     colors={colors}
-                    accentColor={accentColor}
-                    accentLight={accentLight}
+                   
+                   
                   />
                 ))}
               </div>
@@ -882,7 +882,7 @@ export default function CharactersPage() {
                     value={characterForm.gender}
                     onChange={(val) => setCharacterForm({ ...characterForm, gender: val })}
                     colors={colors}
-                    accentColor={accentColor}
+                   
                     size="sm"
                   />
                 </div>

@@ -348,7 +348,7 @@ export default function ScenesPage() {
                 </div>
                 <p style={{ fontSize: '16px', fontWeight: '500', color: 'var(--text-primary)', marginBottom: '8px' }}>暂无场景</p>
                 <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>点击"添加场景"开始创建</p>
-                <GlassButton variant="primary" onClick={handleOpenModal} accentColor={accentColor} accentLight={accentLight}>
+                <GlassButton variant="primary" onClick={handleOpenModal}>
                   <Plus style={{ width: '16px', height: '16px' }} />
                   添加第一个场景
                 </GlassButton>

@@ -14,7 +14,7 @@ interface CanvasWorkspaceProps {
   selectedNodes: string[];
   canvasOffset: { x: number; y: number };
   zoom: number;
-  isDark: boolean;
+  isDark?: boolean;
   colors: Record<string, string>;
   spacePressed: boolean;
   onNodesUpdate: (nodes: CanvasNodeType[]) => void;
@@ -34,7 +34,7 @@ export function CanvasWorkspace({
   selectedNodes,
   canvasOffset,
   zoom,
-  isDark,
+  isDark = true,
   colors,
   spacePressed,
   onNodesUpdate,
@@ -174,7 +174,7 @@ export function CanvasWorkspace({
           onDragStart={(e) => onNodeDragStart(node.id, e)}
           onDoubleClick={() => onConnect(node.id)}
           onContextMenu={(e) => onContextMenu(e, node.id)}
-          isDark={isDark}
+         
         />
       ))}
     </div>
