@@ -29,7 +29,7 @@ export default function AdminLoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await api.post<{ user: any; token: string }>('/api/admin/auth/login', {
+      const response = await api.post<{ user: any; token: string }>('/admin/auth/login', {
         email,
         password,
       });

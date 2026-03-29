@@ -119,6 +119,76 @@ export function ModelParameters({ capabilities, showVEO3Params = false, value, o
           )}
         </>
       )}
+      {capabilities.includes('image') && (
+        <>
+          <div>
+            <label style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
+              图片尺寸
+            </label>
+            <select
+              value={value.size || '1024x1024'}
+              onChange={e => updateParam('size', e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-primary)',
+                background: 'var(--bg-input)',
+                color: 'var(--text-primary)',
+                fontSize: '13px',
+              }}
+            >
+              <option value="1024x1024">1024x1024 (1:1)</option>
+              <option value="1024x1792">1024x1792 (9:16 竖屏)</option>
+              <option value="1792x1024">1792x1024 (16:9 横屏)</option>
+              <option value="1536x1024">1536x1024 (3:2)</option>
+              <option value="1024x1536">1024x1536 (2:3)</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
+              图片质量
+            </label>
+            <select
+              value={value.quality || 'standard'}
+              onChange={e => updateParam('quality', e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-primary)',
+                background: 'var(--bg-input)',
+                color: 'var(--text-primary)',
+                fontSize: '13px',
+              }}
+            >
+              <option value="standard">标准 (Standard)</option>
+              <option value="hd">高清 (HD)</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
+              生成数量
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={10}
+              value={value.n || 1}
+              onChange={e => updateParam('n', Number(e.target.value))}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-primary)',
+                background: 'var(--bg-input)',
+                color: 'var(--text-primary)',
+                fontSize: '13px',
+              }}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }

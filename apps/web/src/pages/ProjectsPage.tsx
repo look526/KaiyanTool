@@ -1,10 +1,55 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient, Project } from '../lib/api';
-import { StatCard } from '../components/projects/StatCard';
 import { FilterSelect } from '../components/projects/FilterSelect';
 import { ProjectCard } from '../components/projects/ProjectCard';
 import { useTheme } from '../contexts/ThemeContext';
+
+function StatCard({ value, label }: { value: number; label: string }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '24px 32px',
+        borderRadius: '24px',
+        background: isHovered ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 255, 255, 0.06)',
+        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+        cursor: 'default',
+      }}
+    >
+      <span style={{
+        fontSize: '48px',
+        fontWeight: 800,
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        color: isHovered ? '#a78bfa' : '#dfe4fe',
+        lineHeight: 1,
+        marginBottom: '8px',
+        transition: 'color 0.4s ease',
+      }}>
+        {value}
+      </span>
+      <span style={{
+        fontSize: '12px',
+        fontWeight: 300,
+        color: '#a5aac2',
+        letterSpacing: '0.15em',
+        textTransform: 'uppercase',
+      }}>
+        {label}
+      </span>
+    </div>
+  );
+}
 
 export default function ProjectsPage() {
   const navigate = useNavigate();
@@ -20,60 +65,6 @@ export default function ProjectsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [newProjectHover, setNewProjectHover] = useState(false);
   const [createHover, setCreateHover] = useState(false);
-
-  const colors = isDark ? {
-    bgBase: '#05050a',
-    bgSurface: '#0a0a12',
-    bgElevated: '#0f0f1a',
-    bgPage: 'linear-gradient(180deg, #05050a 0%, #0a0a12 50%, #0f0f1a 100%)',
-    bgHeader: 'rgba(5, 5, 10, 0.95)',
-    bgGlass: 'rgba(5, 5, 10, 0.6)',
-    bgGlassHover: 'rgba(255, 255, 255, 0.06)',
-    bgSecondary: 'rgba(255, 255, 255, 0.03)',
-    bgInput: 'rgba(255, 255, 255, 0.04)',
-    textPrimary: '#fafafa',
-    textSecondary: 'rgba(250, 250, 250, 0.6)',
-    textMuted: 'rgba(250, 250, 250, 0.4)',
-    border: 'rgba(255, 255, 255, 0.06)',
-    borderLight: 'rgba(255, 255, 255, 0.05)',
-    borderHover: 'rgba(139, 92, 246, 0.25)',
-    accent: '#8b5cf6',
-    accentLight: '#a78bfa',
-    accentDim: '#7c3aed',
-    onAccent: '#ffffff',
-    shadowAccent: 'rgba(139, 92, 246, 0.3)',
-    surfaceContainerLow: '#0c1326',
-    surfaceContainerHigh: '#1c253e',
-    hoverBg: 'rgba(255, 255, 255, 0.05)',
-    glassBg: 'rgba(28, 37, 62, 0.4)',
-    glowPrimary: 'rgba(139, 92, 246, 0.08)',
-  } : {
-    bgBase: '#f5f5f5',
-    bgSurface: '#ffffff',
-    bgElevated: '#ffffff',
-    bgPage: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
-    bgHeader: 'rgba(255, 255, 255, 0.95)',
-    bgGlass: 'rgba(255, 255, 255, 0.8)',
-    bgGlassHover: 'rgba(0, 0, 0, 0.04)',
-    bgSecondary: 'rgba(0, 0, 0, 0.02)',
-    bgInput: 'rgba(0, 0, 0, 0.04)',
-    textPrimary: '#18181b',
-    textSecondary: 'rgba(24, 24, 27, 0.6)',
-    textMuted: 'rgba(24, 24, 27, 0.4)',
-    border: 'rgba(0, 0, 0, 0.06)',
-    borderLight: 'rgba(0, 0, 0, 0.04)',
-    borderHover: 'rgba(139, 92, 246, 0.25)',
-    accent: '#8b5cf6',
-    accentLight: '#a78bfa',
-    accentDim: '#7c3aed',
-    onAccent: '#ffffff',
-    shadowAccent: 'rgba(139, 92, 246, 0.3)',
-    surfaceContainerLow: '#f1f5f9',
-    surfaceContainerHigh: '#e2e8f0',
-    hoverBg: 'rgba(0, 0, 0, 0.04)',
-    glassBg: 'rgba(255, 255, 255, 0.9)',
-    glowPrimary: 'rgba(139, 92, 246, 0.05)',
-  };
 
   useEffect(() => {
     setPage(1);
@@ -106,13 +97,13 @@ export default function ProjectsPage() {
     const upperType = (type || '').toUpperCase();
     switch (upperType) {
       case 'SCRIPT':
-        return { icon: 'description' as const, gradient: 'linear-gradient(135deg, #ba9eff 0%, #ae8dff 100%)', label: '剧本', color: '#ba9eff' };
+        return { icon: 'description' as const, gradient: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)', label: 'SCRIPT', color: '#8b5cf6' };
       case 'NOVEL':
-        return { icon: 'menu_book' as const, gradient: 'linear-gradient(135deg, #ec63ff 0%, #f487ff 100%)', label: '小说', color: '#ec63ff' };
+        return { icon: 'menu_book' as const, gradient: 'linear-gradient(135deg, #ec63ff 0%, #f487ff 100%)', label: 'NOVEL', color: '#ec63ff' };
       case 'MIXED':
-        return { icon: 'auto_awesome' as const, gradient: 'linear-gradient(135deg, #34b5fa 0%, #81ccff 100%)', label: '混合', color: '#34b5fa' };
+        return { icon: 'auto_awesome' as const, gradient: 'linear-gradient(135deg, #34b5fa 0%, #81ccff 100%)', label: 'MIXED', color: '#34b5fa' };
       default:
-        return { icon: 'folder_open' as const, gradient: 'linear-gradient(135deg, #ba9eff 0%, #ae8dff 100%)', label: '项目', color: '#ba9eff' };
+        return { icon: 'folder_open' as const, gradient: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)', label: 'PROJECT', color: '#8b5cf6' };
     }
   }, []);
 
@@ -148,168 +139,159 @@ export default function ProjectsPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: colors.bgPage,
-      display: 'flex',
+      background: 'linear-gradient(180deg, #070d1f 0%, #0c1326 50%, #11192e 100%)',
       fontFamily: "'Manrope', sans-serif",
-      color: colors.textPrimary,
+      color: '#dfe4fe',
       position: 'relative',
-      overflow: 'hidden',
+      overflowX: 'hidden',
     }}>
       <div style={{
         position: 'absolute',
-        inset: 0,
-        background: `radial-gradient(ellipse at 20% 20%, ${colors.glowPrimary} 0%, transparent 50%)`,
+        top: 0,
+        left: '20%',
+        width: '60%',
+        height: '400px',
+        background: 'radial-gradient(ellipse at center, rgba(139, 92, 246, 0.12) 0%, transparent 70%)',
         pointerEvents: 'none',
       }} />
       <div style={{
         position: 'absolute',
-        inset: 0,
-        background: `radial-gradient(ellipse at 80% 80%, ${isDark ? 'rgba(139, 92, 246, 0.05)' : 'rgba(139, 92, 246, 0.03)'} 0%, transparent 50%)`,
+        top: 100,
+        right: '10%',
+        width: '300px',
+        height: '300px',
+        background: 'radial-gradient(ellipse at center, rgba(236, 99, 255, 0.08) 0%, transparent 70%)',
         pointerEvents: 'none',
       }} />
 
+      <header style={{
+        position: 'fixed',
+        top: 0,
+        right: 0,
+        left: '256px',
+        height: '72px',
+        background: 'rgba(7, 13, 31, 0.8)',
+        backdropFilter: 'blur(40px)',
+        WebkitBackdropFilter: 'blur(40px)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '0 32px',
+        zIndex: 40,
+        borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+      }}>
+        <h2 style={{
+          fontSize: '18px',
+          fontWeight: 700,
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          color: '#dfe4fe',
+          margin: 0,
+        }}>项目列表</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            background: 'rgba(255, 255, 255, 0.04)',
+            backdropFilter: 'blur(20px)',
+            padding: '10px 16px',
+            borderRadius: '14px',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+            gap: '10px',
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#a5aac2' }}>search</span>
+            <input
+              type="text"
+              placeholder="搜索项目..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                fontSize: '14px',
+                width: '200px',
+                color: '#dfe4fe',
+                fontFamily: 'Manrope, sans-serif',
+              }}
+            />
+          </div>
+          <button style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '40px',
+            height: '40px',
+            borderRadius: '12px',
+            border: 'none',
+            background: 'transparent',
+            color: '#a5aac2',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>notifications</span>
+          </button>
+          <button style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '40px',
+            height: '40px',
+            borderRadius: '12px',
+            border: 'none',
+            background: 'transparent',
+            color: '#a5aac2',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>account_circle</span>
+          </button>
+        </div>
+      </header>
+
       <main style={{
         marginLeft: '256px',
-        flex: 1,
         position: 'relative',
         zIndex: 1,
       }}>
-        <header style={{
-          position: 'fixed',
-          top: 0,
-          right: 0,
-          left: '256px',
-          height: '72px',
-          background: colors.bgHeader,
-          backdropFilter: 'blur(40px)',
-          WebkitBackdropFilter: 'blur(40px)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '0 32px',
-          zIndex: 40,
-          borderBottom: `1px solid ${colors.border}`,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <h2 style={{
-              fontSize: '18px',
-              fontWeight: 700,
-              color: colors.textPrimary,
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              margin: 0,
-            }}>项目列表</h2>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <div style={{ padding: '112px 48px 0' }}>
+          <section style={{
+            textAlign: 'center',
+            paddingBottom: '60px',
+          }}>
+            <h1 style={{
+              fontSize: '14px',
+              fontWeight: 300,
+              color: '#a5aac2',
+              letterSpacing: '0.4em',
+              textTransform: 'uppercase',
+              marginBottom: '16px',
+            }}>
+              MY PROJECTS
+            </h1>
+            <p style={{
+              fontSize: '15px',
+              fontWeight: 300,
+              color: '#a5aac2',
+              marginBottom: '48px',
+              letterSpacing: '0.05em',
+            }}>
+              管理您的创作项目
+            </p>
+
             <div style={{
               display: 'flex',
-              alignItems: 'center',
-              background: colors.bgInput,
-              backdropFilter: 'blur(20px)',
-              padding: '10px 16px',
-              borderRadius: '14px',
-              border: `1px solid ${colors.border}`,
-              gap: '10px',
+              justifyContent: 'center',
+              gap: '24px',
+              flexWrap: 'wrap',
             }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: colors.textSecondary }}>search</span>
-              <input
-                type="text"
-                placeholder="搜索项目..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  fontSize: '14px',
-                  width: '220px',
-                  color: colors.textPrimary,
-                }}
-              />
+              <StatCard value={stats.total} label="全部项目" />
+              <StatCard value={stats.active} label="进行中" />
+              <StatCard value={stats.completed} label="已完成" />
             </div>
-            <button style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '40px',
-              height: '40px',
-              borderRadius: '12px',
-              border: 'none',
-              background: 'transparent',
-              color: colors.textSecondary,
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = colors.accent; e.currentTarget.style.background = colors.hoverBg; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = colors.textSecondary; e.currentTarget.style.background = 'transparent'; }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>notifications</span>
-            </button>
-            <button style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '40px',
-              height: '40px',
-              borderRadius: '12px',
-              border: 'none',
-              background: 'transparent',
-              color: colors.textSecondary,
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = colors.accent; e.currentTarget.style.background = colors.hoverBg; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = colors.textSecondary; e.currentTarget.style.background = 'transparent'; }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>account_circle</span>
-            </button>
-          </div>
-        </header>
-
-        <div style={{ padding: '112px 48px 48px' }}>
-          <section style={{ marginBottom: '40px' }}>
-            <h1 style={{
-              fontSize: '36px',
-              fontWeight: 800,
-              color: colors.textPrimary,
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              letterSpacing: '-0.02em',
-              margin: '0 0 8px 0',
-            }}>我的项目</h1>
-            <p style={{ fontSize: '15px', fontWeight: 500, color: colors.textSecondary, margin: 0 }}>管理您的创作项目</p>
           </section>
+        </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '24px',
-            marginBottom: '40px',
-          }}>
-            <StatCard
-              icon="dataset"
-              value={stats.total}
-              label="全部项目"
-              gradient="linear-gradient(135deg, #ba9eff 0%, #ae8dff 100%)"
-              iconColor="#ba9eff"
-              hoverGlow="rgba(186, 158, 255, 0.15)"
-            />
-            <StatCard
-              icon="pending"
-              value={stats.active}
-              label="进行中"
-              gradient="linear-gradient(135deg, #34b5fa 0%, #81ccff 100%)"
-              iconColor="#34b5fa"
-              hoverGlow="rgba(52, 181, 250, 0.15)"
-            />
-            <StatCard
-              icon="check_circle"
-              value={stats.completed}
-              label="已完成"
-              gradient="linear-gradient(135deg, #ec63ff 0%, #f487ff 100%)"
-              iconColor="#ec63ff"
-              hoverGlow="rgba(236, 99, 255, 0.15)"
-            />
-          </div>
-
+        <div style={{ padding: '0 48px 48px' }}>
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -336,11 +318,11 @@ export default function ProjectsPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{
                 display: 'flex',
-                background: colors.bgInput,
+                background: 'rgba(255, 255, 255, 0.04)',
                 backdropFilter: 'blur(20px)',
                 padding: '4px',
                 borderRadius: '14px',
-                border: `1px solid ${colors.border}`,
+                border: '1px solid rgba(255, 255, 255, 0.06)',
                 gap: '4px',
               }}>
                 <button
@@ -353,8 +335,8 @@ export default function ProjectsPage() {
                     height: '36px',
                     borderRadius: '10px',
                     border: 'none',
-                    background: viewMode === 'grid' ? colors.surfaceContainerHigh : 'transparent',
-                    color: viewMode === 'grid' ? colors.accent : colors.textSecondary,
+                    background: viewMode === 'grid' ? 'rgba(139, 92, 246, 0.3)' : 'transparent',
+                    color: viewMode === 'grid' ? '#a78bfa' : '#a5aac2',
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
                   }}
@@ -371,8 +353,8 @@ export default function ProjectsPage() {
                     height: '36px',
                     borderRadius: '10px',
                     border: 'none',
-                    background: viewMode === 'list' ? colors.surfaceContainerHigh : 'transparent',
-                    color: viewMode === 'list' ? colors.accent : colors.textSecondary,
+                    background: viewMode === 'list' ? 'rgba(139, 92, 246, 0.3)' : 'transparent',
+                    color: viewMode === 'list' ? '#a78bfa' : '#a5aac2',
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
                   }}
@@ -388,17 +370,19 @@ export default function ProjectsPage() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  padding: '10px 20px',
+                  padding: '12px 24px',
                   borderRadius: '14px',
                   fontSize: '14px',
                   fontWeight: 600,
                   border: 'none',
                   background: newProjectHover
-                    ? `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentDim} 100%)`
-                    : `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentLight} 100%)`,
-                  color: colors.onAccent,
+                    ? 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)'
+                    : 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
+                  color: '#ffffff',
                   cursor: 'pointer',
-                  boxShadow: `0 8px 24px ${colors.accent}40`,
+                  boxShadow: newProjectHover
+                    ? '0 12px 32px rgba(139, 92, 246, 0.5)'
+                    : '0 8px 24px rgba(139, 92, 246, 0.3)',
                   transform: newProjectHover ? 'scale(1.03)' : 'scale(1)',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 }}
@@ -414,8 +398,8 @@ export default function ProjectsPage() {
               <div style={{
                 width: '48px',
                 height: '48px',
-                border: `3px solid ${colors.surfaceContainerHigh}`,
-                borderTopColor: colors.accent,
+                border: '3px solid rgba(139, 92, 246, 0.2)',
+                borderTopColor: '#8b5cf6',
                 borderRadius: '50%',
                 animation: 'spin 1s linear infinite',
               }} />
@@ -430,22 +414,33 @@ export default function ProjectsPage() {
               textAlign: 'center',
             }}>
               <div style={{
-                width: '96px',
-                height: '96px',
-                borderRadius: '28px',
-                background: colors.glassBg,
+                width: '120px',
+                height: '120px',
+                borderRadius: '32px',
+                background: 'rgba(139, 92, 246, 0.1)',
                 backdropFilter: 'blur(40px)',
-                border: `1px solid ${colors.border}`,
+                border: '1px solid rgba(255, 255, 255, 0.06)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: '24px',
-                boxShadow: `0 20px 40px rgba(0, 0, 0, 0.1), 0 0 60px ${colors.accent}10`,
+                marginBottom: '32px',
               }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '44px', color: colors.textSecondary }}>folder_open</span>
+                <span className="material-symbols-outlined" style={{ fontSize: '56px', color: '#a5aac2' }}>movie</span>
               </div>
-              <h3 style={{ fontSize: '20px', fontWeight: 600, color: colors.textPrimary, marginBottom: '8px', margin: '0 0 8px 0' }}>暂无项目</h3>
-              <p style={{ fontSize: '14px', color: colors.textSecondary, marginBottom: '28px', maxWidth: '320px', lineHeight: 1.6 }}>创建您的第一个项目，开始精彩的创作之旅</p>
+              <h3 style={{
+                fontSize: '24px',
+                fontWeight: 700,
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                color: '#dfe4fe',
+                marginBottom: '12px',
+              }}>暂无项目</h3>
+              <p style={{
+                fontSize: '14px',
+                color: '#a5aac2',
+                marginBottom: '32px',
+                maxWidth: '320px',
+                lineHeight: 1.6,
+              }}>创建您的第一个项目，开始精彩的创作之旅</p>
               <button
                 onClick={() => navigate('/projects/new')}
                 onMouseEnter={() => setCreateHover(true)}
@@ -454,17 +449,17 @@ export default function ProjectsPage() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px',
-                  padding: '12px 28px',
+                  padding: '14px 32px',
                   borderRadius: '14px',
                   fontSize: '14px',
                   fontWeight: 600,
                   border: 'none',
                   background: createHover
-                    ? `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentDim} 100%)`
-                    : `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentLight} 100%)`,
-                  color: colors.onAccent,
+                    ? 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)'
+                    : 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
+                  color: '#ffffff',
                   cursor: 'pointer',
-                  boxShadow: `0 8px 24px ${colors.accent}40`,
+                  boxShadow: '0 8px 24px rgba(139, 92, 246, 0.3)',
                   transform: createHover ? 'scale(1.03)' : 'scale(1)',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 }}

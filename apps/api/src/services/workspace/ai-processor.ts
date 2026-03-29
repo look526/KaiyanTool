@@ -179,9 +179,10 @@ export async function generateFromPrompt(
 
     if (targetType === 'image') {
       const result = await provider.createImage({
+        model,
         prompt: finalPrompt,
         size: '1:1',
-        resolution: '2K',
+        quality: 'hd',
         n: 1,
       });
 

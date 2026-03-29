@@ -34,7 +34,6 @@ const DocumentDetailPage = lazy(() => import('./pages/DocumentDetailPage'))
 const DocumentCreatePage = lazy(() => import('./pages/DocumentCreatePage'))
 const TeamPage = lazy(() => import('./pages/TeamPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
-const ModelConfigurationPage = lazy(() => import('./pages/ModelConfigurationPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const SecuritySettingsPage = lazy(() => import('./pages/SecuritySettingsPage'))
 const AppearanceSettingsPage = lazy(() => import('./pages/AppearanceSettingsPage'))
@@ -144,7 +143,7 @@ function App() {
                     <Route path="/team" element={<TeamPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="/settings/ai" element={<AIProvidersPage />} />
-                    <Route path="/settings/models" element={<ModelConfigurationPage />} />
+                    <Route path="/settings/models" element={<Navigate to="/settings/ai" replace />} />
                     <Route path="/profile" element={<ProfilePage />} />
                     <Route path="/settings/security" element={<SecuritySettingsPage />} />
                     <Route path="/settings/appearance" element={<AppearanceSettingsPage />} />

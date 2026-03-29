@@ -58,6 +58,7 @@ export interface AIChatMessage {
 }
 
 export interface AICreateImageRequest {
+  model?: string
   prompt: string
   size?: '256x256' | '512x512' | '1024x1024' | '1920x1080' | '1536x1024' | '1024x1792' | '1:1' | '4:3' | '3:4' | '16:9' | '9:16' | '3:2' | '2:3' | '21:9' | '9:21'
   quality?: 'standard' | 'hd' | '2K' | '3K'

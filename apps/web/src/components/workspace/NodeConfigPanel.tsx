@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Star, Clock, Image, Video, Type, Sparkles } from 'lucide-react';
 import { AIPromptEditor } from './AIPromptEditor';
 import { WorkspacePromptJson, AIProvider } from '../../types/workspace';
-import { getModelCapabilities, isVideoModel, isVEO3Model, getModelDefaultParams } from '../../types/ai';
+import { getModelCapabilities, isVideoModel, isImageModel, isVEO3Model, getModelDefaultParams } from '../../types/ai';
 import { ModelParameters } from '../ai/ModelParameters';
 
 interface CanvasNode {
@@ -69,6 +69,7 @@ export default function NodeConfigPanel({
   const [promptJson, setPromptJson] = useState<WorkspacePromptJson | undefined>();
   const [showAIPromptEditor, setShowAIPromptEditor] = useState(false);
   const [modelParams, setModelParams] = useState<Record<string, any>>({});
+  const [editingText, setEditingText] = useState<string>('');
 
   const accentColor = '#8b5cf6';
 
@@ -88,6 +89,12 @@ export default function NodeConfigPanel({
       });
     }
   }, [node?.content?.text, selectedStyle]);
+
+  useEffect(() => {
+    if (node) {
+      setEditingText(node.content?.text || '');
+    }
+  }, [node?.id]);
 
   const fetchProviders = async () => {
     try {
@@ -157,8 +164,13 @@ export default function NodeConfigPanel({
               文字内容
             </label>
             <textarea
-              value={node.content?.text || ''}
-              onChange={(e) => onUpdate(node.id, { content: { text: e.target.value } })}
+              value={editingText}
+              onChange={(e) => setEditingText(e.target.value)}
+              onBlur={() => {
+                if (editingText !== node.content?.text) {
+                  onUpdate(node.id, { content: { text: editingText } });
+                }
+              }}
               style={{
                 width: '100%', minHeight: '100px', padding: '12px', borderRadius: '12px',
                 border: `1px solid ${colors.border}`, background: colors.bgSecondary,
@@ -236,7 +248,7 @@ export default function NodeConfigPanel({
               </select>
             </div>
 
-            {isVideoModel(selectedModel) && (
+            {(isVideoModel(selectedModel) || isImageModel(selectedModel)) && (
               <div style={{ marginBottom: '12px' }}>
                 <label style={{ fontSize: '12px', color: colors.textMuted, marginBottom: '8px', display: 'block' }}>
                   模型参数

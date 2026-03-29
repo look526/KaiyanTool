@@ -39,14 +39,6 @@ export default function SettingsPage() {
       color: '#06b6d4',
     },
     {
-      icon: Settings,
-      title: '模型配置',
-      description: '设置默认 AI 模型偏好',
-      link: '/settings/models',
-      gradient: 'linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)',
-      color: '#8b5cf6',
-    },
-    {
       icon: Bell,
       title: '通知设置',
       description: '管理通知偏好',

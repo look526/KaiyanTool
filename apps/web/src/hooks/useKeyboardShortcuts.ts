@@ -12,6 +12,16 @@ interface ShortcutConfig {
 
 export function useKeyboardShortcuts(shortcuts: ShortcutConfig[]) {
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    const target = event.target as HTMLElement;
+    const isInputField = target.tagName === 'INPUT' ||
+                          target.tagName === 'TEXTAREA' ||
+                          target.tagName === 'SELECT' ||
+                          target.isContentEditable;
+
+    if (isInputField) {
+      return;
+    }
+
     for (const shortcut of shortcuts) {
       const ctrlMatch = shortcut.ctrlKey ? event.ctrlKey || event.metaKey : !event.ctrlKey && !event.metaKey;
       const shiftMatch = shortcut.shiftKey ? event.shiftKey : !event.shiftKey;
