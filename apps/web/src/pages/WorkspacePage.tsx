@@ -199,8 +199,9 @@ export default function WorkspacePage() {
     if (!wsId) {
       try {
         const createRes = await apiClient.post('/workspace', { name: '默认工作台' });
-        if (createRes && (createRes as any).id) {
-          wsId = (createRes as any).id;
+        const resData = (createRes as any);
+        if (resData && resData.success && resData.data?.id) {
+          wsId = resData.data.id;
           setWorkspaceId(wsId);
         } else {
           console.error('Failed to create workspace: invalid response', createRes);
@@ -213,15 +214,17 @@ export default function WorkspacePage() {
     }
     try {
       const res = await apiClient.post(`/workspace/${wsId}/nodes`, { type, position_x: position.x, position_y: position.y, content });
-      if (res && (res as any).id) {
+      const resData = (res as any);
+      if (resData && resData.success && resData.data?.id) {
         const newNode: CanvasNode = {
-          id: (res as any).id, type, position_x: position.x, position_y: position.y,
-          content, output_url: (res as any).output_url,
+          id: resData.data.id, type, position_x: position.x, position_y: position.y,
+          content, output_url: resData.data.output_url,
           is_starred: false, labels: [], history: [], config: {},
         };
         setNodes(prev => [...prev, newNode]);
         return newNode;
       }
+      console.error('Failed to create node: invalid response', res);
     } catch (error) {
       console.error('Failed to create node:', error);
     }
