@@ -76,27 +76,27 @@ const SCRIPT_TEMPLATES = [
 
 /** 将预览区场景结构组装为 apply-parse 所需的 parse_result（含 snake_case 对白字段） */
 function buildParseResultForApply(
-  scenes: unknown[],
-  characters: unknown[],
-  items: unknown[]
-): Record<string, unknown> {
+  scenes: any[],
+  characters: any[],
+  items: any[]
+): Record<string, any> {
   return {
     parse_schema_version: 1,
-    scenes: scenes.map((s, idx) => {
-      const rawDialogues = (s.dialogues ?? s.dialogue ?? []) as unknown[];
+    scenes: scenes.map((s: any, idx: number) => {
+      const rawDialogues = (s.dialogues ?? s.dialogue ?? []) as any[];
       return {
         id: s.id,
-        number: (s.number as number) ?? idx + 1,
-        heading: s.heading as string,
-        location: s.location as string,
-        time: s.time as string,
-        description: s.description as string,
+        number: s.number ?? idx + 1,
+        heading: s.heading,
+        location: s.location,
+        time: s.time,
+        description: s.description,
         character_names: s.characters ?? [],
-        dialogues: rawDialogues.map((d) => ({
-          character_name: ((d as Record<string, unknown>).characterName ?? (d as Record<string, unknown>).character ?? '') as string,
+        dialogues: rawDialogues.map((d: any) => ({
+          character_name: (d.characterName ?? d.character ?? '') as string,
           text:
-            (typeof (d as Record<string, unknown>).text === 'string' ? (d as Record<string, unknown>).text : '') ||
-            (Array.isArray((d as Record<string, unknown>).lines) ? ((d as Record<string, unknown>).lines as string[]).join('\n') : ''),
+            (typeof d.text === 'string' ? d.text : '') ||
+            (Array.isArray(d.lines) ? (d.lines as string[]).join('\n') : ''),
         })),
         actions: s.actions ?? [],
         items: s.items,
