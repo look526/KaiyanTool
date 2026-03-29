@@ -105,7 +105,7 @@ export default function EpisodesPage() {
             <GlassButton
               variant="secondary"
               icon={<ArrowLeft style={{ width: '16px', height: '16px' }} />}
-              isDark={false}
+             
               onClick={() => navigate(`/projects/${projectId}`)}
             >
               返回项目
@@ -113,7 +113,7 @@ export default function EpisodesPage() {
             <GlassButton
               variant="primary"
               icon={<Plus style={{ width: '16px', height: '16px' }} />}
-              isDark={false}
+             
               onClick={handleCreateEpisode}
             >
               新建剧集
@@ -268,7 +268,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
       <GlassButton
         variant="primary"
         icon={<Plus style={{ width: '16px', height: '16px' }} />}
-        isDark={false}
+       
         onClick={onCreate}
       >
         新建剧集

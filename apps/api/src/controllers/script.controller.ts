@@ -8,101 +8,17 @@ import { AIProviderHelper } from '../services/ai/provider-helper.service';
 import { AppError, asyncHandler } from '../middleware/error.middleware';
 import logger from '../lib/logger';
 
-interface Dialogue {
-  character: string;
-  lines: string[];
-  action?: string;
-}
-
-interface Scene {
-  id: number;
-  description: string;
-  type: string;
-  dialogue: Dialogue[];
-  action?: string;
-}
-
-interface ParsedScript {
-  scenes: Scene[];
-  characters: string[];
-}
-
 export const parseScript = asyncHandler(async (req: Request, res: Response) => {
-  const { content } = req.body;
+  const { content, script_kind } = req.body;
 
   if (!content || typeof content !== 'string') {
     throw AppError.badRequest('剧本内容不能为空');
   }
 
-  const scenes: Scene[] = [];
-  const characters = new Set<string>();
-  const lines = content.split('\n');
-  let currentScene: Scene | null = null;
-  let sceneId = 0;
+  const kind = typeof script_kind === 'string' && script_kind.trim() ? script_kind.trim() : 'standard';
+  const data = await scriptParserService.parseScriptTextOnly(content, kind);
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-
-    const sceneMatch = line.match(/^(场景\d+|场景\s*\d+|Scene\s*\d+)\s*[-：:]\s*(.+)/i);
-    const bracketSceneMatch = line.match(/^\[场景(\d+)\]\s*(.+)/i);
-
-    if (sceneMatch || bracketSceneMatch) {
-      if (currentScene) {
-        scenes.push(currentScene);
-      }
-      sceneId++;
-      const description = bracketSceneMatch ? bracketSceneMatch[2] : sceneMatch![2];
-      const sceneType = bracketSceneMatch?.[1] || sceneMatch![1].replace(/[^\d]/g, '');
-      currentScene = {
-        id: sceneId,
-        description: description.trim(),
-        type: sceneType,
-        dialogue: [],
-      };
-      continue;
-    }
-
-    const actionMatch = line.match(/^\((.+)\)$/);
-    if (actionMatch && currentScene) {
-      if (currentScene.dialogue.length === 0) {
-        currentScene.action = actionMatch[1].trim();
-      } else {
-        const lastDialogue = currentScene.dialogue[currentScene.dialogue.length - 1];
-        lastDialogue.action = actionMatch[1].trim();
-      }
-      continue;
-    }
-
-    const characterMatch = line.match(/^([^\uff1a\uff3b:：:]+)[\uff1a\uff3b:：:]\s*(.+)/);
-    if (characterMatch && currentScene) {
-      const character = characterMatch[1].trim();
-      const text = characterMatch[2].trim();
-      characters.add(character);
-
-      const lastDialogue = currentScene.dialogue[currentScene.dialogue.length - 1];
-      if (lastDialogue && lastDialogue.character === character) {
-        lastDialogue.lines.push(text);
-      } else {
-        currentScene.dialogue.push({
-          character,
-          lines: [text],
-        });
-      }
-      continue;
-    }
-  }
-
-  if (currentScene) {
-    scenes.push(currentScene);
-  }
-
-  const result: ParsedScript = {
-    scenes,
-    characters: Array.from(characters),
-  };
-
-  res.json(result);
+  res.json({ success: true, data });
 });
 
 export const saveScript = asyncHandler(async (req: Request, res: Response) => {
@@ -291,7 +207,7 @@ export const optimizeScene = asyncHandler(async (req: Request, res: Response) =>
 });
 
 export const parseScriptWithAI = asyncHandler(async (req: Request, res: Response) => {
-  const { content, model } = req.body;
+  const { content, model, use_cache, script_kind } = req.body;
   const user_id = req.user_id;
 
   if (!content || typeof content !== 'string') {
@@ -315,13 +231,17 @@ export const parseScriptWithAI = asyncHandler(async (req: Request, res: Response
     largeTextProcessingService.setDefaultModel(modelName);
   }
 
+  const kind = typeof script_kind === 'string' && script_kind.trim() ? script_kind.trim() : 'standard';
+  const useCache = use_cache !== false;
+
   const result = await scriptParserService.parseScriptWithLargeText(user_id, content, {
-    useCache: false,
+    useCache,
     onProgress: (progress, message) => {
       logger.debug('Script parsing progress', { user_id, progress, message });
     },
     model: modelName,
-    providerId: providerId
+    providerId: providerId,
+    scriptKind: kind,
   });
 
   logger.info('Script parsing completed', { 
@@ -331,15 +251,7 @@ export const parseScriptWithAI = asyncHandler(async (req: Request, res: Response
     itemsCount: result.items?.length || 0
   });
 
-  console.log('[Script Controller] result.items:', result.items);
-  console.log('[Script Controller] result.items length:', result.items?.length);
-
-  res.json({
-    scenes: result.scenes,
-    characters: result.characters,
-    items: result.items || [],
-    metadata: result.metadata
-  });
+  res.json({ success: true, data: result });
 });
 
 export const optimizeSceneContent = asyncHandler(async (req: Request, res: Response) => {

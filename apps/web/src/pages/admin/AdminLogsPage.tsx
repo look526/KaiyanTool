@@ -58,7 +58,7 @@ export default function AdminLogsPage() {
       if (endDate) params.append('endDate', endDate);
 
       const response = await api.get<{ logs: AuditLog[]; pagination: Pagination }>(
-        `/api/admin/logs?${params.toString()}`
+        `/admin/logs?${params.toString()}`
       );
       setLogs(response.logs);
       setPagination(response.pagination);
@@ -75,7 +75,7 @@ export default function AdminLogsPage() {
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
 
-      const response = await api.get<LogStats>(`/api/admin/logs/stats?${params.toString()}`);
+      const response = await api.get<LogStats>(`/admin/logs/stats?${params.toString()}`);
       setStats(response);
     } catch (error) {
       console.error('Failed to fetch log stats:', error);
@@ -95,9 +95,9 @@ export default function AdminLogsPage() {
       if (endDate) params.append('endDate', endDate);
 
       if (format === 'csv') {
-        window.open(`/api/admin/logs/export?${params.toString()}`, '_blank');
+        window.open(`/admin/logs/export?${params.toString()}`, '_blank');
       } else {
-        const response = await api.get<{ logs: AuditLog[] }>(`/api/admin/logs/export?${params.toString()}`);
+        const response = await api.get<{ logs: AuditLog[] }>(`/admin/logs/export?${params.toString()}`);
         const blob = new Blob([JSON.stringify(response, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

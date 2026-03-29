@@ -1,7 +1,7 @@
 import React from 'react';
 import { Layers, FileText, MessageSquare } from 'lucide-react';
 import { Button } from '../../../ui/button';
-import { ParsedScene } from '../../../utils/SceneParser';
+import { ParsedScene } from '../../../../utils/SceneParser';
 import styles from '../SceneOptimizationDialog.module.css';
 
 export interface SceneSelectorProps {

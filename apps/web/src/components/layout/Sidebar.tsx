@@ -35,57 +35,54 @@ export function Sidebar() {
       left: 0,
       top: 0,
       height: '100vh',
-      width: '256px',
-      background: isDark
-        ? 'rgba(7, 13, 31, 0.6)'
-        : 'rgba(255, 255, 255, 0.85)',
-      backdropFilter: 'blur(40px)',
-      borderRight: isDark
-        ? '1px solid rgba(255, 255, 255, 0.1)'
-        : '1px solid rgba(0, 0, 0, 0.08)',
-      boxShadow: isDark
-        ? '40px 0 40px rgba(186, 158, 255, 0.08)'
-        : '4px 0 24px rgba(0, 0, 0, 0.06)',
+      width: '260px',
+      background: 'var(--bg-sidebar)',
+      backdropFilter: 'var(--glass-blur)',
       display: 'flex',
       flexDirection: 'column',
       zIndex: 50,
-      fontFamily: "'Plus Jakarta Sans', sans-serif",
+      fontFamily: 'var(--font-family-sans)',
       letterSpacing: '-0.02em',
       transition: 'all 0.3s ease',
+      boxShadow: isDark
+        ? '0 0 80px rgba(186, 158, 255, 0.05), 20px 0 60px rgba(0, 0, 0, 0.3)'
+        : '0 0 60px rgba(139, 92, 246, 0.03), 4px 0 24px rgba(0, 0, 0, 0.06)',
     }}>
       <div style={{
-        marginBottom: '40px',
-        padding: '0 24px',
+        paddingTop: '32px',
+        paddingLeft: '24px',
+        paddingRight: '24px',
+        paddingBottom: '32px',
         position: 'relative',
       }}>
         <div style={{
           position: 'absolute',
-          top: '-20px',
+          top: '0px',
           left: '50%',
           transform: 'translateX(-50%)',
-          width: '120px',
-          height: '60px',
+          width: '140px',
+          height: '100px',
           background: isDark
-            ? 'radial-gradient(ellipse at center, rgba(186, 158, 255, 0.15) 0%, transparent 70%)'
-            : 'radial-gradient(ellipse at center, rgba(139, 92, 246, 0.12) 0%, transparent 70%)',
-          filter: 'blur(20px)',
+            ? 'radial-gradient(ellipse at center top, rgba(186, 158, 255, 0.25) 0%, transparent 70%)'
+            : 'radial-gradient(ellipse at center top, rgba(139, 92, 246, 0.2) 0%, transparent 70%)',
+          filter: 'blur(30px)',
           pointerEvents: 'none',
         }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', position: 'relative' }}>
           <div style={{
-            width: '40px',
-            height: '40px',
+            width: '42px',
+            height: '42px',
             borderRadius: '14px',
             background: isDark
-              ? 'linear-gradient(135deg, #ba9eff 0%, #8455ef 100%)'
-              : 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
+              ? 'linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%)'
+              : 'linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: isDark ? '#39008c' : '#ffffff',
             boxShadow: isDark
-              ? '0 4px 16px rgba(186, 158, 255, 0.4)'
-              : '0 4px 16px rgba(139, 92, 246, 0.3)',
+              ? '0 4px 20px rgba(186, 158, 255, 0.45), 0 0 40px rgba(186, 158, 255, 0.15)'
+              : '0 4px 20px rgba(139, 92, 246, 0.35), 0 0 40px rgba(139, 92, 246, 0.1)',
             transition: 'all 0.3s ease',
           }}>
             <Sparkles size={20} style={{ fill: 'currentColor' }} />
@@ -94,10 +91,10 @@ export function Sidebar() {
             <h1 style={{
               fontSize: '20px',
               fontWeight: 800,
-              color: isDark ? '#e9d5ff' : undefined,
+              color: isDark ? 'var(--accent)' : 'var(--accent-dark)',
               background: isDark
                 ? undefined
-                : 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)',
+                : 'linear-gradient(135deg, var(--accent-dark) 0%, var(--accent) 100%)',
               WebkitBackgroundClip: isDark ? undefined : 'text',
               WebkitTextFillColor: isDark ? undefined : 'transparent',
               backgroundClip: isDark ? undefined : 'text',
@@ -106,7 +103,7 @@ export function Sidebar() {
             }}>Kaiyan AI</h1>
             <p style={{
               fontSize: '10px',
-              color: isDark ? 'rgba(201, 188, 255, 0.9)' : 'rgba(24, 24, 27, 0.5)',
+              color: isDark ? 'var(--text-tertiary)' : 'var(--text-secondary)',
               textTransform: 'uppercase',
               letterSpacing: '0.15em',
               margin: '2px 0 0 0',
@@ -117,12 +114,12 @@ export function Sidebar() {
       </div>
 
       <nav style={{ flex: 1, padding: '0 24px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {navItems.map((item) => {
-            const active = location.pathname === item.href || 
+            const active = location.pathname === item.href ||
               (item.href === '/projects' && location.pathname.startsWith('/projects')) ||
               (item.href === '/workspace' && location.pathname.startsWith('/workspace')) ||
-              (item.href === '/settings' && location.pathname.startsWith('/settings'));
+              (item.href === '/settings' && location.pathname.startsWith('/settings') && location.pathname !== '/settings/ai');
             const hovered = hoveredItem === item.href;
 
             return (
@@ -135,34 +132,61 @@ export function Sidebar() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
-                  padding: '12px 16px',
+                  padding: '14px 16px',
                   borderRadius: '14px',
                   textDecoration: 'none',
                   background: active
-                    ? (isDark ? 'rgba(174, 141, 255, 0.15)' : 'rgba(139, 92, 246, 0.1)')
+                    ? 'var(--nav-active-bg)'
                     : hovered
-                      ? (isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)')
+                      ? 'var(--bg-hover)'
                       : 'transparent',
                   color: active
-                    ? (isDark ? '#ba9eff' : '#7c3aed')
-                    : (isDark ? 'rgba(165, 170, 194, 0.8)' : 'rgba(24, 24, 27, 0.7)'),
+                    ? 'var(--accent)'
+                    : (isDark ? 'var(--text-tertiary)' : 'var(--text-secondary)'),
                   boxShadow: active
-                    ? (isDark ? '0 0 20px rgba(174, 141, 255, 0.15)' : '0 0 20px rgba(139, 92, 246, 0.1)')
+                    ? '0 0 25px rgba(186, 158, 255, 0.12), inset 0 0 20px rgba(186, 158, 255, 0.05)'
                     : 'none',
                   transition: 'all 0.25s ease',
                   position: 'relative',
+                  transform: hovered && !active ? 'translateX(4px)' : 'translateX(0)',
                 }}
               >
+                {active && (
+                  <div style={{
+                    position: 'absolute',
+                    left: '-24px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '3px',
+                    height: '24px',
+                    background: 'linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%)',
+                    borderRadius: '0 4px 4px 0',
+                    boxShadow: '0 0 12px var(--accent)',
+                  }} />
+                )}
                 <span className="material-symbols-outlined" style={{
                   fontSize: '20px',
                   fontVariationSettings: active ? "'FILL' 1, 'wght' 500" : "'FILL' 0, 'wght' 400",
+                  transition: 'all 0.25s ease',
                 }}>
                   {item.icon}
                 </span>
                 <span style={{
                   fontSize: '14px',
                   fontWeight: active ? 600 : 500,
+                  transition: 'all 0.25s ease',
                 }}>{item.label}</span>
+                {hovered && !active && (
+                  <div style={{
+                    position: 'absolute',
+                    right: '12px',
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    background: 'var(--accent)',
+                    opacity: 0.6,
+                  }} />
+                )}
               </Link>
             );
           })}
@@ -171,9 +195,10 @@ export function Sidebar() {
 
       <div style={{
         padding: '24px',
-        borderTop: isDark
-          ? '1px solid rgba(255, 255, 255, 0.06)'
-          : '1px solid rgba(0, 0, 0, 0.06)',
+        background: isDark
+          ? 'var(--bg-secondary)'
+          : 'var(--bg-secondary)',
+        borderTop: 'none',
       }}>
         <button
           onClick={() => toggleTheme()}
@@ -184,15 +209,15 @@ export function Sidebar() {
             alignItems: 'center',
             justifyContent: 'space-between',
             width: '100%',
-            padding: '12px 16px',
+            padding: '14px 16px',
             borderRadius: '14px',
             border: 'none',
             background: hoveredItem === 'theme'
-              ? (isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)')
+              ? 'var(--bg-hover)'
               : 'transparent',
             cursor: 'pointer',
             transition: 'all 0.25s ease',
-            color: isDark ? 'rgba(165, 170, 194, 0.8)' : 'rgba(24, 24, 27, 0.7)',
+            color: isDark ? 'var(--text-tertiary)' : 'var(--text-secondary)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -202,31 +227,32 @@ export function Sidebar() {
             <span style={{ fontSize: '14px' }}>深色模式</span>
           </div>
           <div style={{
-            width: '36px',
-            height: '20px',
-            borderRadius: '10px',
+            width: '40px',
+            height: '22px',
+            borderRadius: '11px',
             background: isDark
-              ? 'linear-gradient(135deg, #1c253e 0%, #11192e 100%)'
-              : 'linear-gradient(135deg, #e2e8f0 0%, #f1f5f9 100%)',
+              ? 'var(--bg-elevated)'
+              : 'var(--bg-elevated)',
             position: 'relative',
             transition: 'all 0.3s ease',
             boxShadow: isDark
-              ? 'inset 0 2px 4px rgba(0, 0, 0, 0.3)'
-              : 'inset 0 2px 4px rgba(0, 0, 0, 0.05)',
+              ? 'inset 0 2px 4px rgba(0, 0, 0, 0.3), 0 0 15px rgba(186, 158, 255, 0.1)'
+              : 'inset 0 2px 4px rgba(0, 0, 0, 0.08)',
+            border: '1px solid var(--border-primary)',
           }}>
             <div style={{
               position: 'absolute',
-              left: isDark ? '2px' : '18px',
+              left: isDark ? '3px' : '19px',
               top: '2px',
-              width: '16px',
-              height: '16px',
+              width: '14px',
+              height: '14px',
               borderRadius: '50%',
               background: isDark
-                ? 'linear-gradient(135deg, #ba9eff 0%, #8455ef 100%)'
+                ? 'linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%)'
                 : 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
               transition: 'all 0.3s ease',
               boxShadow: isDark
-                ? '0 2px 8px rgba(186, 158, 255, 0.5)'
+                ? '0 2px 10px rgba(186, 158, 255, 0.5)'
                 : '0 2px 8px rgba(251, 191, 36, 0.4)',
             }} />
           </div>
@@ -240,13 +266,13 @@ export function Sidebar() {
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
-            padding: '12px 16px',
+            padding: '14px 16px',
             borderRadius: '14px',
             textDecoration: 'none',
             background: hoveredItem === 'help'
-              ? (isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)')
+              ? 'var(--bg-hover)'
               : 'transparent',
-            color: isDark ? 'rgba(165, 170, 194, 0.8)' : 'rgba(24, 24, 27, 0.7)',
+            color: isDark ? 'var(--text-tertiary)' : 'var(--text-secondary)',
             transition: 'all 0.25s ease',
             marginTop: '8px',
           }}
@@ -263,14 +289,16 @@ export function Sidebar() {
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
-            padding: '12px 16px',
+            padding: '14px 16px',
             borderRadius: '14px',
             border: 'none',
             width: '100%',
             background: hoveredItem === 'logout'
-              ? (isDark ? 'rgba(255, 110, 132, 0.1)' : 'rgba(239, 68, 68, 0.08)')
+              ? 'rgba(239, 68, 68, 0.1)'
               : 'transparent',
-            color: isDark ? '#ff6e84' : '#dc2626',
+            color: hoveredItem === 'logout'
+              ? '#ef4444'
+              : (isDark ? 'var(--text-tertiary)' : 'var(--text-secondary)'),
             cursor: 'pointer',
             transition: 'all 0.25s ease',
             marginTop: '8px',

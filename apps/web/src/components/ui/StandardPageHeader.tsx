@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTheme } from '../../contexts/ThemeContext';
 
 export interface StandardPageHeaderProps {
   title: string;
@@ -14,15 +13,16 @@ export const StandardPageHeader: React.FC<StandardPageHeaderProps> = ({
   title,
   subtitle,
   icon,
-  iconGradient = 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-  iconShadow = '0 4px 14px rgba(249, 115, 22, 0.3)',
+  iconGradient = 'linear-gradient(135deg, #ba9eff 0%, #ec63ff 100%)',
+  iconShadow = '0 4px 14px rgba(186, 158, 255, 0.3)',
   actions,
 }) => {
   return (
     <div style={{
-      background: 'var(--bg-header)',
-      backdropFilter: 'blur(20px)',
-      borderBottom: '1px solid var(--border-primary)',
+      background: 'rgba(7, 13, 31, 0.6)',
+      backdropFilter: 'blur(48px)',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+      boxShadow: '0 20px 50px rgba(139, 92, 246, 0.1)',
       position: 'sticky',
       top: 0,
       zIndex: 40,
@@ -41,11 +41,11 @@ export const StandardPageHeader: React.FC<StandardPageHeaderProps> = ({
               </div>
             )}
             <div>
-              <h1 style={{ fontSize: '22px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
+              <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#dfe4fe', margin: 0, fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                 {title}
               </h1>
               {subtitle && (
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
+                <p style={{ fontSize: '13px', color: '#a5aac2', margin: 0 }}>
                   {subtitle}
                 </p>
               )}

@@ -15,7 +15,7 @@ interface MiniMapProps {
   canvasWidth: number;
   canvasHeight: number;
   onNavigate: (x: number, y: number) => void;
-  isDark: boolean;
+  isDark?: boolean;
   colors: Record<string, string>;
 }
 
@@ -31,7 +31,7 @@ export default function MiniMap({
   canvasWidth,
   canvasHeight,
   onNavigate,
-  isDark,
+  isDark = true,
   colors,
 }: MiniMapProps) {
   const [collapsed, setCollapsed] = React.useState(false);

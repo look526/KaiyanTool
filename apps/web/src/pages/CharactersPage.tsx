@@ -21,6 +21,7 @@ import { useToast } from '../components/ui/Toast';
 import { useTheme } from '../contexts/ThemeContext';
 import { CharacterCard } from '../components/CharacterCard';
 import { PageHeader } from '../components/ui/PageHeader';
+import { CompactPageHero } from '../components/ui/CompactPageHero';
 import { GlassButton } from '../components/ui/GlassButton';
 import { GlassDropdown } from '../components/ui/GlassDropdown';
 
@@ -347,9 +348,15 @@ export default function CharactersPage() {
         pointerEvents: 'none',
       }} />
       
-      <PageHeader
-        title="角色管理"
-        subtitle="管理项目中的所有角色和服装"
+      <CompactPageHero
+        title="CHARACTERS"
+        subtitle="角色管理"
+        icon={<Users style={{ width: '20px', height: '20px', color: 'white' }} />}
+        stats={[
+          { value: characters.length, label: '角色' },
+          { value: 0, label: '男' },
+          { value: 0, label: '女' },
+        ]}
         actions={
           <GlassButton
             variant="primary"
@@ -424,7 +431,7 @@ export default function CharactersPage() {
                   value={filterGender}
                   onChange={setFilterGender}
                   colors={colors}
-                  accentColor={accentColor}
+                 
                 />
               </div>
 
@@ -439,7 +446,7 @@ export default function CharactersPage() {
                   value={sortBy}
                   onChange={(val) => setSortBy(val as 'name' | 'created' | 'shots')}
                   colors={colors}
-                  accentColor={accentColor}
+                 
                 />
               </div>
 
@@ -720,10 +727,10 @@ export default function CharactersPage() {
                     onDelete={handleOpenDeleteModal}
                     onAddWardrobe={handleOpenWardrobeModal}
                     onDeleteWardrobe={handleDeleteWardrobe}
-                    isDark={isDark}
+                   
                     colors={colors}
-                    accentColor={accentColor}
-                    accentLight={accentLight}
+                   
+                   
                   />
                 ))}
               </div>
@@ -882,7 +889,7 @@ export default function CharactersPage() {
                     value={characterForm.gender}
                     onChange={(val) => setCharacterForm({ ...characterForm, gender: val })}
                     colors={colors}
-                    accentColor={accentColor}
+                   
                     size="sm"
                   />
                 </div>

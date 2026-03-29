@@ -10,7 +10,7 @@ interface CharacterCardProps {
   onDelete: (id: string) => void;
   onAddWardrobe: (character: Character) => void;
   onDeleteWardrobe: (characterId: string, wardrobeId: string) => void;
-  isDark: boolean;
+  isDark?: boolean;
   colors: {
     bgSecondary: string;
     bgGlassHover: string;
@@ -20,8 +20,8 @@ interface CharacterCardProps {
     textSecondary: string;
     textMuted: string;
   };
-  accentColor: string;
-  accentLight: string;
+  accentColor?: string;
+  accentLight?: string;
 }
 
 export function CharacterCard({
@@ -32,10 +32,10 @@ export function CharacterCard({
   onDelete,
   onAddWardrobe,
   onDeleteWardrobe,
-  isDark,
+  isDark = true,
   colors,
-  accentColor,
-  accentLight,
+  accentColor = '#ba9eff',
+  accentLight = '#d4bfff',
 }: CharacterCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isEditHovered, setIsEditHovered] = useState(false);

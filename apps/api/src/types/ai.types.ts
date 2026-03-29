@@ -58,6 +58,7 @@ export interface AIChatMessage {
 }
 
 export interface AICreateImageRequest {
+  model?: string
   prompt: string
   size?: '256x256' | '512x512' | '1024x1024' | '1920x1080' | '1536x1024' | '1024x1792' | '1:1' | '4:3' | '3:4' | '16:9' | '9:16' | '3:2' | '2:3' | '21:9' | '9:21'
   quality?: 'standard' | 'hd' | '2K' | '3K'
@@ -76,6 +77,8 @@ export interface AICreateImageResponse {
 
 export interface AICreateVideoRequest {
   imageUrl: string
+  /** 第二参考帧（如九宫格末格），提供商不支持时忽略 */
+  endImageUrl?: string
   prompt?: string
   duration?: number
   motion?: number
@@ -156,4 +159,15 @@ export interface LipSyncRequest {
 export interface LipSyncResponse {
   url: string
   duration: number
+}
+
+export interface VEO3VideoRequest {
+  model?: 'veo3' | 'veo3-pro'
+  prompt: string
+  duration?: number
+  aspect_ratio?: '16:9' | '9:16' | '1:1'
+  image_urls?: string[]
+  end_image_url?: string
+  prompt_strength?: number
+  metadata?: any
 }

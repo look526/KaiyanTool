@@ -221,7 +221,7 @@ class VideoGenerationController {
                   id: true,
                   location: true,
                   time: true,
-                  atmosphere: true,
+                  description: true,
                 },
               },
               Character: {

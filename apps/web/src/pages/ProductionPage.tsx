@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Clapperboard, Loader2, Play, RefreshCw } from 'lucide-react';
 import { StandardPageHeader } from '../components/ui/StandardPageHeader';
@@ -20,7 +20,8 @@ export default function ProductionPage() {
     try {
       setLoading(true);
       const result = await apiClient.listProductionTasks(projectId);
-      setTasks(result?.data || result || []);
+      const list = Array.isArray(result) ? result : (result as { data?: unknown[] })?.data;
+      setTasks(Array.isArray(list) ? list : []);
     } finally {
       setLoading(false);
     }
@@ -65,10 +66,10 @@ export default function ProductionPage() {
         iconGradient="linear-gradient(135deg, #f97316 0%, #ea580c 100%)"
         actions={
           <>
-            <GlassButton variant="secondary" isDark={false} icon={<RefreshCw style={{ width: 16, height: 16 }} />} onClick={loadTasks}>
+            <GlassButton variant="secondary" icon={<RefreshCw style={{ width: 16, height: 16 }} />} onClick={loadTasks}>
               刷新
             </GlassButton>
-            <GlassButton variant="primary" isDark={false} onClick={handleCreate} loading={creating}>
+            <GlassButton variant="primary" onClick={handleCreate} loading={creating}>
               新建任务
             </GlassButton>
           </>
@@ -89,7 +90,7 @@ export default function ProductionPage() {
                   <div>进度：{task.progress || 0}%</div>
                   <div>当前步骤：{task.current_step || '未开始'}</div>
                 </div>
-                <GlassButton variant="primary" isDark={false} icon={<Play style={{ width: 16, height: 16 }} />} onClick={() => handleExecute(task.id)} loading={executing === task.id}>
+                <GlassButton variant="primary" icon={<Play style={{ width: 16, height: 16 }} />} onClick={() => handleExecute(task.id)} loading={executing === task.id}>
                   执行
                 </GlassButton>
               </div>

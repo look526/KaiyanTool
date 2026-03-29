@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Search, Mail, Crown, Shield, User, Check, X, Users, Settings, Trash2, MoreVertical, UserPlus, Clock } from 'lucide-react';
+import { Crown, Shield, User, Check, X, Users, Trash2, MoreVertical, UserPlus, Clock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { PageHero } from '../components/ui/PageHero';
 
 type MemberRole = 'owner' | 'admin' | 'editor' | 'viewer';
 type MemberStatus = 'active' | 'invited';
@@ -57,6 +59,8 @@ const formatDate = (dateString: string) => {
 
 export default function TeamPage() {
   const { user } = useAuth();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<MemberRole | 'all'>('all');
@@ -72,8 +76,7 @@ export default function TeamPage() {
       if (Array.isArray(parsed)) {
         setMembers(parsed);
       }
-    } catch { // eslint-disable-line no-empty
-    }
+    } catch { /* empty */ }
   }, []);
 
   useEffect(() => {
@@ -158,173 +161,99 @@ export default function TeamPage() {
     setMembers((prev) => prev.filter((member) => member.id !== memberId));
   };
 
+  const colors = isDark ? {
+    bgPrimary: 'rgba(5, 5, 10, 0.95)',
+    bgSecondary: 'rgba(255, 255, 255, 0.03)',
+    bgGlass: 'rgba(255, 255, 255, 0.04)',
+    bgGlassHover: 'rgba(255, 255, 255, 0.06)',
+    textPrimary: '#fafafa',
+    textSecondary: 'rgba(250, 250, 250, 0.6)',
+    textMuted: 'rgba(250, 250, 250, 0.4)',
+    border: 'rgba(255, 255, 255, 0.06)',
+    borderHover: 'rgba(139, 92, 246, 0.25)',
+  } : {
+    bgPrimary: 'rgba(255, 255, 255, 0.92)',
+    bgSecondary: 'rgba(0, 0, 0, 0.02)',
+    bgGlass: 'rgba(0, 0, 0, 0.02)',
+    bgGlassHover: 'rgba(0, 0, 0, 0.04)',
+    textPrimary: '#18181b',
+    textSecondary: 'rgba(24, 24, 27, 0.6)',
+    textMuted: 'rgba(24, 24, 27, 0.4)',
+    border: 'rgba(0, 0, 0, 0.06)',
+    borderHover: 'rgba(139, 92, 246, 0.25)',
+  };
+
+  const InviteButton = (
+    <button
+      onClick={() => setInviteOpen(true)}
+      style={{
+        height: '44px',
+        padding: '0 20px',
+        fontSize: '14px',
+        fontWeight: '600',
+        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+        color: 'white',
+        border: 'none',
+        borderRadius: '14px',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        boxShadow: '0 8px 24px rgba(59, 130, 246, 0.3)',
+        transition: 'all 0.3s ease',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = '0 12px 32px rgba(59, 130, 246, 0.4)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = '0 8px 24px rgba(59, 130, 246, 0.3)';
+      }}
+    >
+      <UserPlus style={{ width: '18px', height: '18px' }} />
+      邀请成员
+    </button>
+  );
+
   return (
     <div style={{ 
       minHeight: '100vh', 
-      background: 'var(--bg-page)',
+      background: isDark 
+        ? 'linear-gradient(180deg, #05050a 0%, #0a0a12 50%, #0f0f1a 100%)'
+        : 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
       <div style={{
-        background: 'var(--bg-header)',
-        backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid var(--border-primary)',
-        position: 'sticky',
+        position: 'absolute',
         top: 0,
-        zIndex: 40,
-      }}>
-        <div style={{ 
-          maxWidth: '1200px', 
-          margin: '0 auto',
-          padding: '20px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{
-              padding: '12px',
-              borderRadius: '14px',
-              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-              boxShadow: '0 4px 14px rgba(59, 130, 246, 0.3)',
-            }}>
-              <Users style={{ width: '24px', height: '24px', color: 'white' }} />
-            </div>
-            <div>
-              <h1 style={{ 
-                fontSize: '22px', 
-                fontWeight: '600', 
-                color: 'var(--text-primary)', 
-                margin: 0,
-              }}>
-                团队成员
-              </h1>
-              <p style={{ 
-                color: 'var(--text-muted)', 
-                margin: '2px 0 0',
-                fontSize: '13px',
-              }}>
-                共 {stats.total} 名成员
-              </p>
-            </div>
-          </div>
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%)',
+        pointerEvents: 'none',
+      }} />
 
-          <button
-            onClick={() => setInviteOpen(true)}
-            style={{
-              height: '44px',
-              padding: '0 20px',
-              fontSize: '14px',
-              fontWeight: '600',
-              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 14px rgba(59, 130, 246, 0.3)',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 14px rgba(59, 130, 246, 0.3)';
-            }}
-          >
-            <UserPlus style={{ width: '18px', height: '18px' }} />
-            邀请成员
-          </button>
-        </div>
-      </div>
-
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-          gap: '16px',
-          marginBottom: '24px',
-        }}>
-          <div style={{
-            background: 'var(--bg-card)',
-            borderRadius: '16px',
-            padding: '20px',
-            border: '1px solid var(--border-primary)',
-            backdropFilter: 'blur(20px)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'rgba(59, 130, 246, 0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <Users style={{ width: '20px', height: '20px', color: '#3b82f6' }} />
-              </div>
-              <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>总成员</span>
-            </div>
-            <div style={{ fontSize: '32px', fontWeight: '700', color: 'var(--text-primary)' }}>{stats.total}</div>
-          </div>
-
-          <div style={{
-            background: 'var(--bg-card)',
-            borderRadius: '16px',
-            padding: '20px',
-            border: '1px solid var(--border-primary)',
-            backdropFilter: 'blur(20px)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'rgba(16, 185, 129, 0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <Check style={{ width: '20px', height: '20px', color: '#10b981' }} />
-              </div>
-              <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>活跃成员</span>
-            </div>
-            <div style={{ fontSize: '32px', fontWeight: '700', color: '#10b981' }}>{stats.active}</div>
-          </div>
-
-          <div style={{
-            background: 'var(--bg-card)',
-            borderRadius: '16px',
-            padding: '20px',
-            border: '1px solid var(--border-primary)',
-            backdropFilter: 'blur(20px)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: 'rgba(59, 130, 246, 0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <Mail style={{ width: '20px', height: '20px', color: '#3b82f6' }} />
-              </div>
-              <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>待接受邀请</span>
-            </div>
-            <div style={{ fontSize: '32px', fontWeight: '700', color: '#3b82f6' }}>{stats.invited}</div>
-          </div>
-        </div>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '48px 24px 24px' }}>
+        <PageHero
+          title="TEAM"
+          subtitle="管理您的团队成员"
+          icon={<Users style={{ width: '28px', height: '28px', color: 'white' }} />}
+          stats={[
+            { value: stats.total, label: '总成员' },
+            { value: stats.active, label: '活跃成员' },
+            { value: stats.invited, label: '待接受' },
+          ]}
+          glowColor="rgba(59, 130, 246, 0.12)"
+          actions={InviteButton}
+        />
 
         <div style={{
-          background: 'var(--bg-card)',
+          background: colors.bgGlass,
           borderRadius: '20px',
           padding: '20px',
-          border: '1px solid var(--border-primary)',
+          border: `1px solid ${colors.border}`,
           backdropFilter: 'blur(20px)',
           marginBottom: '20px',
         }}>
@@ -337,15 +266,14 @@ export default function TeamPage() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <div style={{ position: 'relative' }}>
-                <Search style={{
+                <span className="material-symbols-outlined" style={{
                   position: 'absolute',
                   left: '12px',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  width: '16px',
-                  height: '16px',
-                  color: 'var(--text-muted)',
-                }} />
+                  fontSize: '18px',
+                  color: colors.textMuted,
+                }}>search</span>
                 <input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -353,11 +281,11 @@ export default function TeamPage() {
                   style={{
                     width: '240px',
                     height: '40px',
-                    padding: '0 12px 0 36px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border-primary)',
-                    backgroundColor: 'var(--bg-input)',
-                    color: 'var(--text-primary)',
+                    padding: '0 12px 0 40px',
+                    borderRadius: '14px',
+                    border: `1px solid ${colors.border}`,
+                    backgroundColor: colors.bgSecondary,
+                    color: colors.textPrimary,
                     fontSize: '13px',
                     outline: 'none',
                     transition: 'all 0.2s ease',
@@ -367,7 +295,7 @@ export default function TeamPage() {
                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                    e.currentTarget.style.borderColor = colors.border;
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
@@ -379,10 +307,10 @@ export default function TeamPage() {
                 style={{
                   height: '40px',
                   padding: '0 32px 0 12px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--border-primary)',
-                  backgroundColor: 'var(--bg-input)',
-                  color: 'var(--text-primary)',
+                  borderRadius: '14px',
+                  border: `1px solid ${colors.border}`,
+                  backgroundColor: colors.bgSecondary,
+                  color: colors.textPrimary,
                   fontSize: '13px',
                   cursor: 'pointer',
                   outline: 'none',
@@ -401,7 +329,7 @@ export default function TeamPage() {
             </div>
 
             <span style={{ 
-              color: 'var(--text-muted)',
+              color: colors.textMuted,
               fontSize: '13px',
             }}>
               显示 {filteredMembers.length} / {members.length} 位成员
@@ -410,9 +338,9 @@ export default function TeamPage() {
         </div>
 
         <div style={{
-          background: 'var(--bg-card)',
+          background: colors.bgGlass,
           borderRadius: '20px',
-          border: '1px solid var(--border-primary)',
+          border: `1px solid ${colors.border}`,
           backdropFilter: 'blur(20px)',
           overflow: 'hidden',
         }}>
@@ -423,14 +351,14 @@ export default function TeamPage() {
                 gridTemplateColumns: '2fr 1fr 1fr 1fr 120px',
                 gap: '16px',
                 padding: '14px 20px',
-                borderBottom: '1px solid var(--border-primary)',
-                backgroundColor: 'var(--bg-secondary)',
+                borderBottom: `1px solid ${colors.border}`,
+                backgroundColor: colors.bgSecondary,
               }}>
-                <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>成员</span>
-                <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>状态</span>
-                <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>角色</span>
-                <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>加入时间</span>
-                <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>操作</span>
+                <span style={{ fontSize: '11px', fontWeight: '600', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>成员</span>
+                <span style={{ fontSize: '11px', fontWeight: '600', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>状态</span>
+                <span style={{ fontSize: '11px', fontWeight: '600', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>角色</span>
+                <span style={{ fontSize: '11px', fontWeight: '600', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>加入时间</span>
+                <span style={{ fontSize: '11px', fontWeight: '600', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>操作</span>
               </div>
 
               {filteredMembers.map((member) => {
@@ -449,8 +377,8 @@ export default function TeamPage() {
                       gridTemplateColumns: '2fr 1fr 1fr 1fr 120px',
                       gap: '16px',
                       padding: '16px 20px',
-                      borderBottom: '1px solid var(--border-primary)',
-                      backgroundColor: isHovered ? 'var(--bg-hover)' : 'transparent',
+                      borderBottom: `1px solid ${colors.border}`,
+                      backgroundColor: isHovered ? colors.bgGlassHover : 'transparent',
                       transition: 'all 0.2s ease',
                     }}
                     onMouseEnter={() => setHoveredMember(member.id)}
@@ -466,7 +394,7 @@ export default function TeamPage() {
                             height: '42px',
                             borderRadius: '12px',
                             objectFit: 'cover',
-                            border: '2px solid var(--border-primary)',
+                            border: `2px solid ${colors.border}`,
                           }}
                         />
                       ) : (
@@ -490,7 +418,7 @@ export default function TeamPage() {
                         <div style={{ 
                           fontSize: '14px', 
                           fontWeight: '500', 
-                          color: 'var(--text-primary)',
+                          color: colors.textPrimary,
                           display: 'flex',
                           alignItems: 'center',
                           gap: '8px',
@@ -511,7 +439,7 @@ export default function TeamPage() {
                         </div>
                         <div style={{ 
                           fontSize: '12px', 
-                          color: 'var(--text-muted)',
+                          color: colors.textMuted,
                           marginTop: '2px',
                         }}>
                           {member.email}
@@ -560,7 +488,7 @@ export default function TeamPage() {
                         alignItems: 'center',
                         gap: '6px',
                         fontSize: '12px',
-                        color: 'var(--text-muted)',
+                        color: colors.textMuted,
                       }}>
                         <Clock style={{ width: '12px', height: '12px' }} />
                         {formatDate(member.joined_at)}
@@ -576,9 +504,9 @@ export default function TeamPage() {
                               width: '32px',
                               height: '32px',
                               borderRadius: '8px',
-                              border: '1px solid var(--border-primary)',
-                              backgroundColor: isHovered ? 'var(--bg-secondary)' : 'transparent',
-                              color: 'var(--text-muted)',
+                              border: `1px solid ${colors.border}`,
+                              backgroundColor: isHovered ? colors.bgSecondary : 'transparent',
+                              color: colors.textMuted,
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
@@ -594,15 +522,15 @@ export default function TeamPage() {
                               position: 'absolute',
                               top: 'calc(100% + 6px)',
                               right: 0,
-                              backgroundColor: 'var(--bg-card)',
+                              backgroundColor: colors.bgPrimary,
                               borderRadius: '12px',
-                              border: '1px solid var(--border-primary)',
+                              border: `1px solid ${colors.border}`,
                               boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
                               padding: '6px',
                               minWidth: '140px',
                               zIndex: 100,
                             }}>
-                              <div style={{ padding: '8px 10px', fontSize: '10px', fontWeight: '600', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                              <div style={{ padding: '8px 10px', fontSize: '10px', fontWeight: '600', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                 更改角色
                               </div>
                               {(['admin', 'editor', 'viewer'] as MemberRole[]).map((r) => (
@@ -615,7 +543,7 @@ export default function TeamPage() {
                                     borderRadius: '8px',
                                     border: 'none',
                                     backgroundColor: member.role === r ? roleConfig[r].bgColor : 'transparent',
-                                    color: member.role === r ? roleConfig[r].color : 'var(--text-primary)',
+                                    color: member.role === r ? roleConfig[r].color : colors.textPrimary,
                                     fontSize: '12px',
                                     fontWeight: member.role === r ? '600' : '400',
                                     cursor: 'pointer',
@@ -632,7 +560,7 @@ export default function TeamPage() {
                               ))}
                               <div style={{ 
                                 height: '1px', 
-                                backgroundColor: 'var(--border-primary)', 
+                                backgroundColor: colors.border, 
                                 margin: '6px 0' 
                               }} />
                               <button
@@ -675,25 +603,25 @@ export default function TeamPage() {
                 width: '80px',
                 height: '80px',
                 borderRadius: '24px',
-                background: 'var(--bg-hover)',
+                background: colors.bgGlassHover,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 20px',
               }}>
-                <Users style={{ width: '36px', height: '36px', color: 'var(--text-muted)' }} />
+                <Users style={{ width: '36px', height: '36px', color: colors.textMuted }} />
               </div>
               <h3 style={{
                 fontSize: '16px',
                 fontWeight: '600',
-                color: 'var(--text-primary)',
+                color: colors.textPrimary,
                 margin: '0 0 8px',
               }}>
                 未找到成员
               </h3>
               <p style={{
                 fontSize: '14px',
-                color: 'var(--text-muted)',
+                color: colors.textMuted,
                 margin: '0 0 24px',
               }}>
                 {searchQuery || roleFilter !== 'all' 
@@ -712,12 +640,12 @@ export default function TeamPage() {
                     background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                     color: 'white',
                     border: 'none',
-                    borderRadius: '12px',
+                    borderRadius: '14px',
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '8px',
-                    boxShadow: '0 4px 14px rgba(59, 130, 246, 0.3)',
+                    boxShadow: '0 8px 24px rgba(59, 130, 246, 0.3)',
                   }}
                 >
                   <UserPlus style={{ width: '18px', height: '18px' }} />
@@ -746,11 +674,11 @@ export default function TeamPage() {
         >
           <div
             style={{
-              backgroundColor: 'var(--bg-card)',
+              backgroundColor: colors.bgPrimary,
               borderRadius: '24px',
               width: '100%',
               maxWidth: '420px',
-              border: '1px solid var(--border-primary)',
+              border: `1px solid ${colors.border}`,
               boxShadow: '0 25px 50px rgba(0, 0, 0, 0.3)',
             }}
             onClick={(e) => e.stopPropagation()}
@@ -760,7 +688,7 @@ export default function TeamPage() {
               alignItems: 'center', 
               justifyContent: 'space-between',
               padding: '24px',
-              borderBottom: '1px solid var(--border-primary)',
+              borderBottom: `1px solid ${colors.border}`,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
@@ -777,7 +705,7 @@ export default function TeamPage() {
                 <h2 style={{ 
                   fontSize: '18px', 
                   fontWeight: '600', 
-                  color: 'var(--text-primary)', 
+                  color: colors.textPrimary, 
                   margin: 0,
                 }}>
                   邀请团队成员
@@ -789,9 +717,9 @@ export default function TeamPage() {
                   width: '36px',
                   height: '36px',
                   borderRadius: '10px',
-                  border: '1px solid var(--border-primary)',
+                  border: `1px solid ${colors.border}`,
                   backgroundColor: 'transparent',
-                  color: 'var(--text-muted)',
+                  color: colors.textMuted,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -809,7 +737,7 @@ export default function TeamPage() {
                   display: 'block', 
                   fontSize: '12px', 
                   fontWeight: '600',
-                  color: 'var(--text-secondary)', 
+                  color: colors.textSecondary, 
                   marginBottom: '8px' 
                 }}>
                   姓名
@@ -821,10 +749,10 @@ export default function TeamPage() {
                     width: '100%',
                     height: '44px',
                     padding: '0 14px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border-primary)',
-                    backgroundColor: 'var(--bg-input)',
-                    color: 'var(--text-primary)',
+                    borderRadius: '14px',
+                    border: `1px solid ${colors.border}`,
+                    backgroundColor: colors.bgSecondary,
+                    color: colors.textPrimary,
                     fontSize: '14px',
                     outline: 'none',
                     boxSizing: 'border-box',
@@ -835,7 +763,7 @@ export default function TeamPage() {
                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                    e.currentTarget.style.borderColor = colors.border;
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
@@ -846,7 +774,7 @@ export default function TeamPage() {
                   display: 'block', 
                   fontSize: '12px', 
                   fontWeight: '600',
-                  color: 'var(--text-secondary)', 
+                  color: colors.textSecondary, 
                   marginBottom: '8px' 
                 }}>
                   邮箱地址
@@ -859,10 +787,10 @@ export default function TeamPage() {
                     width: '100%',
                     height: '44px',
                     padding: '0 14px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border-primary)',
-                    backgroundColor: 'var(--bg-input)',
-                    color: 'var(--text-primary)',
+                    borderRadius: '14px',
+                    border: `1px solid ${colors.border}`,
+                    backgroundColor: colors.bgSecondary,
+                    color: colors.textPrimary,
                     fontSize: '14px',
                     outline: 'none',
                     boxSizing: 'border-box',
@@ -873,7 +801,7 @@ export default function TeamPage() {
                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                    e.currentTarget.style.borderColor = colors.border;
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
@@ -884,7 +812,7 @@ export default function TeamPage() {
                   display: 'block', 
                   fontSize: '12px', 
                   fontWeight: '600',
-                  color: 'var(--text-secondary)', 
+                  color: colors.textSecondary, 
                   marginBottom: '8px' 
                 }}>
                   角色
@@ -895,10 +823,10 @@ export default function TeamPage() {
                     width: '100%',
                     height: '44px',
                     padding: '0 14px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border-primary)',
-                    backgroundColor: 'var(--bg-input)',
-                    color: 'var(--text-primary)',
+                    borderRadius: '14px',
+                    border: `1px solid ${colors.border}`,
+                    backgroundColor: colors.bgSecondary,
+                    color: colors.textPrimary,
                     fontSize: '14px',
                     outline: 'none',
                     cursor: 'pointer',
@@ -919,9 +847,9 @@ export default function TeamPage() {
                     fontSize: '14px',
                     fontWeight: '500',
                     backgroundColor: 'transparent',
-                    color: 'var(--text-secondary)',
-                    border: '1px solid var(--border-primary)',
-                    borderRadius: '12px',
+                    color: colors.textSecondary,
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: '14px',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
                   }}
@@ -938,9 +866,9 @@ export default function TeamPage() {
                     background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                     color: 'white',
                     border: 'none',
-                    borderRadius: '12px',
+                    borderRadius: '14px',
                     cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(59, 130, 246, 0.3)',
+                    boxShadow: '0 8px 24px rgba(59, 130, 246, 0.3)',
                     transition: 'all 0.2s ease',
                   }}
                   onClick={handleInvite}

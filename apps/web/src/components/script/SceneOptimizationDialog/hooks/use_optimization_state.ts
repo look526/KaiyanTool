@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { ParsedScene } from '../../../utils/SceneParser';
+import { ParsedScene } from '../../../../utils/SceneParser';
 import { OptimizationResult, OptimizationDirection, OptimizationIntensity } from '../types';
 
 export interface OptimizationState {

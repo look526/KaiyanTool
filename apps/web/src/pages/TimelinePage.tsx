@@ -67,11 +67,11 @@ export default function TimelinePage() {
         iconGradient="linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)"
         actions={
           <>
-            <GlassButton variant="secondary" isDark={false} onClick={handleCreate} loading={creating}>
+            <GlassButton variant="secondary" onClick={handleCreate} loading={creating}>
               {timeline ? '重新生成时间线' : '创建时间线'}
             </GlassButton>
             {timeline && (
-              <GlassButton variant="primary" isDark={false} icon={<Play style={{ width: 16, height: 16 }} />} onClick={handleRender} loading={rendering}>
+              <GlassButton variant="primary" icon={<Play style={{ width: 16, height: 16 }} />} onClick={handleRender} loading={rendering}>
                 发起合成
               </GlassButton>
             )}

@@ -16,6 +16,7 @@
     "test:benchmark": "tsx src/tests/performance/benchmark.ts"
   },
   "dependencies": {
+    "@ai-content-platform/shared": "*",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/exporter-collector": "^0.25.0",
     "@opentelemetry/exporter-metrics-otlp-http": "^0.211.0",

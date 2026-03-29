@@ -11,30 +11,58 @@ interface ProjectCardProps {
   formatDate: (date: Date | string | undefined | null) => string;
 }
 
+function getCoverImageUrl(project: Project): string {
+  if (project.thumbnail_url) {
+    return project.thumbnail_url;
+  }
+  return `https://picsum.photos/seed/${project.id}/800/1200`;
+}
+
 export function ProjectCard({ project, viewMode, typeConfig, statusConfig, formatDate }: ProjectCardProps) {
-  const [isHovered, setIsHovered] = useState(false);
-  const [moreHover, setMoreHover] = useState(false);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
+  const [isHovered, setIsHovered] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [moreHover, setMoreHover] = useState(false);
 
   const colors = isDark ? {
-    glassBg: 'rgba(28, 37, 62, 0.4)',
-    border: 'rgba(65, 71, 91, 0.15)',
-    textPrimary: '#dfe4fe',
-    textSecondary: '#a5aac2',
-    hoverBg: 'rgba(255, 255, 255, 0.1)',
-    cardGradientTop: '#11192e',
-    cardBg: '#171f36',
-    avatarBorder: '#070d1f',
+    listBg: 'rgba(255, 255, 255, 0.03)',
+    listBgHover: 'rgba(139, 92, 246, 0.08)',
+    listBorder: 'rgba(255, 255, 255, 0.06)',
+    listTextPrimary: '#dfe4fe',
+    listTextSecondary: '#a5aac2',
+    listIconBgHover: 'rgba(255, 255, 255, 0.08)',
+    cardBg: '#0c1326',
+    cardShadow: 'rgba(0, 0, 0, 0.2)',
+    cardShadowHover: 'rgba(0, 0, 0, 0.4)',
+    cardGlow: 'rgba(139, 92, 246, 0.15)',
+    overlayGradient: 'linear-gradient(to top, rgba(7, 13, 31, 0.98) 0%, rgba(7, 13, 31, 0.7) 35%, transparent 60%)',
+    overlayLight: 'transparent',
+    typeTagBg: 'rgba(0, 0, 0, 0.5)',
+    typeTagBorder: `${typeConfig.color}40`,
+    moreBtnBg: 'rgba(0, 0, 0, 0.5)',
+    titleColor: '#ffffff',
+    descColor: 'rgba(223, 228, 254, 0.7)',
+    metaColor: '#a5aac2',
   } : {
-    glassBg: 'rgba(255, 255, 255, 0.9)',
-    border: 'rgba(0, 0, 0, 0.06)',
-    textPrimary: '#18181b',
-    textSecondary: 'rgba(24, 24, 27, 0.6)',
-    hoverBg: 'rgba(0, 0, 0, 0.05)',
-    cardGradientTop: 'rgba(0, 0, 0, 0.05)',
-    cardBg: 'rgba(139, 92, 246, 0.1)',
-    avatarBorder: 'rgba(255, 255, 255, 0.9)',
+    listBg: 'rgba(255, 255, 255, 0.9)',
+    listBgHover: 'rgba(139, 92, 246, 0.06)',
+    listBorder: 'rgba(0, 0, 0, 0.06)',
+    listTextPrimary: '#18181b',
+    listTextSecondary: 'rgba(24, 24, 27, 0.6)',
+    listIconBgHover: 'rgba(0, 0, 0, 0.04)',
+    cardBg: '#f1f5f9',
+    cardShadow: 'rgba(0, 0, 0, 0.08)',
+    cardShadowHover: 'rgba(0, 0, 0, 0.15)',
+    cardGlow: 'rgba(139, 92, 246, 0.1)',
+    overlayGradient: 'linear-gradient(to top, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.7) 35%, transparent 60%)',
+    overlayLight: 'transparent',
+    typeTagBg: 'rgba(255, 255, 255, 0.9)',
+    typeTagBorder: `${typeConfig.color}30`,
+    moreBtnBg: 'rgba(255, 255, 255, 0.9)',
+    titleColor: '#18181b',
+    descColor: 'rgba(24, 24, 27, 0.7)',
+    metaColor: 'rgba(24, 24, 27, 0.5)',
   };
 
   if (viewMode === 'list') {
@@ -46,62 +74,81 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '16px',
-            padding: '16px 20px',
-            borderRadius: '16px',
-            background: colors.glassBg,
-            backdropFilter: 'blur(30px)',
-            border: `1px solid ${colors.border}`,
-            transition: 'all 0.3s ease',
-            transform: isHovered ? 'translateX(4px)' : 'translateX(0)',
+            gap: '20px',
+            padding: '20px 24px',
+            borderRadius: '20px',
+            background: isHovered ? colors.listBgHover : colors.listBg,
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: `1px solid ${colors.listBorder}`,
+            transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+            transform: isHovered ? 'translateX(6px)' : 'translateX(0)',
           }}
         >
           <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '12px',
+            width: '64px',
+            height: '64px',
+            borderRadius: '16px',
             background: typeConfig.gradient,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            overflow: 'hidden',
             flexShrink: 0,
+            position: 'relative',
           }}>
-            <span className="material-symbols-outlined" style={{
-              fontSize: '22px',
-              color: 'white',
-              fontVariationSettings: "'FILL' 1, 'wght' 500",
-            }}>{typeConfig.icon}</span>
+            {project.thumbnail_url ? (
+              <img
+                src={getCoverImageUrl(project)}
+                alt={project.name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onLoad={() => setImageLoaded(true)}
+              />
+            ) : (
+              <div style={{
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <span className="material-symbols-outlined" style={{
+                  fontSize: '28px',
+                  color: 'white',
+                  fontVariationSettings: "'FILL' 1, 'wght' 500",
+                }}>{typeConfig.icon}</span>
+              </div>
+            )}
           </div>
+
           <div style={{ flex: 1, minWidth: 0 }}>
             <h3 style={{
-              fontSize: '15px',
-              fontWeight: 600,
-              color: colors.textPrimary,
-              marginBottom: '4px',
+              fontSize: '17px',
+              fontWeight: 700,
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              color: colors.listTextPrimary,
+              marginBottom: '6px',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
-              margin: '0 0 4px 0',
             }}>{project.name}</h3>
             <p style={{
               fontSize: '13px',
-              color: colors.textSecondary,
+              color: colors.listTextSecondary,
               margin: 0,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
             }}>{project.description || '暂无描述'}</p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0 }}>
             <span style={{
-              padding: '4px 12px',
+              padding: '6px 14px',
               borderRadius: '9999px',
               background: statusConfig.bg,
               fontSize: '12px',
               fontWeight: 600,
               color: statusConfig.color,
             }}>{statusConfig.label}</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: colors.textSecondary }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: colors.listTextSecondary }}>
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>calendar_today</span>
               <span style={{ fontSize: '12px' }}>{formatDate(project.updated_at)}</span>
             </div>
@@ -113,23 +160,25 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
                 border: 'none',
-                background: moreHover ? colors.hoverBg : 'transparent',
-                color: moreHover ? colors.textPrimary : colors.textSecondary,
+                background: moreHover ? colors.listIconBgHover : 'transparent',
+                color: moreHover ? colors.listTextPrimary : colors.listTextSecondary,
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>more_vert</span>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>more_vert</span>
             </button>
           </div>
         </div>
       </Link>
     );
   }
+
+  const coverUrl = getCoverImageUrl(project);
 
   return (
     <Link to={`/projects/${project.id}`} style={{ textDecoration: 'none', display: 'block' }}>
@@ -138,163 +187,190 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
         onMouseLeave={() => setIsHovered(false)}
         style={{
           position: 'relative',
-          borderRadius: '16px',
-          background: colors.glassBg,
-          backdropFilter: 'blur(30px)',
-          border: `1px solid ${colors.border}`,
+          borderRadius: '28px',
           overflow: 'hidden',
-          transition: 'all 0.5s ease',
-          transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
-          boxShadow: isHovered ? '0 20px 40px rgba(186, 158, 255, 0.15)' : 'none',
+          height: '480px',
+          background: colors.cardBg,
+          transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+          transform: isHovered ? 'translateY(-10px) scale(1.02)' : 'translateY(0) scale(1)',
+          boxShadow: isHovered
+            ? `0 30px 60px ${colors.cardShadowHover}, 0 0 80px ${colors.cardGlow}`
+            : `0 10px 40px ${colors.cardShadow}`,
         }}
       >
-        {/* 封面图片区域 */}
         <div style={{
-          position: 'relative',
-          height: '192px',
+          position: 'absolute',
+          inset: 0,
           overflow: 'hidden',
-          background: colors.cardBg,
         }}>
-          {/* 封面图 - 使用渐变色块代替 */}
+          <img
+            src={coverUrl}
+            alt={project.name}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              opacity: imageLoaded ? (isHovered ? 0.9 : 0.75) : 0,
+              transition: 'all 0.6s ease',
+              transform: isHovered ? 'scale(1.08)' : 'scale(1)',
+            }}
+            onLoad={() => setImageLoaded(true)}
+          />
+
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: colors.overlayGradient,
+            transition: 'opacity 0.5s ease',
+          }} />
+
           <div style={{
             position: 'absolute',
             inset: 0,
             background: typeConfig.gradient,
-            opacity: 0.6,
-            transition: 'transform 0.7s ease',
-            transform: isHovered ? 'scale(1.1)' : 'scale(1)',
+            opacity: isHovered ? 0.15 : 0.08,
+            transition: 'opacity 0.5s ease',
           }} />
-
-          {/* 渐变覆盖层 */}
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            background: `linear-gradient(to top, ${colors.cardGradientTop}, transparent)`,
-          }} />
-
-          {/* 状态标签 */}
-          <div style={{
-            position: 'absolute',
-            top: '16px',
-            left: '16px',
-            padding: '6px 12px',
-            borderRadius: '9999px',
-            background: `${typeConfig.color}20`,
-            backdropFilter: 'blur(10px)',
-            fontSize: '10px',
-            fontWeight: 700,
-            color: typeConfig.color,
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-          }}>{typeConfig.label}</div>
-
-          {/* Hover 时的覆盖层 */}
-          {isHovered && (
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'rgba(0, 0, 0, 0.4)',
-              transition: 'all 0.3s ease',
-            }}>
-              <span style={{
-                padding: '8px 16px',
-                borderRadius: '9999px',
-                background: `linear-gradient(135deg, ${typeConfig.color} 0%, ${typeConfig.color}cc 100%)`,
-                color: 'white',
-                fontSize: '12px',
-                fontWeight: 600,
-              }}>点击查看</span>
-            </div>
-          )}
         </div>
 
-        {/* 卡片内容 */}
-        <div style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '12px' }}>
+        <div style={{
+          position: 'absolute',
+          top: '24px',
+          left: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}>
+          <span style={{
+            padding: '6px 16px',
+            borderRadius: '9999px',
+            background: colors.typeTagBg,
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            fontSize: '10px',
+            fontWeight: 600,
+            fontFamily: "'Manrope', sans-serif",
+            color: typeConfig.color,
+            letterSpacing: '0.25em',
+            textTransform: 'uppercase',
+            border: `1px solid ${colors.typeTagBorder}`,
+          }}>
+            {typeConfig.label}
+          </span>
+        </div>
+
+        <div style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          padding: '32px',
+          transition: 'all 0.5s ease',
+        }}>
+          <h3 style={{
+            fontSize: '28px',
+            fontWeight: 800,
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            color: colors.titleColor,
+            marginBottom: '12px',
+            lineHeight: 1.2,
+            textShadow: isDark ? '0 4px 20px rgba(0, 0, 0, 0.5)' : '0 2px 10px rgba(0, 0, 0, 0.1)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            letterSpacing: '-0.01em',
+          }}>
+            {project.name}
+          </h3>
+
+          <p style={{
+            fontSize: '14px',
+            fontFamily: "'Manrope', sans-serif",
+            fontWeight: 400,
+            color: colors.descColor,
+            marginBottom: '20px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            lineHeight: 1.5,
+          }}>
+            {project.description || '暂无描述'}
+          </p>
+
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <span style={{
+                padding: '5px 12px',
+                borderRadius: '8px',
+                background: statusConfig.bg,
+                fontSize: '11px',
+                fontWeight: 600,
+                color: statusConfig.color,
+              }}>
+                {statusConfig.label}
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: colors.metaColor }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>calendar_today</span>
+                <span style={{ fontSize: '12px', fontWeight: 400 }}>{formatDate(project.updated_at)}</span>
+              </div>
+            </div>
+
             <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
-              background: typeConfig.gradient,
+              width: '44px',
+              height: '44px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              flexShrink: 0,
+              opacity: isHovered ? 1 : 0,
+              transform: isHovered ? 'scale(1)' : 'scale(0.5)',
+              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: '0 8px 24px rgba(139, 92, 246, 0.4)',
             }}>
               <span className="material-symbols-outlined" style={{
                 fontSize: '20px',
                 color: 'white',
                 fontVariationSettings: "'FILL' 1, 'wght' 500",
-              }}>{typeConfig.icon}</span>
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h3 style={{
-                fontSize: '20px',
-                fontWeight: 700,
-                color: colors.textPrimary,
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                marginBottom: '8px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                margin: '0 0 8px 0',
-              }}>{project.name}</h3>
-              <p style={{
-                fontSize: '14px',
-                color: colors.textSecondary,
-                margin: 0,
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-                lineHeight: 1.6,
-              }}>{project.description || '暂无描述'}</p>
+              }}>arrow_forward</span>
             </div>
           </div>
+        </div>
 
-          {/* 底部信息 */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            paddingTop: '16px',
-            borderTop: `1px solid ${colors.border}`,
-          }}>
-            <span style={{
-              padding: '4px 10px',
-              borderRadius: '6px',
-              background: statusConfig.bg,
-              fontSize: '12px',
-              fontWeight: 600,
-              color: statusConfig.color,
-            }}>{statusConfig.label}</span>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '16px', color: colors.textSecondary }}>calendar_today</span>
-              <span style={{ fontSize: '12px', color: colors.textSecondary }}>{formatDate(project.updated_at)}</span>
-
-              {/* 用户头像 */}
-              <div style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%',
-                border: `1px solid ${colors.avatarBorder}`,
-                background: `${typeConfig.color}30`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '10px',
-                fontWeight: 600,
-                color: typeConfig.color,
-                marginLeft: '8px',
-              }}>
-                {project.name?.[0]?.toUpperCase() || 'K'}
-              </div>
-            </div>
-          </div>
+        <div style={{
+          position: 'absolute',
+          top: '24px',
+          right: '24px',
+          opacity: isHovered ? 1 : 0,
+          transform: isHovered ? 'translateX(0)' : 'translateX(10px)',
+          transition: 'all 0.4s ease',
+        }}>
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
+              border: 'none',
+              background: colors.moreBtnBg,
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              color: colors.titleColor,
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>more_vert</span>
+          </button>
         </div>
       </div>
     </Link>

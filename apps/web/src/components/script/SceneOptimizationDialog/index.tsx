@@ -146,7 +146,7 @@ export function SceneOptimizationDialog({
                   disabled={selected_scene_ids.length === 0}
                   onClick={() => actions.set_step('configure')}
                   icon={<ArrowRight className={styles.icon} />}
-                  icon_position="right"
+                  iconPosition="right"
                 >
                   下一步：配置优化选项
                 </Button>
@@ -175,7 +175,7 @@ export function SceneOptimizationDialog({
                   size="default"
                   onClick={actions.toggle_advanced}
                   icon={<Settings2 className={styles.icon} />}
-                  icon_position="left"
+                  iconPosition="left"
                   className={styles.advancedOptionsToggle}
                 >
                   高级选项
@@ -292,3 +292,5 @@ export function SceneOptimizationDialog({
     </div>
   );
 }
+
+export type { OptimizationDirection, OptimizationIntensity, OptimizationResult } from './types';

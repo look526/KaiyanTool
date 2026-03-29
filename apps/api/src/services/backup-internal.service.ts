@@ -1,4 +1,6 @@
+import crypto from 'crypto';
 import { prisma } from '../lib/prisma';
+import { getOrCreateDefaultEpisode } from '../utils/episode-resolver';
 
 export interface BackupData {
   id: string;
@@ -72,7 +74,7 @@ export async function createBackup(options: {
         id: scene.id,
         location: scene.location,
         time: scene.time,
-        atmosphere: scene.atmosphere,
+        description: scene.description,
         reference_images: scene.reference_images,
         created_at: scene.created_at,
         updated_at: scene.updated_at
@@ -179,68 +181,89 @@ export async function restoreBackup(backupId: string): Promise<{
   }
 
   const projectId = backup.projectId;
+  const now = new Date();
 
-  await prisma.$transaction(async () => {
-    await prisma.shot.deleteMany({ where: { project_id: projectId } });
-    await prisma.character.deleteMany({ where: { project_id: projectId } });
-    await prisma.scene.deleteMany({ where: { project_id: projectId } });
-    await prisma.document.deleteMany({ where: { project_id: projectId } });
+  await prisma.$transaction(async (tx) => {
+    await tx.shot.deleteMany({ where: { project_id: projectId } });
+    await tx.character.deleteMany({ where: { project_id: projectId } });
+    await tx.scene.deleteMany({ where: { project_id: projectId } });
+    await tx.document.deleteMany({ where: { project_id: projectId } });
 
-    if (backup.data.shots?.length) {
-      await prisma.shot.createMany({
-        data: backup.data.shots.map((s: any) => ({
+    const episode = await getOrCreateDefaultEpisode(projectId);
+
+    if (backup.data.scenes?.length) {
+      await tx.scene.createMany({
+        data: backup.data.scenes.map((s: any) => ({
+          id: s.id || crypto.randomUUID(),
+          episode_id: episode.id,
           project_id: projectId,
-          actionSummary: s.actionSummary,
-          cameraMovement: s.cameraMovement,
-          startPrompt: s.startPrompt,
-          endPrompt: s.endPrompt,
-          startImageUrl: s.startImageUrl,
-          endImageUrl: s.endImageUrl,
-          duration: s.duration,
-          aspectRatio: s.aspectRatio,
-          visualStyle: s.visualStyle
-        }))
+          location: s.location || '',
+          time: s.time || '',
+          description: s.description ?? s.atmosphere ?? null,
+          reference_images: s.reference_images || s.referenceImages || [],
+          scene_order: s.scene_order ?? 0,
+          created_at: s.created_at ? new Date(s.created_at) : now,
+          updated_at: s.updated_at ? new Date(s.updated_at) : now,
+        })),
       });
     }
 
     if (backup.data.characters?.length) {
-      await prisma.character.createMany({
+      await tx.character.createMany({
         data: backup.data.characters.map((c: any) => ({
+          id: c.id || crypto.randomUUID(),
           project_id: projectId,
           name: c.name,
-          description: c.description,
-          appearance: c.appearance,
-          metadata: c.metadata
-        }))
+          age: c.age ?? null,
+          gender: c.gender ?? null,
+          appearance: c.appearance || '',
+          reference_images: c.reference_images || [],
+          created_at: c.created_at ? new Date(c.created_at) : now,
+          updated_at: c.updated_at ? new Date(c.updated_at) : now,
+        })),
       });
     }
 
-    if (backup.data.scenes?.length) {
-      await prisma.scene.createMany({
-        data: backup.data.scenes.map((s: any) => ({
+    if (backup.data.shots?.length) {
+      await tx.shot.createMany({
+        data: backup.data.shots.map((s: any) => ({
+          id: s.id || crypto.randomUUID(),
           project_id: projectId,
-          location: s.location,
-          time: s.time,
-          atmosphere: s.atmosphere,
-          referenceImages: s.referenceImages
-        }))
+          episode_id: episode.id,
+          scene_id: null,
+          action_summary: s.actionSummary || s.action_summary || '',
+          camera_movement: s.cameraMovement ?? s.camera_movement ?? null,
+          start_prompt: s.startPrompt ?? s.start_prompt ?? null,
+          end_prompt: s.endPrompt ?? s.end_prompt ?? null,
+          start_image_url: s.startImageUrl ?? s.start_image_url ?? null,
+          end_image_url: s.endImageUrl ?? s.end_image_url ?? null,
+          video_url: s.videoUrl ?? s.video_url ?? null,
+          duration: s.duration ?? 8,
+          aspect_ratio: s.aspectRatio ?? s.aspect_ratio ?? '16:9',
+          visual_style: s.visualStyle ?? s.visual_style ?? null,
+          created_at: s.created_at ? new Date(s.created_at) : now,
+          updated_at: s.updated_at ? new Date(s.updated_at) : now,
+        })),
       });
     }
 
     if (backup.data.documents?.length) {
-      await prisma.document.createMany({
+      await tx.document.createMany({
         data: backup.data.documents.map((d: any) => ({
+          id: d.id || crypto.randomUUID(),
           project_id: projectId,
           title: d.title,
-          type: d.type,
-          content: d.content,
-          status: d.status
-        }))
+          type: d.type ?? 'general',
+          content: d.content ?? '',
+          status: d.status ?? 'draft',
+          created_at: d.created_at ? new Date(d.created_at) : now,
+          updated_at: d.updated_at ? new Date(d.updated_at) : now,
+        })),
       });
     }
 
     if (backup.data.project?.settings) {
-      await prisma.project.update({
+      await tx.project.update({
         where: { id: projectId },
         data: {
           settings: backup.data.project.settings

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import crypto from 'crypto';
 
 const prisma = new PrismaClient();
 
@@ -45,6 +46,7 @@ export class ShotAlternativeController {
 
       const alternative = await prisma.shotAlternative.create({
         data: {
+          id: crypto.randomUUID(),
           shot_id: shotId,
           video_url,
           metadata: metadata || {},

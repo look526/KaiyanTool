@@ -46,6 +46,7 @@ function AIAssistantComponent({ isOpen, onClose, onMinimize }: AIAssistantProps)
   const [csrfToken, setCsrfTokenState] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const hasInitializedRef = useRef(false);
 
   const fetchProviders = useCallback(async () => {
     try {
@@ -77,7 +78,7 @@ function AIAssistantComponent({ isOpen, onClose, onMinimize }: AIAssistantProps)
       const data = await response.json();
       console.log('Providers data:', JSON.stringify(data, null, 2));
       setProviders(data.providers || []);
-      
+
       let defaultModelId = '';
       for (const provider of data.providers || []) {
         for (const model of provider.models || []) {
@@ -89,11 +90,12 @@ function AIAssistantComponent({ isOpen, onClose, onMinimize }: AIAssistantProps)
         if (defaultModelId) break;
       }
       setDefaultAssistantModelId(defaultModelId);
-      
-      if (data.providers && data.providers.length > 0) {
+
+      if (!hasInitializedRef.current && data.providers && data.providers.length > 0) {
+        hasInitializedRef.current = true;
         const firstProvider = data.providers[0];
         setSelectedProvider(firstProvider.id);
-        
+
         if (defaultModelId) {
           setSelectedModel(defaultModelId);
         } else if (firstProvider.models && firstProvider.models.length > 0) {
@@ -116,17 +118,6 @@ function AIAssistantComponent({ isOpen, onClose, onMinimize }: AIAssistantProps)
     }
   }, [isOpen, fetchProviders]);
 
-  useEffect(() => {
-    const provider = providers.find(p => p.id === selectedProvider);
-    if (provider && provider.models && provider.models.length > 0) {
-      const modelExists = provider.models.some(m => m.id === selectedModel);
-      if (modelExists) {
-        return;
-      }
-      setSelectedModel(provider.models[0].id);
-    }
-  }, [selectedProvider, providers, selectedModel]);
-
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
@@ -140,6 +131,12 @@ function AIAssistantComponent({ isOpen, onClose, onMinimize }: AIAssistantProps)
       abortControllerRef.current?.abort();
     };
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      hasInitializedRef.current = false;
+    }
+  }, [isOpen]);
 
   const handleSend = useCallback(async () => {
     const trimmedInput = input.trim();

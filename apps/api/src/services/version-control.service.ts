@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma';
 import crypto from 'crypto';
+import { getOrCreateDefaultEpisode } from '../utils/episode-resolver';
 import { z } from 'zod';
 
 const CreateSnapshotSchema = z.object({
@@ -45,6 +46,7 @@ export class VersionControlService {
       },
       shots: project.Shot.map(shot => ({
         id: shot.id,
+        episode_id: shot.episode_id,
         scene_id: shot.scene_id,
         character_id: shot.character_id,
         chapter_number: shot.chapter_number,
@@ -74,7 +76,8 @@ export class VersionControlService {
         id: scene.id,
         location: scene.location,
         time: scene.time,
-        atmosphere: scene.atmosphere,
+        description: scene.description,
+        scene_order: scene.scene_order,
         reference_images: scene.reference_images
       })),
       documents: project.Document.map(doc => ({
@@ -185,49 +188,63 @@ export class VersionControlService {
       })
     ]);
 
-    if (data.shots?.length) {
-      await prisma.shot.createMany({
-        data: data.shots.map((shot: any) => ({
+    const defaultEpisode = await getOrCreateDefaultEpisode(projectId);
+    const now = new Date();
+
+    if (data.scenes?.length) {
+      await prisma.scene.createMany({
+        data: data.scenes.map((scene: any) => ({
+          id: scene.id || crypto.randomUUID(),
+          episode_id: defaultEpisode.id,
           project_id: projectId,
-          chapter_number: shot.chapter_number,
-          episode_number: shot.episode_number,
-          segment_id: shot.segment_id,
-          cell_id: shot.cell_id,
-          action_summary: shot.action_summary,
-          camera_movement: shot.camera_movement,
-          start_prompt: shot.start_prompt,
-          end_prompt: shot.end_prompt,
-          start_image_url: shot.start_image_url,
-          end_image_url: shot.end_image_url,
-          video_url: shot.video_url,
-          duration: shot.duration,
-          aspect_ratio: shot.aspect_ratio,
-          visual_style: shot.visual_style
-        }))
+          location: scene.location || '',
+          time: scene.time || '',
+          description: scene.description ?? scene.atmosphere ?? null,
+          scene_order: scene.scene_order ?? 0,
+          reference_images: scene.reference_images || [],
+          updated_at: now,
+        })),
       });
     }
 
     if (data.characters?.length) {
       await prisma.character.createMany({
         data: data.characters.map((char: any) => ({
+          id: char.id || crypto.randomUUID(),
           project_id: projectId,
           name: char.name,
-          age: char.age,
-          gender: char.gender,
-          appearance: char.appearance,
-          reference_images: char.reference_images
+          age: char.age ?? null,
+          gender: char.gender ?? null,
+          appearance: char.appearance || '',
+          reference_images: char.reference_images || [],
+          updated_at: now,
         }))
       });
     }
 
-    if (data.scenes?.length) {
-      await prisma.scene.createMany({
-        data: data.scenes.map((scene: any) => ({
+    if (data.shots?.length) {
+      await prisma.shot.createMany({
+        data: data.shots.map((shot: any) => ({
+          id: shot.id || crypto.randomUUID(),
           project_id: projectId,
-          location: scene.location,
-          time: scene.time,
-          atmosphere: scene.atmosphere,
-          reference_images: scene.reference_images
+          episode_id: shot.episode_id || defaultEpisode.id,
+          scene_id: shot.scene_id ?? null,
+          character_id: shot.character_id ?? null,
+          chapter_number: shot.chapter_number ?? null,
+          episode_number: shot.episode_number ?? null,
+          segment_id: shot.segment_id ?? null,
+          cell_id: shot.cell_id ?? null,
+          action_summary: shot.action_summary || '',
+          camera_movement: shot.camera_movement ?? null,
+          start_prompt: shot.start_prompt ?? null,
+          end_prompt: shot.end_prompt ?? null,
+          start_image_url: shot.start_image_url ?? null,
+          end_image_url: shot.end_image_url ?? null,
+          video_url: shot.video_url ?? null,
+          duration: shot.duration ?? 8,
+          aspect_ratio: shot.aspect_ratio ?? '16:9',
+          visual_style: shot.visual_style ?? null,
+          updated_at: now,
         }))
       });
     }

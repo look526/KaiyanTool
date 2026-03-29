@@ -31,6 +31,27 @@ interface CanvasEdge {
 
 const accentColor = '#8b5cf6';
 
+function normalizeAssetUrl(u: string): string {
+  if (u.startsWith('http')) return u;
+  if (typeof window !== 'undefined' && u.startsWith('/')) return `${window.location.origin}${u}`;
+  return u;
+}
+
+async function blobOrUrlToHttp(url: string): Promise<string | undefined> {
+  if (!url) return undefined;
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('blob:')) {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const file = new File([blob], 'workspace-ref.png', { type: blob.type || 'image/png' });
+    const up = (await apiClient.uploadImage(file)) as { url?: string };
+    if (!up?.url) return undefined;
+    return normalizeAssetUrl(up.url);
+  }
+  if (url.startsWith('/')) return normalizeAssetUrl(url);
+  return undefined;
+}
+
 export default function WorkspacePage() {
   const { user } = useAuth();
   const { resolvedTheme } = useTheme();
@@ -72,8 +93,11 @@ export default function WorkspacePage() {
     workspaceIdRef.current = workspaceId;
   }, [workspaceId]);
 
-  const history = useHistory({ nodes: [], edges: [] });
-  const [historyState, setHistoryState] = useState({ nodes: [], edges: [] });
+  const history = useHistory({ nodes: [] as CanvasNode[], edges: [] as CanvasEdge[] });
+  const [historyState, setHistoryState] = useState<{ nodes: CanvasNode[]; edges: CanvasEdge[] }>({
+    nodes: [],
+    edges: [],
+  });
 
   const colors = isDark ? {
     bgPrimary: 'rgba(5, 5, 10, 0.95)',
@@ -196,8 +220,9 @@ export default function WorkspacePage() {
     if (!wsId) {
       try {
         const createRes = await apiClient.post('/workspace', { name: '默认工作台' });
-        if (createRes && (createRes as any).id) {
-          wsId = (createRes as any).id;
+        const resData = (createRes as any);
+        if (resData && resData.success && resData.data?.id) {
+          wsId = resData.data.id;
           setWorkspaceId(wsId);
         } else {
           console.error('Failed to create workspace: invalid response', createRes);
@@ -210,15 +235,17 @@ export default function WorkspacePage() {
     }
     try {
       const res = await apiClient.post(`/workspace/${wsId}/nodes`, { type, position_x: position.x, position_y: position.y, content });
-      if (res && (res as any).id) {
+      const resData = (res as any);
+      if (resData && resData.success && resData.data?.id) {
         const newNode: CanvasNode = {
-          id: (res as any).id, type, position_x: position.x, position_y: position.y,
-          content, output_url: (res as any).output_url,
+          id: resData.data.id, type, position_x: position.x, position_y: position.y,
+          content, output_url: resData.data.output_url,
           is_starred: false, labels: [], history: [], config: {},
         };
         setNodes(prev => [...prev, newNode]);
         return newNode;
       }
+      console.error('Failed to create node: invalid response', res);
     } catch (error) {
       console.error('Failed to create node:', error);
     }
@@ -416,7 +443,15 @@ export default function WorkspacePage() {
     });
   }, [canvasOffset, zoom, workspaceId]);
 
-  const handleGenerate = async (nodeId: string, targetType: string) => {
+  const handleGenerate = async (
+    nodeId: string,
+    targetType: string,
+    promptJson?: any,
+    providerId?: string,
+    modelRowId?: string,
+    _modelParams?: Record<string, unknown>,
+    options?: { extra_reference_files?: File[] }
+  ) => {
     const sourceNode = nodes.find(n => n.id === nodeId);
     if (!sourceNode) return;
 
@@ -425,50 +460,86 @@ export default function WorkspacePage() {
     const x = (window.innerWidth / 2 - canvasOffset.x) / zoom;
     const y = (window.innerHeight / 2 - canvasOffset.y) / zoom;
 
-    let prompt = '';
-    if (sourceNode.type === 'text') {
-      prompt = sourceNode.content.text || '';
-    }
-
     const newNode = await createNode(targetType as 'text' | 'image' | 'video',
       targetType === 'text' ? { text: '' } : { url: '' },
       { x: x + Math.random() * 50, y: y + Math.random() * 50 }
     );
 
-    if (newNode) {
-      await createEdge(nodeId, newNode.id);
-    }
+    if (!newNode) return;
+
+    await createEdge(nodeId, newNode.id);
 
     setNodes(prev => prev.map(n =>
-      n.id === newNode?.id ? { ...n, is_generating: true, generation_progress: 0 } : n
+      n.id === newNode.id ? { ...n, is_generating: true, generation_progress: 0 } : n
     ));
 
-    let progress = 0;
-    const interval = setInterval(async () => {
-      progress += Math.random() * 25;
-      if (progress >= 100) {
-        progress = 100;
-        clearInterval(interval);
-        const resultUrl = targetType === 'image'
-          ? 'https://picsum.photos/512/512?' + Date.now()
-          : 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4';
-        setNodes(prev => prev.map(n =>
-          n.id === newNode?.id ? { ...n, is_generating: false, generation_progress: undefined, output_url: resultUrl, content: { url: resultUrl } } : n
-        ));
-        try {
-          await apiClient.post(`/workspace/nodes/${newNode?.id}/history`, {
-            content: { url: resultUrl },
-            output_url: resultUrl,
-          });
-        } catch (error) {
-          console.error('Failed to save history:', error);
-        }
-      } else {
-        setNodes(prev => prev.map(n =>
-          n.id === newNode?.id ? { ...n, generation_progress: progress } : n
-        ));
+    try {
+      const providersRes = await apiClient.get<{ success?: boolean; data?: unknown[] }>('/workspace/ai/providers');
+      const providers = (providersRes as any)?.data || [];
+      const defaultProvider = providers[0];
+      const finalProviderId = providerId || defaultProvider?.id || '';
+      const model =
+        modelRowId ||
+        (defaultProvider as any)?.models?.[0]?.id ||
+        '';
+
+      const imageUrls: string[] = [];
+      for (const f of options?.extra_reference_files || []) {
+        const up = (await apiClient.uploadImage(f)) as { url?: string };
+        if (up?.url) imageUrls.push(normalizeAssetUrl(up.url));
       }
-    }, 300);
+      if (sourceNode.type === 'image' && sourceNode.content?.url) {
+        const u = await blobOrUrlToHttp(sourceNode.content.url);
+        if (u) imageUrls.unshift(u);
+      }
+      const uniqueUrls = Array.from(new Set(imageUrls));
+
+      const res = await apiClient.post<{ success?: boolean; data?: { result_url?: string } }>('/workspace/ai/generate', {
+        source_node_id: nodeId,
+        target_type: targetType,
+        provider_id: finalProviderId,
+        model,
+        prompt_json: promptJson || {
+          version: 1,
+          scene: sourceNode.content?.text || '',
+          shot: '中景',
+          subject: '',
+          props: [],
+          style: '默认风格',
+        },
+        image_urls: targetType === 'image' && uniqueUrls.length > 0 ? uniqueUrls : undefined,
+      });
+
+      const resultUrl = targetType === 'image'
+        ? (res as any)?.data?.result_url || (res as any)?.result_url
+        : undefined;
+
+      const finalUrl =
+        targetType === 'image'
+          ? resultUrl || `https://picsum.photos/512/512?${Date.now()}`
+          : 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4';
+
+      setNodes(prev => prev.map(n =>
+        n.id === newNode.id
+          ? { ...n, is_generating: false, generation_progress: undefined, output_url: finalUrl, content: { url: finalUrl } }
+          : n
+      ));
+
+      await apiClient.post(`/workspace/nodes/${newNode.id}/history`, {
+        content: { url: finalUrl },
+        output_url: finalUrl,
+      });
+    } catch (error) {
+      console.error('Generation failed:', error);
+      const resultUrl = targetType === 'image'
+        ? 'https://picsum.photos/512/512?' + Date.now()
+        : 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4';
+      setNodes(prev => prev.map(n =>
+        n.id === newNode.id
+          ? { ...n, is_generating: false, generation_progress: undefined, output_url: resultUrl, content: { url: resultUrl } }
+          : n
+      ));
+    }
 
     setShowConfigPanel(false);
     setContextMenu(null);
@@ -909,7 +980,7 @@ export default function WorkspacePage() {
         canvasWidth={canvasSize.width}
         canvasHeight={canvasSize.height}
         onNavigate={handleMiniMapNavigate}
-        isDark={isDark}
+       
         colors={colors}
       />
 

@@ -22,8 +22,18 @@ router.get(
 )
 
 router.post(
+  '/shots/:shot_id/ninegrid/panels/ensure',
+  nineGridController.ensurePanels.bind(nineGridController)
+)
+
+router.post(
   '/shots/:shot_id/ninegrid/panels',
   nineGridController.createPanel.bind(nineGridController)
+)
+
+router.post(
+  '/shots/:shot_id/ninegrid/panels/:panelId/generate',
+  nineGridController.generatePanel.bind(nineGridController)
 )
 
 router.put(

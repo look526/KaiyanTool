@@ -7,6 +7,17 @@ function unwrapResponse<T>(response: any): T {
   return response?.data?.data ?? response?.data ?? response;
 }
 
+export interface EpisodeSceneRow {
+  id: string;
+  episode_id: string;
+  location: string;
+  time: string;
+  description?: string | null;
+  scene_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Episode {
   id: string;
   project_id: string;
@@ -20,6 +31,9 @@ export interface Episode {
   shot_count?: number;
   generated_count?: number;
   pending_count?: number;
+  Script?: { id?: string; title?: string; content: string } | null;
+  Scene?: EpisodeSceneRow[];
+  Shot?: unknown[];
 }
 
 export interface EpisodeStats {

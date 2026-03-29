@@ -5,6 +5,12 @@ import logger from '../lib/logger'
 import { buildCharacterImagePrompt } from '../config/prompt-templates'
 import { buildConsistencyParams, enhancePromptWithCharacter } from '../services/character-consistency.service'
 import crypto from 'crypto'
+import { generationPromptFromShot, generationPromptToPlainText } from '@ai-content-platform/shared'
+import {
+  resolveVideoPromptFlags,
+  type VideoPromptFlags,
+  type VideoPromptFlagsBody,
+} from '../lib/video-prompt-flags'
 
 class ShotGenerationController {
   async generateStartImage(req: Request, res: Response): Promise<void> {
@@ -334,11 +340,18 @@ class ShotGenerationController {
       }
 
       const { id } = req.params
-      const { provider_id, sync_audio_video, subtitle_text: body_subtitle } = req.body as {
+      const body = req.body as {
         provider_id?: string
         sync_audio_video?: boolean
         subtitle_text?: string
+        video_generation_mode?: string
+        include_action_in_prompt?: boolean
+        include_dialogue_in_prompt?: boolean
+        include_camera_in_prompt?: boolean
+        include_style_in_prompt?: boolean
       }
+
+      const { provider_id, sync_audio_video, subtitle_text: body_subtitle } = body
 
       const shot = await prisma.shot.findFirst({
         where: {
@@ -350,6 +363,10 @@ class ShotGenerationController {
             ],
           },
         },
+        include: {
+          Scene: true,
+          Character: true,
+        },
       })
 
       if (!shot) {
@@ -358,40 +375,89 @@ class ShotGenerationController {
         return
       }
 
-      if (!shot.start_image_url || !shot.end_image_url) {
-        res.status(400).json({ error: 'Start and end images must be generated first' })
-        return
-      }
-
       if (!provider_id) {
         res.status(400).json({ error: 'Provider ID is required' })
         return
       }
+
+      const mode =
+        body.video_generation_mode === 'nine_grid'
+          ? 'nine_grid'
+          : (shot as any).video_generation_mode === 'nine_grid'
+            ? 'nine_grid'
+            : 'end_frame'
+
+      const flagsBody: VideoPromptFlagsBody = {
+        include_action_in_prompt: body.include_action_in_prompt,
+        include_dialogue_in_prompt: body.include_dialogue_in_prompt,
+        include_camera_in_prompt: body.include_camera_in_prompt,
+        include_style_in_prompt: body.include_style_in_prompt,
+      }
+      const flags = resolveVideoPromptFlags((shot as any).video_prompt_flags, flagsBody, sync_audio_video)
 
       const incoming_subtitle =
         typeof body_subtitle === 'string' ? body_subtitle.trim() : undefined
       const dialogue =
         (incoming_subtitle !== undefined ? incoming_subtitle : shot.subtitle_text || '')?.trim() || ''
 
-      if (sync_audio_video === true && !dialogue) {
+      if (flags.include_dialogue && !dialogue) {
         res.status(400).json({
-          error: '音画同出需要对白/口播文案，请先填写或保存到分镜后再生成',
+          error: '已开启「对白并入视频提示」，请先填写对白/口播并保存后再生成',
         })
         return
       }
 
-      let prompt = shot.action_summary || ''
-      if (sync_audio_video === true && dialogue) {
-        prompt = `${prompt}\n\n【音画同出】台词/口播：${dialogue}。要求：画面与对白同步，音画一体，口型与情绪自然。`
+      let imageUrl: string
+      let endImageUrl: string | undefined
+
+      if (mode === 'end_frame') {
+        if (!shot.start_image_url || !shot.end_image_url) {
+          res.status(400).json({ error: 'Start and end images must be generated first' })
+          return
+        }
+        imageUrl = shot.start_image_url
+        endImageUrl = shot.end_image_url
+      } else {
+        const composite = (shot as any).nine_grid_image_url as string | null | undefined
+        const panels = await prisma.nineGridPanel.findMany({
+          where: { shot_id: id },
+          orderBy: { position: 'asc' },
+        })
+        if (composite) {
+          imageUrl = composite
+          const last = panels.find((p) => p.position === 8)?.image_url
+          endImageUrl = last || composite
+        } else if (panels.length >= 9) {
+          const sorted = [...panels].sort((a, b) => a.position - b.position)
+          const first = sorted[0]?.image_url
+          const last = sorted[8]?.image_url
+          if (!first || !last) {
+            res.status(400).json({
+              error:
+                '九宫格模式需先完成一键合成（推荐）或九格均已单独出图；当前参考图不完整',
+            })
+            return
+          }
+          imageUrl = first
+          endImageUrl = last
+        } else {
+          res.status(400).json({
+            error: '九宫格模式请先生成九宫格合成图，或为该分镜补齐九格分镜图',
+          })
+          return
+        }
       }
 
+      const prompt = this.buildVideoPromptFromFlags(shot, flags)
+
       const response = await aiProviderService.createVideo(provider_id, {
-        imageUrl: shot.start_image_url!,
+        imageUrl,
+        endImageUrl,
         prompt,
         duration: shot.duration,
         aspectRatio: shot.aspect_ratio,
         subtitle_text: dialogue || undefined,
-        sync_audio_video: !!sync_audio_video,
+        sync_audio_video: flags.include_dialogue,
       })
 
       const updatedShot = await prisma.shot.update({
@@ -399,6 +465,10 @@ class ShotGenerationController {
         data: {
           video_url: response.url,
           ...(incoming_subtitle !== undefined ? { subtitle_text: incoming_subtitle || null } : {}),
+        },
+        include: {
+          Scene: true,
+          Character: true,
         },
       })
 
@@ -408,11 +478,41 @@ class ShotGenerationController {
         resolution: response.resolution,
         shot: updatedShot,
       })
-      logger.info('视频生成成功', { user_id: req.user_id, shot_id: id, provider_id })
+      logger.info('视频生成成功', { user_id: req.user_id, shot_id: id, provider_id, mode })
     } catch (error) {
       logger.error('生成视频失败', { user_id: req.user_id, shot_id: req.params.id, error })
       res.status(500).json({ error: 'Failed to generate video' })
     }
+  }
+
+  private buildVideoPromptFromFlags(shot: any, flags: VideoPromptFlags): string {
+    const gp = generationPromptFromShot(shot)
+    const lines: string[] = []
+    if (flags.include_action) {
+      if (gp.lens.description) lines.push(`镜头：${gp.lens.description}`)
+      if (gp.action && gp.action !== gp.lens.description) lines.push(`动作：${gp.action}`)
+      if (gp.character.name) {
+        let c = `角色：${gp.character.name}`
+        if (gp.character.notes) c += `（${gp.character.notes}）`
+        lines.push(c)
+      }
+      const loc = [gp.scene.location, gp.scene.time].filter(Boolean).join(' · ')
+      if (loc) lines.push(`场景：${loc}`)
+      if (gp.scene.notes) lines.push(`场景细节：${gp.scene.notes}`)
+    }
+    if (flags.include_camera && gp.lens.camera_movement) {
+      lines.push(`镜头运动：${gp.lens.camera_movement}`)
+    }
+    if (flags.include_style && gp.style) {
+      lines.push(`视觉风格：${gp.style}`)
+    }
+    if (flags.include_dialogue && gp.dialogue) {
+      lines.push(`台词/口播：${gp.dialogue}`)
+      lines.push('要求：画面与对白同步，音画一体，口型与情绪自然。')
+    }
+    const built = lines.join('\n').trim()
+    if (built) return built
+    return generationPromptToPlainText(gp) || shot.action_summary || 'cinematic video'
   }
 
   private buildImagePrompt(shot: any, type: 'start' | 'end', style?: string): string {

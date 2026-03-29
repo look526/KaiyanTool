@@ -13,18 +13,18 @@ export function DashboardLayout() {
   return (
     <div style={{
       display: 'flex',
-      minHeight: '100vh',
+      height: '100vh',
       background: '#070d1f',
       fontFamily: "'Manrope', sans-serif",
       color: '#dfe4fe',
+      overflow: 'hidden',
     }}>
       <Sidebar />
-      
+
       <main style={{
-        marginLeft: '256px',
+        marginLeft: '260px',
         flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
+        minHeight: '100vh',
         overflow: 'auto',
         position: 'relative',
       }}>

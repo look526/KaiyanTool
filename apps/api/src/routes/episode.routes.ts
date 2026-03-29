@@ -17,6 +17,11 @@ router.post('/projects/:projectId/episodes', (req, res) => episodeController.cre
 // GET /episodes/:id
 router.get('/episodes/:id', (req, res) => episodeController.getEpisode(req, res));
 
+// POST /episodes/:episodeId/apply-parse — 解析结果写入分集场景（及可选镜头草稿）
+router.post('/episodes/:episodeId/apply-parse', (req, res) =>
+  episodeController.applyParse(req, res)
+);
+
 // PUT /episodes/:id
 router.put('/episodes/:id', (req, res) => episodeController.updateEpisode(req, res));
 

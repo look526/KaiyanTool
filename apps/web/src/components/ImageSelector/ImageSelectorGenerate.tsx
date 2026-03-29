@@ -385,8 +385,8 @@ function ResolutionSelector({
   const isDark = resolvedTheme === 'dark';
   
   const RESOLUTION_OPTIONS = [
-    { value: '2K', label: '2K 标准' },
-    { value: '3K', label: '3K 高清' },
+    { value: '2K' as const, label: '2K 标准' },
+    { value: '3K' as const, label: '3K 高清' },
   ];
   
   return (

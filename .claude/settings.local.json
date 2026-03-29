@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(npx vite:*)",
+      "Bash(ls:*)",
+      "Bash(grep -rn \"#8b5cf6\\\\|#6366f1\\\\|#a78bfa\" src/pages/*.tsx src/pages/**/*.tsx)",
+      "Bash(find . -name \"*.tsx\" ! -name \"AppearanceSettingsPage.tsx\" -exec grep -l \"linear-gradient\\(135deg, #6366f1 0%, #8b5cf6 100%\\)\" {})",
+      "Bash(xargs grep:*)",
+      "Bash(find src:*)",
+      "Bash(find:*)"
+    ]
+  }
+}

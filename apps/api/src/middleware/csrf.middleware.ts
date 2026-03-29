@@ -36,34 +36,7 @@ export function csrfMiddleware(req: CsrfRequest, res: Response, next: NextFuncti
   }
   
   if (isPublicPath && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    // 公共路径的非GET请求，需要验证CSRF令牌
-    const storedToken = csrfTokens.get(sessionId);
-    const providedToken = req.headers['x-csrf-token'] as string || req.body?.csrfToken;
-
-    if (!storedToken || !providedToken || storedToken.token !== providedToken) {
-      res.status(403).json({
-        success: false,
-        error: {
-          code: 'CSRF_TOKEN_INVALID',
-          message: 'CSRF token 无效或已过期',
-        },
-      });
-      return;
-    }
-    
-    // 检查token是否过期
-    if (storedToken.expiresAt < new Date()) {
-      csrfTokens.delete(sessionId);
-      res.status(403).json({
-        success: false,
-        error: {
-          code: 'CSRF_TOKEN_EXPIRED',
-          message: 'CSRF token 已过期',
-        },
-      });
-      return;
-    }
-    
+    // 公共路径的POST/PUT/PATCH/DELETE请求不需要CSRF验证（登录、注册等）
     next();
     return;
   }

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../core/store/auth.store';
-import { useCurrentUser } from '../../modules/auth/hooks';
 import { api } from '../../core/api/client';
 import { 
   Home, Users, Image, FileText, 
@@ -40,26 +39,34 @@ const navItems: NavItem[] = [
 function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout, isAuthenticated } = useAuth();
-  const { data: userData, isLoading: userLoading } = useCurrentUser();
+  const { logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
-
-  const user = userData?.user;
+  const [adminUser, setAdminUser] = useState<{ id: string; name: string | null; email: string; role: string } | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated && !userLoading) {
-      navigate('/admin/login');
-    } else if (user && user.role !== 'admin' && user.role !== 'super_admin') {
-      navigate('/admin/login');
-    } else if (isAuthenticated && user) {
-      setIsLoading(false);
-    }
-  }, [isAuthenticated, user, userLoading, navigate]);
+    const checkAdminAuth = async () => {
+      try {
+        const response = await api.get<{ user: any }>('/admin/auth/me');
+        setAdminUser(response.user);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Admin auth check failed:', error);
+        navigate('/admin/login');
+      }
+    };
+    checkAdminAuth();
+  }, [navigate]);
 
   const handleLogout = async () => {
-    await logout();
-    navigate('/admin/login');
+    try {
+      await api.post('/admin/auth/logout');
+    } catch (error) {
+      console.error('Admin logout error:', error);
+    } finally {
+      localStorage.removeItem('admin_logged_in');
+      navigate('/admin/login');
+    }
   };
 
   if (isLoading) {
@@ -240,7 +247,7 @@ function AdminLayout() {
                 fontWeight: 600,
                 color: '#fff',
               }}>
-                {user?.name?.[0] || 'A'}
+                {adminUser?.name?.[0] || 'A'}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{
@@ -251,7 +258,7 @@ function AdminLayout() {
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
-                }}>{user?.name}</p>
+                }}>{adminUser?.name}</p>
                 <p style={{
                   fontSize: '12px',
                   color: '#64748b',
@@ -259,7 +266,7 @@ function AdminLayout() {
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
-                }}>{user?.email}</p>
+                }}>{adminUser?.email}</p>
               </div>
             </div>
           )}

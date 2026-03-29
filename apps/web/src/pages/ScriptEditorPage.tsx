@@ -21,6 +21,7 @@ import {
   FileText,
   Eye,
   Pencil,
+  ArrowDownToLine,
 } from 'lucide-react';
 import MonacoEditor from '../components/MonacoEditor';
 import { ModelSelector } from '../components/ui';
@@ -73,6 +74,45 @@ const SCRIPT_TEMPLATES = [
   },
 ];
 
+/** 将预览区场景结构组装为 apply-parse 所需的 parse_result（含 snake_case 对白字段） */
+function buildParseResultForApply(
+  scenes: any[],
+  characters: any[],
+  items: any[]
+): Record<string, any> {
+  return {
+    parse_schema_version: 1,
+    scenes: scenes.map((s: any, idx: number) => {
+      const rawDialogues = (s.dialogues ?? s.dialogue ?? []) as any[];
+      return {
+        id: s.id,
+        number: s.number ?? idx + 1,
+        heading: s.heading,
+        location: s.location,
+        time: s.time,
+        description: s.description,
+        character_names: s.characters ?? [],
+        dialogues: rawDialogues.map((d: any) => ({
+          character_name: (d.characterName ?? d.character ?? '') as string,
+          text:
+            (typeof d.text === 'string' ? d.text : '') ||
+            (Array.isArray(d.lines) ? (d.lines as string[]).join('\n') : ''),
+        })),
+        actions: s.actions ?? [],
+        items: s.items,
+      };
+    }),
+    characters,
+    items,
+    metadata: {
+      total_scenes: scenes.length,
+      total_characters: characters.length,
+      total_dialogues: 0,
+      estimated_duration: 0,
+    },
+  };
+}
+
 function ScriptEditorContent() {
   const { projectId } = useParams<{ projectId: string }>();
   const projectIdStr = projectId || '';
@@ -117,8 +157,16 @@ function ScriptEditorContent() {
   const [tasks, setTasks] = useState<AIProcessingTask[]>([]);
   const [showReparseConfirm, setShowReparseConfirm] = useState(false);
   const [hasParsedResult, setHasParsedResult] = useState(false);
+  const [episodes, setEpisodes] = useState<{ id: string; title: string; episode_number: number }[]>([]);
+  const [selectedEpisodeId, setSelectedEpisodeId] = useState<string>('');
+  const [isApplyingParse, setIsApplyingParse] = useState(false);
   const [formatEpisodes, setFormatEpisodes] = useState(12);
   const [formatMinutes, setFormatMinutes] = useState(45);
+  
+  // 调试 selectedModel 变化
+  useEffect(() => {
+    console.log('[ScriptEditorPage] selectedModel changed to:', selectedModel);
+  }, [selectedModel]);
   const [showFormatDialog, setShowFormatDialog] = useState(false);
   const [formattedResult, setFormattedResult] = useState<{
     formatted_text: string;
@@ -225,6 +273,43 @@ function ScriptEditorContent() {
       setHasParsedResult(true);
     }
   }, [loadParsedResult]);
+
+  useEffect(() => {
+    if (!projectIdStr) {
+      setEpisodes([]);
+      setSelectedEpisodeId('');
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await apiClient.getProjectEpisodes(projectIdStr, {
+          sort: 'episode_number',
+          order: 'asc',
+        });
+        if (cancelled) return;
+        const arr = Array.isArray(list) ? list : [];
+        const mapped = arr.map((e: { id: string; title: string; episode_number: number }) => ({
+          id: e.id,
+          title: e.title,
+          episode_number: e.episode_number,
+        }));
+        setEpisodes(mapped);
+        setSelectedEpisodeId((prev) => {
+          if (prev && mapped.some((x) => x.id === prev)) return prev;
+          return mapped[0]?.id ?? '';
+        });
+      } catch {
+        if (!cancelled) {
+          setEpisodes([]);
+          setSelectedEpisodeId('');
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectIdStr]);
 
   useEffect(() => { loadFromLocalStorage(mode); }, [mode, loadFromLocalStorage]);
 
@@ -501,6 +586,14 @@ function ScriptEditorContent() {
         saveParsedResult(result.scenes, result.characters || [], result.items || []);
         setEditorMode('preview');
         addToast({ type: 'success', title: '解析成功', message: `成功解析 ${result.scenes.length} 个场景` });
+        const warnList = (result.metadata as { warnings?: string[] } | undefined)?.warnings;
+        if (Array.isArray(warnList) && warnList.length > 0) {
+          addToast({
+            type: 'warning',
+            title: '部分片段未纳入结果',
+            message: warnList.slice(0, 4).join('；') + (warnList.length > 4 ? '…' : ''),
+          });
+        }
       } else {
         addToast({ type: 'info', title: '未检测到场景' });
       }
@@ -516,6 +609,43 @@ function ScriptEditorContent() {
       });
     } finally {
       setIsParsingScenes(false);
+    }
+  };
+
+  const handleApplyParseToEpisode = async () => {
+    if (!projectIdStr) {
+      addToast({ type: 'warning', title: '缺少项目', message: '请在项目内打开剧本页' });
+      return;
+    }
+    if (!selectedEpisodeId) {
+      addToast({ type: 'warning', title: '请选择分集', message: '当前项目可能没有分集，请先在分集列表中创建' });
+      return;
+    }
+    if (!parsedScenes.length) {
+      addToast({ type: 'warning', title: '请先解析剧本' });
+      return;
+    }
+    try {
+      setIsApplyingParse(true);
+      const parse_result = buildParseResultForApply(parsedScenes, characters, parsedItems);
+      const data = await apiClient.applyParseToEpisode(selectedEpisodeId, {
+        parse_result,
+        mode: 'append_scenes',
+        create_shot_drafts: true,
+      });
+      addToast({
+        type: 'success',
+        title: '已写入分集',
+        message: `新建场景 ${data.created_scene_ids.length}，更新 ${data.updated_scene_ids.length}，镜头草稿 ${data.created_shot_ids.length}`,
+      });
+    } catch (error) {
+      addToast({
+        type: 'error',
+        title: '写入分集失败',
+        message: getApiErrorMessage(error, '请稍后重试'),
+      });
+    } finally {
+      setIsApplyingParse(false);
     }
   };
 
@@ -1120,7 +1250,9 @@ function ScriptEditorContent() {
             导出文本
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '4px' }}>
-            <Bell style={{ width: '20px', height: '20px', color: 'var(--text-secondary)', cursor: 'default', opacity: 0.5 }} title="通知即将推出" />
+            <span title="通知即将推出">
+              <Bell style={{ width: '20px', height: '20px', color: 'var(--text-secondary)', cursor: 'default', opacity: 0.5 }} />
+            </span>
             <div style={{
               width: '32px',
               height: '32px',
@@ -1153,7 +1285,6 @@ function ScriptEditorContent() {
         flex: 1,
         minHeight: 0,
         display: 'flex',
-        overflow: 'hidden',
       }}>
         <section style={{
           flex: 1,
@@ -1161,7 +1292,6 @@ function ScriptEditorContent() {
           display: 'flex',
           flexDirection: 'column',
           minWidth: 0,
-          overflow: 'hidden',
         }}>
           <div style={{
             display: 'flex',
@@ -1308,17 +1438,93 @@ function ScriptEditorContent() {
                 />
               </div>
             ) : (
-              <ScriptPreviewPanel
-                scenes={parsedScenes}
-                characters={characters}
-                items={parsedItems}
-                onEdit={() => setEditorMode('edit')}
-                onGenerateAssets={handleGenerateAssets}
-                isGenerating={isGeneratingAssets}
-                onParse={parseScript}
-                isParsing={loading || isParsingScenes}
-                hasContent={!!content}
-              />
+              <>
+                {projectIdStr && parsedScenes.length > 0 && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                      gap: '10px',
+                      marginBottom: '16px',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      border: '1px solid var(--border-primary)',
+                      background: 'var(--bg-surface)',
+                    }}
+                  >
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      写入分集
+                    </span>
+                    <select
+                      value={selectedEpisodeId}
+                      onChange={(e) => setSelectedEpisodeId(e.target.value)}
+                      disabled={isApplyingParse || episodes.length === 0}
+                      style={{
+                        flex: '1 1 180px',
+                        minWidth: '160px',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-primary)',
+                        background: 'var(--bg-base)',
+                        color: 'var(--text-primary)',
+                        fontSize: '13px',
+                      }}
+                    >
+                      {episodes.length === 0 ? (
+                        <option value="">暂无分集</option>
+                      ) : (
+                        episodes.map((ep) => (
+                          <option key={ep.id} value={ep.id}>
+                            第 {ep.episode_number} 集 · {ep.title}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => void handleApplyParseToEpisode()}
+                      disabled={isApplyingParse || !selectedEpisodeId || episodes.length === 0}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '8px 14px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        cursor:
+                          isApplyingParse || !selectedEpisodeId || episodes.length === 0
+                            ? 'not-allowed'
+                            : 'pointer',
+                        opacity:
+                          isApplyingParse || !selectedEpisodeId || episodes.length === 0 ? 0.5 : 1,
+                        background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                        color: '#fff',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {isApplyingParse ? (
+                        <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                      ) : (
+                        <ArrowDownToLine style={{ width: '16px', height: '16px' }} />
+                      )}
+                      追加场景到分集
+                    </button>
+                  </div>
+                )}
+                <ScriptPreviewPanel
+                  scenes={parsedScenes}
+                  characters={characters}
+                  items={parsedItems}
+                  onEdit={() => setEditorMode('edit')}
+                  onGenerateAssets={handleGenerateAssets}
+                  isGenerating={isGeneratingAssets}
+                  onParse={parseScript}
+                  isParsing={loading || isParsingScenes}
+                  hasContent={!!content}
+                />
+              </>
             )}
           </div>
         </section>
@@ -1333,7 +1539,8 @@ function ScriptEditorContent() {
           borderLeft: '1px solid var(--border-primary)',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
+          position: 'relative',
+          zIndex: 50,
         }}>
           <div style={{
             padding: '24px',

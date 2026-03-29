@@ -18,6 +18,8 @@ export interface LargeTextProcessOptions {
   maxTokens?: number
   model?: string
   providerId?: string
+  /** 剧本体裁，注入分段解析提示（默认 standard） */
+  scriptKind?: string
 }
 
 export interface ProcessResult {
@@ -31,6 +33,7 @@ export interface ProcessResult {
     totalDialogues: number
     estimatedDuration: number
     segmentCount: number
+    warnings?: string[]
   }
 }
 
@@ -164,11 +167,17 @@ export class LargeTextProcessingService {
 
       progressTracker.update(20, '开始并行处理...')
       console.log('[DEBUG large-text] providerIdForSegment:', providerIdForSegment);
+      const scriptKind = options.scriptKind ?? 'standard'
       const segmentResults = await this.processor.processSegments(
         segments,
         async (segment) => {
           console.log('[DEBUG large-text] Calling processSegment with providerId:', providerIdForSegment);
-          return await this.aiProcessor.processSegment(segment, providerIdForSegment, options.model)
+          return await this.aiProcessor.processSegment(
+            segment,
+            providerIdForSegment,
+            options.model,
+            scriptKind
+          )
         }
       )
       logger.info(`[大文本处理] 并行处理完成`)
@@ -178,6 +187,14 @@ export class LargeTextProcessingService {
       logger.info(`[大文本处理] 结果合并完成`)
 
       const finalResult: ProcessResult = this.merger.convertToArrayFormat(merged)
+
+      const skippedIds = segments.filter((s) => !segmentResults.has(s.id)).map((s) => s.id)
+      if (skippedIds.length > 0) {
+        const skipWarnings = skippedIds.map(
+          (id) => `剧本片段解析失败已跳过（可重试）: ${id}`
+        )
+        finalResult.metadata.warnings = [...(finalResult.metadata.warnings ?? []), ...skipWarnings]
+      }
 
       if (options.useCache !== false) {
         this.cacheResult(text, finalResult)

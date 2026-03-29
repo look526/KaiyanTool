@@ -43,7 +43,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       console.log('WebSocket disconnected');
     });
 
-    socket.on('connect_error', (error) => {
+    socket.on('connect_error', (error: Error) => {
       console.error('WebSocket connection error:', error);
     });
 

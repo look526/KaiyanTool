@@ -9,12 +9,14 @@ import { StandardPageHeader } from '../components/ui/StandardPageHeader';
 import { GlassButton } from '../components/ui/GlassButton';
 import { useToast } from '../components/ui/Toast';
 import { ShotNineGridWorkbench } from '../components/episode/ShotNineGridWorkbench';
+import { EpisodeStoryboardOverviewPanel } from '../components/episode/EpisodeStoryboardOverviewPanel';
+import { generationPromptFromShot } from '@shared/generation-prompt';
 import { ImageSelector } from '../components/ImageSelector';
 import { MentionInput } from '../components/ui/MentionInput';
 import { Loader2, Film, CheckSquare, Square, Trash2, Save, Image, Clapperboard, FileText, Plus, User, Video, Play, RefreshCw, AlertCircle, XCircle, Layers, Sparkles, Filter, Undo2, Redo2, Clock, Mic } from 'lucide-react';
 import type { AIProvider } from '../types';
 import type { Episode } from '../types/episode';
-import type { Shot, UpdateShotInput } from '../core/api/modules/shots/shots-api';
+import type { Shot, UpdateShotInput, VideoGenerationMode, VideoPromptFlags } from '../core/api/modules/shots/shots-api';
 import {
   getShotDisplayNumber,
   getShotStatus,
@@ -46,6 +48,59 @@ function useLocalStorageState<T>(key: string, initialValue: T): [T, (value: T) =
   return [storedValue, setValue];
 }
 
+function defaultVideoPromptFlags(): VideoPromptFlags {
+  return {
+    include_action: true,
+    include_dialogue: false,
+    include_camera: true,
+    include_style: true,
+  };
+}
+
+function parseVideoPromptFlags(raw: unknown): VideoPromptFlags {
+  const d = defaultVideoPromptFlags();
+  if (!raw || typeof raw !== 'object') return d;
+  const o = raw as Record<string, unknown>;
+  return {
+    include_action: o.include_action !== false,
+    include_dialogue: o.include_dialogue === true,
+    include_camera: o.include_camera !== false,
+    include_style: o.include_style !== false,
+  };
+}
+
+function buildUpdateShotInputFromState(shot: Shot, state: ShotEditorState): UpdateShotInput {
+  const mergedForPrompt = {
+    ...shot,
+    action_summary: state.action_summary.trim() || '未填写镜头描述',
+    camera_movement: state.camera_movement,
+    visual_style: state.visual_style,
+    subtitle_text: state.subtitle_text,
+    character_id: state.character_id,
+  };
+  const generation_prompt_json = generationPromptFromShot(mergedForPrompt as any) as unknown as Record<
+    string,
+    unknown
+  >;
+  return {
+    character_id: state.character_id || null,
+    action_summary: state.action_summary.trim() || '未填写镜头描述',
+    camera_movement: state.camera_movement.trim() || undefined,
+    start_prompt: state.start_prompt.trim() || undefined,
+    end_prompt: state.end_prompt.trim() || undefined,
+    start_image_url: state.start_image_url,
+    end_image_url: state.end_image_url,
+    visual_style: state.visual_style.trim() || undefined,
+    subtitle_text: state.subtitle_text.trim() || null,
+    aspect_ratio: shot.aspect_ratio,
+    resolution: shot.resolution,
+    duration: shot.duration,
+    video_generation_mode: state.video_generation_mode,
+    video_prompt_flags: state.video_prompt_flags,
+    generation_prompt_json,
+  };
+}
+
 interface ShotEditorState {
   character_id: string | null;
   action_summary: string;
@@ -57,6 +112,8 @@ interface ShotEditorState {
   visual_style: string;
   /** 对白/口播，用于音画同出时并入视频提示 */
   subtitle_text: string;
+  video_generation_mode: VideoGenerationMode;
+  video_prompt_flags: VideoPromptFlags;
 }
 
 const MAX_EDITOR_HISTORY = 50;
@@ -83,7 +140,7 @@ export default function EpisodeDetailPage() {
   const [imageProviderId, setImageProviderId] = useLocalStorageState<string | null>('episode_image_provider_id', null);
   const [batchConcurrency, setBatchConcurrency] = useLocalStorageState<number>('episode_batch_concurrency', 2);
   const [autoAdvanceAfterVideo, setAutoAdvanceAfterVideo] = useLocalStorageState<boolean>('episode_auto_advance_after_video', true);
-  const [syncAudioVideo, setSyncAudioVideo] = useLocalStorageState<boolean>('episode_sync_audio_video', false);
+  const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const [listFilterRaw, setListFilterRaw] = useLocalStorageState<string>('episode_shot_list_filter', 'all');
   const listFilter: 'all' | 'ready' | 'video' | 'failed' =
     listFilterRaw === 'all' || listFilterRaw === 'ready' || listFilterRaw === 'video' || listFilterRaw === 'failed'
@@ -131,6 +188,8 @@ export default function EpisodeDetailPage() {
     end_image_url: null,
     visual_style: '',
     subtitle_text: '',
+    video_generation_mode: 'end_frame',
+    video_prompt_flags: defaultVideoPromptFlags(),
   });
 
   useEffect(() => {
@@ -339,6 +398,17 @@ export default function EpisodeDetailPage() {
     }
   }, [shots, activeShotId]);
 
+  /** 左侧选择场景后，若当前分镜不在该场景，自动跳到该场景第一个分镜 */
+  useEffect(() => {
+    if (!selectedSceneId) return;
+    const inScene = shots.filter((s) => s.scene_id === selectedSceneId);
+    if (inScene.length === 0) return;
+    setActiveShotId((prev) => {
+      if (prev && inScene.some((s) => s.id === prev)) return prev;
+      return inScene[0].id;
+    });
+  }, [selectedSceneId, shots]);
+
   const activeShot = useMemo(
     () => shots.find(shot => shot.id === activeShotId) || null,
     [shots, activeShotId]
@@ -376,6 +446,9 @@ export default function EpisodeDetailPage() {
       end_image_url: activeShot.end_image_url || null,
       visual_style: activeShot.visual_style || '',
       subtitle_text: activeShot.subtitle_text || '',
+      video_generation_mode:
+        activeShot.video_generation_mode === 'nine_grid' ? 'nine_grid' : 'end_frame',
+      video_prompt_flags: parseVideoPromptFlags(activeShot.video_prompt_flags),
     });
     setSaveMessage('');
     setSaveMessageTone('success');
@@ -429,6 +502,9 @@ export default function EpisodeDetailPage() {
 
   const filteredShots = useMemo(() => {
     const base = shots.filter((shot) => {
+      if (selectedSceneId && shot.scene_id !== selectedSceneId) {
+        return false;
+      }
       if (listFilter === 'ready') {
         return !!(shot.start_image_url && shot.end_image_url && !shot.video_url);
       }
@@ -445,7 +521,7 @@ export default function EpisodeDetailPage() {
       if (cur) return [cur, ...base];
     }
     return base;
-  }, [shots, listFilter, shotErrors, activeShotId]);
+  }, [shots, listFilter, shotErrors, activeShotId, selectedSceneId]);
 
   void historyTick;
   const canUndo = undoStackRef.current.length > 0;
@@ -471,46 +547,63 @@ export default function EpisodeDetailPage() {
   const getGenerateButtonDisabledReason = useMemo(() => {
     if (!activeShot) return '请先选择一个分镜';
     if (generatingVideo) return '当前正在生成中，请勿重复点击';
-    if (!editorState.start_image_url) return '缺少开始帧';
-    if (!editorState.end_image_url) return '缺少结束帧';
-    if (syncAudioVideo && !editorState.subtitle_text?.trim()) return '音画同出需填写对白/口播';
     if (!activeVideoProviderId) return '暂无可用视频 Provider';
+    if (editorState.video_generation_mode === 'end_frame') {
+      if (!editorState.start_image_url) return '缺少开始帧';
+      if (!editorState.end_image_url) return '缺少结束帧';
+    }
+    if (editorState.video_prompt_flags.include_dialogue && !editorState.subtitle_text?.trim()) {
+      return '已开启对白并入视频提示，请填写对白/口播';
+    }
     return null;
-  }, [activeShot, generatingVideo, editorState.start_image_url, editorState.end_image_url, editorState.subtitle_text, syncAudioVideo, activeVideoProviderId]);
+  }, [
+    activeShot,
+    generatingVideo,
+    editorState.start_image_url,
+    editorState.end_image_url,
+    editorState.subtitle_text,
+    editorState.video_generation_mode,
+    editorState.video_prompt_flags.include_dialogue,
+    activeVideoProviderId,
+  ]);
 
   const canGenerateVideo = useMemo(() => {
+    const framesOk =
+      editorState.video_generation_mode === 'end_frame'
+        ? !!(editorState.start_image_url && editorState.end_image_url)
+        : true;
     return Boolean(
       activeShot &&
-      editorState.start_image_url &&
-      editorState.end_image_url &&
+      framesOk &&
       activeVideoProviderId &&
       !savingShot &&
       !autoSaving &&
       !generatingVideo &&
-      !(syncAudioVideo && !editorState.subtitle_text?.trim())
+      !(
+        editorState.video_prompt_flags.include_dialogue && !editorState.subtitle_text?.trim()
+      )
     );
-  }, [activeShot, activeVideoProviderId, editorState.end_image_url, editorState.start_image_url, editorState.subtitle_text, syncAudioVideo, generatingVideo, savingShot, autoSaving]);
+  }, [
+    activeShot,
+    activeVideoProviderId,
+    editorState.end_image_url,
+    editorState.start_image_url,
+    editorState.subtitle_text,
+    editorState.video_generation_mode,
+    editorState.video_prompt_flags.include_dialogue,
+    generatingVideo,
+    savingShot,
+    autoSaving,
+  ]);
 
   const syncShot = useCallback((nextShot: Shot) => {
     setShots((prev) => prev.map((shot) => (shot.id === nextShot.id ? nextShot : shot)));
   }, []);
 
-  const buildShotUpdateInput = useCallback((shot: Shot): UpdateShotInput => {
-    return {
-      character_id: editorState.character_id || null,
-      action_summary: editorState.action_summary.trim() || '未填写镜头描述',
-      camera_movement: editorState.camera_movement.trim() || undefined,
-      start_prompt: editorState.start_prompt.trim() || undefined,
-      end_prompt: editorState.end_prompt.trim() || undefined,
-      start_image_url: editorState.start_image_url,
-      end_image_url: editorState.end_image_url,
-      visual_style: editorState.visual_style.trim() || undefined,
-      subtitle_text: editorState.subtitle_text.trim() || null,
-      aspect_ratio: shot.aspect_ratio,
-      resolution: shot.resolution,
-      duration: shot.duration,
-    };
-  }, [editorState]);
+  const buildShotUpdateInput = useCallback(
+    (shot: Shot): UpdateShotInput => buildUpdateShotInputFromState(shot, editorState),
+    [editorState]
+  );
 
   const handleCreateShot = async () => {
     if (!episodeId) {
@@ -608,7 +701,11 @@ export default function EpisodeDetailPage() {
   };
 
   const handleGenerateVideo = async () => {
-    if (!activeShot || !activeVideoProviderId || !editorState.start_image_url || !editorState.end_image_url) {
+    if (!activeShot || !activeVideoProviderId) return;
+    if (
+      editorState.video_generation_mode === 'end_frame' &&
+      (!editorState.start_image_url || !editorState.end_image_url)
+    ) {
       return;
     }
 
@@ -635,7 +732,11 @@ export default function EpisodeDetailPage() {
 
       const result = await shotsApi.generateShot(activeShot.id, {
         provider_id: activeVideoProviderId,
-        sync_audio_video: syncAudioVideo,
+        video_generation_mode: editorState.video_generation_mode,
+        include_action_in_prompt: editorState.video_prompt_flags.include_action,
+        include_dialogue_in_prompt: editorState.video_prompt_flags.include_dialogue,
+        include_camera_in_prompt: editorState.video_prompt_flags.include_camera,
+        include_style_in_prompt: editorState.video_prompt_flags.include_style,
         subtitle_text: editorState.subtitle_text.trim() || undefined,
       });
 
@@ -686,13 +787,23 @@ export default function EpisodeDetailPage() {
 
     const readyShotIds = Array.from(selectedIds).filter((id) => {
       const shot = shots.find((s) => s.id === id);
-      return shot?.start_image_url && shot?.end_image_url;
+      if (!shot) return false;
+      const mode = shot.video_generation_mode === 'nine_grid' ? 'nine_grid' : 'end_frame';
+      if (mode === 'nine_grid') {
+        return !!shot.nine_grid_image_url;
+      }
+      return !!(shot.start_image_url && shot.end_image_url);
     });
 
     if (readyShotIds.length === 0) {
       setSaveMessage('所选分镜中没有就绪的双帧分镜');
       setSaveMessageTone('error');
-      addToast({ type: 'warning', title: '无法批量生成', message: '所选分镜中没有双帧就绪的分镜', duration: 4000 });
+      addToast({
+        type: 'warning',
+        title: '无法批量生成',
+        message: '所选分镜需满足：收尾帧模式双帧就绪，或九宫格模式已有合成图',
+        duration: 4000,
+      });
       return;
     }
 
@@ -710,12 +821,16 @@ export default function EpisodeDetailPage() {
 
       const processOne = async (shotId: string) => {
         const shot = shots.find((s) => s.id === shotId);
-        if (!shot?.start_image_url || !shot?.end_image_url) return;
+        if (!shot) return;
+        const mode = shot.video_generation_mode === 'nine_grid' ? 'nine_grid' : 'end_frame';
+        if (mode === 'nine_grid' && !shot.nine_grid_image_url) return;
+        if (mode === 'end_frame' && (!shot.start_image_url || !shot.end_image_url)) return;
 
         setGeneratingShotId(shotId);
         try {
-          if (syncAudioVideo && !(shot.subtitle_text?.trim())) {
-            const errorMsg = '音画同出需对白：请先在各镜填写对白/口播并保存后再批量生成';
+          const pf = parseVideoPromptFlags(shot.video_prompt_flags);
+          if (pf.include_dialogue && !(shot.subtitle_text?.trim())) {
+            const errorMsg = '对白并入视频提示已开启：请先填写对白/口播并保存后再批量生成';
             setShotErrors((prev) => ({ ...prev, [shotId]: errorMsg }));
             failedCount += 1;
             setBatchProgress((prev) => ({ ...prev, failed: prev.failed + 1 }));
@@ -723,24 +838,28 @@ export default function EpisodeDetailPage() {
             return;
           }
 
-          await shotsApi.updateShot(shotId, {
+          const batchEditor: ShotEditorState = {
             character_id: shot.character_id || null,
             action_summary: shot.action_summary || shot.description || '未填写镜头描述',
-            camera_movement: shot.camera_movement || undefined,
-            start_prompt: shot.start_prompt || undefined,
-            end_prompt: shot.end_prompt || undefined,
-            start_image_url: shot.start_image_url,
-            end_image_url: shot.end_image_url,
-            visual_style: shot.visual_style || undefined,
-            subtitle_text: shot.subtitle_text?.trim() || null,
-            aspect_ratio: shot.aspect_ratio,
-            resolution: shot.resolution,
-            duration: shot.duration,
-          });
+            camera_movement: shot.camera_movement || '',
+            start_prompt: shot.start_prompt || '',
+            end_prompt: shot.end_prompt || '',
+            start_image_url: shot.start_image_url ?? null,
+            end_image_url: shot.end_image_url ?? null,
+            visual_style: shot.visual_style || '',
+            subtitle_text: shot.subtitle_text || '',
+            video_generation_mode: mode,
+            video_prompt_flags: pf,
+          };
+          await shotsApi.updateShot(shotId, buildUpdateShotInputFromState(shot, batchEditor));
 
           const result = await shotsApi.generateShot(shotId, {
             provider_id: activeVideoProviderId,
-            sync_audio_video: syncAudioVideo,
+            video_generation_mode: mode,
+            include_action_in_prompt: pf.include_action,
+            include_dialogue_in_prompt: pf.include_dialogue,
+            include_camera_in_prompt: pf.include_camera,
+            include_style_in_prompt: pf.include_style,
           });
 
           const updatedShot = result.shot || {
@@ -830,20 +949,7 @@ export default function EpisodeDetailPage() {
         try {
           setAutoSaving(true);
 
-          const input: UpdateShotInput = {
-            character_id: stateToSave.character_id || null,
-            action_summary: stateToSave.action_summary.trim() || '未填写镜头描述',
-            camera_movement: stateToSave.camera_movement.trim() || undefined,
-            start_prompt: stateToSave.start_prompt.trim() || undefined,
-            end_prompt: stateToSave.end_prompt.trim() || undefined,
-            start_image_url: stateToSave.start_image_url,
-            end_image_url: stateToSave.end_image_url,
-            visual_style: stateToSave.visual_style.trim() || undefined,
-            subtitle_text: stateToSave.subtitle_text.trim() || null,
-            aspect_ratio: shot.aspect_ratio,
-            resolution: shot.resolution,
-            duration: shot.duration,
-          };
+          const input = buildUpdateShotInputFromState(shot, stateToSave);
 
           const updatedShot = await shotsApi.updateShot(shot.id, input);
           syncShot(updatedShot);
@@ -876,20 +982,7 @@ export default function EpisodeDetailPage() {
     const state = editorStateRef.current;
     if (!shot || !state) return null;
     if (!isDirtyRef.current) return shot;
-    const updated = await shotsApi.updateShot(shot.id, {
-      character_id: state.character_id || null,
-      action_summary: state.action_summary.trim() || '未填写镜头描述',
-      camera_movement: state.camera_movement.trim() || undefined,
-      start_prompt: state.start_prompt.trim() || undefined,
-      end_prompt: state.end_prompt.trim() || undefined,
-      start_image_url: state.start_image_url,
-      end_image_url: state.end_image_url,
-      visual_style: state.visual_style.trim() || undefined,
-      subtitle_text: state.subtitle_text.trim() || null,
-      aspect_ratio: shot.aspect_ratio,
-      resolution: shot.resolution,
-      duration: shot.duration,
-    });
+    const updated = await shotsApi.updateShot(shot.id, buildUpdateShotInputFromState(shot, state));
     syncShot(updated);
     isDirtyRef.current = false;
     setIsDirty(false);
@@ -1040,7 +1133,7 @@ export default function EpisodeDetailPage() {
                 <GlassButton
                   variant="secondary"
                   icon={selectedIds.size === shots.length ? <Square style={{ width: '16px', height: '16px' }} /> : <CheckSquare style={{ width: '16px', height: '16px' }} />}
-                  isDark={false}
+                 
                   onClick={selectAll}
                 >
                   {selectedIds.size > 0 ? `${selectedIds.size}/${shots.length}` : '全选'}
@@ -1050,7 +1143,7 @@ export default function EpisodeDetailPage() {
                     <GlassButton
                       variant="danger"
                       icon={batchDeleteLoading ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Trash2 style={{ width: '16px', height: '16px' }} />}
-                      isDark={false}
+                     
                       loading={batchDeleteLoading}
                       onClick={handleBulkDelete}
                     >
@@ -1074,7 +1167,7 @@ export default function EpisodeDetailPage() {
                     <GlassButton
                       variant="primary"
                       icon={batchGenerating ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Layers style={{ width: '16px', height: '16px' }} />}
-                      isDark={false}
+                     
                       loading={batchGenerating}
                       disabled={batchGenerating}
                       onClick={handleBatchGenerate}
@@ -1088,7 +1181,7 @@ export default function EpisodeDetailPage() {
             <GlassButton
               variant="primary"
               icon={<Plus style={{ width: '18px', height: '18px' }} />}
-              isDark={false}
+             
               onClick={handleCreateShot}
             >
               新建分镜
@@ -1109,12 +1202,19 @@ export default function EpisodeDetailPage() {
           <EmptyState onCreate={handleCreateShot} />
         ) : (
           <section style={workbenchStyle}>
+            <EpisodeStoryboardOverviewPanel
+              scriptContent={episode?.Script?.content}
+              scenes={episode?.Scene ?? []}
+              shots={shots}
+              selectedSceneId={selectedSceneId}
+              onSelectScene={setSelectedSceneId}
+            />
             <div style={listPanelStyle}>
               <div style={panelHeaderStyle}>
                 <div>
                   <h3 style={panelTitleStyle}>分镜列表</h3>
                   <p style={panelSubtitleStyle}>
-                    点击左侧分镜编辑；未聚焦输入框时 Alt+↑/↓ 切换分镜，Ctrl+S 保存，Ctrl+Alt+Z 撤销、Ctrl+Alt+Shift+Z 或 Ctrl+Alt+Y 重做编辑。
+                    点击分镜在右侧编辑；未聚焦输入框时 Alt+↑/↓ 切换分镜，Ctrl+S 保存，Ctrl+Alt+Z 撤销、Ctrl+Alt+Shift+Z 或 Ctrl+Alt+Y 重做编辑。
                   </p>
                 </div>
               </div>
@@ -1213,7 +1313,7 @@ export default function EpisodeDetailPage() {
                         <GlassButton
                           variant="secondary"
                           icon={generatingVideo ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Video style={{ width: '16px', height: '16px' }} />}
-                          isDark={false}
+                         
                           loading={generatingVideo}
                           disabled={!canGenerateVideo}
                           onClick={handleGenerateVideo}
@@ -1241,7 +1341,7 @@ export default function EpisodeDetailPage() {
                         <GlassButton
                           variant="secondary"
                           icon={<Undo2 style={{ width: '16px', height: '16px' }} />}
-                          isDark={false}
+                         
                           disabled={!canUndo || savingShot || generatingVideo}
                           onClick={handleUndo}
                           title="撤销（Ctrl+Alt+Z）"
@@ -1251,7 +1351,7 @@ export default function EpisodeDetailPage() {
                         <GlassButton
                           variant="secondary"
                           icon={<Redo2 style={{ width: '16px', height: '16px' }} />}
-                          isDark={false}
+                         
                           disabled={!canRedo || savingShot || generatingVideo}
                           onClick={handleRedo}
                           title="重做（Ctrl+Alt+Shift+Z 或 Ctrl+Alt+Y）"
@@ -1263,7 +1363,7 @@ export default function EpisodeDetailPage() {
                         <GlassButton
                           variant="primary"
                           icon={savingShot || autoSaving ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Save style={{ width: '16px', height: '16px' }} />}
-                          isDark={false}
+                         
                           loading={savingShot}
                           onClick={handleSaveShot}
                           title="快捷键 Ctrl+S"
@@ -1284,6 +1384,20 @@ export default function EpisodeDetailPage() {
                       <span style={outputStripHintStyle}>视频模型、出图模型与成片规格（本镜生效）</span>
                     </div>
                     <div style={outputStripGridStyle}>
+                      <label style={outputFieldLabelStyle}>
+                        视频生成模式
+                        <select
+                          value={editorState.video_generation_mode}
+                          onChange={(e) => {
+                            const v = e.target.value === 'nine_grid' ? 'nine_grid' : 'end_frame';
+                            handleEditorChange('video_generation_mode', v);
+                          }}
+                          style={outputSelectStyle}
+                        >
+                          <option value="end_frame">收尾帧（首尾帧）</option>
+                          <option value="nine_grid">九宫格参考</option>
+                        </select>
+                      </label>
                       <label style={outputFieldLabelStyle}>
                         视频模型
                         <select
@@ -1377,6 +1491,67 @@ export default function EpisodeDetailPage() {
                     <section style={editorSectionStyle}>
                       <div style={sectionTitleStyle}>
                         <FileText style={{ width: '16px', height: '16px' }} />
+                        镜头与音画
+                      </div>
+                      <p style={sectionHintStyle}>
+                        下方开关控制生成视频时是否把对应文案写入提示词；对白并入后实际是否有声画取决于模型能力。
+                      </p>
+                      <div style={toggleGridStyle}>
+                        <label style={toggleRowStyle}>
+                          <input
+                            type="checkbox"
+                            checked={editorState.video_prompt_flags.include_action}
+                            onChange={(e) =>
+                              handleEditorChange('video_prompt_flags', {
+                                ...editorState.video_prompt_flags,
+                                include_action: e.target.checked,
+                              })
+                            }
+                          />
+                          镜头描述并入视频提示
+                        </label>
+                        <label style={toggleRowStyle}>
+                          <input
+                            type="checkbox"
+                            checked={editorState.video_prompt_flags.include_camera}
+                            onChange={(e) =>
+                              handleEditorChange('video_prompt_flags', {
+                                ...editorState.video_prompt_flags,
+                                include_camera: e.target.checked,
+                              })
+                            }
+                          />
+                          镜头运动并入视频提示
+                        </label>
+                        <label style={toggleRowStyle}>
+                          <input
+                            type="checkbox"
+                            checked={editorState.video_prompt_flags.include_style}
+                            onChange={(e) =>
+                              handleEditorChange('video_prompt_flags', {
+                                ...editorState.video_prompt_flags,
+                                include_style: e.target.checked,
+                              })
+                            }
+                          />
+                          视觉风格并入视频提示
+                        </label>
+                        <label style={toggleRowStyle}>
+                          <input
+                            type="checkbox"
+                            checked={editorState.video_prompt_flags.include_dialogue}
+                            onChange={(e) =>
+                              handleEditorChange('video_prompt_flags', {
+                                ...editorState.video_prompt_flags,
+                                include_dialogue: e.target.checked,
+                              })
+                            }
+                          />
+                          对白 / 口播并入视频提示
+                        </label>
+                      </div>
+                      <div style={sectionTitleStyle}>
+                        <FileText style={{ width: '14px', height: '14px' }} />
                         镜头描述
                       </div>
                       <MentionInput
@@ -1386,16 +1561,10 @@ export default function EpisodeDetailPage() {
                         projectId={projectId || ''}
                         rows={6}
                       />
-                    </section>
-
-                    <section style={editorSectionStyle}>
-                      <div style={sectionTitleStyle}>
-                        <Mic style={{ width: '16px', height: '16px' }} />
-                        对白 / 口播（音画同出）
+                      <div style={{ ...sectionTitleStyle, marginTop: '14px' }}>
+                        <Mic style={{ width: '14px', height: '14px' }} />
+                        对白 / 口播
                       </div>
-                      <p style={sectionHintStyle}>
-                        开启下方「音画同出」时，将把台词一并写入视频生成提示；实际是否有声画、口型是否同步取决于所选模型与接口能力。
-                      </p>
                       <textarea
                         value={editorState.subtitle_text}
                         onChange={(e) => handleEditorChange('subtitle_text', e.target.value)}
@@ -1403,14 +1572,6 @@ export default function EpisodeDetailPage() {
                         style={textareaCompactStyle}
                         rows={3}
                       />
-                      <label style={syncAudioVideoRowStyle}>
-                        <input
-                          type="checkbox"
-                          checked={syncAudioVideo}
-                          onChange={(e) => setSyncAudioVideo(e.target.checked)}
-                        />
-                        音画同出（将上述对白并入视频生成提示）
-                      </label>
                     </section>
 
                     <section style={editorGridStyle}>
@@ -1489,103 +1650,118 @@ export default function EpisodeDetailPage() {
                       </div>
                     </section>
 
-                    <section style={editorSectionStyle}>
-                      <div style={sectionTitleStyle}>
-                        <Sparkles style={{ width: '16px', height: '16px' }} />
-                        由提示词生成首尾帧
-                      </div>
-                      <p style={sectionHintStyle}>
-                        使用上方开始/结束提示词与「输出设置」中的出图模型。生成后会自动填入引用素材。
-                      </p>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '8px' }}>
-                        <GlassButton
-                          variant="secondary"
-                          icon={
-                            generatingFrame === 'start' ? (
-                              <Loader2 style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite' }} />
-                            ) : (
-                              <Sparkles style={{ width: '14px', height: '14px' }} />
-                            )
-                          }
-                          isDark={false}
-                          loading={generatingFrame === 'start'}
-                          disabled={!!generatingFrame || !activeImageProviderId}
-                          onClick={() => void handleGenerateStartFrame()}
-                        >
-                          生成开始帧
-                        </GlassButton>
-                        <GlassButton
-                          variant="secondary"
-                          icon={
-                            generatingFrame === 'end' ? (
-                              <Loader2 style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite' }} />
-                            ) : (
-                              <Sparkles style={{ width: '14px', height: '14px' }} />
-                            )
-                          }
-                          isDark={false}
-                          loading={generatingFrame === 'end'}
-                          disabled={!!generatingFrame || !activeImageProviderId}
-                          onClick={() => void handleGenerateEndFrame()}
-                        >
-                          生成结束帧
-                        </GlassButton>
-                        <GlassButton
-                          variant="primary"
-                          icon={
-                            generatingFrame === 'both' ? (
-                              <Loader2 style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite' }} />
-                            ) : (
-                              <Layers style={{ width: '14px', height: '14px' }} />
-                            )
-                          }
-                          isDark={false}
-                          loading={generatingFrame === 'both'}
-                          disabled={!!generatingFrame || !activeImageProviderId}
-                          onClick={() => void handleGenerateBothFrames()}
-                        >
-                          同时生成首尾帧
-                        </GlassButton>
-                      </div>
-                    </section>
+                    {editorState.video_generation_mode === 'end_frame' && (
+                      <>
+                        <section style={editorSectionStyle}>
+                          <div style={sectionTitleStyle}>
+                            <Sparkles style={{ width: '16px', height: '16px' }} />
+                            由提示词生成首尾帧
+                          </div>
+                          <p style={sectionHintStyle}>
+                            使用上方开始/结束提示词与「输出设置」中的出图模型。生成后会自动填入引用素材。
+                          </p>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '8px' }}>
+                            <GlassButton
+                              variant="secondary"
+                              icon={
+                                generatingFrame === 'start' ? (
+                                  <Loader2 style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite' }} />
+                                ) : (
+                                  <Sparkles style={{ width: '14px', height: '14px' }} />
+                                )
+                              }
+                             
+                              loading={generatingFrame === 'start'}
+                              disabled={!!generatingFrame || !activeImageProviderId}
+                              onClick={() => void handleGenerateStartFrame()}
+                            >
+                              生成开始帧
+                            </GlassButton>
+                            <GlassButton
+                              variant="secondary"
+                              icon={
+                                generatingFrame === 'end' ? (
+                                  <Loader2 style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite' }} />
+                                ) : (
+                                  <Sparkles style={{ width: '14px', height: '14px' }} />
+                                )
+                              }
+                             
+                              loading={generatingFrame === 'end'}
+                              disabled={!!generatingFrame || !activeImageProviderId}
+                              onClick={() => void handleGenerateEndFrame()}
+                            >
+                              生成结束帧
+                            </GlassButton>
+                            <GlassButton
+                              variant="primary"
+                              icon={
+                                generatingFrame === 'both' ? (
+                                  <Loader2 style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite' }} />
+                                ) : (
+                                  <Layers style={{ width: '14px', height: '14px' }} />
+                                )
+                              }
+                             
+                              loading={generatingFrame === 'both'}
+                              disabled={!!generatingFrame || !activeImageProviderId}
+                              onClick={() => void handleGenerateBothFrames()}
+                            >
+                              同时生成首尾帧
+                            </GlassButton>
+                          </div>
+                        </section>
 
-                    <section style={editorSectionStyle}>
-                      <div style={sectionTitleStyle}>
-                        <Image style={{ width: '16px', height: '16px' }} />
-                        引用素材
-                      </div>
-                      <p style={sectionHintStyle}>可直接从项目素材库选择，或上传新素材作为分镜起止参考图。</p>
-                      <div style={assetGridStyle}>
-                        <div>
-                          <div style={assetLabelStyle}>开始素材</div>
-                          <ImageSelector
-                            value={editorState.start_image_url}
-                            onChange={(url) => handleEditorChange('start_image_url', url)}
-                            projectId={projectId || ''}
-                            type="general"
-                            placeholder="选择开始素材"
-                            defaultTab="library"
-                          />
-                        </div>
-                        <div>
-                          <div style={assetLabelStyle}>结束素材</div>
-                          <ImageSelector
-                            value={editorState.end_image_url}
-                            onChange={(url) => handleEditorChange('end_image_url', url)}
-                            projectId={projectId || ''}
-                            type="general"
-                            placeholder="选择结束素材"
-                            defaultTab="library"
-                          />
-                        </div>
-                      </div>
-                    </section>
+                        <section style={editorSectionStyle}>
+                          <div style={sectionTitleStyle}>
+                            <Image style={{ width: '16px', height: '16px' }} />
+                            引用素材
+                          </div>
+                          <p style={sectionHintStyle}>可直接从项目素材库选择，或上传新素材作为分镜起止参考图。</p>
+                          <div style={assetGridStyle}>
+                            <div>
+                              <div style={assetLabelStyle}>开始素材</div>
+                              <ImageSelector
+                                value={editorState.start_image_url}
+                                onChange={(url) => handleEditorChange('start_image_url', url)}
+                                projectId={projectId || ''}
+                                type="general"
+                                placeholder="选择开始素材"
+                                defaultTab="library"
+                              />
+                            </div>
+                            <div>
+                              <div style={assetLabelStyle}>结束素材</div>
+                              <ImageSelector
+                                value={editorState.end_image_url}
+                                onChange={(url) => handleEditorChange('end_image_url', url)}
+                                projectId={projectId || ''}
+                                type="general"
+                                placeholder="选择结束素材"
+                                defaultTab="library"
+                              />
+                            </div>
+                          </div>
+                        </section>
+                      </>
+                    )}
 
-                    <ShotNineGridWorkbench
-                      shotId={activeShot.id}
-                      defaultPrompt={editorState.start_prompt || editorState.action_summary || activeShot.description || ''}
-                      onApplyImage={handleApplyPanelImage}
-                    />
+                    {editorState.video_generation_mode === 'nine_grid' && (
+                      <ShotNineGridWorkbench
+                        shotId={activeShot.id}
+                        defaultPrompt={editorState.start_prompt || editorState.action_summary || activeShot.description || ''}
+                        onApplyImage={handleApplyPanelImage}
+                        imageProviderId={activeImageProviderId}
+                        onRemoteShotChange={async () => {
+                          try {
+                            const s = await shotsApi.getShot(activeShot.id);
+                            syncShot(s);
+                          } catch (e) {
+                            console.error(e);
+                          }
+                        }}
+                      />
+                    )}
 
                     {generatingVideo && (
                       <section style={videoGeneratingPanelStyle}>
@@ -1599,7 +1775,7 @@ export default function EpisodeDetailPage() {
                             已等待 {videoGenElapsedSec} 秒
                             <span style={{ opacity: 0.7 }}>·</span>
                             {activeShot.resolution || '1080p'} · {activeShot.duration ?? 8}s · {activeVideoProvider?.name || '当前模型'}
-                            {syncAudioVideo ? ' · 音画同出' : ''}
+                            {editorState.video_prompt_flags.include_dialogue ? ' · 对白并入提示' : ''}
                           </div>
                           <div style={videoGenProgressTrackStyle}>
                             <div style={{ ...videoGenProgressFillStyle, width: `${videoGenProgress}%` }} />
@@ -1614,7 +1790,15 @@ export default function EpisodeDetailPage() {
                     <section style={metaBarStyle}>
                       <span style={metaBadgeStyle}>视频 {activeVideoProvider?.name || '未配置'}</span>
                       <span style={metaBadgeStyle}>出图 {activeImageProvider?.name || '未配置'}</span>
-                      <span style={metaBadgeStyle}>{editorState.start_image_url && editorState.end_image_url ? '双帧已就绪' : '缺少起止帧'}</span>
+                      <span style={metaBadgeStyle}>
+                        {editorState.video_generation_mode === 'nine_grid'
+                          ? activeShot.nine_grid_image_url
+                            ? '九宫格合成已就绪'
+                            : '九宫格参考待准备'
+                          : editorState.start_image_url && editorState.end_image_url
+                            ? '双帧已就绪'
+                            : '缺少起止帧'}
+                      </span>
                       {saveMessage && (
                         <span
                           style={{
@@ -1687,7 +1871,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
       <GlassButton
         variant="primary"
         icon={<Plus style={{ width: '16px', height: '16px' }} />}
-        isDark={false}
+       
         onClick={onCreate}
       >
         添加分镜
@@ -1913,6 +2097,22 @@ const videoGeneratingHintStyle: CSSProperties = {
   color: 'var(--text-muted)',
 };
 
+const toggleGridStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+  gap: '10px 16px',
+  marginBottom: '14px',
+};
+
+const toggleRowStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  fontSize: '13px',
+  color: 'var(--text-secondary)',
+  cursor: 'pointer',
+};
+
 const syncAudioVideoRowStyle: CSSProperties = {
   display: 'flex',
   alignItems: 'flex-start',
@@ -2001,8 +2201,8 @@ const statValueStyle: CSSProperties = {
 
 const workbenchStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: '360px minmax(0, 1fr)',
-  gap: '20px',
+  gridTemplateColumns: 'minmax(220px, 1fr) minmax(280px, 1.1fr) minmax(0, 2.2fr)',
+  gap: '16px',
   alignItems: 'start',
 };
 

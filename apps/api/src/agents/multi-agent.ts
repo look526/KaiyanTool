@@ -1,5 +1,7 @@
+import crypto from 'crypto';
 import { prisma } from '../lib/prisma';
 import { providerManager } from '../services/ai/provider.manager';
+import { getOrCreateDefaultEpisode } from '../utils/episode-resolver';
 import { emitProgress, emitStreamChunk, emitTaskComplete, emitTaskError as _emitTaskError } from '../lib/websocket';
 import { MULTI_AGENT_PROMPTS } from '../prompts/agents';
 
@@ -405,10 +407,22 @@ export class StoryboardAgent extends BaseAgent {
           required: ['shot'],
         },
         execute: async (params, ctx) => {
+          const episode = await getOrCreateDefaultEpisode(ctx.projectId);
+          const raw = (params.shot || {}) as Record<string, unknown>;
           const shot = await prisma.shot.create({
             data: {
+              id: crypto.randomUUID(),
               project_id: ctx.projectId,
-              ...params.shot,
+              episode_id: episode.id,
+              scene_id: (raw.scene_id as string | null | undefined) ?? null,
+              character_id: (raw.character_id as string | null | undefined) ?? null,
+              action_summary: String(raw.action_summary ?? ''),
+              camera_movement: (raw.camera_movement as string | null | undefined) ?? null,
+              start_prompt: (raw.start_prompt as string | null | undefined) ?? null,
+              end_prompt: (raw.end_prompt as string | null | undefined) ?? null,
+              duration: typeof raw.duration === 'number' ? raw.duration : 8,
+              aspect_ratio: typeof raw.aspect_ratio === 'string' ? raw.aspect_ratio : '16:9',
+              updated_at: new Date(),
             },
           });
           return shot;

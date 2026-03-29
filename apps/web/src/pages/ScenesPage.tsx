@@ -16,11 +16,10 @@ import {
   CheckSquare,
   Square,
 } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
 import { GlassCard } from '../components/ui/GlassCard';
 import { GlassButton } from '../components/ui/GlassButton';
 import { GlassSelect } from '../components/ui/GlassSelect';
-import { StandardPageHeader } from '../components/ui/StandardPageHeader';
+import { CompactPageHero } from '../components/ui/CompactPageHero';
 import { apiClient } from '../lib/api';
 
 interface Scene {
@@ -58,10 +57,8 @@ const SORT_OPTIONS = [
 ];
 
 export default function ScenesPage() {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
-  const accentColor = '#8b5cf6';
-  const accentLight = '#a78bfa';
+  const accentColor = '#ba9eff';
+  const accentLight = '#d4bfff';
 
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [filteredScenes, setFilteredScenes] = useState<Scene[]>([]);
@@ -221,12 +218,14 @@ export default function ScenesPage() {
       position: 'relative',
       overflow: 'hidden',
     }}>
-      <StandardPageHeader
-        title="场景管理"
-        subtitle={`共 ${scenes.length} 个场景`}
-        icon={<MapPin style={{ width: '24px', height: '24px', color: 'white' }} />}
-        iconGradient={`linear-gradient(135deg, ${accentColor} 0%, ${accentLight} 100%)`}
-        iconShadow={`0 4px 14px ${accentColor}40`}
+      <CompactPageHero
+        title="SCENES"
+        subtitle="场景管理"
+        icon={<MapPin style={{ width: '20px', height: '20px', color: 'white' }} />}
+        stats={[
+          { value: scenes.length, label: '场景' },
+          { value: 0, label: '镜头' },
+        ]}
         actions={
           <>
             {filteredScenes.length > 0 && (
@@ -351,7 +350,7 @@ export default function ScenesPage() {
                 </div>
                 <p style={{ fontSize: '16px', fontWeight: '500', color: 'var(--text-primary)', marginBottom: '8px' }}>暂无场景</p>
                 <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>点击"添加场景"开始创建</p>
-                <GlassButton variant="primary" onClick={handleOpenModal} accentColor={accentColor} accentLight={accentLight}>
+                <GlassButton variant="primary" onClick={handleOpenModal}>
                   <Plus style={{ width: '16px', height: '16px' }} />
                   添加第一个场景
                 </GlassButton>

@@ -2,7 +2,7 @@ import { jsonrepair } from 'jsonrepair'
 import { config } from '../../config'
 import { providerManager } from '../ai/provider.manager'
 import { TextSegment } from './intelligent-segmenter'
-import { AI_PROCESSOR_PROMPTS } from '../../prompts/services'
+import { AI_PROCESSOR_PROMPTS, getScriptKindGuidance } from '../../prompts/services'
 
 export interface AISegmentResult {
   segmentId: string
@@ -75,7 +75,8 @@ export class AIProcessor {
   async processSegment(
     segment: TextSegment,
     providerId: string,
-    model?: string
+    model?: string,
+    scriptKind: string = 'standard'
   ): Promise<AISegmentResult> {
     console.log(`[AI处理器] 开始处理片段 ${segment.id}`)
 
@@ -84,7 +85,7 @@ export class AIProcessor {
       throw new Error(`Provider not found: ${providerId}`)
     }
 
-    const prompt = this.buildEnhancedPrompt(segment)
+    const prompt = this.buildEnhancedPrompt(segment, scriptKind)
 
     console.log(`[AI处理器] Prompt长度: ${prompt.length}，max_tokens: ${this.maxTokens}`)
 
@@ -152,7 +153,8 @@ export class AIProcessor {
     return this.extractBalancedJsonObject(stripped) === null
   }
 
-  private buildEnhancedPrompt(segment: TextSegment): string {
+  private buildEnhancedPrompt(segment: TextSegment, scriptKind: string): string {
+    const kind = scriptKind?.trim() || 'standard'
     return AI_PROCESSOR_PROMPTS.buildEnhancedPromptTemplate
       .replace('{{segmentId}}', segment.id)
       .replace('{{startLine}}', String(segment.startLine))
@@ -160,7 +162,9 @@ export class AIProcessor {
       .replace('{{type}}', segment.metadata.type)
       .replace('{{context}}', segment.context || '无')
       .replace('{{content}}', segment.content)
-      .replace('{{characters}}', segment.metadata.characters.join(', ') || '无');
+      .replace('{{characters}}', segment.metadata.characters.join(', ') || '无')
+      .replace('{{script_kind}}', kind)
+      .replace('{{script_kind_guidance}}', getScriptKindGuidance(kind))
   }
 
   /**

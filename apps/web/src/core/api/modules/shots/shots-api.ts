@@ -7,6 +7,15 @@ function unwrapResponse<T>(response: any): T {
   return response?.data?.data ?? response?.data ?? response;
 }
 
+export type VideoGenerationMode = 'end_frame' | 'nine_grid';
+
+export type VideoPromptFlags = {
+  include_action: boolean;
+  include_dialogue: boolean;
+  include_camera: boolean;
+  include_style: boolean;
+};
+
 export interface Shot {
   id: string;
   project_id?: string;
@@ -25,22 +34,28 @@ export interface Shot {
   end_prompt?: string | null;
   start_image_url?: string | null;
   end_image_url?: string | null;
+  nine_grid_image_url?: string | null;
   model: string | null;
   aspect_ratio: string;
   resolution: string;
   duration?: number;
   visual_style?: string | null;
   subtitle_text?: string | null;
+  video_generation_mode?: VideoGenerationMode;
+  video_prompt_flags?: VideoPromptFlags | null;
+  generation_prompt_json?: Record<string, unknown> | null;
   status: 'pending' | 'generating' | 'completed' | 'failed' | string;
   video_url: string | null;
   Scene?: {
     id: string;
     location?: string | null;
     time?: string | null;
+    description?: string | null;
   } | null;
   Character?: {
     id: string;
     name?: string | null;
+    appearance?: string | null;
   } | null;
   created_at: string;
   updated_at: string;
@@ -71,13 +86,21 @@ export interface UpdateShotInput {
   duration?: number;
   visual_style?: string;
   subtitle_text?: string | null;
+  video_generation_mode?: VideoGenerationMode;
+  video_prompt_flags?: VideoPromptFlags;
+  generation_prompt_json?: Record<string, unknown> | null;
 }
 
 export interface GenerateShotInput {
   provider_id: string;
-  /** 将台词并入视频提示，依赖模型是否支持有声/口型 */
+  /** 将台词并入视频提示，依赖模型是否支持有声/口型（兼容旧版） */
   sync_audio_video?: boolean;
   subtitle_text?: string;
+  video_generation_mode?: VideoGenerationMode;
+  include_action_in_prompt?: boolean;
+  include_dialogue_in_prompt?: boolean;
+  include_camera_in_prompt?: boolean;
+  include_style_in_prompt?: boolean;
 }
 
 export interface GenerateShotResponse {

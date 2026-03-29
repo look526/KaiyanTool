@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Settings, User, Key, Bell, Palette, Shield, ChevronRight, LogOut, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { PageHero } from '../components/ui/PageHero';
 
 interface SettingItem {
   icon: React.ElementType;
@@ -14,11 +16,35 @@ interface SettingItem {
 
 export default function SettingsPage() {
   const { logout } = useAuth();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [logoutHover, setLogoutHover] = useState(false);
 
   const handleLogout = async () => {
     await logout();
+  };
+
+  const colors = isDark ? {
+    bgPrimary: 'rgba(5, 5, 10, 0.95)',
+    bgSecondary: 'rgba(255, 255, 255, 0.03)',
+    bgGlass: 'rgba(255, 255, 255, 0.04)',
+    bgGlassHover: 'rgba(255, 255, 255, 0.06)',
+    textPrimary: '#fafafa',
+    textSecondary: 'rgba(250, 250, 250, 0.6)',
+    textMuted: 'rgba(250, 250, 250, 0.4)',
+    border: 'rgba(255, 255, 255, 0.06)',
+    borderHover: 'rgba(139, 92, 246, 0.25)',
+  } : {
+    bgPrimary: 'rgba(255, 255, 255, 0.92)',
+    bgSecondary: 'rgba(0, 0, 0, 0.02)',
+    bgGlass: 'rgba(0, 0, 0, 0.02)',
+    bgGlassHover: 'rgba(0, 0, 0, 0.04)',
+    textPrimary: '#18181b',
+    textSecondary: 'rgba(24, 24, 27, 0.6)',
+    textMuted: 'rgba(24, 24, 27, 0.4)',
+    border: 'rgba(0, 0, 0, 0.06)',
+    borderHover: 'rgba(139, 92, 246, 0.25)',
   };
 
   const settingsItems: SettingItem[] = [
@@ -37,14 +63,6 @@ export default function SettingsPage() {
       link: '/settings/ai',
       gradient: 'linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%)',
       color: '#06b6d4',
-    },
-    {
-      icon: Settings,
-      title: '模型配置',
-      description: '设置默认 AI 模型偏好',
-      link: '/settings/models',
-      gradient: 'linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)',
-      color: '#8b5cf6',
     },
     {
       icon: Bell,
@@ -74,21 +92,20 @@ export default function SettingsPage() {
 
   return (
     <div style={{ 
-      flex: 1, 
-      display: 'flex', 
-      flexDirection: 'column', 
-      background: 'var(--bg-base)',
-      minHeight: '100vh',
+      minHeight: '100vh', 
+      background: isDark 
+        ? 'linear-gradient(180deg, #05050a 0%, #0a0a12 50%, #0f0f1a 100%)'
+        : 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
       position: 'relative',
+      overflow: 'hidden',
     }}>
       <div style={{
         position: 'absolute',
-        top: '10%',
-        left: '15%',
-        width: '500px',
-        height: '500px',
-        background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.08) 35%, transparent 70%)',
-        filter: 'blur(120px)',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%)',
         pointerEvents: 'none',
       }} />
       <div style={{
@@ -97,60 +114,20 @@ export default function SettingsPage() {
         right: '10%',
         width: '450px',
         height: '450px',
-        background: 'radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, rgba(168, 85, 247, 0.06) 40%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, rgba(168, 85, 247, 0.04) 40%, transparent 70%)',
         filter: 'blur(100px)',
         pointerEvents: 'none',
       }} />
 
-      <header style={{
-        height: '72px',
-        background: 'var(--bg-elevated)',
-        backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid var(--border-primary)',
-        padding: '0 32px',
-        display: 'flex',
-        alignItems: 'center',
-        flexShrink: 0,
-        position: 'relative',
-        zIndex: 10,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '14px',
-            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 14px rgba(99, 102, 241, 0.3)',
-          }}>
-            <Settings style={{ width: '24px', height: '24px', color: 'white' }} />
-          </div>
-          <div>
-            <h1 style={{
-              fontSize: '22px',
-              fontWeight: '700',
-              color: 'var(--text-primary)',
-              margin: '0 0 4px 0',
-            }}>设置</h1>
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              管理您的账户和应用设置
-            </div>
-          </div>
-        </div>
-      </header>
+      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '48px 24px 24px', position: 'relative', zIndex: 10 }}>
+        <PageHero
+          title="SETTINGS"
+          subtitle="管理您的账户和应用设置"
+          icon={<Settings style={{ width: '28px', height: '28px', color: 'white' }} />}
+          glowColor="rgba(99, 102, 241, 0.12)"
+        />
 
-      <div style={{ 
-        flex: 1, 
-        overflow: 'auto', 
-        padding: '28px 32px', 
-        position: 'relative', 
-        zIndex: 10 
-      }}>
         <div style={{
-          maxWidth: '800px',
-          margin: '0 auto',
           display: 'flex',
           flexDirection: 'column',
           gap: '12px',
@@ -167,12 +144,12 @@ export default function SettingsPage() {
                   alignItems: 'center',
                   gap: '20px',
                   padding: '20px 24px',
-                  backgroundColor: isHovered ? `${item.color}08` : 'var(--bg-surface)',
+                  backgroundColor: isHovered ? `${item.color}08` : colors.bgGlass,
                   backdropFilter: 'blur(20px)',
-                  borderRadius: '16px',
-                  border: `1px solid ${isHovered ? `${item.color}30` : 'var(--border-primary)'}`,
+                  borderRadius: '18px',
+                  border: `1px solid ${isHovered ? `${item.color}30` : colors.border}`,
                   textDecoration: 'none',
-                  transition: 'all 0.2s ease',
+                  transition: 'all 0.25s ease',
                   boxShadow: isHovered ? `0 8px 24px ${item.color}15` : 'none',
                   transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
                 }}
@@ -197,14 +174,14 @@ export default function SettingsPage() {
                   <h3 style={{
                     fontSize: '16px',
                     fontWeight: '600',
-                    color: 'var(--text-primary)',
+                    color: colors.textPrimary,
                     margin: '0 0 4px 0',
                   }}>
                     {item.title}
                   </h3>
                   <p style={{
                     fontSize: '13px',
-                    color: 'var(--text-secondary)',
+                    color: colors.textSecondary,
                     margin: 0,
                   }}>
                     {item.description}
@@ -213,7 +190,7 @@ export default function SettingsPage() {
                 <ChevronRight style={{
                   width: '20px',
                   height: '20px',
-                  color: isHovered ? item.color : 'var(--text-muted)',
+                  color: isHovered ? item.color : colors.textMuted,
                   flexShrink: 0,
                   transition: 'color 0.2s ease',
                 }} />
@@ -229,16 +206,15 @@ export default function SettingsPage() {
             alignItems: 'center',
             gap: '20px',
             padding: '20px 24px',
-            backgroundColor: logoutHover ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-surface)',
+            backgroundColor: logoutHover ? 'rgba(239, 68, 68, 0.08)' : colors.bgGlass,
             backdropFilter: 'blur(20px)',
-            borderRadius: '16px',
-            border: `1px solid ${logoutHover ? 'rgba(239, 68, 68, 0.3)' : 'var(--border-primary)'}`,
+            borderRadius: '18px',
+            border: `1px solid ${logoutHover ? 'rgba(239, 68, 68, 0.3)' : colors.border}`,
             textDecoration: 'none',
             width: '100%',
-            maxWidth: '800px',
-            margin: '24px auto 0',
+            marginTop: '24px',
             cursor: 'pointer',
-            transition: 'all 0.2s ease',
+            transition: 'all 0.25s ease',
             color: '#ef4444',
             boxShadow: logoutHover ? '0 8px 24px rgba(239, 68, 68, 0.15)' : 'none',
             transform: logoutHover ? 'translateY(-2px)' : 'translateY(0)',
@@ -269,7 +245,7 @@ export default function SettingsPage() {
             </h3>
             <p style={{
               fontSize: '13px',
-              color: 'var(--text-secondary)',
+              color: colors.textSecondary,
               margin: 0,
             }}>
               退出当前账户
@@ -278,13 +254,12 @@ export default function SettingsPage() {
         </button>
 
         <div style={{
-          maxWidth: '800px',
-          margin: '32px auto 0',
+          marginTop: '32px',
           padding: '20px 24px',
-          backgroundColor: 'var(--bg-surface)',
+          backgroundColor: colors.bgGlass,
           backdropFilter: 'blur(20px)',
-          borderRadius: '16px',
-          border: '1px solid var(--border-primary)',
+          borderRadius: '18px',
+          border: `1px solid ${colors.border}`,
           textAlign: 'center',
         }}>
           <div style={{
@@ -295,11 +270,11 @@ export default function SettingsPage() {
             marginBottom: '6px',
           }}>
             <Sparkles style={{ width: 16, height: 16, color: '#6366f1' }} />
-            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '600' }}>
+            <span style={{ fontSize: '13px', color: colors.textSecondary, fontWeight: '600' }}>
               开演AI v1.0.0
             </span>
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: '12px', color: colors.textMuted }}>
             用 AI 创造无限可能
           </div>
         </div>

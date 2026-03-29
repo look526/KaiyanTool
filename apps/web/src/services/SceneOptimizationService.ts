@@ -169,9 +169,9 @@ class SceneOptimizationService {
       );
 
       return {
-        sceneId: scene.id,
-        originalContent: scene.content,
-        optimizedContent,
+        scene_id: scene.id,
+        original_content: scene.content,
+        optimized_content: optimizedContent,
         suggestions: this.generateSuggestions(request.direction),
         changes: this.generateChanges(request.direction, request.intensity),
         score: Math.round((3.5 + Math.random() * 1.5) * 10) / 10,

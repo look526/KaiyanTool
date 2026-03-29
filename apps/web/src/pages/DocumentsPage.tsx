@@ -1,33 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { GlassCard } from '../components/ui/GlassCard';
-import {
-  FileText,
-  FileCode,
-  FileImage,
-  FileVideo,
-  FileAudio,
-  File,
-  Search,
-  Grid3x3,
-  List,
-  Plus,
-  Calendar,
-  FolderOpen,
-  Sparkles,
-  SortAsc,
-  Filter,
-  MoreHorizontal,
-  Clock,
-  Edit3,
-  FilePlus,
-  FileSpreadsheet,
-  Layers,
-  ChevronRight,
-  RefreshCw,
-} from 'lucide-react';
+import { PageHero } from '../components/ui/PageHero';
+import { StatCard } from '../components/ui/StatCard';
 
 interface Document {
   id: string;
@@ -38,20 +13,17 @@ interface Document {
   createdAt: string;
   updatedAt: string;
   status?: string;
-  project?: {
-    id: string;
-    name: string;
-  };
+  project?: { id: string; name: string };
 }
 
-const DOCUMENT_TYPES: Record<string, { icon: React.ElementType; gradient: string; bgGradient: string; label: string }> = {
-  script: { icon: FileCode, gradient: 'linear-gradient(135deg, #ba9eff 0%, #8455ef 100%)', bgGradient: 'linear-gradient(135deg, rgba(186, 158, 255, 0.15) 0%, rgba(132, 85, 239, 0.1) 100%)', label: '剧本' },
-  novel: { icon: FileText, gradient: 'linear-gradient(135deg, #34b5fa 0%, #17a8ec 100%)', bgGradient: 'linear-gradient(135deg, rgba(52, 181, 250, 0.15) 0%, rgba(23, 168, 236, 0.1) 100%)', label: '小说' },
-  outline: { icon: FileSpreadsheet, gradient: 'linear-gradient(135deg, #34d399 0%, #10b981 100%)', bgGradient: 'linear-gradient(135deg, rgba(52, 211, 153, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%)', label: '大纲' },
-  storyboard: { icon: FileImage, gradient: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)', bgGradient: 'linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.1) 100%)', label: '故事板' },
-  video: { icon: FileVideo, gradient: 'linear-gradient(135deg, #f87171 0%, #ef4444 100%)', bgGradient: 'linear-gradient(135deg, rgba(248, 113, 113, 0.15) 0%, rgba(239, 68, 68, 0.1) 100%)', label: '视频' },
-  audio: { icon: FileAudio, gradient: 'linear-gradient(135deg, #f472b6 0%, #ec4899 100%)', bgGradient: 'linear-gradient(135deg, rgba(244, 114, 182, 0.15) 0%, rgba(236, 72, 153, 0.1) 100%)', label: '音频' },
-  general: { icon: File, gradient: 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)', bgGradient: 'linear-gradient(135deg, rgba(148, 163, 184, 0.15) 0%, rgba(100, 116, 139, 0.1) 100%)', label: '文档' },
+const DOCUMENT_TYPES: Record<string, { gradient: string; label: string }> = {
+  script: { gradient: 'linear-gradient(135deg, #ba9eff 0%, #8455ef 100%)', label: '剧本' },
+  novel: { gradient: 'linear-gradient(135deg, #34b5fa 0%, #17a8ec 100%)', label: '小说' },
+  outline: { gradient: 'linear-gradient(135deg, #34d399 0%, #10b981 100%)', label: '大纲' },
+  storyboard: { gradient: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)', label: '故事板' },
+  video: { gradient: 'linear-gradient(135deg, #f87171 0%, #ef4444 100%)', label: '视频' },
+  audio: { gradient: 'linear-gradient(135deg, #f472b6 0%, #ec4899 100%)', label: '音频' },
+  general: { gradient: 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)', label: '文档' },
 };
 
 const STATUS_CONFIG: Record<string, { bgColor: string; label: string }> = {
@@ -79,27 +51,56 @@ const DocumentsPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [filterHovered, setFilterHovered] = useState(false);
+  const [createHover, setCreateHover] = useState(false);
 
-  useEffect(() => {
-    fetchDocuments();
-  }, []);
+  const colors = isDark ? {
+    bgBase: '#070d1f',
+    bgSurface: '#0c1326',
+    bgElevated: '#171f36',
+    bgGlass: 'rgba(28, 37, 62, 0.4)',
+    bgGlassHover: 'rgba(255, 255, 255, 0.06)',
+    textPrimary: '#dfe4fe',
+    textSecondary: 'rgba(223, 228, 254, 0.6)',
+    textMuted: '#a5aac2',
+    border: 'rgba(255, 255, 255, 0.06)',
+    borderHover: 'rgba(139, 92, 246, 0.25)',
+    accent: '#8b5cf6',
+    accentLight: '#a78bfa',
+    accentDim: '#7c3aed',
+    glow: 'rgba(139, 92, 246, 0.12)',
+    inputBg: 'rgba(255, 255, 255, 0.04)',
+  } : {
+    bgBase: '#f8fafc',
+    bgSurface: '#f1f5f9',
+    bgElevated: '#ffffff',
+    bgGlass: 'rgba(255, 255, 255, 0.8)',
+    bgGlassHover: 'rgba(0, 0, 0, 0.04)',
+    textPrimary: '#18181b',
+    textSecondary: 'rgba(24, 24, 27, 0.6)',
+    textMuted: 'rgba(24, 24, 27, 0.5)',
+    border: 'rgba(0, 0, 0, 0.06)',
+    borderHover: 'rgba(139, 92, 246, 0.25)',
+    accent: '#7c3aed',
+    accentLight: '#8b5cf6',
+    accentDim: '#6d28d9',
+    glow: 'rgba(139, 92, 246, 0.08)',
+    inputBg: 'rgba(0, 0, 0, 0.04)',
+  };
+
+  useEffect(() => { fetchDocuments(); }, []);
 
   const fetchDocuments = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/documents', {
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const response = await fetch('/api/documents', { headers: { 'Content-Type': 'application/json' } });
       if (!response.ok) throw new Error('Failed to fetch documents');
       const data = await response.json();
       setDocuments(data.documents || data || []);
     } catch (err) {
       setError('加载文档失败');
       console.error('Error fetching documents:', err);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const handleCreateDocument = () => navigate('/documents/create');
@@ -110,8 +111,7 @@ const DocumentsPage: React.FC = () => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
     if (diffDays === 0) return '今天';
     if (diffDays === 1) return '昨天';
     if (diffDays < 7) return `${diffDays} 天前`;
@@ -138,10 +138,7 @@ const DocumentsPage: React.FC = () => {
     return result;
   }, [documents, searchQuery, sortBy, selectedType]);
 
-  const uniqueTypes = useMemo(() => {
-    const types = new Set(documents.map((doc) => doc.type));
-    return Array.from(types);
-  }, [documents]);
+  const uniqueTypes = useMemo(() => Array.from(new Set(documents.map((doc) => doc.type))), [documents]);
 
   const stats = useMemo(() => {
     const typeCounts: Record<string, number> = {};
@@ -151,18 +148,12 @@ const DocumentsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: `linear-gradient(180deg, ${colors.bgBase} 0%, ${colors.bgSurface} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{
-            width: '56px', height: '56px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
-            boxShadow: '0 8px 32px var(--accent-shadow)',
-            animation: 'pulse 2s infinite',
-          }}>
-            <Sparkles style={{ width: '28px', height: '28px', color: 'white' }} />
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentLight} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: `0 8px 32px ${colors.accent}40`, animation: 'pulse 2s infinite' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '28px', color: 'white' }}>auto_awesome</span>
           </div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>加载中...</p>
+          <p style={{ color: colors.textSecondary, fontSize: '15px' }}>加载中...</p>
         </div>
       </div>
     );
@@ -170,23 +161,15 @@ const DocumentsPage: React.FC = () => {
 
   if (error) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-base)', padding: '24px' }}>
+      <div style={{ minHeight: '100vh', background: `linear-gradient(180deg, ${colors.bgBase} 0%, ${colors.bgSurface} 100%)`, padding: '24px' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center' }}>
-          <div style={{
-            width: '80px', height: '80px', borderRadius: '24px',
-            background: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px',
-          }}>
-            <FileText style={{ width: '40px', height: '40px', color: '#ef4444' }} />
+          <div style={{ width: '80px', height: '80px', borderRadius: '24px', background: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '40px', color: '#ef4444' }}>description</span>
           </div>
-          <h2 style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '8px' }}>加载失败</h2>
-          <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>{error}</p>
-          <button onClick={fetchDocuments} style={{
-            display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px',
-            borderRadius: '14px', background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%)',
-            color: 'white', border: 'none', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
-            boxShadow: '0 8px 24px var(--accent-shadow)',
-          }}>
-            <RefreshCw style={{ width: '16px', height: '16px' }} /> 重试
+          <h2 style={{ fontSize: '20px', fontWeight: 600, color: colors.textPrimary, marginBottom: '8px' }}>加载失败</h2>
+          <p style={{ fontSize: '14px', color: colors.textMuted, marginBottom: '24px' }}>{error}</p>
+          <button onClick={fetchDocuments} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', borderRadius: '14px', background: `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentLight} 100%)`, color: 'white', border: 'none', fontSize: '14px', fontWeight: 600, cursor: 'pointer', boxShadow: `0 8px 24px ${colors.accent}40` }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>refresh</span> 重试
           </button>
         </div>
       </div>
@@ -194,190 +177,116 @@ const DocumentsPage: React.FC = () => {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-base)', position: 'relative', overflowX: 'hidden' }}>
-      <div style={{
-        position: 'fixed', top: '-20%', right: '-10%', width: '50%', height: '50%',
-        background: 'radial-gradient(ellipse at center, rgba(186, 158, 255, 0.08) 0%, transparent 70%)',
-        filter: 'blur(80px)', pointerEvents: 'none',
-      }} />
+    <div style={{ minHeight: '100vh', background: `linear-gradient(180deg, ${colors.bgBase} 0%, ${colors.bgSurface} 50%, ${colors.bgElevated} 100%)`, position: 'relative', overflowX: 'hidden' }}>
+      <div style={{ position: 'absolute', top: 0, left: '20%', width: '60%', height: '400px', background: `radial-gradient(ellipse at center, ${colors.glow} 0%, transparent 70%)`, pointerEvents: 'none' }} />
 
-      <header style={{
-        position: 'sticky', top: 0, zIndex: 40,
-        background: isDark ? 'rgba(7, 13, 31, 0.8)' : 'rgba(255, 255, 255, 0.85)',
-        backdropFilter: 'blur(24px)',
-        borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(0, 0, 0, 0.06)',
-        padding: '24px 48px',
-      }}>
-        <div style={{ maxWidth: '1600px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{
-                width: '52px', height: '52px', borderRadius: '16px',
-                background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 8px 24px var(--accent-shadow)',
-              }}>
-                <FolderOpen style={{ width: '26px', height: '26px', color: 'white' }} />
-              </div>
-              <div>
-                <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>文档管理中心</h1>
-                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>共 {documents.length} 个文档</p>
-              </div>
+      <main style={{ marginLeft: '256px', position: 'relative', zIndex: 1, padding: '112px 48px 48px' }}>
+        <PageHero
+          title="DOCUMENTS"
+          subtitle="管理您的文档"
+          icon={<span className="material-symbols-outlined" style={{ fontSize: '28px', color: 'white' }}>description</span>}
+          stats={[
+            { value: stats.total, label: '全部文档' },
+            { value: stats.typeCounts['script'] || 0, label: '剧本' },
+            { value: stats.typeCounts['novel'] || 0, label: '小说' },
+          ]}
+        />
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ position: 'relative', minWidth: '280px' }}>
+              <span className="material-symbols-outlined" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '18px', color: colors.textMuted }}>search</span>
+              <input type="text" placeholder="搜索文档..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ width: '100%', height: '44px', padding: '0 16px 0 44px', border: `1px solid ${colors.border}`, borderRadius: '14px', background: colors.inputBg, color: colors.textPrimary, fontSize: '14px', outline: 'none' }} />
             </div>
-            <button onClick={handleCreateDocument} style={{
-              display: 'flex', alignItems: 'center', gap: '8px', padding: '14px 28px',
-              borderRadius: '14px', background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%)',
-              color: 'white', border: 'none', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
-              boxShadow: '0 8px 24px var(--accent-shadow)', transition: 'all 0.3s ease',
-            }}>
-              <Plus style={{ width: '18px', height: '18px' }} /> 新建文档
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', flex: '1', minWidth: '280px' }}>
-              <Search style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '18px', height: '18px', color: 'var(--text-muted)' }} />
-              <input
-                type="text" placeholder="搜索文档..." value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: '100%', height: '44px', padding: '0 16px 0 44px',
-                  border: isDark ? '1px solid var(--border-primary)' : '1px solid var(--border-primary)',
-                  borderRadius: '14px', background: isDark ? 'var(--bg-surface)' : 'var(--bg-elevated)',
-                  color: 'var(--text-primary)', fontSize: '14px', outline: 'none', transition: 'all 0.2s ease',
-                }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--accent-bg)'; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.boxShadow = 'none'; }}
-              />
-            </div>
-
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortOption)} style={{
-              height: '44px', padding: '0 36px 0 16px', fontSize: '13px',
-              background: isDark ? 'var(--bg-surface)' : 'var(--bg-elevated)',
-              border: '1px solid var(--border-primary)', borderRadius: '14px',
-              color: 'var(--text-primary)', cursor: 'pointer', outline: 'none', appearance: 'none',
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236f758b' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
-              backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center',
-            }}>
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortOption)} style={{ height: '44px', padding: '0 36px 0 16px', fontSize: '13px', background: colors.inputBg, border: `1px solid ${colors.border}`, borderRadius: '14px', color: colors.textPrimary, cursor: 'pointer', outline: 'none' }}>
               <option value="newest">最新创建</option>
               <option value="oldest">最早创建</option>
               <option value="updated">最近更新</option>
               <option value="title">按标题</option>
             </select>
-
-            <button onClick={() => setShowFilters(!showFilters)} style={{
-              height: '44px', width: '44px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: '14px', background: showFilters ? 'var(--accent)' : (filterHovered ? 'var(--bg-hover)' : 'var(--bg-surface)'),
-              border: '1px solid var(--border-primary)', color: showFilters ? 'white' : 'var(--text-secondary)',
-              cursor: 'pointer', transition: 'all 0.2s ease',
-            }}
-              onMouseEnter={() => setFilterHovered(true)} onMouseLeave={() => setFilterHovered(false)}>
-              <Filter style={{ width: '18px', height: '18px' }} />
+            <button onClick={() => setShowFilters(!showFilters)} onMouseEnter={() => setFilterHovered(true)} onMouseLeave={() => setFilterHovered(false)} style={{ height: '44px', width: '44px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '14px', background: showFilters ? colors.accent : (filterHovered ? colors.bgGlassHover : colors.inputBg), border: `1px solid ${colors.border}`, color: showFilters ? 'white' : colors.textSecondary, cursor: 'pointer' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>filter_list</span>
             </button>
-
-            <div style={{ display: 'flex', background: 'var(--bg-surface)', border: '1px solid var(--border-primary)', borderRadius: '14px', overflow: 'hidden' }}>
-              <button onClick={() => setViewMode('grid')} style={{
-                height: '44px', width: '44px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: viewMode === 'grid' ? 'var(--accent)' : 'transparent', border: 'none',
-                color: viewMode === 'grid' ? 'white' : 'var(--text-secondary)', cursor: 'pointer', transition: 'all 0.2s ease',
-              }}>
-                <Grid3x3 style={{ width: '18px', height: '18px' }} />
+            <div style={{ display: 'flex', background: colors.inputBg, border: `1px solid ${colors.border}`, borderRadius: '14px', overflow: 'hidden' }}>
+              <button onClick={() => setViewMode('grid')} style={{ height: '44px', width: '44px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: viewMode === 'grid' ? colors.accent : 'transparent', border: 'none', color: viewMode === 'grid' ? 'white' : colors.textSecondary, cursor: 'pointer' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>grid_view</span>
               </button>
-              <button onClick={() => setViewMode('list')} style={{
-                height: '44px', width: '44px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: viewMode === 'list' ? 'var(--accent)' : 'transparent', border: 'none',
-                color: viewMode === 'list' ? 'white' : 'var(--text-secondary)', cursor: 'pointer', transition: 'all 0.2s ease',
-              }}>
-                <List style={{ width: '18px', height: '18px' }} />
+              <button onClick={() => setViewMode('list')} style={{ height: '44px', width: '44px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: viewMode === 'list' ? colors.accent : 'transparent', border: 'none', color: viewMode === 'list' ? 'white' : colors.textSecondary, cursor: 'pointer' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>view_list</span>
               </button>
             </div>
           </div>
-
-          {showFilters && uniqueTypes.length > 0 && (
-            <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button onClick={() => setSelectedType(null)} style={{
-                height: '36px', padding: '0 16px', fontSize: '13px', fontWeight: 500,
-                backgroundColor: selectedType === null ? 'var(--accent)' : 'var(--bg-surface)',
-                border: '1px solid var(--border-primary)', borderRadius: '10px',
-                color: selectedType === null ? 'white' : 'var(--text-secondary)', cursor: 'pointer', transition: 'all 0.2s ease',
-              }}>全部</button>
-              {uniqueTypes.map((type) => {
-                const config = getDocumentTypeConfig(type);
-                const ConfigIcon = config.icon;
-                return (
-                  <button key={type} onClick={() => setSelectedType(selectedType === type ? null : type)} style={{
-                    height: '36px', padding: '0 14px', fontSize: '13px', fontWeight: 500,
-                    backgroundColor: selectedType === type ? 'var(--accent)' : 'transparent',
-                    border: `1px solid ${selectedType === type ? 'var(--accent)' : 'var(--border-primary)'}`, borderRadius: '10px',
-                    color: selectedType === type ? 'white' : 'var(--text-secondary)', cursor: 'pointer', transition: 'all 0.2s ease',
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                  }}>
-                    <ConfigIcon style={{ width: '14px', height: '14px' }} /> {config.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          <button onClick={handleCreateDocument} onMouseEnter={() => setCreateHover(true)} onMouseLeave={() => setCreateHover(false)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 28px', borderRadius: '16px', fontSize: '14px', fontWeight: 600, border: 'none', background: createHover ? `linear-gradient(135deg, ${colors.accentDim} 0%, ${colors.accent} 100%)` : `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentLight} 100%)`, color: 'white', cursor: 'pointer', boxShadow: `0 8px 24px ${colors.accent}30`, transform: createHover ? 'translateY(-2px)' : 'translateY(0)', transition: 'all 0.3s ease' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span> 新建文档
+          </button>
         </div>
-      </header>
 
-      <main style={{ maxWidth: '1600px', margin: '0 auto', padding: '32px 48px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
-          <StatCard icon={FileText} gradient="linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%)" label="总文档" value={stats.total} />
-          {Object.entries(stats.typeCounts).slice(0, 3).map(([type, count]) => {
-            const config = getDocumentTypeConfig(type);
-            const Icon = config.icon;
-            return <StatCard key={type} icon={Icon} gradient={config.gradient} label={config.label} value={count} />;
-          })}
-        </div>
+        {showFilters && uniqueTypes.length > 0 && (
+          <div style={{ marginBottom: '24px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button onClick={() => setSelectedType(null)} style={{ height: '36px', padding: '0 16px', fontSize: '13px', fontWeight: 500, background: selectedType === null ? colors.accent : colors.inputBg, border: `1px solid ${colors.border}`, borderRadius: '10px', color: selectedType === null ? 'white' : colors.textSecondary, cursor: 'pointer' }}>全部</button>
+            {uniqueTypes.map((type) => {
+              const config = getDocumentTypeConfig(type);
+              return (
+                <button key={type} onClick={() => setSelectedType(selectedType === type ? null : type)} style={{ height: '36px', padding: '0 14px', fontSize: '13px', fontWeight: 500, background: selectedType === type ? colors.accent : 'transparent', border: `1px solid ${selectedType === type ? colors.accent : colors.border}`, borderRadius: '10px', color: selectedType === type ? 'white' : colors.textSecondary, cursor: 'pointer' }}>
+                  {config.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {filteredAndSortedDocuments.length === 0 ? (
-          <div style={{
-            background: 'var(--bg-surface)', borderRadius: '24px', padding: '80px 32px', textAlign: 'center',
-            border: isDark ? '1px solid var(--border-primary)' : '1px solid var(--border-primary)',
-          }}>
-            <div style={{
-              width: '96px', height: '96px', borderRadius: '24px',
-              background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px',
-            }}>
-              <FilePlus style={{ width: '40px', height: '40px', color: 'var(--text-muted)' }} />
+          <div style={{ background: colors.bgGlass, borderRadius: '24px', padding: '80px 32px', textAlign: 'center', border: `1px solid ${colors.border}` }}>
+            <div style={{ width: '96px', height: '96px', borderRadius: '24px', background: colors.bgGlassHover, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '40px', color: colors.textMuted }}>note_add</span>
             </div>
-            <p style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
-              {searchQuery ? '未找到匹配的文档' : '暂无文档'}
-            </p>
-            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px' }}>
-              {searchQuery ? '尝试调整搜索条件或筛选器' : '点击右上角创建您的第一个文档'}
-            </p>
+            <p style={{ fontSize: '18px', fontWeight: 600, color: colors.textPrimary, marginBottom: '8px' }}>{searchQuery ? '未找到匹配的文档' : '暂无文档'}</p>
+            <p style={{ fontSize: '14px', color: colors.textSecondary, marginBottom: '24px' }}>{searchQuery ? '尝试调整搜索条件或筛选器' : '点击右上角创建您的第一个文档'}</p>
             {!searchQuery && (
-              <button onClick={handleCreateDocument} style={{
-                display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '14px 28px',
-                borderRadius: '14px', background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%)',
-                color: 'white', border: 'none', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
-                boxShadow: '0 8px 24px var(--accent-shadow)',
-              }}>
-                <Plus style={{ width: '16px', height: '16px' }} /> 新建文档
+              <button onClick={handleCreateDocument} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '14px 28px', borderRadius: '14px', background: `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentLight} 100%)`, color: 'white', border: 'none', fontSize: '14px', fontWeight: 600, cursor: 'pointer', boxShadow: `0 8px 24px ${colors.accent}30` }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span> 新建文档
               </button>
             )}
           </div>
         ) : viewMode === 'grid' ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '24px' }}>
             {filteredAndSortedDocuments.map((document) => {
               const typeConfig = getDocumentTypeConfig(document.type);
               const statusConfig = getStatusConfig(document.status || 'draft');
-              const TypeIcon = typeConfig.icon;
               const isHovered = hoveredCard === document.id;
               return (
-                <DocumentCard
-                  key={document.id}
-                  document={document}
-                  typeConfig={typeConfig}
-                  statusConfig={statusConfig}
-                  TypeIcon={TypeIcon}
-                  isHovered={isHovered}
-                  onHover={(hovered) => setHoveredCard(hovered ? document.id : null)}
-                  onClick={() => handleDocumentClick(document)}
-                  formatDate={formatDate}
-                />
+                <div key={document.id} onClick={() => handleDocumentClick(document)} onMouseEnter={() => setHoveredCard(document.id)} onMouseLeave={() => setHoveredCard(null)} style={{ background: colors.bgGlass, borderRadius: '24px', overflow: 'hidden', cursor: 'pointer', border: `1px solid ${isHovered ? colors.borderHover : colors.border}`, transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', transform: isHovered ? 'translateY(-8px) scale(1.02)' : 'translateY(0) scale(1)', boxShadow: isHovered ? `0 30px 60px ${colors.accent}20` : 'none' }}>
+                  <div style={{ height: '120px', background: typeConfig.gradient, opacity: 0.15 }} />
+                  <div style={{ padding: '24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+                      <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: typeConfig.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 8px 20px ${colors.accent}30` }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '26px', color: 'white' }}>description</span>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: 700, color: colors.textPrimary, margin: '0 0 8px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{document.title}</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ padding: '4px 10px', fontSize: '11px', fontWeight: 600, color: colors.accent, background: `${colors.accent}20`, borderRadius: '6px' }}>{typeConfig.label}</span>
+                          <span style={{ padding: '4px 10px', fontSize: '11px', fontWeight: 600, color: colors.textSecondary, background: statusConfig.bgColor, borderRadius: '6px' }}>{statusConfig.label}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: '13px', color: colors.textSecondary, lineHeight: 1.6, margin: '0 0 16px 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: '42px' }}>
+                      {(document.content || '').substring(0, 100).replace(/<[^>]*>/g, '')}
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: colors.bgGlassHover, borderRadius: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px', color: colors.textMuted }}>schedule</span>
+                        <span style={{ fontSize: '12px', color: colors.textSecondary }}>{formatDate(document.updatedAt)}</span>
+                      </div>
+                      {document.project && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', fontSize: '11px', fontWeight: 500, color: colors.textSecondary, background: colors.bgGlass, borderRadius: '6px' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>folder_open</span>
+                          {document.project.name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -386,32 +295,44 @@ const DocumentsPage: React.FC = () => {
             {filteredAndSortedDocuments.map((document) => {
               const typeConfig = getDocumentTypeConfig(document.type);
               const statusConfig = getStatusConfig(document.status || 'draft');
-              const TypeIcon = typeConfig.icon;
               const isHovered = hoveredCard === document.id;
               return (
-                <DocumentListItem
-                  key={document.id}
-                  document={document}
-                  typeConfig={typeConfig}
-                  statusConfig={statusConfig}
-                  TypeIcon={TypeIcon}
-                  isHovered={isHovered}
-                  onHover={(hovered) => setHoveredCard(hovered ? document.id : null)}
-                  onClick={() => handleDocumentClick(document)}
-                  formatDate={formatDate}
-                />
+                <div key={document.id} onClick={() => handleDocumentClick(document)} onMouseEnter={() => setHoveredCard(document.id)} onMouseLeave={() => setHoveredCard(null)} style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '20px 24px', background: colors.bgGlass, borderRadius: '18px', cursor: 'pointer', border: `1px solid ${isHovered ? colors.borderHover : colors.border}`, transition: 'all 0.25s ease', transform: isHovered ? 'translateX(6px)' : 'translateX(0)', boxShadow: isHovered ? `0 12px 32px ${colors.accent}15` : 'none' }}>
+                  <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: typeConfig.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '26px', color: 'white' }}>description</span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                      <h3 style={{ fontSize: '15px', fontWeight: 600, color: colors.textPrimary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{document.title}</h3>
+                      <span style={{ padding: '3px 8px', fontSize: '10px', fontWeight: 600, color: colors.accent, background: `${colors.accent}20`, borderRadius: '4px' }}>{typeConfig.label}</span>
+                      <span style={{ padding: '3px 8px', fontSize: '10px', fontWeight: 600, color: colors.textSecondary, background: statusConfig.bgColor, borderRadius: '4px' }}>{statusConfig.label}</span>
+                    </div>
+                    <p style={{ fontSize: '13px', color: colors.textMuted, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {(document.content || '').substring(0, 80).replace(/<[^>]*>/g, '')}
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+                    {document.project && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', fontSize: '12px', fontWeight: 500, color: colors.textSecondary, background: colors.bgGlassHover, borderRadius: '8px' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>folder_open</span>
+                        {document.project.name}
+                      </span>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '14px', color: colors.textMuted }}>schedule</span>
+                      <span style={{ fontSize: '12px', color: colors.textSecondary }}>{formatDate(document.updatedAt)}</span>
+                    </div>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: colors.textMuted }}>chevron_right</span>
+                  </div>
+                </div>
               );
             })}
           </div>
         )}
 
         {filteredAndSortedDocuments.length > 0 && (
-          <div style={{
-            marginTop: '32px', padding: '20px 0',
-            borderTop: isDark ? '1px solid var(--border-primary)' : '1px solid var(--border-primary)',
-            display: 'flex', justifyContent: 'center',
-          }}>
-            <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
+          <div style={{ marginTop: '32px', padding: '16px 0', borderTop: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'center' }}>
+            <span style={{ fontSize: '13px', color: colors.textMuted }}>
               显示 {filteredAndSortedDocuments.length} 个文档
               {selectedType && ` · 类型: ${getDocumentTypeConfig(selectedType).label}`}
             </span>
@@ -421,202 +342,7 @@ const DocumentsPage: React.FC = () => {
 
       <style>{`
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--accent-bg); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
       `}</style>
-    </div>
-  );
-};
-
-interface StatCardProps {
-  icon: React.ElementType;
-  gradient: string;
-  label: string;
-  value: number;
-}
-
-const StatCard: React.FC<StatCardProps> = ({ icon: Icon, gradient, label, value }) => {
-  const [isHovered, setIsHovered] = useState(false);
-  return (
-    <div
-      onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}
-      style={{
-        background: 'var(--bg-surface)', borderRadius: '20px', padding: '24px',
-        border: isHovered ? '1px solid var(--accent)' : '1px solid var(--border-primary)',
-        backdropFilter: 'blur(20px)', transition: 'all 0.3s ease',
-        transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
-        boxShadow: isHovered ? '0 20px 40px var(--accent-shadow)' : 'none',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
-        <div style={{
-          width: '44px', height: '44px', borderRadius: '14px', background: gradient,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 8px 20px rgba(186, 158, 255, 0.3)',
-        }}>
-          <Icon style={{ width: '22px', height: '22px', color: 'white' }} />
-        </div>
-        <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>{label}</span>
-      </div>
-      <div style={{ fontSize: '36px', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{value}</div>
-    </div>
-  );
-};
-
-interface DocumentCardProps {
-  document: Document;
-  typeConfig: { icon: React.ElementType; gradient: string; bgGradient: string; label: string };
-  statusConfig: { bgColor: string; label: string };
-  TypeIcon: React.ElementType;
-  isHovered: boolean;
-  onHover: (hovered: boolean) => void;
-  onClick: () => void;
-  formatDate: (date: string) => string;
-}
-
-const DocumentCard: React.FC<DocumentCardProps> = ({ document, typeConfig, statusConfig, TypeIcon, isHovered, onHover, onClick, formatDate }) => {
-  return (
-    <div
-      onClick={onClick}
-      onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)}
-      style={{
-        background: 'var(--bg-surface)', borderRadius: '24px', overflow: 'hidden', cursor: 'pointer',
-        border: isHovered ? '1px solid var(--accent)' : '1px solid var(--border-primary)',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        transform: isHovered ? 'translateY(-8px) scale(1.02)' : 'translateY(0) scale(1)',
-        boxShadow: isHovered ? '0 30px 60px var(--accent-shadow)' : '0 4px 12px rgba(0, 0, 0, 0.08)',
-        position: 'relative',
-      }}
-    >
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: '120px',
-        background: typeConfig.bgGradient, pointerEvents: 'none',
-      }} />
-
-      <div style={{ padding: '28px', position: 'relative', zIndex: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '18px', marginBottom: '20px' }}>
-          <div style={{
-            width: '60px', height: '60px', borderRadius: '18px', background: typeConfig.gradient,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            boxShadow: '0 12px 24px rgba(186, 158, 255, 0.25)',
-          }}>
-            <TypeIcon style={{ width: '30px', height: '30px', color: 'white' }} />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 style={{
-              fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 12px 0',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em',
-            }}>
-              {document.title}
-            </h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 12px',
-                fontSize: '12px', fontWeight: 600, color: 'var(--accent)', backgroundColor: 'var(--accent-bg)',
-                border: '1px solid var(--border-hover)', borderRadius: '8px',
-              }}>{typeConfig.label}</span>
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', padding: '5px 12px',
-                fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', backgroundColor: statusConfig.bgColor,
-                borderRadius: '8px',
-              }}>{statusConfig.label}</span>
-            </div>
-          </div>
-        </div>
-
-        <p style={{
-          fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 24px 0',
-          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-          minHeight: '48px',
-        }}>
-          {(document.content || '').substring(0, 120).replace(/<[^>]*>/g, '')}
-          {(document.content?.length || 0) > 120 && '...'}
-        </p>
-
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px',
-          background: 'var(--bg-hover)', borderRadius: '14px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Clock style={{ width: '14px', height: '14px', color: 'var(--text-muted)' }} />
-            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>{formatDate(document.updatedAt)}</span>
-          </div>
-          {document.project && (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px',
-              fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', backgroundColor: 'var(--bg-surface)',
-              borderRadius: '8px',
-            }}>
-              <FolderOpen style={{ width: '12px', height: '12px' }} />
-              {document.project.name}
-            </span>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-interface DocumentListItemProps {
-  document: Document;
-  typeConfig: { icon: React.ElementType; gradient: string; label: string };
-  statusConfig: { bgColor: string; label: string };
-  TypeIcon: React.ElementType;
-  isHovered: boolean;
-  onHover: (hovered: boolean) => void;
-  onClick: () => void;
-  formatDate: (date: string) => string;
-}
-
-const DocumentListItem: React.FC<DocumentListItemProps> = ({ document, typeConfig, statusConfig, TypeIcon, isHovered, onHover, onClick, formatDate }) => {
-  return (
-    <div
-      onClick={onClick}
-      onMouseEnter={() => onHover(true)} onMouseLeave={() => onHover(false)}
-      style={{
-        display: 'flex', alignItems: 'center', gap: '24px', padding: '24px',
-        background: 'var(--bg-surface)', borderRadius: '18px', cursor: 'pointer',
-        border: isHovered ? '1px solid var(--accent)' : '1px solid var(--border-primary)',
-        transition: 'all 0.25s ease', transform: isHovered ? 'translateX(8px)' : 'translateX(0)',
-        boxShadow: isHovered ? '0 12px 32px var(--accent-shadow)' : 'none',
-      }}
-    >
-      <div style={{
-        width: '56px', height: '56px', borderRadius: '16px', background: typeConfig.gradient,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        boxShadow: '0 8px 20px rgba(186, 158, 255, 0.2)',
-      }}>
-        <TypeIcon style={{ width: '28px', height: '28px', color: 'white' }} />
-      </div>
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {document.title}
-          </h3>
-          <span style={{ display: 'inline-flex', padding: '3px 10px', fontSize: '11px', fontWeight: 600, color: 'var(--accent)', backgroundColor: 'var(--accent-bg)', borderRadius: '6px', flexShrink: 0 }}>{typeConfig.label}</span>
-          <span style={{ display: 'inline-flex', padding: '3px 10px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', backgroundColor: statusConfig.bgColor, borderRadius: '6px', flexShrink: 0 }}>{statusConfig.label}</span>
-        </div>
-        <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {(document.content || '').substring(0, 80).replace(/<[^>]*>/g, '')}
-        </p>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
-        {document.project && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 14px', fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)', backgroundColor: 'var(--bg-hover)', borderRadius: '8px' }}>
-            <FolderOpen style={{ width: '12px', height: '12px' }} />
-            {document.project.name}
-          </span>
-        )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '80px' }}>
-          <Clock style={{ width: '14px', height: '14px', color: 'var(--text-muted)' }} />
-          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>{formatDate(document.updatedAt)}</span>
-        </div>
-        <ChevronRight style={{ width: '20px', height: '20px', color: 'var(--text-muted)' }} />
-      </div>
     </div>
   );
 };

@@ -124,6 +124,93 @@ export const PROVIDER_MODELS: ProviderModels = {
     }
   ],
   toapis: [
+    // Chat 模型
+    {
+      name: 'GPT-5',
+      model_id: 'gpt-5',
+      description: 'OpenAI 最新旗舰大语言模型，支持超长上下文和高级推理',
+      capabilities: ['对话', '创作', '翻译', '代码', '推理', '多模态']
+    },
+    {
+      name: 'GPT-4o',
+      model_id: 'gpt-4o',
+      description: 'OpenAI GPT-4o 多模态模型，支持图像和文本理解',
+      capabilities: ['对话', '创作', '翻译', '代码', '多模态']
+    },
+    {
+      name: 'Claude 3.5',
+      model_id: 'claude-3-5-sonnet',
+      description: 'Anthropic Claude 3.5 Sonnet 模型，擅长编程和复杂推理',
+      capabilities: ['对话', '创作', '翻译', '代码', '推理']
+    },
+    {
+      name: 'Gemini 2.0 Flash',
+      model_id: 'gemini-2.0-flash',
+      description: 'Google Gemini 2.0 Flash 模型，速度快，成本低',
+      capabilities: ['对话', '创作', '翻译', '代码']
+    },
+    // 图片模型
+    {
+      name: 'GPT-4o Image',
+      model_id: 'gpt-4o-image',
+      description: 'OpenAI GPT-4o 图像生成模型，支持高质量图像创作',
+      capabilities: ['文生图', '图生图', '图像编辑']
+    },
+    {
+      name: 'Gemini 3 Pro Image',
+      model_id: 'gemini-3-pro-image-preview',
+      description: 'Google Gemini 3 Pro 图像生成预览版',
+      capabilities: ['文生图', '图生图', '高画质']
+    },
+    {
+      name: 'Gemini 3.1 Flash Image',
+      model_id: 'gemini-3.1-flash-image-preview',
+      description: 'Google Gemini 3.1 Flash 图像生成预览版',
+      capabilities: ['文生图', '图生图', '快速生成']
+    },
+    {
+      name: 'Gemini 2.5 Flash Image',
+      model_id: 'gemini-2.5-flash-image-preview',
+      description: 'Google Gemini 2.5 Flash 图像生成预览版',
+      capabilities: ['文生图', '图生图', '高效率']
+    },
+    {
+      name: 'Seedream 4.0',
+      model_id: 'seedream-4.0',
+      description: '字节跳动 Seed 团队图像生成模型 4.0 版本',
+      capabilities: ['文生图', '图生图', '多风格']
+    },
+    {
+      name: 'Seedream 4.5',
+      model_id: 'seedream-4.5',
+      description: '字节跳动 Seed 团队图像生成模型 4.5 版本',
+      capabilities: ['文生图', '图生图', '更高画质']
+    },
+    {
+      name: 'Seedream 5.0',
+      model_id: 'seedream-5.0',
+      description: '字节跳动 Seed 团队最新图像生成模型，支持 2K/3K 分辨率',
+      capabilities: ['文生图', '图生图', '2K/3K高清', '联网搜索']
+    },
+    {
+      name: 'Flux Kontext',
+      model_id: 'flux-kontext',
+      description: 'Black Forest Labs Flux Kontext 图像生成模型',
+      capabilities: ['文生图', '图生图', '上下文理解']
+    },
+    {
+      name: 'Flux 2.0',
+      model_id: 'flux-2.0',
+      description: 'Black Forest Labs Flux 2.0 图像生成模型',
+      capabilities: ['文生图', '图生图', '高细节']
+    },
+    {
+      name: 'Grok Image',
+      model_id: 'grok-image',
+      description: 'xAI Grok 图像生成模型，支持创意图像生成',
+      capabilities: ['文生图', '图像编辑', '创意生成']
+    },
+    // 视频模型
     {
       name: 'Sora 2 标准版',
       model_id: 'sora-2',
@@ -141,6 +228,18 @@ export const PROVIDER_MODELS: ProviderModels = {
       model_id: 'sora-2-vip',
       description: 'Sora2 VIP版，最高优先级，更快生成速度',
       capabilities: ['文生视频', '图生视频', '角色引用', 'VIP加速', '优先队列']
+    },
+    {
+      name: 'VEO3',
+      model_id: 'veo3',
+      description: 'Google VEO3 视频生成模型，支持文本到视频、图片到视频',
+      capabilities: ['文生视频', '图生视频', '高画质', '时长控制']
+    },
+    {
+      name: 'VEO3 Pro',
+      model_id: 'veo3-pro',
+      description: 'Google VEO3 Pro 专业版，更高画质和更快生成速度',
+      capabilities: ['文生视频', '图生视频', '高画质', 'VIP加速']
     }
   ]
 };

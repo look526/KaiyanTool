@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import crypto from 'crypto';
 
 const prisma = new PrismaClient();
 
@@ -15,8 +16,7 @@ export class ShotDraftController {
           Shot: {
             select: {
               id: true,
-              shot_number: true,
-              description: true,
+              action_summary: true,
             },
           },
         },
@@ -34,12 +34,15 @@ export class ShotDraftController {
       const { episodeId } = req.params;
       const { shot_id, scene_id, draft_data } = req.body;
 
+      const now = new Date();
       const draft = await prisma.shotDraft.create({
         data: {
+          id: crypto.randomUUID(),
           episode_id: episodeId,
           shot_id,
           scene_id,
           draft_data,
+          updated_at: now,
         },
       });
 
@@ -59,6 +62,7 @@ export class ShotDraftController {
         where: { id },
         data: {
           draft_data,
+          updated_at: new Date(),
         },
       });
 

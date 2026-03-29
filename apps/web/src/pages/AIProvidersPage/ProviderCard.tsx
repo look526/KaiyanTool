@@ -433,9 +433,9 @@ export function ProviderCard({
                 <EmptyState 
                   type="models" 
                   providerColor={providerInfo.color}
-                  isDark={isDark}
+                 
                   colors={finalColors}
-                  accentColor={accentColor}
+                 
                 />
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

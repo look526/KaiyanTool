@@ -1,6 +1,7 @@
 import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
 import logger from '../lib/logger';
+import { getOrCreateDefaultEpisode } from '../utils/episode-resolver';
 import { STORYBOARD_STYLE_TEMPLATES, STORYBOARD_AGENT } from '../prompts/agents';
 import * as crypto from 'crypto';
 
@@ -250,12 +251,14 @@ ${JSON.stringify({
 
   async saveStoryboard(projectId: string, storyboard: StoryboardOutput): Promise<string[]> {
     const shotIds: string[] = [];
+    const episode = await getOrCreateDefaultEpisode(projectId);
 
     for (const shot of storyboard.shots) {
       const createdShot = await prisma.shot.create({
         data: {
           id: crypto.randomUUID(),
           project_id: projectId,
+          episode_id: episode.id,
           action_summary: shot.description,
           start_prompt: shot.visualPrompt,
           duration: shot.duration,

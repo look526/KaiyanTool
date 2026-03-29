@@ -4,8 +4,6 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { QueryProvider } from './core/query/QueryProvider'
 import HomePage from './pages/HomePage'
-import TestPage from './pages/TestPage'
-import SimpleTest from './pages/SimpleTest'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import { ToastProvider } from './components/ui/Toast'
@@ -34,7 +32,6 @@ const DocumentDetailPage = lazy(() => import('./pages/DocumentDetailPage'))
 const DocumentCreatePage = lazy(() => import('./pages/DocumentCreatePage'))
 const TeamPage = lazy(() => import('./pages/TeamPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
-const ModelConfigurationPage = lazy(() => import('./pages/ModelConfigurationPage'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const SecuritySettingsPage = lazy(() => import('./pages/SecuritySettingsPage'))
 const AppearanceSettingsPage = lazy(() => import('./pages/AppearanceSettingsPage'))
@@ -113,8 +110,6 @@ function App() {
                 <Suspense fallback={<LoadingComponent />}>
                   <Routes>
                   <Route path="/" element={<HomePage />} />
-                  <Route path="/test" element={<TestPage />} />
-                  <Route path="/simple" element={<SimpleTest />} />
                   <Route path="/buttons" element={<ButtonShowcasePage />} />
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/register" element={<RegisterPage />} />
@@ -144,7 +139,7 @@ function App() {
                     <Route path="/team" element={<TeamPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="/settings/ai" element={<AIProvidersPage />} />
-                    <Route path="/settings/models" element={<ModelConfigurationPage />} />
+                    <Route path="/settings/models" element={<Navigate to="/settings/ai" replace />} />
                     <Route path="/profile" element={<ProfilePage />} />
                     <Route path="/settings/security" element={<SecuritySettingsPage />} />
                     <Route path="/settings/appearance" element={<AppearanceSettingsPage />} />

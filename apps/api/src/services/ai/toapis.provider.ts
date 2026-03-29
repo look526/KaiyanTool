@@ -1,16 +1,28 @@
 import { AIProvider } from './provider.interface'
 import { AIRequest, AIResponse, AIChatMessage, AICreateImageRequest, AICreateImageResponse, AICreateVideoRequest, AICreateVideoResponse } from '../../types/ai.types'
-import { Sora2VideoRequest, Sora2VideoResponse } from '../../types/ai.types'
+import { Sora2VideoRequest, Sora2VideoResponse, VEO3VideoRequest } from '../../types/ai.types'
 import logger from '../../lib/logger'
 
 export class ToapisProvider extends AIProvider {
   constructor(apiKey: string, baseUrl?: string) {
-    super(apiKey, baseUrl || 'https://api.toapis.com/v1')
+    super(apiKey, baseUrl || 'https://toapis.com/v1')
   }
 
   async chat(messages: AIChatMessage[], options: Partial<AIRequest> = {}): Promise<AIResponse> {
+    const modelMap: Record<string, string> = {
+      'gpt-5': 'gpt-5',
+      'gpt-4o': 'gpt-4o',
+      'claude-3-5-sonnet': 'claude-3-5-sonnet',
+      'gemini-2.0-flash': 'gemini-2.0-flash',
+      'sora-2': 'sora-2',
+      'sora-2-pro': 'sora-2-pro',
+      'sora-2-vip': 'sora-2-vip',
+      'veo3': 'veo3',
+      'veo3-pro': 'veo3-pro',
+    }
+
     const requestBody = {
-      model: options.model || 'sora-2',
+      model: modelMap[options.model || ''] || options.model || 'gpt-4o',
       messages,
       temperature: options.temperature ?? 0.7,
       max_tokens: options.maxTokens ?? 4000,
@@ -41,16 +53,101 @@ export class ToapisProvider extends AIProvider {
   }
 
   async createImage(request: AICreateImageRequest): Promise<AICreateImageResponse> {
-    throw new Error('Image generation not implemented for ToAPIs provider')
+    const modelMap: Record<string, string> = {
+      'gpt-4o-image': 'gpt-4o-image',
+      'gemini-3-pro-image-preview': 'gemini-3-pro-image-preview',
+      'gemini-3.1-flash-image-preview': 'gemini-3.1-flash-image-preview',
+      'gemini-2.5-flash-image-preview': 'gemini-2.5-flash-image-preview',
+      'seedream-4.0': 'seedream-4.0',
+      'seedream-4.5': 'seedream-4.5',
+      'seedream-5.0': 'seedream-5.0',
+      'flux-kontext': 'flux-kontext',
+      'flux-2.0': 'flux-2.0',
+      'grok-image': 'grok-image',
+    }
+
+    const imageModel = modelMap[request.model || ''] || 'gpt-4o-image'
+
+    const sizeMap: Record<string, string> = {
+      '256x256': '512x512',
+      '512x512': '512x512',
+      '1024x1024': '1024x1024',
+      '1920x1080': '1920x1080',
+      '1536x1024': '1536x1024',
+      '1024x1792': '1024x1792',
+      '1:1': '1024x1024',
+      '4:3': '1024x768',
+      '3:4': '768x1024',
+      '16:9': '1024x1024',
+      '9:16': '1024x1792',
+      '3:2': '1536x1024',
+      '2:3': '1024x1536',
+      '21:9': '1920x810',
+      '9:21': '810x1920',
+    }
+
+    const imageRequest = {
+      model: imageModel,
+      prompt: request.prompt,
+      image_size: sizeMap[request.size || '1:1'] || '1024x1024',
+      image_quality: request.quality === 'hd' || request.quality === '2K' ? 'high' : 'standard',
+      style: request.style || 'vivid',
+      n: request.n || 1,
+    }
+
+    logger.info('ToAPIs createImage request', imageRequest)
+
+    const baseUrl = this.baseUrl || 'https://toapis.com/v1'
+    const endpoint = '/images/generations'
+    const url = `${baseUrl}${endpoint}`
+
+    logger.info('ToAPIs createImage URL', { url, baseUrl, endpoint, method: 'POST' })
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(imageRequest),
+      })
+
+      logger.info('ToAPIs createImage response status', { status: response.status, ok: response.ok })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        logger.error('ToAPIs createImage error response', { status: response.status, error: errorText })
+        throw new Error(`ToAPIs API error (${response.status}): ${errorText}`)
+      }
+
+      const data = await response.json()
+      logger.info('ToAPIs createImage response data', { hasData: !!data.data, dataLength: data.data?.length })
+
+      if (!data.data || data.data.length === 0) {
+        throw new Error('No image data returned from ToAPIs API')
+      }
+
+      return {
+        url: data.data[0].url || data.data[0].b64_json || '',
+        revisedPrompt: data.data[0].revised_prompt,
+      }
+    } catch (error) {
+      logger.error('ToAPIs createImage failed', { error: error instanceof Error ? error.message : String(error) })
+      throw error
+    }
   }
 
   async createVideo(request: AICreateVideoRequest): Promise<AICreateVideoResponse> {
+    const imageUrls = [request.imageUrl, request.endImageUrl].filter(
+      (u): u is string => typeof u === 'string' && u.length > 0
+    )
     const sora2Request: Sora2VideoRequest = {
       model: 'sora-2',
       prompt: request.prompt || '',
       duration: request.duration ?? 10,
       aspect_ratio: request.aspectRatio === '9:16' ? '9:16' : '16:9',
-      image_urls: request.imageUrl ? [request.imageUrl] : undefined,
+      image_urls: imageUrls.length > 0 ? imageUrls : undefined,
       thumbnail: true,
     }
 
@@ -76,7 +173,7 @@ export class ToapisProvider extends AIProvider {
       throw new Error('Failed to create Sora2 video generation task')
     }
 
-    const taskManager = new Sora2TaskManager(this.apiKey, this.baseUrl || 'https://api.toapis.com/v1')
+    const taskManager = new Sora2TaskManager(this.apiKey, this.baseUrl || 'https://toapis.com/v1')
     
     try {
       const result = await taskManager.waitForTaskCompletion(response.id, {
@@ -149,6 +246,48 @@ export class ToapisProvider extends AIProvider {
       progress: response.progress || 0,
       created_at: response.created_at,
       metadata: response.metadata,
+    }
+  }
+
+  async createVEO3Video(request: VEO3VideoRequest): Promise<AICreateVideoResponse> {
+    const imageUrls = [request.image_urls?.[0], request.end_image_url].filter(
+      (u): u is string => typeof u === 'string' && u.length > 0
+    )
+
+    const veo3Request = {
+      model: request.model || 'veo3',
+      prompt: request.prompt,
+      duration: request.duration ?? 10,
+      aspect_ratio: request.aspect_ratio || '16:9',
+      image_urls: imageUrls.length > 0 ? imageUrls : undefined,
+      prompt_strength: request.prompt_strength ?? 0.8,
+    }
+
+    logger.info('ToAPIs VEO3 createVideo request', veo3Request)
+
+    const response = await this.request('/videos/generations', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(veo3Request),
+    })
+
+    if (!response.id) {
+      throw new Error('Failed to create VEO3 video generation task')
+    }
+
+    const taskManager = new Sora2TaskManager(this.apiKey, this.baseUrl || 'https://toapis.com/v1')
+
+    const result = await taskManager.waitForTaskCompletion(response.id, {
+      pollInterval: 3000,
+      maxPollAttempts: 200,
+    })
+
+    return {
+      url: result.url || '',
+      duration: result.metadata?.duration,
+      resolution: result.metadata?.resolution,
     }
   }
 }
