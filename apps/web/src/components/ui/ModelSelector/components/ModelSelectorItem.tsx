@@ -24,7 +24,10 @@ export function ModelSelectorItem({
 }: ModelSelectorItemProps) {
   return (
     <div
-      onClick={on_select}
+      onClick={(e) => {
+        console.log('[ModelSelectorItem] clicked:', model.name, model.id);
+        on_select();
+      }}
       className={`${styles.modelItem} ${is_selected ? styles.selected : ''}`}
     >
       <div className={styles.modelItemContent}>

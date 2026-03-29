@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Loader2, Search, RefreshCw, ArrowLeft, Settings, Sparkles, Plus } from 'lucide-react';
+import { Loader2, Search, RefreshCw, Settings, Plus } from 'lucide-react';
 import { useAIProvidersPage } from './useAIProvidersPage';
 import { ProviderHeader } from './ProviderHeader';
 import { ProviderCard } from './ProviderCard';
@@ -9,14 +8,13 @@ import { ModelModal } from './ModelModal';
 import { EmptyState } from './EmptyState';
 import { TestProgressPanel } from './TestProgressPanel';
 import { useTheme } from '../../contexts/ThemeContext';
+import { PageHero } from '../../components/ui/PageHero';
 import type { AIProvider } from '../../types';
 
 export default function AIProvidersPage() {
-  const navigate = useNavigate();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   const [refreshHover, setRefreshHover] = useState(false);
-  const [backHover, setBackHover] = useState(false);
 
   const {
     filteredProviders,
@@ -59,7 +57,6 @@ export default function AIProvidersPage() {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   const isTablet = typeof window !== 'undefined' && window.innerWidth >= 768 && window.innerWidth < 1024;
 
-  // 色彩变量
   const colors = isDark ? {
     bgPrimary: 'rgba(5, 5, 10, 0.95)',
     bgSecondary: 'rgba(255, 255, 255, 0.03)',
@@ -82,10 +79,44 @@ export default function AIProvidersPage() {
     borderHover: 'rgba(139, 92, 246, 0.25)',
   };
 
-  // 强调色
   const accentColor = '#8b5cf6';
   const accentLight = '#a78bfa';
-  const accentGlow = '#c4b5fd';
+
+  const totalModels = filteredProviders.reduce((sum: number, p: AIProvider) => sum + (p.models?.length || 0), 0);
+  const enabledProviders = filteredProviders.filter((p: AIProvider) => p.enabled).length;
+
+  const AddProviderButton = (
+    <button
+      onClick={openAddProviderModal}
+      style={{
+        height: '44px',
+        padding: '0 20px',
+        fontSize: '14px',
+        fontWeight: '600',
+        background: `linear-gradient(135deg, ${accentColor} 0%, #7c3aed 100%)`,
+        color: 'white',
+        border: 'none',
+        borderRadius: '14px',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        boxShadow: `0 8px 24px ${accentColor}40`,
+        transition: 'all 0.3s ease',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = `0 12px 32px ${accentColor}50`;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = `0 8px 24px ${accentColor}40`;
+      }}
+    >
+      <Plus style={{ width: '18px', height: '18px' }} />
+      添加提供商
+    </button>
+  );
 
   if (isLoading) {
     return (
@@ -100,14 +131,13 @@ export default function AIProvidersPage() {
         position: 'relative',
         overflow: 'hidden',
       }}>
-        {/* 装饰光晕 */}
         <div style={{
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 50%)',
+          background: `radial-gradient(ellipse at 20% 20%, ${accentColor}15 0%, transparent 50%)`,
           pointerEvents: 'none',
         }} />
         
@@ -149,97 +179,44 @@ export default function AIProvidersPage() {
   return (
     <div style={{ 
       minHeight: '100vh', 
-      background: 'var(--bg-page)',
+      background: isDark 
+        ? 'linear-gradient(180deg, #05050a 0%, #0a0a12 50%, #0f0f1a 100%)'
+        : 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
       display: 'flex',
       flexDirection: 'column',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
-      {/* 顶部栏 */}
       <div style={{
-        background: 'var(--bg-header)',
-        backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid var(--border-primary)',
-        position: 'sticky',
+        position: 'absolute',
         top: 0,
-        zIndex: 40,
-      }}>
-        <div style={{ 
-          maxWidth: '1200px', 
-          margin: '0 auto',
-          padding: '20px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{
-              padding: '12px',
-              borderRadius: '14px',
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-              boxShadow: '0 4px 14px rgba(139, 92, 246, 0.3)',
-            }}>
-              <Settings style={{ width: '24px', height: '24px', color: 'white' }} />
-            </div>
-            <div>
-              <h1 style={{ 
-                fontSize: '22px', 
-                fontWeight: '600', 
-                color: 'var(--text-primary)', 
-                margin: 0,
-              }}>
-                AI 服务提供商
-              </h1>
-              <p style={{ 
-                color: 'var(--text-muted)', 
-                margin: '2px 0 0',
-                fontSize: '13px',
-              }}>
-                管理您的 AI 服务提供商和模型配置
-              </p>
-            </div>
-          </div>
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: `radial-gradient(ellipse at 20% 20%, ${accentColor}10 0%, transparent 50%)`,
+        pointerEvents: 'none',
+      }} />
 
-          <button
-            onClick={openAddProviderModal}
-            style={{
-              height: '44px',
-              padding: '0 20px',
-              fontSize: '14px',
-              fontWeight: '600',
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '12px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 14px rgba(139, 92, 246, 0.3)',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(139, 92, 246, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 14px rgba(139, 92, 246, 0.3)';
-            }}
-          >
-            <Plus style={{ width: '18px', height: '18px' }} />
-            添加提供商
-          </button>
-        </div>
-      </div>
+      <main style={{ flex: 1, position: 'relative', zIndex: 1 }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '48px 24px 24px' }}>
+          <PageHero
+            title="AI PROVIDERS"
+            subtitle="管理您的 AI 服务提供商和模型配置"
+            icon={<Settings style={{ width: '28px', height: '28px', color: 'white' }} />}
+            stats={[
+              { value: filteredProviders.length, label: '提供商' },
+              { value: totalModels, label: '模型' },
+              { value: enabledProviders, label: '已启用' },
+            ]}
+            glowColor="rgba(139, 92, 246, 0.12)"
+            actions={AddProviderButton}
+          />
 
-      <main style={{ flex: 1 }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
           <ProviderHeader 
             providers={filteredProviders as any} 
             isMobile={isMobile} 
             isTablet={isTablet} 
-           
             colors={colors}
-           
           />
 
           <div style={{ 
@@ -335,9 +312,7 @@ export default function AIProvidersPage() {
             <EmptyState 
               type="providers" 
               onAddProvider={openAddProviderModal}
-             
               colors={colors}
-             
             />
           ) : (
             <div style={{ 
@@ -368,9 +343,7 @@ export default function AIProvidersPage() {
                   testingModel={testingModel}
                   isMobile={isMobile}
                   isTablet={isTablet}
-                 
                   colors={colors}
-                 
                 />
               ))}
             </div>
@@ -385,9 +358,7 @@ export default function AIProvidersPage() {
             saving={saving}
             isEdit={!!editingProvider}
             isMobile={isMobile}
-           
             colors={colors}
-           
           />
 
           <ModelModal
@@ -399,9 +370,7 @@ export default function AIProvidersPage() {
             saving={saving}
             isEdit={!!selectedProviderForModel?.models?.some((m) => m.id === modelFormData.model_id)}
             providerType={selectedProviderForModel?.type || ''}
-           
             colors={colors}
-           
           />
         </div>
       </main>
@@ -409,8 +378,6 @@ export default function AIProvidersPage() {
       <TestProgressPanel
         testingProvider={testingProvider}
         testingModel={testingModel}
-       
-       
       />
 
       <style>{`

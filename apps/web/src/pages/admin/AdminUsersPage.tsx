@@ -46,7 +46,7 @@ export default function AdminUsersPage() {
       if (roleFilter) params.append('role', roleFilter);
 
       const response = await api.get<{ users: User[]; pagination: Pagination }>(
-        `/api/admin/users?${params.toString()}`
+        `/admin/users?${params.toString()}`
       );
       setUsers(response.users);
       setPagination(response.pagination);
@@ -68,7 +68,7 @@ export default function AdminUsersPage() {
 
   const handleCreateUser = async () => {
     try {
-      await api.post('/api/admin/users', newUser);
+      await api.post('/admin/users', newUser);
       setShowCreateModal(false);
       setNewUser({ email: '', password: '', name: '', role: 'user' });
       fetchUsers(1);
@@ -79,7 +79,7 @@ export default function AdminUsersPage() {
 
   const handleUpdateRole = async (userId: string, role: string) => {
     try {
-      await api.patch(`/api/admin/users/${userId}`, { role });
+      await api.patch(`/admin/users/${userId}`, { role });
       fetchUsers(pagination.page);
       setShowEditModal(false);
     } catch (error) {
@@ -89,7 +89,7 @@ export default function AdminUsersPage() {
 
   const handleDeleteUser = async (userId: string) => {
     try {
-      await api.delete(`/api/admin/users/${userId}`);
+      await api.delete(`/admin/users/${userId}`);
       fetchUsers(pagination.page);
       setShowDeleteModal(false);
       setSelectedUser(null);

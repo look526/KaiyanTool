@@ -31,6 +31,27 @@ interface CanvasEdge {
 
 const accentColor = '#8b5cf6';
 
+function normalizeAssetUrl(u: string): string {
+  if (u.startsWith('http')) return u;
+  if (typeof window !== 'undefined' && u.startsWith('/')) return `${window.location.origin}${u}`;
+  return u;
+}
+
+async function blobOrUrlToHttp(url: string): Promise<string | undefined> {
+  if (!url) return undefined;
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('blob:')) {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const file = new File([blob], 'workspace-ref.png', { type: blob.type || 'image/png' });
+    const up = (await apiClient.uploadImage(file)) as { url?: string };
+    if (!up?.url) return undefined;
+    return normalizeAssetUrl(up.url);
+  }
+  if (url.startsWith('/')) return normalizeAssetUrl(url);
+  return undefined;
+}
+
 export default function WorkspacePage() {
   const { user } = useAuth();
   const { resolvedTheme } = useTheme();
@@ -426,7 +447,10 @@ export default function WorkspacePage() {
     nodeId: string,
     targetType: string,
     promptJson?: any,
-    providerId?: string
+    providerId?: string,
+    modelRowId?: string,
+    _modelParams?: Record<string, unknown>,
+    options?: { extra_reference_files?: File[] }
   ) => {
     const sourceNode = nodes.find(n => n.id === nodeId);
     if (!sourceNode) return;
@@ -450,13 +474,27 @@ export default function WorkspacePage() {
     ));
 
     try {
-      const providersRes = await apiClient.get('/workspace/ai/providers');
+      const providersRes = await apiClient.get<{ success?: boolean; data?: unknown[] }>('/workspace/ai/providers');
       const providers = (providersRes as any)?.data || [];
       const defaultProvider = providers[0];
-      const finalProviderId = providerId || defaultProvider?.id || 'zhipu';
-      const model = defaultProvider?.models?.[0]?.id || 'cogview-3';
+      const finalProviderId = providerId || defaultProvider?.id || '';
+      const model =
+        modelRowId ||
+        (defaultProvider as any)?.models?.[0]?.id ||
+        '';
 
-      const res = await apiClient.post('/workspace/ai/generate', {
+      const imageUrls: string[] = [];
+      for (const f of options?.extra_reference_files || []) {
+        const up = (await apiClient.uploadImage(f)) as { url?: string };
+        if (up?.url) imageUrls.push(normalizeAssetUrl(up.url));
+      }
+      if (sourceNode.type === 'image' && sourceNode.content?.url) {
+        const u = await blobOrUrlToHttp(sourceNode.content.url);
+        if (u) imageUrls.unshift(u);
+      }
+      const uniqueUrls = Array.from(new Set(imageUrls));
+
+      const res = await apiClient.post<{ success?: boolean; data?: { result_url?: string } }>('/workspace/ai/generate', {
         source_node_id: nodeId,
         target_type: targetType,
         provider_id: finalProviderId,
@@ -469,21 +507,27 @@ export default function WorkspacePage() {
           props: [],
           style: '默认风格',
         },
+        image_urls: targetType === 'image' && uniqueUrls.length > 0 ? uniqueUrls : undefined,
       });
 
       const resultUrl = targetType === 'image'
-        ? (res as any)?.data?.result_url || 'https://picsum.photos/512/512?' + Date.now()
-        : 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4';
+        ? (res as any)?.data?.result_url || (res as any)?.result_url
+        : undefined;
+
+      const finalUrl =
+        targetType === 'image'
+          ? resultUrl || `https://picsum.photos/512/512?${Date.now()}`
+          : 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4';
 
       setNodes(prev => prev.map(n =>
         n.id === newNode.id
-          ? { ...n, is_generating: false, generation_progress: undefined, output_url: resultUrl, content: { url: resultUrl } }
+          ? { ...n, is_generating: false, generation_progress: undefined, output_url: finalUrl, content: { url: finalUrl } }
           : n
       ));
 
       await apiClient.post(`/workspace/nodes/${newNode.id}/history`, {
-        content: { url: resultUrl },
-        output_url: resultUrl,
+        content: { url: finalUrl },
+        output_url: finalUrl,
       });
     } catch (error) {
       console.error('Generation failed:', error);
@@ -925,7 +969,7 @@ export default function WorkspacePage() {
         onStar={handleStar}
         onGenerate={handleGenerate}
         onRevertToVersion={handleRevertToVersion}
-       
+        isDark={isDark}
         colors={colors}
       />
 

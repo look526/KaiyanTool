@@ -4,6 +4,7 @@ import { AIPromptEditor } from './AIPromptEditor';
 import { WorkspacePromptJson, AIProvider } from '../../types/workspace';
 import { getModelCapabilities, isVideoModel, isImageModel, isVEO3Model, getModelDefaultParams } from '../../types/ai';
 import { ModelParameters } from '../ai/ModelParameters';
+import { filterModelsForImageGeneration } from '../../utils/workspace-model-filters';
 
 interface CanvasNode {
   id: string;
@@ -29,7 +30,8 @@ interface NodeConfigPanelProps {
     promptJson?: WorkspacePromptJson,
     providerId?: string,
     modelId?: string,
-    modelParams?: Record<string, any>
+    modelParams?: Record<string, any>,
+    options?: { extra_reference_files?: File[] }
   ) => void;
   onRevertToVersion: (nodeId: string, version: any) => void;
   isDark?: boolean;
@@ -70,8 +72,20 @@ export default function NodeConfigPanel({
   const [showAIPromptEditor, setShowAIPromptEditor] = useState(false);
   const [modelParams, setModelParams] = useState<Record<string, any>>({});
   const [editingText, setEditingText] = useState<string>('');
+  const [img2imgPrompt, setImg2imgPrompt] = useState('');
+  const [extraRefFile, setExtraRefFile] = useState<File | null>(null);
 
   const accentColor = '#8b5cf6';
+
+  const imageModelsForProvider = (pid: string) => {
+    const p = providers.find((x) => x.id === pid);
+    return p ? filterModelsForImageGeneration(p.models as AIProvider['models']) : [];
+  };
+
+  const resolveModelKeyForParams = (modelRowId: string) => {
+    const m = providers.flatMap((p) => p.models).find((x) => x.id === modelRowId);
+    return m?.model_id || m?.name || modelRowId;
+  };
 
   useEffect(() => {
     fetchProviders();
@@ -101,10 +115,15 @@ export default function NodeConfigPanel({
       const res = await fetch('/api/workspace/ai/providers', { credentials: 'include' });
       const data = await res.json();
       if (data.success && data.data?.length > 0) {
-        setProviders(data.data);
-        setSelectedProvider(data.data[0].id);
-        if (data.data[0].models?.length > 0) {
-          setSelectedModel(data.data[0].models[0].id);
+        const list = data.data as AIProvider[];
+        setProviders(list);
+        const first = list[0];
+        setSelectedProvider(first.id);
+        const imgs = filterModelsForImageGeneration(first.models || []);
+        const pick = imgs[0] || first.models?.[0];
+        if (pick) {
+          setSelectedModel(pick.id);
+          setModelParams(getModelDefaultParams(pick.model_id || pick.name || pick.id));
         }
       }
     } catch (error) {
@@ -117,7 +136,30 @@ export default function NodeConfigPanel({
     onGenerate(node.id, 'image', promptJson, selectedProvider, selectedModel, modelParams);
   };
 
+  const handleImg2Img = () => {
+    if (!node) return;
+    const pj: WorkspacePromptJson = {
+      version: 1,
+      scene: img2imgPrompt || '参考当前图片进行重绘或优化',
+      shot: '中景',
+      subject: '',
+      props: [],
+      style: selectedStyle,
+    };
+    onGenerate(node.id, 'image', pj, selectedProvider, selectedModel, modelParams, {
+      extra_reference_files: extraRefFile ? [extraRefFile] : undefined,
+    });
+  };
+
   if (!node) return null;
+
+  const modelParamKey = resolveModelKeyForParams(selectedModel);
+  const filteredImageModels = imageModelsForProvider(selectedProvider);
+  const fallbackModels = providers.find((p) => p.id === selectedProvider)?.models || [];
+  const textImageModelOptions =
+    filteredImageModels.length > 0 ? filteredImageModels : fallbackModels;
+  const img2imgModelOptions =
+    filteredImageModels.length > 0 ? filteredImageModels : fallbackModels;
 
   return (
     <div style={{
@@ -208,10 +250,12 @@ export default function NodeConfigPanel({
                 value={selectedProvider}
                 onChange={(e) => {
                   setSelectedProvider(e.target.value);
-                  const provider = providers.find(p => p.id === e.target.value);
-                  if (provider?.models?.length) {
-                    setSelectedModel(provider.models[0].id);
-                    setModelParams(getModelDefaultParams(provider.models[0].id));
+                  const provider = providers.find((p) => p.id === e.target.value);
+                  const imgs = provider ? filterModelsForImageGeneration(provider.models || []) : [];
+                  const pick = imgs[0] || provider?.models?.[0];
+                  if (pick) {
+                    setSelectedModel(pick.id);
+                    setModelParams(getModelDefaultParams(pick.model_id || pick.name || pick.id));
                   }
                 }}
                 style={{
@@ -233,8 +277,9 @@ export default function NodeConfigPanel({
               <select
                 value={selectedModel}
                 onChange={(e) => {
-                  setSelectedModel(e.target.value);
-                  setModelParams(getModelDefaultParams(e.target.value));
+                  const id = e.target.value;
+                  setSelectedModel(id);
+                  setModelParams(getModelDefaultParams(resolveModelKeyForParams(id)));
                 }}
                 style={{
                   width: '100%', padding: '10px 12px', borderRadius: '10px',
@@ -242,20 +287,28 @@ export default function NodeConfigPanel({
                   color: colors.textPrimary, fontSize: '13px',
                 }}
               >
-                {(providers.find(p => p.id === selectedProvider)?.models || []).map(m => (
-                  <option key={m.id} value={m.id}>{m.name} ({m.type})</option>
+                {textImageModelOptions.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                    {m.model_id ? ` (${m.model_id})` : ''}
+                  </option>
                 ))}
               </select>
             </div>
+            {filteredImageModels.length === 0 && textImageModelOptions.length > 0 && (
+              <p style={{ fontSize: '11px', color: '#f59e0b', marginBottom: '8px' }}>
+                未识别图片专用模型，已列出全部模型；请在后台为图像模型配置 capabilities（含 image）。
+              </p>
+            )}
 
-            {(isVideoModel(selectedModel) || isImageModel(selectedModel)) && (
+            {(isVideoModel(modelParamKey) || isImageModel(modelParamKey)) && (
               <div style={{ marginBottom: '12px' }}>
                 <label style={{ fontSize: '12px', color: colors.textMuted, marginBottom: '8px', display: 'block' }}>
                   模型参数
                 </label>
                 <ModelParameters
-                  capabilities={getModelCapabilities(selectedModel)}
-                  showVEO3Params={isVEO3Model(selectedModel)}
+                  capabilities={getModelCapabilities(modelParamKey)}
+                  showVEO3Params={isVEO3Model(modelParamKey)}
                   value={modelParams}
                   onChange={setModelParams}
                 />
@@ -289,7 +342,7 @@ export default function NodeConfigPanel({
               <AIPromptEditor
                 sourceText={node.content?.text || ''}
                 initialPrompt={promptJson}
-               
+                isDark={isDark}
                 onPromptChange={setPromptJson}
                 onAnalyze={() => {}}
                 onOptimize={() => {}}
@@ -297,6 +350,93 @@ export default function NodeConfigPanel({
                 isOptimizing={false}
               />
             )}
+          </div>
+        )}
+
+        {node.type === 'image' && (
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ fontSize: '13px', fontWeight: 500, color: colors.textSecondary, marginBottom: '8px', display: 'block' }}>
+              图生图 · 模型与参考
+            </label>
+            <p style={{ fontSize: '11px', color: colors.textMuted, marginBottom: '10px', lineHeight: 1.4 }}>
+              画布上的图片会作为参考图上传；也可再选一张本地补充参考图。
+            </p>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '12px', color: colors.textMuted, marginBottom: '4px', display: 'block' }}>Provider</label>
+              <select
+                value={selectedProvider}
+                onChange={(e) => {
+                  setSelectedProvider(e.target.value);
+                  const provider = providers.find((p) => p.id === e.target.value);
+                  const imgs = provider ? filterModelsForImageGeneration(provider.models || []) : [];
+                  const pick = imgs[0] || provider?.models?.[0];
+                  if (pick) {
+                    setSelectedModel(pick.id);
+                    setModelParams(getModelDefaultParams(pick.model_id || pick.name || pick.id));
+                  }
+                }}
+                style={{
+                  width: '100%', padding: '10px 12px', borderRadius: '10px',
+                  border: `1px solid ${colors.border}`, background: colors.bgSecondary,
+                  color: colors.textPrimary, fontSize: '13px',
+                }}
+              >
+                {providers.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name} ({p.type})</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '12px', color: colors.textMuted, marginBottom: '4px', display: 'block' }}>图片模型</label>
+              <select
+                value={selectedModel}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setSelectedModel(id);
+                  setModelParams(getModelDefaultParams(resolveModelKeyForParams(id)));
+                }}
+                style={{
+                  width: '100%', padding: '10px 12px', borderRadius: '10px',
+                  border: `1px solid ${colors.border}`, background: colors.bgSecondary,
+                  color: colors.textPrimary, fontSize: '13px',
+                }}
+              >
+                {img2imgModelOptions.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                    {m.model_id ? ` (${m.model_id})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {filteredImageModels.length === 0 && img2imgModelOptions.length > 0 && (
+              <p style={{ fontSize: '11px', color: '#f59e0b', marginBottom: '8px' }}>
+                未识别图片专用模型，已列出全部模型；请在后台为图像模型配置 capabilities（含 image）。
+              </p>
+            )}
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '12px', color: colors.textMuted, marginBottom: '4px', display: 'block' }}>补充参考图（可选）</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setExtraRefFile(e.target.files?.[0] || null)}
+                style={{ width: '100%', fontSize: '12px', color: colors.textSecondary }}
+              />
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '12px', color: colors.textMuted, marginBottom: '4px', display: 'block' }}>生成说明</label>
+              <input
+                type="text"
+                value={img2imgPrompt}
+                onChange={(e) => setImg2imgPrompt(e.target.value)}
+                placeholder="描述希望如何修改或增强画面…"
+                style={{
+                  width: '100%', padding: '10px 12px', borderRadius: '10px',
+                  border: `1px solid ${colors.border}`, background: colors.bgSecondary,
+                  color: colors.textPrimary, fontSize: '13px',
+                }}
+              />
+            </div>
           </div>
         )}
 
@@ -394,7 +534,8 @@ export default function NodeConfigPanel({
         {node.type === 'image' && (
           <>
             <button
-              onClick={() => onGenerate(node.id, 'image')}
+              type="button"
+              onClick={handleImg2Img}
               style={{
                 width: '100%', padding: '12px 16px', borderRadius: '12px', border: 'none',
                 background: `linear-gradient(135deg, #10b981 0%, #34d399 100%)`,

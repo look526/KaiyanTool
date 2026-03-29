@@ -50,7 +50,7 @@ export function ProjectLayout() {
     <WorkflowProvider>
       <div style={{ display: 'flex', height: '100vh', backgroundColor: 'var(--bg-base)' }}>
         <WorkflowSidebar onStepChange={handleStepChange} />
-        <main style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <main style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflowY: 'auto', height: '100vh' }}>
           <Outlet />
         </main>
       </div>

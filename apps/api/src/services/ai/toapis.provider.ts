@@ -97,22 +97,44 @@ export class ToapisProvider extends AIProvider {
 
     logger.info('ToAPIs createImage request', imageRequest)
 
-    const response = await this.request('/images/generations', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(imageRequest),
-    })
+    const baseUrl = this.baseUrl || 'https://toapis.com/v1'
+    const endpoint = '/images/generations'
+    const url = `${baseUrl}${endpoint}`
 
-    if (!response.data || response.data.length === 0) {
-      throw new Error('No image data returned from ToAPIs API')
-    }
+    logger.info('ToAPIs createImage URL', { url, baseUrl, endpoint, method: 'POST' })
 
-    return {
-      url: response.data[0].url || response.data[0].b64_json || '',
-      revisedPrompt: response.data[0].revised_prompt,
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(imageRequest),
+      })
+
+      logger.info('ToAPIs createImage response status', { status: response.status, ok: response.ok })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        logger.error('ToAPIs createImage error response', { status: response.status, error: errorText })
+        throw new Error(`ToAPIs API error (${response.status}): ${errorText}`)
+      }
+
+      const data = await response.json()
+      logger.info('ToAPIs createImage response data', { hasData: !!data.data, dataLength: data.data?.length })
+
+      if (!data.data || data.data.length === 0) {
+        throw new Error('No image data returned from ToAPIs API')
+      }
+
+      return {
+        url: data.data[0].url || data.data[0].b64_json || '',
+        revisedPrompt: data.data[0].revised_prompt,
+      }
+    } catch (error) {
+      logger.error('ToAPIs createImage failed', { error: error instanceof Error ? error.message : String(error) })
+      throw error
     }
   }
 

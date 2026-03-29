@@ -1,5 +1,11 @@
 .modelSelector {
   position: relative;
+  z-index: 100;
+}
+
+.modelSelectorWrapper {
+  position: relative;
+  width: 100%;
 }
 
 .trigger {

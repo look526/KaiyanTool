@@ -47,7 +47,7 @@ export default function AdminAssetsPage() {
       if (typeFilter) params.append('type', typeFilter);
 
       const response = await api.get<{ assets: Asset[]; pagination: Pagination }>(
-        `/api/admin/assets?${params.toString()}`
+        `/admin/assets?${params.toString()}`
       );
       setAssets(response.assets);
       setPagination(response.pagination);
@@ -60,7 +60,7 @@ export default function AdminAssetsPage() {
 
   const fetchStats = async () => {
     try {
-      const response = await api.get<AssetStats>('/api/admin/assets/stats');
+      const response = await api.get<AssetStats>('/admin/assets/stats');
       setStats(response);
     } catch (error) {
       console.error('Failed to fetch asset stats:', error);
@@ -79,7 +79,7 @@ export default function AdminAssetsPage() {
 
   const handleDeleteAsset = async (assetId: string) => {
     try {
-      await api.delete(`/api/admin/assets/${assetId}`);
+      await api.delete(`/admin/assets/${assetId}`);
       fetchAssets(pagination.page);
       fetchStats();
     } catch (error) {
@@ -90,7 +90,7 @@ export default function AdminAssetsPage() {
   const handleBatchDelete = async () => {
     if (selectedAssets.length === 0) return;
     try {
-      await api.post('/api/admin/assets/batch-delete', { ids: selectedAssets });
+      await api.post('/admin/assets/batch-delete', { ids: selectedAssets });
       setSelectedAssets([]);
       fetchAssets(pagination.page);
       fetchStats();

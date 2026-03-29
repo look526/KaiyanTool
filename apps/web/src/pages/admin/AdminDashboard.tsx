@@ -32,7 +32,7 @@ export default function AdminDashboard() {
         const response = await api.get<{
           stats: Stats;
           recentLogs: RecentLog[];
-        }>('/api/admin/auth/stats');
+        }>('/admin/auth/stats');
         setStats(response.stats);
         setRecentLogs(response.recentLogs);
       } catch (error) {

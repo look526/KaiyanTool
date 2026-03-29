@@ -107,8 +107,9 @@ export async function generateFromPrompt(
   providerId: string,
   model: string,
   promptJson: WorkspacePromptJson,
-  style?: string
-): Promise<{ taskId: string; status: string }> {
+  style?: string,
+  imageUrls?: string[]
+): Promise<{ taskId: string; status: string; result_url?: string }> {
   const sourceNode = await prisma.canvasNode.findUnique({
     where: { id: sourceNodeId },
     include: { Workspace: { select: { user_id: true } } },
@@ -177,13 +178,26 @@ export async function generateFromPrompt(
       throw new Error(`Provider ${providerId} not available`);
     }
 
+    let modelApiId = model;
+    const modelRow = await prisma.aIProviderModel.findFirst({
+      where: {
+        ai_provider_id: providerId,
+        OR: [{ id: model }, { model_id: model }],
+      },
+      select: { model_id: true },
+    });
+    if (modelRow?.model_id?.trim()) {
+      modelApiId = modelRow.model_id.trim();
+    }
+
     if (targetType === 'image') {
       const result = await provider.createImage({
-        model,
+        model: modelApiId,
         prompt: finalPrompt,
         size: '1:1',
         quality: 'hd',
         n: 1,
+        image_urls: imageUrls && imageUrls.length > 0 ? imageUrls : undefined,
       });
 
       const taskParams = task.params as Record<string, any>;
@@ -196,15 +210,7 @@ export async function generateFromPrompt(
         },
       });
 
-      await prisma.canvasNode.update({
-        where: { id: sourceNodeId },
-        data: {
-          output_url: result.url,
-          updated_at: new Date(),
-        },
-      });
-
-      return { taskId: task.id, status: 'completed' };
+      return { taskId: task.id, status: 'completed', result_url: result.url };
     }
 
     return { taskId: task.id, status: 'processing' };
@@ -233,6 +239,9 @@ export async function getAvailableProviders() {
     models: p.AIProviderModel?.map(m => ({
       id: m.id,
       name: m.name,
+      model_id: m.model_id,
+      capabilities: m.capabilities || [],
+      types: m.types || [],
     })) || [],
   }));
 }

@@ -90,4 +90,8 @@ export interface AIModel {
   id: string;
   name: string;
   type?: 'chat' | 'image' | 'video';
+  /** 调用 API 的 model 标识，与数据库 AIProviderModel.model_id 一致 */
+  model_id?: string | null;
+  capabilities?: string[];
+  types?: string[];
 }

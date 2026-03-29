@@ -21,6 +21,7 @@ import { useToast } from '../components/ui/Toast';
 import { useTheme } from '../contexts/ThemeContext';
 import { CharacterCard } from '../components/CharacterCard';
 import { PageHeader } from '../components/ui/PageHeader';
+import { CompactPageHero } from '../components/ui/CompactPageHero';
 import { GlassButton } from '../components/ui/GlassButton';
 import { GlassDropdown } from '../components/ui/GlassDropdown';
 
@@ -347,9 +348,15 @@ export default function CharactersPage() {
         pointerEvents: 'none',
       }} />
       
-      <PageHeader
-        title="角色管理"
-        subtitle="管理项目中的所有角色和服装"
+      <CompactPageHero
+        title="CHARACTERS"
+        subtitle="角色管理"
+        icon={<Users style={{ width: '20px', height: '20px', color: 'white' }} />}
+        stats={[
+          { value: characters.length, label: '角色' },
+          { value: 0, label: '男' },
+          { value: 0, label: '女' },
+        ]}
         actions={
           <GlassButton
             variant="primary"

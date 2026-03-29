@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 
 import { ImageSelector } from '../components/ImageSelector';
+import { CompactPageHero } from '../components/ui/CompactPageHero';
 import { apiClient } from '../lib/api-client';
 import { useToast } from '../components/ui/Toast';
 import { ItemCard } from '../components/ItemCard';
@@ -296,43 +297,59 @@ export default function ItemsPageSimple() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-page)' }}>
-      <div style={{
-        background: 'var(--bg-header)',
-        backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid var(--border-primary)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 40,
-      }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '16px 24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{
-                padding: '12px',
-                borderRadius: '14px',
-                background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-                boxShadow: '0 4px 14px rgba(249, 115, 22, 0.3)',
-              }}>
-                <Package style={{ width: '24px', height: '24px', color: 'white' }} />
-              </div>
-              <div>
-                <h1 style={{ fontSize: '22px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>物品管理</h1>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>共 {items.length} 个物品</p>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {items.length > 0 && (
-                <>
+      <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+        <CompactPageHero
+        title="ITEMS"
+        subtitle="物品管理"
+        icon={<Package style={{ width: '20px', height: '20px', color: 'white' }} />}
+        stats={[
+          { value: items.length, label: '物品' },
+          { value: 0, label: '道具' },
+          { value: 0, label: '服装' },
+        ]}
+        actions={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {items.length > 0 && (
+              <>
+                <button
+                  onClick={selectAll}
+                  style={{
+                    height: '40px',
+                    padding: '0 14px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-primary)',
+                    background: 'transparent',
+                    color: 'var(--text-secondary)',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--bg-hover)';
+                    e.currentTarget.style.borderColor = 'var(--border-hover)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.borderColor = 'var(--border-primary)';
+                  }}
+                >
+                  {selectedIds.size === filteredItems.length ? <Square style={{ width: '16px', height: '16px' }} /> : <CheckSquare style={{ width: '16px', height: '16px' }} />}
+                    {selectedIds.size > 0 ? `${selectedIds.size}/${filteredItems.length}` : '全选'}
+                </button>
+                {selectedIds.size > 0 && (
                   <button
-                    onClick={selectAll}
+                    onClick={handleBulkDelete}
                     style={{
                       height: '40px',
                       padding: '0 14px',
                       borderRadius: '10px',
-                      border: '1px solid var(--border-primary)',
-                      background: 'transparent',
-                      color: 'var(--text-secondary)',
+                      border: 'none',
+                      background: 'rgba(239, 68, 68, 0.15)',
+                      color: '#ef4444',
                       fontSize: '13px',
                       fontWeight: '500',
                       cursor: 'pointer',
@@ -341,109 +358,61 @@ export default function ItemsPageSimple() {
                       gap: '8px',
                       transition: 'all 0.2s ease',
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'var(--bg-hover)';
-                      e.currentTarget.style.borderColor = 'var(--border-hover)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.borderColor = 'var(--border-primary)';
-                    }}
                   >
-                    {selectedIds.size === filteredItems.length ? <Square style={{ width: '16px', height: '16px' }} /> : <CheckSquare style={{ width: '16px', height: '16px' }} />}
-                    {selectedIds.size > 0 ? `${selectedIds.size}/${filteredItems.length}` : '全选'}
+                    <Trash2 style={{ width: '16px', height: '16px' }} />
+                    删除 ({selectedIds.size})
                   </button>
-                  {selectedIds.size > 0 && (
-                    <button
-                      onClick={handleBulkDelete}
-                      style={{
-                        height: '40px',
-                        padding: '0 14px',
-                        borderRadius: '10px',
-                        border: 'none',
-                        background: 'rgba(239, 68, 68, 0.15)',
-                        color: '#ef4444',
-                        fontSize: '13px',
-                        fontWeight: '500',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      <Trash2 style={{ width: '16px', height: '16px' }} />
-                      删除 ({selectedIds.size})
-                    </button>
-                  )}
-                  <button
-                    onClick={handleGenerateFromScript}
-                    disabled={generating}
-                    style={{
-                      height: '40px',
-                      padding: '0 16px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border-primary)',
-                      background: 'transparent',
-                      color: 'var(--text-secondary)',
-                      fontSize: '13px',
-                      fontWeight: '500',
-                      cursor: generating ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      opacity: generating ? 0.7 : 1,
-                      transition: 'all 0.2s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!generating) {
-                        e.currentTarget.style.background = 'var(--bg-hover)';
-                        e.currentTarget.style.borderColor = 'var(--border-hover)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.borderColor = 'var(--border-primary)';
-                    }}
-                  >
-                    {generating ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Sparkles style={{ width: '16px', height: '16px' }} />}
-                    {generating ? '生成中...' : '从剧本生成'}
-                  </button>
-                </>
-              )}
-              <button
-                onClick={() => handleOpenModal()}
-                style={{
-                  height: '44px',
-                  padding: '0 20px',
-                  background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-                  borderRadius: '12px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#fff',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  boxShadow: '0 4px 14px rgba(249, 115, 22, 0.3)',
-                  transition: 'all 0.25s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(249, 115, 22, 0.5)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(249, 115, 22, 0.3)';
-                }}
-              >
-                <Plus style={{ width: '18px', height: '18px' }} />
-                添加物品
-              </button>
-            </div>
+                )}
+              </>
+            )}
+            <button
+              onClick={handleGenerateFromScript}
+              disabled={generating}
+              style={{
+                height: '40px',
+                padding: '0 16px',
+                borderRadius: '10px',
+                border: '1px solid var(--border-primary)',
+                background: 'transparent',
+                color: 'var(--text-secondary)',
+                fontSize: '13px',
+                fontWeight: '500',
+                cursor: generating ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                opacity: generating ? 0.7 : 1,
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {generating ? <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} /> : <Sparkles style={{ width: '16px', height: '16px' }} />}
+              {generating ? '生成中...' : '从剧本生成'}
+            </button>
+            <button
+              onClick={() => handleOpenModal()}
+              style={{
+                height: '44px',
+                padding: '0 20px',
+                background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                borderRadius: '12px',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#fff',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 14px rgba(249, 115, 22, 0.3)',
+                transition: 'all 0.25s ease',
+              }}
+            >
+              <Plus style={{ width: '18px', height: '18px' }} />
+              添加物品
+            </button>
           </div>
-        </div>
+        }
+      />
       </div>
 
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>

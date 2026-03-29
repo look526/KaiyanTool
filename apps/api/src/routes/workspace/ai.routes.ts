@@ -40,7 +40,7 @@ router.post('/analyze-text', async (req, res) => {
 
 router.post('/generate', async (req, res) => {
   try {
-    const { source_node_id, target_type, provider_id, model, prompt_json, style } = req.body;
+    const { source_node_id, target_type, provider_id, model, prompt_json, style, image_urls } = req.body;
 
     if (!source_node_id || !target_type || !provider_id || !model || !prompt_json) {
       return res.status(400).json({
@@ -49,13 +49,18 @@ router.post('/generate', async (req, res) => {
       });
     }
 
+    const urls = Array.isArray(image_urls)
+      ? image_urls.filter((u: unknown): u is string => typeof u === 'string' && u.startsWith('http'))
+      : undefined;
+
     const result = await generateFromPrompt(
       source_node_id,
       target_type,
       provider_id,
       model,
       prompt_json,
-      style
+      style,
+      urls
     );
 
     res.json({ success: true, data: result });

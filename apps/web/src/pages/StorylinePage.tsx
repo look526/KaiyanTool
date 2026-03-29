@@ -17,6 +17,7 @@ import { GlassCard } from '../components/ui/GlassCard';
 import { GlassButton } from '../components/ui/GlassButton';
 import { GlassSelect } from '../components/ui/GlassSelect';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import { CompactPageHero } from '../components/ui/CompactPageHero';
 import { apiClient } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 
@@ -492,38 +493,20 @@ const StorylinePage: React.FC = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-page)' }}>
-      <header style={{
-        height: '64px', borderBottom: '1px solid var(--border-primary)',
-        background: 'var(--bg-elevated)', backdropFilter: 'blur(20px)',
-        padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        position: 'sticky', top: 0, zIndex: 10,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button
-            onClick={() => navigate(`/projects/${projectId}`)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px',
-              borderRadius: '8px', textDecoration: 'none', color: 'var(--text-secondary)',
-              border: 'none', background: 'transparent', cursor: 'pointer', transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-glass-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-          >
-            <ArrowLeft style={{ width: '16px', height: '16px' }} />
-            <span style={{ fontSize: '14px' }}>返回项目</span>
-          </button>
-          <h1 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)' }}>
-            故事线生成
-          </h1>
-        </div>
-      </header>
-
-      <div style={{ flex: 1, padding: '24px', overflowY: 'auto' }}>
-        {step === 'input' && renderInputStep()}
-        {step === 'generating' && renderGeneratingStep()}
-        {step === 'result' && renderResultStep()}
-      </div>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-page)', padding: '24px' }}>
+      <CompactPageHero
+        title="STORYLINE"
+        subtitle="故事线生成"
+        icon={<BookOpen style={{ width: '16px', height: '16px', color: 'white' }} />}
+        stats={[
+          { value: 3, label: '剧本' },
+          { value: 5, label: '角色' },
+          { value: 2, label: '大纲' },
+        ]}
+      />
+      {step === 'input' && renderInputStep()}
+      {step === 'generating' && renderGeneratingStep()}
+      {step === 'result' && renderResultStep()}
     </div>
   );
 };

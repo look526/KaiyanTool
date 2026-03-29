@@ -19,7 +19,7 @@ import {
 import { GlassCard } from '../components/ui/GlassCard';
 import { GlassButton } from '../components/ui/GlassButton';
 import { GlassSelect } from '../components/ui/GlassSelect';
-import { StandardPageHeader } from '../components/ui/StandardPageHeader';
+import { CompactPageHero } from '../components/ui/CompactPageHero';
 import { apiClient } from '../lib/api';
 
 interface Scene {
@@ -218,12 +218,14 @@ export default function ScenesPage() {
       position: 'relative',
       overflow: 'hidden',
     }}>
-      <StandardPageHeader
-        title="场景管理"
-        subtitle={`共 ${scenes.length} 个场景`}
-        icon={<MapPin style={{ width: '24px', height: '24px', color: 'white' }} />}
-        iconGradient={`linear-gradient(135deg, ${accentColor} 0%, ${accentLight} 100%)`}
-        iconShadow={`0 4px 14px ${accentColor}40`}
+      <CompactPageHero
+        title="SCENES"
+        subtitle="场景管理"
+        icon={<MapPin style={{ width: '20px', height: '20px', color: 'white' }} />}
+        stats={[
+          { value: scenes.length, label: '场景' },
+          { value: 0, label: '镜头' },
+        ]}
         actions={
           <>
             {filteredScenes.length > 0 && (

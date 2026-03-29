@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../../lib/prisma';
+import { authMiddleware } from '../../middleware/auth.middleware';
 import { AppError, asyncHandler } from '../../middleware/error.middleware';
 import logger from '../../lib/logger';
 import { randomBytes, randomUUID } from 'crypto';
@@ -105,7 +106,7 @@ router.get('/me', asyncHandler(async (req: Request, res: Response) => {
   if (!userId) {
     throw AppError.unauthorized();
   }
-  
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -118,29 +119,48 @@ router.get('/me', asyncHandler(async (req: Request, res: Response) => {
       last_login_at: true,
     },
   });
-  
+
   if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
     throw AppError.forbidden('需要管理员权限');
   }
-  
+
   res.json({ user });
 }));
 
-router.get('/stats', asyncHandler(async (req: Request, res: Response) => {
+router.post('/logout', authMiddleware, asyncHandler(async (req: Request, res: Response) => {
+  const sessionToken = req.cookies?.sessionId as string | undefined;
+
+  if (sessionToken) {
+    await prisma.session.delete({
+      where: { token: sessionToken },
+    }).catch(() => {});
+  }
+
+  res.clearCookie('sessionId', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+  });
+
+  res.json({ message: '已退出登录' });
+}));
+
+router.get('/stats', authMiddleware, asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user_id;
   if (!userId) {
     throw AppError.unauthorized();
   }
-  
+
   const adminUser = await prisma.user.findUnique({
     where: { id: userId },
     select: { role: true },
   });
-  
+
   if (!adminUser || (adminUser.role !== 'admin' && adminUser.role !== 'super_admin')) {
     throw AppError.forbidden('需要管理员权限');
   }
-  
+
   const [
     userCount,
     projectCount,
@@ -163,19 +183,19 @@ router.get('/stats', asyncHandler(async (req: Request, res: Response) => {
       orderBy: { id: 'desc' },
     }),
   ]);
-  
+
   const userIds = [...new Set(recentLogs.filter(l => l.user_id).map(l => l.user_id))] as string[];
   const users = await prisma.user.findMany({
     where: { id: { in: userIds } },
     select: { id: true, name: true, email: true },
   });
   const userMap = new Map(users.map(u => [u.id, u]));
-  
+
   const logsWithUsers = recentLogs.map(log => ({
     ...log,
     user: log.user_id ? userMap.get(log.user_id) : null,
   }));
-  
+
   res.json({
     stats: {
       users: userCount,

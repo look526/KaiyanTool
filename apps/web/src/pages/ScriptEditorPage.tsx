@@ -162,6 +162,11 @@ function ScriptEditorContent() {
   const [isApplyingParse, setIsApplyingParse] = useState(false);
   const [formatEpisodes, setFormatEpisodes] = useState(12);
   const [formatMinutes, setFormatMinutes] = useState(45);
+  
+  // 调试 selectedModel 变化
+  useEffect(() => {
+    console.log('[ScriptEditorPage] selectedModel changed to:', selectedModel);
+  }, [selectedModel]);
   const [showFormatDialog, setShowFormatDialog] = useState(false);
   const [formattedResult, setFormattedResult] = useState<{
     formatted_text: string;
@@ -1280,7 +1285,6 @@ function ScriptEditorContent() {
         flex: 1,
         minHeight: 0,
         display: 'flex',
-        overflow: 'hidden',
       }}>
         <section style={{
           flex: 1,
@@ -1288,7 +1292,6 @@ function ScriptEditorContent() {
           display: 'flex',
           flexDirection: 'column',
           minWidth: 0,
-          overflow: 'hidden',
         }}>
           <div style={{
             display: 'flex',
@@ -1536,7 +1539,8 @@ function ScriptEditorContent() {
           borderLeft: '1px solid var(--border-primary)',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
+          position: 'relative',
+          zIndex: 50,
         }}>
           <div style={{
             padding: '24px',
