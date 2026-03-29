@@ -422,25 +422,35 @@ export default function ProjectsPage() {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
-                  padding: '12px 24px',
-                  borderRadius: '14px',
+                  gap: '10px',
+                  padding: '14px 28px',
+                  borderRadius: '16px',
                   fontSize: '14px',
                   fontWeight: 600,
+                  fontFamily: "'Manrope', sans-serif",
                   border: 'none',
-                  background: newProjectHover
-                    ? `linear-gradient(135deg, ${colors.accentDim} 0%, ${colors.accent} 100%)`
-                    : `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentLight} 100%)`,
+                  background: isDark
+                    ? (newProjectHover
+                        ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.9) 0%, rgba(124, 58, 237, 0.95) 100%)'
+                        : 'rgba(139, 92, 246, 0.7)')
+                    : (newProjectHover
+                        ? 'linear-gradient(135deg, rgba(124, 58, 237, 0.95) 0%, rgba(139, 92, 246, 0.9) 100%)'
+                        : 'rgba(124, 58, 237, 0.85)'),
                   color: '#ffffff',
                   cursor: 'pointer',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
                   boxShadow: newProjectHover
-                    ? `0 12px 32px ${colors.accent}50`
-                    : `0 8px 24px ${colors.accent}30`,
-                  transform: newProjectHover ? 'scale(1.03)' : 'scale(1)',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    ? `0 8px 32px ${colors.accent}40, 0 0 60px ${colors.accent}20`
+                    : `0 4px 16px ${colors.accent}20`,
+                  transform: newProjectHover ? 'translateY(-2px) scale(1.02)' : 'translateY(0) scale(1)',
+                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '18px', fill: 'white' }}>add</span>
+                <span className="material-symbols-outlined" style={{
+                  fontSize: '20px',
+                  fontVariationSettings: "'FILL' 1, 'wght' 500",
+                }}>add</span>
                 <span>新建项目</span>
               </button>
             </div>
@@ -501,23 +511,35 @@ export default function ProjectsPage() {
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '8px',
-                  padding: '14px 32px',
-                  borderRadius: '14px',
-                  fontSize: '14px',
+                  gap: '10px',
+                  padding: '16px 32px',
+                  borderRadius: '16px',
+                  fontSize: '15px',
                   fontWeight: 600,
+                  fontFamily: "'Manrope', sans-serif",
                   border: 'none',
-                  background: createHover
-                    ? `linear-gradient(135deg, ${colors.accentDim} 0%, ${colors.accent} 100%)`
-                    : `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentLight} 100%)`,
+                  background: isDark
+                    ? (createHover
+                        ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.9) 0%, rgba(124, 58, 237, 0.95) 100%)'
+                        : 'rgba(139, 92, 246, 0.7)')
+                    : (createHover
+                        ? 'linear-gradient(135deg, rgba(124, 58, 237, 0.95) 0%, rgba(139, 92, 246, 0.9) 100%)'
+                        : 'rgba(124, 58, 237, 0.85)'),
                   color: '#ffffff',
                   cursor: 'pointer',
-                  boxShadow: `0 8px 24px ${colors.accent}30`,
-                  transform: createHover ? 'scale(1.03)' : 'scale(1)',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  boxShadow: createHover
+                    ? `0 12px 40px ${colors.accent}40, 0 0 80px ${colors.accent}20`
+                    : `0 6px 24px ${colors.accent}25`,
+                  transform: createHover ? 'translateY(-3px) scale(1.02)' : 'translateY(0) scale(1)',
+                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '18px', fill: 'white' }}>add</span>
+                <span className="material-symbols-outlined" style={{
+                  fontSize: '22px',
+                  fontVariationSettings: "'FILL' 1, 'wght' 500",
+                }}>add</span>
                 <span>创建项目</span>
               </button>
             </div>
