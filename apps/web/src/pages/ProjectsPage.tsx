@@ -25,32 +25,33 @@ export default function ProjectsPage() {
     bgBase: '#05050a',
     bgSurface: '#0a0a12',
     bgElevated: '#0f0f1a',
-    bgPage: '#050505',
+    bgPage: 'linear-gradient(180deg, #05050a 0%, #0a0a12 50%, #0f0f1a 100%)',
     bgHeader: 'rgba(5, 5, 10, 0.95)',
     bgGlass: 'rgba(5, 5, 10, 0.6)',
     bgGlassHover: 'rgba(255, 255, 255, 0.06)',
     bgSecondary: 'rgba(255, 255, 255, 0.03)',
     bgInput: 'rgba(255, 255, 255, 0.04)',
-    textPrimary: '#dfe4fe',
-    textSecondary: '#a5aac2',
-    textMuted: 'rgba(165, 170, 194, 0.8)',
-    border: 'rgba(65, 71, 91, 0.15)',
+    textPrimary: '#fafafa',
+    textSecondary: 'rgba(250, 250, 250, 0.6)',
+    textMuted: 'rgba(250, 250, 250, 0.4)',
+    border: 'rgba(255, 255, 255, 0.06)',
     borderLight: 'rgba(255, 255, 255, 0.05)',
     borderHover: 'rgba(139, 92, 246, 0.25)',
-    accent: '#ba9eff',
-    accentLight: '#ae8dff',
-    accentDim: '#8455ef',
-    onAccent: '#39008c',
-    shadowAccent: 'rgba(186, 158, 255, 0.3)',
+    accent: '#8b5cf6',
+    accentLight: '#a78bfa',
+    accentDim: '#7c3aed',
+    onAccent: '#ffffff',
+    shadowAccent: 'rgba(139, 92, 246, 0.3)',
     surfaceContainerLow: '#0c1326',
     surfaceContainerHigh: '#1c253e',
     hoverBg: 'rgba(255, 255, 255, 0.05)',
     glassBg: 'rgba(28, 37, 62, 0.4)',
+    glowPrimary: 'rgba(139, 92, 246, 0.08)',
   } : {
     bgBase: '#f5f5f5',
     bgSurface: '#ffffff',
     bgElevated: '#ffffff',
-    bgPage: '#f5f5f5',
+    bgPage: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
     bgHeader: 'rgba(255, 255, 255, 0.95)',
     bgGlass: 'rgba(255, 255, 255, 0.8)',
     bgGlassHover: 'rgba(0, 0, 0, 0.04)',
@@ -71,6 +72,7 @@ export default function ProjectsPage() {
     surfaceContainerHigh: '#e2e8f0',
     hoverBg: 'rgba(0, 0, 0, 0.04)',
     glassBg: 'rgba(255, 255, 255, 0.9)',
+    glowPrimary: 'rgba(139, 92, 246, 0.05)',
   };
 
   useEffect(() => {
@@ -101,20 +103,20 @@ export default function ProjectsPage() {
   }, [loadProjects]);
 
   const getProjectTypeConfig = useCallback((type: string) => {
-    switch (type) {
+    switch (type.toUpperCase()) {
       case 'SCRIPT':
-        return { icon: 'description' as any, gradient: 'linear-gradient(135deg, #ba9eff 0%, #ae8dff 100%)', label: '剧本', color: '#ba9eff' };
+        return { icon: 'description' as const, gradient: 'linear-gradient(135deg, #ba9eff 0%, #ae8dff 100%)', label: '剧本', color: '#ba9eff' };
       case 'NOVEL':
-        return { icon: 'menu_book' as any, gradient: 'linear-gradient(135deg, #ec63ff 0%, #f487ff 100%)', label: '小说', color: '#ec63ff' };
+        return { icon: 'menu_book' as const, gradient: 'linear-gradient(135deg, #ec63ff 0%, #f487ff 100%)', label: '小说', color: '#ec63ff' };
       case 'MIXED':
-        return { icon: 'auto_awesome' as any, gradient: 'linear-gradient(135deg, #34b5fa 0%, #81ccff 100%)', label: '混合', color: '#34b5fa' };
+        return { icon: 'auto_awesome' as const, gradient: 'linear-gradient(135deg, #34b5fa 0%, #81ccff 100%)', label: '混合', color: '#34b5fa' };
       default:
-        return { icon: 'folder_open' as any, gradient: 'linear-gradient(135deg, #ba9eff 0%, #ae8dff 100%)', label: '项目', color: '#ba9eff' };
+        return { icon: 'folder_open' as const, gradient: 'linear-gradient(135deg, #ba9eff 0%, #ae8dff 100%)', label: '项目', color: '#ba9eff' };
     }
   }, []);
 
   const getStatusConfig = useCallback((status: string) => {
-    switch (status) {
+    switch (status.toUpperCase()) {
       case 'ACTIVE':
         return { label: '进行中', color: '#34b5fa', bg: 'rgba(52, 181, 250, 0.15)' };
       case 'COMPLETED':
@@ -148,53 +150,65 @@ export default function ProjectsPage() {
       display: 'flex',
       fontFamily: "'Manrope', sans-serif",
       color: colors.textPrimary,
+      position: 'relative',
+      overflow: 'hidden',
     }}>
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: `radial-gradient(ellipse at 20% 20%, ${colors.glowPrimary} 0%, transparent 50%)`,
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: `radial-gradient(ellipse at 80% 80%, ${isDark ? 'rgba(139, 92, 246, 0.05)' : 'rgba(139, 92, 246, 0.03)'} 0%, transparent 50%)`,
+        pointerEvents: 'none',
+      }} />
+
       <main style={{
         marginLeft: '256px',
         flex: 1,
         position: 'relative',
+        zIndex: 1,
       }}>
-        {/* Header */}
         <header style={{
           position: 'fixed',
           top: 0,
           right: 0,
           left: '256px',
-          height: '80px',
+          height: '72px',
           background: colors.bgHeader,
-          backdropFilter: 'blur(24px)',
+          backdropFilter: 'blur(40px)',
+          WebkitBackdropFilter: 'blur(40px)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: '0 32px',
           zIndex: 40,
-          borderBottom: `1px solid ${colors.borderLight}`,
+          borderBottom: `1px solid ${colors.border}`,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <h2 style={{
-              fontSize: '20px',
+              fontSize: '18px',
               fontWeight: 700,
               color: colors.textPrimary,
               fontFamily: "'Plus Jakarta Sans', sans-serif",
               margin: 0,
             }}>项目列表</h2>
-            <div style={{ width: '1px', height: '24px', background: colors.border }} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: colors.textSecondary, fontSize: '14px' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>trending_up</span>
-              <span>状态统计</span>
-            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              background: colors.surfaceContainerLow,
-              padding: '8px 16px',
-              borderRadius: '16px',
+              background: colors.bgInput,
+              backdropFilter: 'blur(20px)',
+              padding: '10px 16px',
+              borderRadius: '14px',
               border: `1px solid ${colors.border}`,
-              gap: '8px',
+              gap: '10px',
             }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '16px', color: colors.textSecondary }}>search</span>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: colors.textSecondary }}>search</span>
               <input
                 type="text"
                 placeholder="搜索项目..."
@@ -205,73 +219,51 @@ export default function ProjectsPage() {
                   border: 'none',
                   outline: 'none',
                   fontSize: '14px',
-                  width: '256px',
+                  width: '220px',
                   color: colors.textPrimary,
                 }}
               />
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <button style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '40px',
-                height: '40px',
-                borderRadius: '12px',
-                border: 'none',
-                background: 'transparent',
-                color: colors.textSecondary,
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = colors.accent; e.currentTarget.style.background = colors.hoverBg; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = colors.textSecondary; e.currentTarget.style.background = 'transparent'; }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>notifications</span>
-              </button>
-              <button style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '40px',
-                height: '40px',
-                borderRadius: '12px',
-                border: 'none',
-                background: 'transparent',
-                color: colors.textSecondary,
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = colors.accent; e.currentTarget.style.background = colors.hoverBg; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = colors.textSecondary; e.currentTarget.style.background = 'transparent'; }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>grid_view</span>
-              </button>
-              <button style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '40px',
-                height: '40px',
-                borderRadius: '12px',
-                border: 'none',
-                background: 'transparent',
-                color: colors.textSecondary,
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = colors.accent; e.currentTarget.style.background = colors.hoverBg; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = colors.textSecondary; e.currentTarget.style.background = 'transparent'; }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>account_circle</span>
-              </button>
-            </div>
+            <button style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
+              border: 'none',
+              background: 'transparent',
+              color: colors.textSecondary,
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = colors.accent; e.currentTarget.style.background = colors.hoverBg; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = colors.textSecondary; e.currentTarget.style.background = 'transparent'; }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>notifications</span>
+            </button>
+            <button style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
+              border: 'none',
+              background: 'transparent',
+              color: colors.textSecondary,
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = colors.accent; e.currentTarget.style.background = colors.hoverBg; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = colors.textSecondary; e.currentTarget.style.background = 'transparent'; }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>account_circle</span>
+            </button>
           </div>
         </header>
 
-        {/* Content */}
-        <div style={{ padding: '120px 48px 48px' }}>
-          {/* Page Header */}
+        <div style={{ padding: '112px 48px 48px' }}>
           <section style={{ marginBottom: '40px' }}>
             <h1 style={{
               fontSize: '36px',
@@ -281,10 +273,9 @@ export default function ProjectsPage() {
               letterSpacing: '-0.02em',
               margin: '0 0 8px 0',
             }}>我的项目</h1>
-            <p style={{ fontSize: '14px', fontWeight: 500, color: colors.textSecondary, margin: 0 }}>管理您的创作项目</p>
+            <p style={{ fontSize: '15px', fontWeight: 500, color: colors.textSecondary, margin: 0 }}>管理您的创作项目</p>
           </section>
 
-          {/* Statistics */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
@@ -317,7 +308,6 @@ export default function ProjectsPage() {
             />
           </div>
 
-          {/* Filters & Actions */}
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -326,7 +316,7 @@ export default function ProjectsPage() {
             flexWrap: 'wrap',
             gap: '16px',
           }}>
-            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               <FilterSelect value={filterType} onChange={setFilterType} options={[
                 { value: 'all', label: '全部类型' },
                 { value: 'SCRIPT', label: '剧本' },
@@ -344,9 +334,10 @@ export default function ProjectsPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{
                 display: 'flex',
-                background: colors.surfaceContainerLow,
+                background: colors.bgInput,
+                backdropFilter: 'blur(20px)',
                 padding: '4px',
-                borderRadius: '16px',
+                borderRadius: '14px',
                 border: `1px solid ${colors.border}`,
                 gap: '4px',
               }}>
@@ -358,7 +349,7 @@ export default function ProjectsPage() {
                     justifyContent: 'center',
                     width: '36px',
                     height: '36px',
-                    borderRadius: '12px',
+                    borderRadius: '10px',
                     border: 'none',
                     background: viewMode === 'grid' ? colors.surfaceContainerHigh : 'transparent',
                     color: viewMode === 'grid' ? colors.accent : colors.textSecondary,
@@ -376,7 +367,7 @@ export default function ProjectsPage() {
                     justifyContent: 'center',
                     width: '36px',
                     height: '36px',
-                    borderRadius: '12px',
+                    borderRadius: '10px',
                     border: 'none',
                     background: viewMode === 'list' ? colors.surfaceContainerHigh : 'transparent',
                     color: viewMode === 'list' ? colors.accent : colors.textSecondary,
@@ -395,19 +386,19 @@ export default function ProjectsPage() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  padding: '10px 24px',
-                  borderRadius: '16px',
+                  padding: '10px 20px',
+                  borderRadius: '14px',
                   fontSize: '14px',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   border: 'none',
                   background: newProjectHover
                     ? `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentDim} 100%)`
                     : `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentLight} 100%)`,
                   color: colors.onAccent,
                   cursor: 'pointer',
-                  boxShadow: `0 4px 15px ${colors.shadowAccent}`,
-                  transform: newProjectHover ? 'scale(1.05)' : 'scale(1)',
-                  transition: 'all 0.3s ease',
+                  boxShadow: `0 8px 24px ${colors.accent}40`,
+                  transform: newProjectHover ? 'scale(1.03)' : 'scale(1)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '18px', fill: 'white' }}>add</span>
@@ -416,7 +407,6 @@ export default function ProjectsPage() {
             </div>
           </div>
 
-          {/* Project Grid */}
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '120px 0' }}>
               <div style={{
@@ -438,21 +428,22 @@ export default function ProjectsPage() {
               textAlign: 'center',
             }}>
               <div style={{
-                width: '80px',
-                height: '80px',
-                borderRadius: '24px',
+                width: '96px',
+                height: '96px',
+                borderRadius: '28px',
                 background: colors.glassBg,
-                backdropFilter: 'blur(30px)',
+                backdropFilter: 'blur(40px)',
                 border: `1px solid ${colors.border}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 marginBottom: '24px',
+                boxShadow: `0 20px 40px rgba(0, 0, 0, 0.1), 0 0 60px ${colors.accent}10`,
               }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '40px', color: colors.textSecondary }}>folder_open</span>
+                <span className="material-symbols-outlined" style={{ fontSize: '44px', color: colors.textSecondary }}>folder_open</span>
               </div>
-              <h3 style={{ fontSize: '18px', fontWeight: 600, color: colors.textPrimary, marginBottom: '8px', margin: '0 0 8px 0' }}>暂无项目</h3>
-              <p style={{ fontSize: '14px', color: colors.textSecondary, marginBottom: '24px', maxWidth: '300px', margin: '0 0 24px 0' }}>创建您的第一个项目，开始精彩的创作之旅</p>
+              <h3 style={{ fontSize: '20px', fontWeight: 600, color: colors.textPrimary, marginBottom: '8px', margin: '0 0 8px 0' }}>暂无项目</h3>
+              <p style={{ fontSize: '14px', color: colors.textSecondary, marginBottom: '28px', maxWidth: '320px', lineHeight: 1.6 }}>创建您的第一个项目，开始精彩的创作之旅</p>
               <button
                 onClick={() => navigate('/projects/new')}
                 onMouseEnter={() => setCreateHover(true)}
@@ -461,19 +452,19 @@ export default function ProjectsPage() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px',
-                  padding: '12px 24px',
-                  borderRadius: '16px',
+                  padding: '12px 28px',
+                  borderRadius: '14px',
                   fontSize: '14px',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   border: 'none',
                   background: createHover
                     ? `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentDim} 100%)`
                     : `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentLight} 100%)`,
                   color: colors.onAccent,
                   cursor: 'pointer',
-                  boxShadow: `0 4px 15px ${colors.shadowAccent}`,
-                  transform: createHover ? 'scale(1.05)' : 'scale(1)',
-                  transition: 'all 0.3s ease',
+                  boxShadow: `0 8px 24px ${colors.accent}40`,
+                  transform: createHover ? 'scale(1.03)' : 'scale(1)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '18px', fill: 'white' }}>add</span>
@@ -484,7 +475,7 @@ export default function ProjectsPage() {
             <div style={{
               display: 'grid',
               gridTemplateColumns: viewMode === 'grid'
-                ? 'repeat(auto-fill, minmax(320px, 1fr))'
+                ? 'repeat(auto-fill, minmax(340px, 1fr))'
                 : '1fr',
               gap: '24px',
               paddingBottom: '40px',
