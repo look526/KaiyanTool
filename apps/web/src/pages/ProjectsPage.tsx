@@ -103,7 +103,8 @@ export default function ProjectsPage() {
   }, [loadProjects]);
 
   const getProjectTypeConfig = useCallback((type: string) => {
-    switch (type.toUpperCase()) {
+    const upperType = (type || '').toUpperCase();
+    switch (upperType) {
       case 'SCRIPT':
         return { icon: 'description' as const, gradient: 'linear-gradient(135deg, #ba9eff 0%, #ae8dff 100%)', label: '剧本', color: '#ba9eff' };
       case 'NOVEL':
@@ -116,7 +117,8 @@ export default function ProjectsPage() {
   }, []);
 
   const getStatusConfig = useCallback((status: string) => {
-    switch (status.toUpperCase()) {
+    const upperStatus = (status || '').toUpperCase();
+    switch (upperStatus) {
       case 'ACTIVE':
         return { label: '进行中', color: '#34b5fa', bg: 'rgba(52, 181, 250, 0.15)' };
       case 'COMPLETED':
