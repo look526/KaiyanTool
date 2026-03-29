@@ -10,6 +10,22 @@ function StatCard({ value, label }: { value: number; label: string }) {
   const isDark = resolvedTheme === 'dark';
   const [isHovered, setIsHovered] = useState(false);
 
+  const colors = isDark ? {
+    bg: 'rgba(255, 255, 255, 0.03)',
+    bgHover: 'rgba(139, 92, 246, 0.15)',
+    border: 'rgba(255, 255, 255, 0.06)',
+    textPrimary: '#dfe4fe',
+    textMuted: '#a5aac2',
+    accent: '#a78bfa',
+  } : {
+    bg: 'rgba(255, 255, 255, 0.8)',
+    bgHover: 'rgba(139, 92, 246, 0.1)',
+    border: 'rgba(0, 0, 0, 0.06)',
+    textPrimary: '#18181b',
+    textMuted: 'rgba(24, 24, 27, 0.6)',
+    accent: '#7c3aed',
+  };
+
   return (
     <div
       onMouseEnter={() => setIsHovered(true)}
@@ -20,9 +36,10 @@ function StatCard({ value, label }: { value: number; label: string }) {
         alignItems: 'center',
         padding: '24px 32px',
         borderRadius: '24px',
-        background: isHovered ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+        background: isHovered ? colors.bgHover : colors.bg,
         backdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255, 255, 255, 0.06)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: `1px solid ${colors.border}`,
         transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
         cursor: 'default',
       }}
@@ -31,7 +48,7 @@ function StatCard({ value, label }: { value: number; label: string }) {
         fontSize: '48px',
         fontWeight: 800,
         fontFamily: "'Plus Jakarta Sans', sans-serif",
-        color: isHovered ? '#a78bfa' : '#dfe4fe',
+        color: isHovered ? colors.accent : colors.textPrimary,
         lineHeight: 1,
         marginBottom: '8px',
         transition: 'color 0.4s ease',
@@ -41,7 +58,7 @@ function StatCard({ value, label }: { value: number; label: string }) {
       <span style={{
         fontSize: '12px',
         fontWeight: 300,
-        color: '#a5aac2',
+        color: colors.textMuted,
         letterSpacing: '0.15em',
         textTransform: 'uppercase',
       }}>
@@ -65,6 +82,42 @@ export default function ProjectsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [newProjectHover, setNewProjectHover] = useState(false);
   const [createHover, setCreateHover] = useState(false);
+
+  const colors = useMemo(() => isDark ? {
+    bgPage: 'linear-gradient(180deg, #070d1f 0%, #0c1326 50%, #11192e 100%)',
+    bgHeader: 'rgba(7, 13, 31, 0.8)',
+    bgGlass: 'rgba(255, 255, 255, 0.04)',
+    bgGlassHover: 'rgba(255, 255, 255, 0.08)',
+    textPrimary: '#dfe4fe',
+    textSecondary: 'rgba(223, 228, 254, 0.6)',
+    textMuted: '#a5aac2',
+    border: 'rgba(255, 255, 255, 0.06)',
+    accent: '#8b5cf6',
+    accentLight: '#a78bfa',
+    accentDim: '#7c3aed',
+    glow1: 'rgba(139, 92, 246, 0.12)',
+    glow2: 'rgba(236, 99, 255, 0.08)',
+    cardBg: 'rgba(255, 255, 255, 0.03)',
+    inputBg: 'rgba(255, 255, 255, 0.04)',
+    cardIconBg: 'rgba(139, 92, 246, 0.1)',
+  } : {
+    bgPage: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+    bgHeader: 'rgba(255, 255, 255, 0.9)',
+    bgGlass: 'rgba(0, 0, 0, 0.04)',
+    bgGlassHover: 'rgba(0, 0, 0, 0.08)',
+    textPrimary: '#18181b',
+    textSecondary: 'rgba(24, 24, 27, 0.6)',
+    textMuted: 'rgba(24, 24, 27, 0.5)',
+    border: 'rgba(0, 0, 0, 0.06)',
+    accent: '#7c3aed',
+    accentLight: '#8b5cf6',
+    accentDim: '#6d28d9',
+    glow1: 'rgba(139, 92, 246, 0.08)',
+    glow2: 'rgba(236, 99, 255, 0.05)',
+    cardBg: 'rgba(255, 255, 255, 0.9)',
+    inputBg: 'rgba(0, 0, 0, 0.04)',
+    cardIconBg: 'rgba(139, 92, 246, 0.08)',
+  }, [isDark]);
 
   useEffect(() => {
     setPage(1);
@@ -111,15 +164,15 @@ export default function ProjectsPage() {
     const upperStatus = (status || '').toUpperCase();
     switch (upperStatus) {
       case 'ACTIVE':
-        return { label: '进行中', color: '#34b5fa', bg: 'rgba(52, 181, 250, 0.15)' };
+        return { label: '进行中', color: '#0891b2', bg: 'rgba(8, 145, 178, 0.15)' };
       case 'COMPLETED':
-        return { label: '已完成', color: '#ba9eff', bg: 'rgba(186, 158, 255, 0.15)' };
+        return { label: '已完成', color: '#7c3aed', bg: 'rgba(124, 58, 237, 0.15)' };
       case 'PAUSED':
-        return { label: '已暂停', color: '#f487ff', bg: 'rgba(244, 135, 255, 0.15)' };
+        return { label: '已暂停', color: '#db2777', bg: 'rgba(219, 39, 119, 0.15)' };
       case 'ARCHIVED':
-        return { label: '已归档', color: '#a5aac2', bg: 'rgba(165, 170, 194, 0.15)' };
+        return { label: '已归档', color: '#6b7280', bg: 'rgba(107, 114, 128, 0.15)' };
       default:
-        return { label: '草稿', color: '#a5aac2', bg: 'rgba(165, 170, 194, 0.15)' };
+        return { label: '草稿', color: '#6b7280', bg: 'rgba(107, 114, 128, 0.15)' };
     }
   }, []);
 
@@ -139,9 +192,9 @@ export default function ProjectsPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(180deg, #070d1f 0%, #0c1326 50%, #11192e 100%)',
+      background: colors.bgPage,
       fontFamily: "'Manrope', sans-serif",
-      color: '#dfe4fe',
+      color: colors.textPrimary,
       position: 'relative',
       overflowX: 'hidden',
     }}>
@@ -151,7 +204,7 @@ export default function ProjectsPage() {
         left: '20%',
         width: '60%',
         height: '400px',
-        background: 'radial-gradient(ellipse at center, rgba(139, 92, 246, 0.12) 0%, transparent 70%)',
+        background: `radial-gradient(ellipse at center, ${colors.glow1} 0%, transparent 70%)`,
         pointerEvents: 'none',
       }} />
       <div style={{
@@ -160,7 +213,7 @@ export default function ProjectsPage() {
         right: '10%',
         width: '300px',
         height: '300px',
-        background: 'radial-gradient(ellipse at center, rgba(236, 99, 255, 0.08) 0%, transparent 70%)',
+        background: `radial-gradient(ellipse at center, ${colors.glow2} 0%, transparent 70%)`,
         pointerEvents: 'none',
       }} />
 
@@ -170,7 +223,7 @@ export default function ProjectsPage() {
         right: 0,
         left: '256px',
         height: '72px',
-        background: 'rgba(7, 13, 31, 0.8)',
+        background: colors.bgHeader,
         backdropFilter: 'blur(40px)',
         WebkitBackdropFilter: 'blur(40px)',
         display: 'flex',
@@ -178,27 +231,27 @@ export default function ProjectsPage() {
         alignItems: 'center',
         padding: '0 32px',
         zIndex: 40,
-        borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+        borderBottom: `1px solid ${colors.border}`,
       }}>
         <h2 style={{
           fontSize: '18px',
           fontWeight: 700,
           fontFamily: "'Plus Jakarta Sans', sans-serif",
-          color: '#dfe4fe',
+          color: colors.textPrimary,
           margin: 0,
         }}>项目列表</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            background: 'rgba(255, 255, 255, 0.04)',
+            background: colors.inputBg,
             backdropFilter: 'blur(20px)',
             padding: '10px 16px',
             borderRadius: '14px',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            border: `1px solid ${colors.border}`,
             gap: '10px',
           }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#a5aac2' }}>search</span>
+            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: colors.textMuted }}>search</span>
             <input
               type="text"
               placeholder="搜索项目..."
@@ -210,7 +263,7 @@ export default function ProjectsPage() {
                 outline: 'none',
                 fontSize: '14px',
                 width: '200px',
-                color: '#dfe4fe',
+                color: colors.textPrimary,
                 fontFamily: 'Manrope, sans-serif',
               }}
             />
@@ -224,7 +277,7 @@ export default function ProjectsPage() {
             borderRadius: '12px',
             border: 'none',
             background: 'transparent',
-            color: '#a5aac2',
+            color: colors.textMuted,
             cursor: 'pointer',
             transition: 'all 0.3s ease',
           }}>
@@ -239,7 +292,7 @@ export default function ProjectsPage() {
             borderRadius: '12px',
             border: 'none',
             background: 'transparent',
-            color: '#a5aac2',
+            color: colors.textMuted,
             cursor: 'pointer',
             transition: 'all 0.3s ease',
           }}>
@@ -261,7 +314,7 @@ export default function ProjectsPage() {
             <h1 style={{
               fontSize: '14px',
               fontWeight: 300,
-              color: '#a5aac2',
+              color: colors.textMuted,
               letterSpacing: '0.4em',
               textTransform: 'uppercase',
               marginBottom: '16px',
@@ -271,7 +324,7 @@ export default function ProjectsPage() {
             <p style={{
               fontSize: '15px',
               fontWeight: 300,
-              color: '#a5aac2',
+              color: colors.textMuted,
               marginBottom: '48px',
               letterSpacing: '0.05em',
             }}>
@@ -318,11 +371,11 @@ export default function ProjectsPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{
                 display: 'flex',
-                background: 'rgba(255, 255, 255, 0.04)',
+                background: colors.inputBg,
                 backdropFilter: 'blur(20px)',
                 padding: '4px',
                 borderRadius: '14px',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
+                border: `1px solid ${colors.border}`,
                 gap: '4px',
               }}>
                 <button
@@ -335,8 +388,8 @@ export default function ProjectsPage() {
                     height: '36px',
                     borderRadius: '10px',
                     border: 'none',
-                    background: viewMode === 'grid' ? 'rgba(139, 92, 246, 0.3)' : 'transparent',
-                    color: viewMode === 'grid' ? '#a78bfa' : '#a5aac2',
+                    background: viewMode === 'grid' ? `${colors.accent}30` : 'transparent',
+                    color: viewMode === 'grid' ? colors.accent : colors.textMuted,
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
                   }}
@@ -353,8 +406,8 @@ export default function ProjectsPage() {
                     height: '36px',
                     borderRadius: '10px',
                     border: 'none',
-                    background: viewMode === 'list' ? 'rgba(139, 92, 246, 0.3)' : 'transparent',
-                    color: viewMode === 'list' ? '#a78bfa' : '#a5aac2',
+                    background: viewMode === 'list' ? `${colors.accent}30` : 'transparent',
+                    color: viewMode === 'list' ? colors.accent : colors.textMuted,
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
                   }}
@@ -376,13 +429,13 @@ export default function ProjectsPage() {
                   fontWeight: 600,
                   border: 'none',
                   background: newProjectHover
-                    ? 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)'
-                    : 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
+                    ? `linear-gradient(135deg, ${colors.accentDim} 0%, ${colors.accent} 100%)`
+                    : `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentLight} 100%)`,
                   color: '#ffffff',
                   cursor: 'pointer',
                   boxShadow: newProjectHover
-                    ? '0 12px 32px rgba(139, 92, 246, 0.5)'
-                    : '0 8px 24px rgba(139, 92, 246, 0.3)',
+                    ? `0 12px 32px ${colors.accent}50`
+                    : `0 8px 24px ${colors.accent}30`,
                   transform: newProjectHover ? 'scale(1.03)' : 'scale(1)',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 }}
@@ -398,8 +451,8 @@ export default function ProjectsPage() {
               <div style={{
                 width: '48px',
                 height: '48px',
-                border: '3px solid rgba(139, 92, 246, 0.2)',
-                borderTopColor: '#8b5cf6',
+                border: `3px solid ${colors.accent}20`,
+                borderTopColor: colors.accent,
                 borderRadius: '50%',
                 animation: 'spin 1s linear infinite',
               }} />
@@ -417,26 +470,26 @@ export default function ProjectsPage() {
                 width: '120px',
                 height: '120px',
                 borderRadius: '32px',
-                background: 'rgba(139, 92, 246, 0.1)',
+                background: colors.cardIconBg,
                 backdropFilter: 'blur(40px)',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
+                border: `1px solid ${colors.border}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 marginBottom: '32px',
               }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '56px', color: '#a5aac2' }}>movie</span>
+                <span className="material-symbols-outlined" style={{ fontSize: '56px', color: colors.textMuted }}>movie</span>
               </div>
               <h3 style={{
                 fontSize: '24px',
                 fontWeight: 700,
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
-                color: '#dfe4fe',
+                color: colors.textPrimary,
                 marginBottom: '12px',
               }}>暂无项目</h3>
               <p style={{
                 fontSize: '14px',
-                color: '#a5aac2',
+                color: colors.textMuted,
                 marginBottom: '32px',
                 maxWidth: '320px',
                 lineHeight: 1.6,
@@ -455,11 +508,11 @@ export default function ProjectsPage() {
                   fontWeight: 600,
                   border: 'none',
                   background: createHover
-                    ? 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)'
-                    : 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
+                    ? `linear-gradient(135deg, ${colors.accentDim} 0%, ${colors.accent} 100%)`
+                    : `linear-gradient(135deg, ${colors.accent} 0%, ${colors.accentLight} 100%)`,
                   color: '#ffffff',
                   cursor: 'pointer',
-                  boxShadow: '0 8px 24px rgba(139, 92, 246, 0.3)',
+                  boxShadow: `0 8px 24px ${colors.accent}30`,
                   transform: createHover ? 'scale(1.03)' : 'scale(1)',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 }}

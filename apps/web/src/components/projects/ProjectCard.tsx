@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Project } from '../../lib/api';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface ProjectCardProps {
   project: Project;
@@ -18,9 +19,51 @@ function getCoverImageUrl(project: Project): string {
 }
 
 export function ProjectCard({ project, viewMode, typeConfig, statusConfig, formatDate }: ProjectCardProps) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
   const [isHovered, setIsHovered] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [moreHover, setMoreHover] = useState(false);
+
+  const colors = isDark ? {
+    listBg: 'rgba(255, 255, 255, 0.03)',
+    listBgHover: 'rgba(139, 92, 246, 0.08)',
+    listBorder: 'rgba(255, 255, 255, 0.06)',
+    listTextPrimary: '#dfe4fe',
+    listTextSecondary: '#a5aac2',
+    listIconBgHover: 'rgba(255, 255, 255, 0.08)',
+    cardBg: '#0c1326',
+    cardShadow: 'rgba(0, 0, 0, 0.2)',
+    cardShadowHover: 'rgba(0, 0, 0, 0.4)',
+    cardGlow: 'rgba(139, 92, 246, 0.15)',
+    overlayGradient: 'linear-gradient(to top, rgba(7, 13, 31, 0.98) 0%, rgba(7, 13, 31, 0.7) 35%, transparent 60%)',
+    overlayLight: 'transparent',
+    typeTagBg: 'rgba(0, 0, 0, 0.5)',
+    typeTagBorder: `${typeConfig.color}40`,
+    moreBtnBg: 'rgba(0, 0, 0, 0.5)',
+    titleColor: '#ffffff',
+    descColor: 'rgba(223, 228, 254, 0.7)',
+    metaColor: '#a5aac2',
+  } : {
+    listBg: 'rgba(255, 255, 255, 0.9)',
+    listBgHover: 'rgba(139, 92, 246, 0.06)',
+    listBorder: 'rgba(0, 0, 0, 0.06)',
+    listTextPrimary: '#18181b',
+    listTextSecondary: 'rgba(24, 24, 27, 0.6)',
+    listIconBgHover: 'rgba(0, 0, 0, 0.04)',
+    cardBg: '#f1f5f9',
+    cardShadow: 'rgba(0, 0, 0, 0.08)',
+    cardShadowHover: 'rgba(0, 0, 0, 0.15)',
+    cardGlow: 'rgba(139, 92, 246, 0.1)',
+    overlayGradient: 'linear-gradient(to top, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.7) 35%, transparent 60%)',
+    overlayLight: 'transparent',
+    typeTagBg: 'rgba(255, 255, 255, 0.9)',
+    typeTagBorder: `${typeConfig.color}30`,
+    moreBtnBg: 'rgba(255, 255, 255, 0.9)',
+    titleColor: '#18181b',
+    descColor: 'rgba(24, 24, 27, 0.7)',
+    metaColor: 'rgba(24, 24, 27, 0.5)',
+  };
 
   if (viewMode === 'list') {
     return (
@@ -34,9 +77,10 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
             gap: '20px',
             padding: '20px 24px',
             borderRadius: '20px',
-            background: isHovered ? 'rgba(139, 92, 246, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+            background: isHovered ? colors.listBgHover : colors.listBg,
             backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: `1px solid ${colors.listBorder}`,
             transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
             transform: isHovered ? 'translateX(6px)' : 'translateX(0)',
           }}
@@ -79,7 +123,7 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
               fontSize: '17px',
               fontWeight: 700,
               fontFamily: "'Plus Jakarta Sans', sans-serif",
-              color: '#dfe4fe',
+              color: colors.listTextPrimary,
               marginBottom: '6px',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -87,7 +131,7 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
             }}>{project.name}</h3>
             <p style={{
               fontSize: '13px',
-              color: '#a5aac2',
+              color: colors.listTextSecondary,
               margin: 0,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -104,7 +148,7 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
               fontWeight: 600,
               color: statusConfig.color,
             }}>{statusConfig.label}</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#a5aac2' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: colors.listTextSecondary }}>
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>calendar_today</span>
               <span style={{ fontSize: '12px' }}>{formatDate(project.updated_at)}</span>
             </div>
@@ -120,8 +164,8 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
                 height: '36px',
                 borderRadius: '10px',
                 border: 'none',
-                background: moreHover ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
-                color: moreHover ? '#dfe4fe' : '#a5aac2',
+                background: moreHover ? colors.listIconBgHover : 'transparent',
+                color: moreHover ? colors.listTextPrimary : colors.listTextSecondary,
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
               }}
@@ -146,12 +190,12 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
           borderRadius: '28px',
           overflow: 'hidden',
           height: '480px',
-          background: '#0c1326',
+          background: colors.cardBg,
           transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
           transform: isHovered ? 'translateY(-10px) scale(1.02)' : 'translateY(0) scale(1)',
           boxShadow: isHovered
-            ? '0 30px 60px rgba(0, 0, 0, 0.4), 0 0 80px rgba(139, 92, 246, 0.15)'
-            : '0 10px 40px rgba(0, 0, 0, 0.2)',
+            ? `0 30px 60px ${colors.cardShadowHover}, 0 0 80px ${colors.cardGlow}`
+            : `0 10px 40px ${colors.cardShadow}`,
         }}
       >
         <div style={{
@@ -176,7 +220,7 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
           <div style={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(to top, rgba(7, 13, 31, 0.98) 0%, rgba(7, 13, 31, 0.7) 35%, transparent 60%)',
+            background: colors.overlayGradient,
             transition: 'opacity 0.5s ease',
           }} />
 
@@ -200,15 +244,16 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
           <span style={{
             padding: '6px 16px',
             borderRadius: '9999px',
-            background: 'rgba(0, 0, 0, 0.5)',
+            background: colors.typeTagBg,
             backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
             fontSize: '10px',
             fontWeight: 600,
             fontFamily: "'Manrope', sans-serif",
             color: typeConfig.color,
             letterSpacing: '0.25em',
             textTransform: 'uppercase',
-            border: `1px solid ${typeConfig.color}40`,
+            border: `1px solid ${colors.typeTagBorder}`,
           }}>
             {typeConfig.label}
           </span>
@@ -226,10 +271,10 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
             fontSize: '28px',
             fontWeight: 800,
             fontFamily: "'Plus Jakarta Sans', sans-serif",
-            color: '#ffffff',
+            color: colors.titleColor,
             marginBottom: '12px',
             lineHeight: 1.2,
-            textShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
+            textShadow: isDark ? '0 4px 20px rgba(0, 0, 0, 0.5)' : '0 2px 10px rgba(0, 0, 0, 0.1)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -242,7 +287,7 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
             fontSize: '14px',
             fontFamily: "'Manrope', sans-serif",
             fontWeight: 400,
-            color: 'rgba(223, 228, 254, 0.7)',
+            color: colors.descColor,
             marginBottom: '20px',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -270,7 +315,7 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
               }}>
                 {statusConfig.label}
               </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#a5aac2' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: colors.metaColor }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>calendar_today</span>
                 <span style={{ fontSize: '12px', fontWeight: 400 }}>{formatDate(project.updated_at)}</span>
               </div>
@@ -316,9 +361,10 @@ export function ProjectCard({ project, viewMode, typeConfig, statusConfig, forma
               height: '40px',
               borderRadius: '12px',
               border: 'none',
-              background: 'rgba(0, 0, 0, 0.5)',
+              background: colors.moreBtnBg,
               backdropFilter: 'blur(20px)',
-              color: '#ffffff',
+              WebkitBackdropFilter: 'blur(20px)',
+              color: colors.titleColor,
               cursor: 'pointer',
               transition: 'all 0.3s ease',
             }}

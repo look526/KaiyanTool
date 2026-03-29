@@ -4,8 +4,6 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { QueryProvider } from './core/query/QueryProvider'
 import HomePage from './pages/HomePage'
-import TestPage from './pages/TestPage'
-import SimpleTest from './pages/SimpleTest'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import { ToastProvider } from './components/ui/Toast'
@@ -112,8 +110,6 @@ function App() {
                 <Suspense fallback={<LoadingComponent />}>
                   <Routes>
                   <Route path="/" element={<HomePage />} />
-                  <Route path="/test" element={<TestPage />} />
-                  <Route path="/simple" element={<SimpleTest />} />
                   <Route path="/buttons" element={<ButtonShowcasePage />} />
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/register" element={<RegisterPage />} />
