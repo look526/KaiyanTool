@@ -101,16 +101,14 @@ export default function AIProvidersPage() {
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
-        boxShadow: `0 8px 24px ${accentColor}40`,
-        transition: 'all 0.3s ease',
+        boxShadow: `0 4px 12px ${accentColor}30`,
+        transition: 'background-color 0.15s ease, opacity 0.15s ease',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-2px)';
-        e.currentTarget.style.boxShadow = `0 12px 32px ${accentColor}50`;
+        e.currentTarget.style.opacity = '0.92';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = `0 8px 24px ${accentColor}40`;
+        e.currentTarget.style.opacity = '1';
       }}
     >
       <Plus style={{ width: '18px', height: '18px' }} />
@@ -250,23 +248,16 @@ export default function AIProvidersPage() {
                   fontSize: '14px',
                   color: colors.textPrimary,
                   outline: 'none',
-                  transition: 'all 0.3s ease',
-                  boxShadow: isDark 
-                    ? '0 8px 24px rgba(0, 0, 0, 0.15)'
-                    : '0 4px 12px rgba(0, 0, 0, 0.05)',
-                  backdropFilter: 'blur(20px)',
+                  transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                  boxShadow: 'none',
                 }}
                 onFocus={(e) => {
                   e.currentTarget.style.borderColor = accentColor;
-                  e.currentTarget.style.boxShadow = `0 0 0 3px ${accentColor}15, 0 8px 24px ${accentColor}10`;
-                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = `0 0 0 3px ${accentColor}15`;
                 }}
                 onBlur={(e) => {
                   e.currentTarget.style.borderColor = colors.border;
-                  e.currentTarget.style.boxShadow = isDark 
-                    ? '0 8px 24px rgba(0, 0, 0, 0.15)'
-                    : '0 4px 12px rgba(0, 0, 0, 0.05)';
-                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
               />
             </div>
@@ -287,21 +278,14 @@ export default function AIProvidersPage() {
                 fontWeight: '600',
                 color: refreshHover ? accentColor : colors.textPrimary,
                 cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                boxShadow: refreshHover 
-                  ? `0 8px 24px ${accentColor}20` 
-                  : isDark 
-                    ? '0 8px 24px rgba(0, 0, 0, 0.15)'
-                    : '0 4px 12px rgba(0, 0, 0, 0.05)',
-                transform: refreshHover ? 'translateY(-2px)' : 'translateY(0)',
-                backdropFilter: 'blur(20px)',
+                transition: 'border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease',
+                boxShadow: 'none',
               }}
             >
               <RefreshCw 
                 size={20} 
                 style={{ 
-                  animation: refreshHover ? 'spin 0.5s linear infinite' : 'none',
-                  transition: 'all 0.3s ease',
+                  transition: 'color 0.15s ease',
                 }} 
               />
               刷新

@@ -7,7 +7,7 @@ export interface ModalProps {
   title?: ReactNode;
   description?: ReactNode;
   children?: ReactNode;
-  size?: 'small' | 'medium' | 'large' | 'xlarge';
+  size?: 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge';
   showClose?: boolean;
   closeOnOverlay?: boolean;
   closeOnEscape?: boolean;
@@ -23,6 +23,7 @@ const SIZE_CONFIG = {
   medium: { maxWidth: '480px', padding: '32px' },
   large: { maxWidth: '640px', padding: '32px' },
   xlarge: { maxWidth: '800px', padding: '32px' },
+  xxlarge: { maxWidth: '860px', padding: '24px' },
 };
 
 const ICON_COLORS = {
@@ -152,7 +153,7 @@ export function Modal({
         position: 'fixed',
         inset: 0,
         backgroundColor: 'rgba(0, 0, 0, 0.6)',
-        backdropFilter: 'blur(4px)',
+        backdropFilter: 'blur(2px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -168,15 +169,15 @@ export function Modal({
           borderRadius: '16px',
           maxWidth: sizeConfig.maxWidth,
           width: '100%',
-          maxHeight: 'calc(100vh - 96px)',
-          margin: '48px auto',
+          maxHeight: 'calc(100vh - 72px)',
+          margin: '36px auto',
           overflow: 'auto',
           padding: sizeConfig.padding,
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
           border: '1px solid var(--border-primary)',
           position: 'relative',
           ...getAnimationStyle(),
-          transition: 'all 0.2s ease-out',
+          transition: 'opacity 0.2s ease-out, transform 0.2s ease-out',
         }}
       >
         <style>{`
