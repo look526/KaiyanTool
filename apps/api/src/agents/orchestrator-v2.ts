@@ -55,7 +55,12 @@ export class MultiAgentOrchestratorV2 {
   async initialize(): Promise<void> {
     try {
       const aiProviders = await prisma.aIProvider.findMany({
-        where: { enabled: true },
+        where: {
+          enabled: true,
+          User: {
+            role: { in: ['admin', 'super_admin'] },
+          },
+        },
       });
 
       if (aiProviders.length === 0) {

@@ -22,6 +22,13 @@ interface ChatRequest {
 const { defaultModel, temperature, maxTokens } = config.ai.chat;
 const { maxMessageLength } = config.ai.defaults;
 
+const adminProviderWhere = () => ({
+  enabled: true,
+  User: {
+    role: { in: ['admin', 'super_admin'] },
+  },
+});
+
 function buildSystemPrompt(context?: ChatRequest['context']): string {
   const contextInfo = context 
     ? `- 页面：${context.page || '未知'}\n- 项目ID：${context.projectId || '无'}`
@@ -108,7 +115,7 @@ export const getProviders = asyncHandler(async (req: AuthRequest, res: Response)
   const { prisma } = await import('../lib/prisma');
   
   const dbProviders = await prisma.aIProvider.findMany({
-    where: { user_id: userId, enabled: true },
+    where: adminProviderWhere(),
     include: {
       AIProviderModel: {
         select: {
@@ -165,7 +172,7 @@ export const getModels = asyncHandler(async (req: AuthRequest, res: Response) =>
   }
   
   const allProviders = await prisma.aIProvider.findMany({
-    where: { user_id: userId, enabled: true },
+    where: adminProviderWhere(),
     include: {
       AIProviderModel: {
         select: { id: true, name: true, types: true }

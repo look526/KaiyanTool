@@ -29,7 +29,12 @@ router.post('/content/process-file', authMiddleware, async (req, res) => {
     fs.writeFileSync(inputFilePath, content, 'utf-8');
 
     const aiProviders = await prisma.aIProvider.findMany({
-      where: { enabled: true },
+      where: {
+        enabled: true,
+        User: {
+          role: { in: ['admin', 'super_admin'] },
+        },
+      },
       include: { AIProviderModel: true },
     });
 

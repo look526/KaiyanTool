@@ -156,7 +156,12 @@ export async function generateFromPrompt(
 
   try {
     const providers = await prisma.aIProvider.findMany({
-      where: { enabled: true },
+      where: {
+        enabled: true,
+        User: {
+          role: { in: ['admin', 'super_admin'] },
+        },
+      },
       include: { AIProviderModel: true },
     });
 
@@ -228,7 +233,12 @@ export async function generateFromPrompt(
 
 export async function getAvailableProviders() {
   const providers = await prisma.aIProvider.findMany({
-    where: { enabled: true },
+    where: {
+      enabled: true,
+      User: {
+        role: { in: ['admin', 'super_admin'] },
+      },
+    },
     include: { AIProviderModel: true },
   });
 

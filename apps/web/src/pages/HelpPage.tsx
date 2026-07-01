@@ -79,7 +79,7 @@ const helpCategories: HelpCategory[] = [
       },
       {
         question: '支持哪些 AI 模型？',
-        answer: '系统支持多种 AI 图像生成模型，可以在设置页面配置您的 AI 提供商和首选模型。'
+        answer: '系统支持多种 AI 图像生成模型，模型由管理员在后台统一配置。'
       }
     ]
   },
@@ -132,11 +132,11 @@ const helpCategories: HelpCategory[] = [
       },
       {
         question: '如何配置 AI 提供商？',
-        answer: '在设置页面点击"AI 提供商"，可以添加和管理您的 AI API 密钥，如 OpenAI、Claude 等。'
+        answer: 'AI 提供商由管理员在后台的"AI 提供商"中统一添加和管理。'
       },
       {
         question: '如何设置默认 AI 模型？',
-        answer: '在"模型配置"页面可以为不同任务类型设置默认使用的 AI 模型。'
+        answer: '默认 AI 模型由管理员在后台模型列表中统一维护。'
       }
     ]
   }

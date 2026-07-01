@@ -187,7 +187,7 @@ const ERROR_SOLUTIONS: Record<string, ErrorSolution> = {
     suggestions: [
       { label: '更换模型' },
       { label: '简化输入' },
-      { label: '查看模型列表', link: '/settings/ai-providers', linkText: 'AI设置' },
+      { label: '联系管理员检查后台 AI 模型配置' },
     ],
   },
   'PROJECT_CREATION_ERROR': {

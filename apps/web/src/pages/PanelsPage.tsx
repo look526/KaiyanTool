@@ -176,7 +176,7 @@ export default function PanelsPage() {
       addToast({
         type: 'warning',
         title: '未配置提供商',
-        message: '请先在 AI 提供商设置中添加并启用一个提供商。',
+        message: '请联系管理员在后台添加并启用 AI 提供商。',
       });
       return;
     }
@@ -211,7 +211,7 @@ export default function PanelsPage() {
       addToast({
         type: 'warning',
         title: '未配置提供商',
-        message: '请先在 AI 提供商设置中添加并启用一个提供商。',
+        message: '请联系管理员在后台添加并启用 AI 提供商。',
       });
       return;
     }

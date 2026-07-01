@@ -119,7 +119,12 @@ export class DirectorAgent {
     const prompt = this.buildShotGenerationPrompt(scene, visualStyle);
 
     const provider = await prisma.aIProvider.findFirst({
-      where: { user_id: _userId, enabled: true },
+      where: {
+        enabled: true,
+        User: {
+          role: { in: ['admin', 'super_admin'] },
+        },
+      },
     });
 
     if (!provider) {
@@ -205,7 +210,12 @@ export class DirectorAgent {
     const prompt = this.buildOptimizationPrompt(shot, referenceImages);
 
     const provider = await prisma.aIProvider.findFirst({
-      where: { user_id: userId, enabled: true },
+      where: {
+        enabled: true,
+        User: {
+          role: { in: ['admin', 'super_admin'] },
+        },
+      },
     });
 
     if (!provider) {
@@ -274,7 +284,12 @@ export class DirectorAgent {
   ): Promise<string> {
     try {
       const provider = await prisma.aIProvider.findFirst({
-        where: { user_id: userId, enabled: true },
+        where: {
+          enabled: true,
+          User: {
+            role: { in: ['admin', 'super_admin'] },
+          },
+        },
       });
 
       if (!provider) {

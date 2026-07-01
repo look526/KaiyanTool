@@ -44,6 +44,10 @@ export function ProviderModal({
   };
 
   const finalColors = colors || defaultColors;
+  const knownProviderTypes = PROVIDER_TYPES.map(provider => provider.value);
+  const isKnownType = knownProviderTypes.includes(formData.type);
+  const selectedType = isKnownType ? formData.type : 'custom';
+  const customTypeValue = selectedType === 'custom' && formData.type !== 'custom' ? formData.type : '';
 
   return (
     <Modal
@@ -64,16 +68,16 @@ export function ProviderModal({
             marginBottom: '16px',
           }}>
             选择提供商类型
-            <Sparkles style={{ 
-              width: '18px', 
-              height: '18px', 
+            <Sparkles style={{
+              width: '18px',
+              height: '18px',
               color: accentColor,
               animation: 'pulse 2s infinite',
             }} />
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '20px' }}>
             {PROVIDER_TYPES.map((provider) => {
-              const isSelected = formData.type === provider.value;
+              const isSelected = selectedType === provider.value;
               return (
                 <div
                   key={provider.value}
@@ -162,6 +166,54 @@ export function ProviderModal({
           </div>
         </div>
 
+        {selectedType === 'custom' && (
+          <div>
+            <label style={{
+              display: 'block',
+              fontSize: '16px',
+              fontWeight: '700',
+              color: finalColors.textPrimary,
+              marginBottom: '12px',
+            }}>
+              自定义供应商标识 <span style={{ color: '#ef4444' }}>*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="例如：moonshot、siliconflow、my-openai-compatible"
+              value={customTypeValue}
+              onChange={(e) => onFormDataChange({ ...formData, type: e.target.value.trim() || 'custom' })}
+              style={{
+                width: '100%',
+                height: '52px',
+                padding: '0 24px',
+                fontSize: '14px',
+                color: finalColors.textPrimary,
+                backgroundColor: finalColors.bgGlass,
+                border: `1px solid ${finalColors.border}`,
+                borderRadius: '16px',
+                outline: 'none',
+                transition: 'all 0.3s ease',
+                boxShadow: isDark
+                  ? '0 8px 24px rgba(0, 0, 0, 0.15)'
+                  : '0 4px 12px rgba(0, 0, 0, 0.05)',
+                backdropFilter: 'blur(10px)',
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = accentColor;
+                e.currentTarget.style.boxShadow = `0 0 0 3px ${accentColor}15, 0 8px 24px ${accentColor}10`;
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = finalColors.border;
+                e.currentTarget.style.boxShadow = isDark
+                  ? '0 8px 24px rgba(0, 0, 0, 0.15)'
+                  : '0 4px 12px rgba(0, 0, 0, 0.05)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            />
+          </div>
+        )}
+
         <div>
           <label style={{
             display: 'block',
@@ -188,8 +240,8 @@ export function ProviderModal({
               borderRadius: '16px',
               outline: 'none',
               transition: 'all 0.3s ease',
-              boxShadow: isDark 
-                ? '0 8px 24px rgba(0, 0, 0, 0.15)' 
+              boxShadow: isDark
+                ? '0 8px 24px rgba(0, 0, 0, 0.15)'
                 : '0 4px 12px rgba(0, 0, 0, 0.05)',
               backdropFilter: 'blur(10px)',
             }}
@@ -200,8 +252,8 @@ export function ProviderModal({
             }}
             onBlur={(e) => {
               e.currentTarget.style.borderColor = finalColors.border;
-              e.currentTarget.style.boxShadow = isDark 
-                ? '0 8px 24px rgba(0, 0, 0, 0.15)' 
+              e.currentTarget.style.boxShadow = isDark
+                ? '0 8px 24px rgba(0, 0, 0, 0.15)'
                 : '0 4px 12px rgba(0, 0, 0, 0.05)';
               e.currentTarget.style.transform = 'translateY(0)';
             }}
@@ -234,8 +286,8 @@ export function ProviderModal({
               borderRadius: '16px',
               outline: 'none',
               transition: 'all 0.3s ease',
-              boxShadow: isDark 
-                ? '0 8px 24px rgba(0, 0, 0, 0.15)' 
+              boxShadow: isDark
+                ? '0 8px 24px rgba(0, 0, 0, 0.15)'
                 : '0 4px 12px rgba(0, 0, 0, 0.05)',
               backdropFilter: 'blur(10px)',
             }}
@@ -246,8 +298,8 @@ export function ProviderModal({
             }}
             onBlur={(e) => {
               e.currentTarget.style.borderColor = finalColors.border;
-              e.currentTarget.style.boxShadow = isDark 
-                ? '0 8px 24px rgba(0, 0, 0, 0.15)' 
+              e.currentTarget.style.boxShadow = isDark
+                ? '0 8px 24px rgba(0, 0, 0, 0.15)'
                 : '0 4px 12px rgba(0, 0, 0, 0.05)';
               e.currentTarget.style.transform = 'translateY(0)';
             }}
@@ -270,11 +322,11 @@ export function ProviderModal({
             id={isEdit ? 'enabled-edit' : 'enabled'}
             checked={formData.enabled}
             onChange={(e) => onFormDataChange({ ...formData, enabled: e.target.checked })}
-            style={{ 
-              width: '24px', 
-              height: '24px', 
-              cursor: 'pointer', 
-              accentColor: accentColor 
+            style={{
+              width: '24px',
+              height: '24px',
+              cursor: 'pointer',
+              accentColor: accentColor
             }}
           />
           <label htmlFor={isEdit ? 'enabled-edit' : 'enabled'} style={{
@@ -343,8 +395,8 @@ export function ProviderModal({
               cursor: 'pointer',
               transition: 'all 0.3s ease',
               width: isMobile ? '100%' : 'auto',
-              boxShadow: cancelHover 
-                ? `0 8px 24px ${accentColor}20` 
+              boxShadow: cancelHover
+                ? `0 8px 24px ${accentColor}20`
                 : 'none',
               transform: cancelHover ? 'translateY(-2px)' : 'translateY(0)',
               backdropFilter: 'blur(10px)',
@@ -369,8 +421,8 @@ export function ProviderModal({
               cursor: saving ? 'not-allowed' : 'pointer',
               opacity: saving ? 0.7 : 1,
               transition: 'all 0.3s ease',
-              boxShadow: saveHover 
-                ? `0 12px 32px ${accentColor}50` 
+              boxShadow: saveHover
+                ? `0 12px 32px ${accentColor}50`
                 : `0 6px 20px ${accentColor}30`,
               transform: saveHover ? 'translateY(-4px) scale(1.02)' : 'translateY(0) scale(1)',
               width: isMobile ? '100%' : 'auto',

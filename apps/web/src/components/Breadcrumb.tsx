@@ -15,8 +15,8 @@ const routeLabels: Record<string, string> = {
   '/documents': '文档管理',
   '/documents/create': '创建文档',
   '/settings': '设置',
-  '/settings/ai': 'AI 服务提供商',
-  '/settings/models': '模型配置',
+  '/admin': '后台管理',
+  '/admin/ai-providers': 'AI 服务提供商',
 };
 
 const Breadcrumb: React.FC<{ items?: BreadcrumbItem[] }> = ({ items }) => {

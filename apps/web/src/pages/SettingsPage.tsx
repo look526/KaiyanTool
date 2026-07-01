@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Settings, User, Key, Bell, Palette, Shield, ChevronRight, LogOut, Sparkles } from 'lucide-react';
+import { Settings, User, Bell, Palette, Shield, ChevronRight, LogOut, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { PageHero } from '../components/ui/PageHero';
@@ -55,14 +55,6 @@ export default function SettingsPage() {
       link: '/profile',
       gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
       color: '#6366f1',
-    },
-    {
-      icon: Key,
-      title: 'AI 提供商',
-      description: '配置 AI 模型和 API 密钥',
-      link: '/settings/ai',
-      gradient: 'linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%)',
-      color: '#06b6d4',
     },
     {
       icon: Bell,

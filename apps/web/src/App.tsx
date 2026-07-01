@@ -123,6 +123,7 @@ function App() {
                     <Route path="assets" element={<AdminAssetsPage />} />
                     <Route path="logs" element={<AdminLogsPage />} />
                     <Route path="api" element={<APIDashboardPage />} />
+                    <Route path="ai-providers" element={<AIProvidersPage />} />
                   </Route>
                   
                   <Route path="/projects/new" element={<ProtectedRoute><CreateProjectPage /></ProtectedRoute>} />
@@ -138,8 +139,8 @@ function App() {
                     <Route path="/analytics" element={<AnalyticsPage />} />
                     <Route path="/team" element={<TeamPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
-                    <Route path="/settings/ai" element={<AIProvidersPage />} />
-                    <Route path="/settings/models" element={<Navigate to="/settings/ai" replace />} />
+                    <Route path="/settings/ai" element={<Navigate to="/settings" replace />} />
+                    <Route path="/settings/models" element={<Navigate to="/settings" replace />} />
                     <Route path="/profile" element={<ProfilePage />} />
                     <Route path="/settings/security" element={<SecuritySettingsPage />} />
                     <Route path="/settings/appearance" element={<AppearanceSettingsPage />} />

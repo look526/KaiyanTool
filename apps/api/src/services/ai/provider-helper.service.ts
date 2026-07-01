@@ -18,18 +18,23 @@ export interface GetProviderOptions {
 
 export class AIProviderHelper {
   private static readonly DEFAULT_USER_ID = 'system';
+  private static readonly ADMIN_ROLES = ['admin', 'super_admin'];
+
+  private static enabledAdminProviderWhere(extra: Record<string, unknown> = {}): any {
+    return {
+      enabled: true,
+      ...extra,
+      User: {
+        role: { in: this.ADMIN_ROLES },
+      },
+    };
+  }
 
   static async getProvider(userId?: string, modelId?: string): Promise<ProviderSelectionResult> {
     const effectiveUserId = userId || this.DEFAULT_USER_ID;
 
-    const whereClause: any = { enabled: true };
-    
-    if (userId) {
-      whereClause.user_id = userId;
-    }
-
     const providers = await prisma.aIProvider.findMany({
-      where: whereClause,
+      where: this.enabledAdminProviderWhere(),
       include: { AIProviderModel: true },
     });
 
@@ -83,7 +88,7 @@ export class AIProviderHelper {
     console.log('[DEBUG getProviderForUser] userId:', userId, 'modelId:', modelId);
     
     const providers = await prisma.aIProvider.findMany({
-      where: { user_id: userId, enabled: true },
+      where: this.enabledAdminProviderWhere(),
       include: { AIProviderModel: true },
     });
 
@@ -183,10 +188,7 @@ export class AIProviderHelper {
       const defaultModel = await prisma.aIProviderModel.findFirst({
         where: {
           is_assistant_default: true,
-          AIProvider: {
-            user_id: userId,
-            enabled: true,
-          },
+          AIProvider: this.enabledAdminProviderWhere(),
         },
         include: {
           AIProvider: true,

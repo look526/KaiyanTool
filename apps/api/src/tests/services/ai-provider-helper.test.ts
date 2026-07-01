@@ -34,7 +34,7 @@ describe('AIProviderHelper', () => {
         type: 'zhipu',
         apiKey: 'test-key',
         baseUrl: 'https://api.test.com',
-        models: [],
+        AIProviderModel: [],
       };
 
       (prisma.aIProvider.findMany as jest.Mock).mockResolvedValue([mockProvider]);
@@ -65,7 +65,7 @@ describe('AIProviderHelper', () => {
         type: 'zhipu',
         apiKey: 'test-key',
         baseUrl: 'https://api.test.com',
-        models: [{ id: 'model-1', name: 'gpt-4' }],
+        AIProviderModel: [{ id: 'model-1', name: 'gpt-4' }],
       };
 
       (prisma.aIProvider.findMany as jest.Mock).mockResolvedValue([mockProvider]);
@@ -84,7 +84,7 @@ describe('AIProviderHelper', () => {
         name: 'Test Provider',
         type: 'zhipu',
         apiKey: 'test-key',
-        models: [{ id: 'model-1', name: 'glm-4' }],
+        AIProviderModel: [{ id: 'model-1', name: 'glm-4' }],
       };
 
       (prisma.aIProvider.findMany as jest.Mock).mockResolvedValue([mockProvider]);
@@ -99,13 +99,13 @@ describe('AIProviderHelper', () => {
   });
 
   describe('getProviderForUser', () => {
-    it('should only get providers for specific user', async () => {
+    it('should use admin-managed enabled providers', async () => {
       const mockProvider = {
         id: 'provider-1',
         userId: 'user-1',
         type: 'zhipu',
         apiKey: 'test-key',
-        models: [],
+        AIProviderModel: [],
       };
 
       (prisma.aIProvider.findMany as jest.Mock).mockResolvedValue([mockProvider]);
@@ -116,7 +116,12 @@ describe('AIProviderHelper', () => {
       const result = await AIProviderHelper.getProviderForUser('user-1');
 
       expect(prisma.aIProvider.findMany).toHaveBeenCalledWith({
-        where: { user_id: 'user-1', enabled: true },
+        where: {
+          enabled: true,
+          User: {
+            role: { in: ['admin', 'super_admin'] },
+          },
+        },
         include: { AIProviderModel: true },
       });
       expect(result.providerId).toBe('provider-1');

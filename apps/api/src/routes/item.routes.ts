@@ -162,8 +162,13 @@ router.delete('/items/:id', async (req: Request, res: Response) => {
 router.get('/providers', async (_req: Request, res: Response) => {
   try {
     const providers = await prisma.aIProvider.findMany({
-      where: { enabled: true } as any,
-      orderBy: { name: 'asc' } as any,
+      where: {
+        enabled: true,
+        User: {
+          role: { in: ['admin', 'super_admin'] },
+        },
+      } as any,
+      orderBy: { created_at: 'desc' },
     });
     res.json(providers);
   } catch (error) {

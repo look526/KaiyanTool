@@ -257,44 +257,48 @@ export class ApiClient {
     return this.get<{ providers: AIProvider[]; pagination: { total: number; page: number; limit: number } }>('/ai-providers')
   }
 
+  async getAdminAIProviders() {
+    return this.get<{ providers: AIProvider[]; pagination: { total: number; page: number; limit: number } }>('/admin/ai-providers')
+  }
+
   async createAIProvider(data: Partial<AIProvider>) {
-    return this.post<AIProvider>('/ai-providers', data)
+    return this.post<AIProvider>('/admin/ai-providers', data)
   }
 
   async updateAIProvider(id: string, data: Partial<AIProvider>) {
-    return this.put<AIProvider>(`/ai-providers/${id}`, data)
+    return this.put<AIProvider>(`/admin/ai-providers/${id}`, data)
   }
 
   async deleteAIProvider(id: string) {
-    return this.delete(`/ai-providers/${id}`)
+    return this.delete(`/admin/ai-providers/${id}`)
   }
 
   async testAIProvider(id: string) {
-    return this.post<{ success: boolean; message: string }>(`/ai-providers/${id}/test`)
+    return this.post<{ success: boolean; message: string }>(`/admin/ai-providers/${id}/test`)
   }
 
   async testAIProviderModel(modelId: string) {
-    return this.post<{ success: boolean; message: string; model: any; testResult?: any }>(`/ai-providers/models/${modelId}/test`)
+    return this.post<{ success: boolean; message: string; model: any; testResult?: any }>(`/admin/ai-providers/models/${modelId}/test`)
   }
 
   async setAssistantDefaultModel(modelId: string) {
-    return this.post<{ message: string }>(`/ai-providers/models/${modelId}/set-assistant-default`)
+    return this.post<{ message: string }>(`/admin/ai-providers/models/${modelId}/set-assistant-default`)
   }
 
   async unsetAssistantDefaultModel(modelId: string) {
-    return this.post<{ message: string }>(`/ai-providers/models/${modelId}/unset-assistant-default`)
+    return this.post<{ message: string }>(`/admin/ai-providers/models/${modelId}/unset-assistant-default`)
   }
 
   async createAIProviderModel(provider_id: string, data: any) {
-    return this.post<any>(`/ai-providers/${provider_id}/models`, data)
+    return this.post<any>(`/admin/ai-providers/${provider_id}/models`, data)
   }
 
   async updateAIProviderModel(provider_id: string, model_id: string, data: any) {
-    return this.put<any>(`/ai-providers/${provider_id}/models/${model_id}`, data)
+    return this.put<any>(`/admin/ai-providers/${provider_id}/models/${model_id}`, data)
   }
 
   async deleteAIProviderModel(provider_id: string, model_id: string) {
-    return this.delete(`/ai-providers/${provider_id}/models/${model_id}`)
+    return this.delete(`/admin/ai-providers/${provider_id}/models/${model_id}`)
   }
   // Document endpoints
   async getDocuments() {

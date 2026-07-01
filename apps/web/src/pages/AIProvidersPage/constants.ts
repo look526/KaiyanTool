@@ -12,6 +12,7 @@ import {
   Zap,
   Coffee,
   Search as SearchIcon,
+  SlidersHorizontal,
 } from 'lucide-react';
 
 import { ContentType, ProviderType } from './types';
@@ -35,6 +36,7 @@ export const PROVIDER_TYPES: ProviderType[] = [
   { value: 'seedream', label: '豆包', icon: Coffee, color: '#ff8c00', description: '字节跳动AI模型' },
   { value: 'deepseek', label: 'DeepSeek', icon: SearchIcon, color: '#6b7280', description: '深度求索AI模型' },
   { value: 'toapis', label: 'ToAPIs', icon: Video, color: '#ec4899', description: '多模型 AI 服务（GPT、Claude、Gemini、Sora2、VEO3）' },
+  { value: 'custom', label: '自定义', icon: SlidersHorizontal, color: '#14b8a6', description: 'OpenAI 兼容接口，可配置请求地址和模型列表' },
 ];
 
 export const INITIAL_PROVIDER_FORM_DATA = {

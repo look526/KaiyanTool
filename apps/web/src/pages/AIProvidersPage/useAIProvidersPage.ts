@@ -32,7 +32,7 @@ export function useAIProvidersPage() {
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: queryKeys.aiProviders.all,
-    queryFn: () => apiClient.getAIProviders(),
+    queryFn: () => apiClient.getAdminAIProviders(),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -122,6 +122,10 @@ export function useAIProvidersPage() {
   const handleSaveProvider = useCallback(async () => {
     if (!providerFormData.api_key.trim()) {
       addToast({ title: '错误', message: '请输入 API 密钥', type: 'error' });
+      return;
+    }
+    if (!providerFormData.type.trim() || providerFormData.type === 'custom') {
+      addToast({ title: '错误', message: '请输入自定义供应商标识', type: 'error' });
       return;
     }
     setSaving(true);

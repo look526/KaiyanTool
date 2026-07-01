@@ -64,7 +64,12 @@ export async function generateImage(input: z.infer<typeof ImageGenerationSchema>
     });
 
     const aiProviders = await prisma.aIProvider.findMany({
-      where: { enabled: true },
+      where: {
+        enabled: true,
+        User: {
+          role: { in: ['admin', 'super_admin'] },
+        },
+      },
       include: { AIProviderModel: true },
     });
 

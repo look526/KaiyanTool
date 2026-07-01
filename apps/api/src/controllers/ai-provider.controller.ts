@@ -4,6 +4,20 @@ import { prisma } from '../lib/prisma'
 import { z } from 'zod'
 import logger from '../lib/logger'
 
+const ADMIN_ROLES = ['admin', 'super_admin']
+
+const providerSchema = z.object({
+  type: z.string().trim().min(1, '提供商类型不能为空').max(80, '提供商类型最多80位'),
+  api_key: z.string().trim().min(1, 'API 密钥不能为空'),
+  base_url: z.string().trim().max(500, '请求地址最多500位').optional().or(z.literal('')),
+  enabled: z.boolean().optional(),
+})
+
+const providerUpdateSchema = providerSchema.partial().refine(
+  data => Object.keys(data).length > 0,
+  '至少需要提供一个更新字段'
+)
+
 const providerModelSchema = z.object({
   name: z.string().min(1, '模型名称至少1位').max(100, '模型名称最多100位'),
   model_id: z.string().min(1, '模型ID至少1位').max(100, '模型ID最多100位'),
@@ -14,6 +28,48 @@ const providerModelSchema = z.object({
 })
 
 export class AIProviderController {
+  private async getAdminProviderOwnerId(userId: string): Promise<string> {
+    const adminUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true },
+    })
+
+    if (adminUser && ADMIN_ROLES.includes(adminUser.role)) {
+      return adminUser.id
+    }
+
+    const owner = await prisma.user.findFirst({
+      where: { role: { in: ADMIN_ROLES } },
+      orderBy: { created_at: 'asc' },
+      select: { id: true },
+    })
+
+    if (!owner) {
+      logger.warn('No admin user found for AI provider configuration')
+      throw new Error('No admin AI provider configuration owner found')
+    }
+
+    return owner.id
+  }
+
+  private adminProviderWhere(extra: Record<string, unknown> = {}): any {
+    return {
+      ...extra,
+      User: {
+        role: { in: ADMIN_ROLES },
+      },
+    }
+  }
+
+  private serializeProvider(provider: any, includeSecret = false): any {
+    const { AIProviderModel, api_key, ...rest } = provider
+    return {
+      ...rest,
+      ...(includeSecret ? { api_key } : {}),
+      models: AIProviderModel || [],
+    }
+  }
+
   async getProviders(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user_id) {
@@ -22,9 +78,14 @@ export class AIProviderController {
         return
       }
 
-      logger.info('getProviders: Fetching providers', { user_id: req.user_id })
+      logger.info('getProviders: Fetching admin-managed providers', { user_id: req.user_id })
       const providers = await prisma.aIProvider.findMany({
-        where: { user_id: req.user_id },
+        where: {
+          enabled: true,
+          User: {
+            role: { in: ADMIN_ROLES },
+          },
+        },
         include: {
           AIProviderModel: {
             select: {
@@ -43,15 +104,47 @@ export class AIProviderController {
         orderBy: { created_at: 'desc' },
       })
 
-      const providersWithModels = providers.map(provider => ({
-        ...provider,
-        models: provider.AIProviderModel,
-      }))
+      const providersWithModels = providers.map(provider => this.serializeProvider(provider, false))
 
       res.json({ providers: providersWithModels, pagination: { total: providers.length, page: 1, limit: providers.length } })
     } catch (error: any) {
       logger.error('Failed to get AI providers', { user_id: req.user_id, error: error?.message, stack: error?.stack })
       res.status(500).json({ error: error?.message || 'Failed to get AI providers' })
+    }
+  }
+
+  async getAdminProviders(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user_id) {
+        res.status(401).json({ error: 'Unauthorized' })
+        return
+      }
+
+      const providers = await prisma.aIProvider.findMany({
+        where: this.adminProviderWhere(),
+        include: {
+          AIProviderModel: {
+            select: {
+              id: true,
+              name: true,
+              model_id: true,
+              types: true,
+              description: true,
+              capabilities: true,
+              is_assistant_default: true,
+              created_at: true,
+              updated_at: true,
+            },
+          },
+        },
+        orderBy: { created_at: 'desc' },
+      })
+
+      const providersWithModels = providers.map(provider => this.serializeProvider(provider, true))
+      res.json({ providers: providersWithModels, pagination: { total: providers.length, page: 1, limit: providers.length } })
+    } catch (error: any) {
+      logger.error('Failed to get admin AI providers', { user_id: req.user_id, error: error?.message, stack: error?.stack })
+      res.status(500).json({ error: error?.message || 'Failed to get admin AI providers' })
     }
   }
 
@@ -62,13 +155,7 @@ export class AIProviderController {
         return
       }
 
-      const { type, api_key, base_url, enabled } = req.body
-
-      if (!type || !api_key) {
-        logger.warn('Create provider with missing fields', { user_id: req.user_id, type })
-        res.status(400).json({ error: 'Type and api_key are required' })
-        return
-      }
+      const { type, api_key, base_url, enabled } = providerSchema.parse(req.body)
 
       const provider = await prisma.aIProvider.create({
         data: {
@@ -76,7 +163,7 @@ export class AIProviderController {
           user_id: req.user_id,
           type,
           api_key,
-          base_url,
+          base_url: base_url || null,
           enabled: enabled ?? true,
           created_at: new Date(),
           updated_at: new Date(),
@@ -86,6 +173,7 @@ export class AIProviderController {
       res.status(201).json({
         id: provider.id,
         type: provider.type,
+        base_url: provider.base_url,
         enabled: provider.enabled,
         created_at: provider.created_at,
         updated_at: provider.updated_at,
@@ -105,13 +193,10 @@ export class AIProviderController {
       }
 
       const { id } = req.params
-      const { api_key, base_url, enabled } = req.body
+      const { type, api_key, base_url, enabled } = providerUpdateSchema.parse(req.body)
 
       const provider = await prisma.aIProvider.findFirst({
-        where: {
-          id,
-          user_id: req.user_id,
-        },
+        where: this.adminProviderWhere({ id }),
       })
 
       if (!provider) {
@@ -121,9 +206,11 @@ export class AIProviderController {
       }
 
       const updateData: any = {}
+      if (type) updateData.type = type
       if (api_key) updateData.api_key = api_key
-      if (base_url) updateData.base_url = base_url
+      if (base_url !== undefined) updateData.base_url = base_url || null
       if (enabled !== undefined) updateData.enabled = enabled
+      updateData.updated_at = new Date()
 
       const updated = await prisma.aIProvider.update({
         where: { id },
@@ -132,6 +219,9 @@ export class AIProviderController {
 
       res.json({
         id: updated.id,
+        type: updated.type,
+        api_key: updated.api_key,
+        base_url: updated.base_url,
         enabled: updated.enabled,
         created_at: updated.created_at,
         updated_at: updated.updated_at,
@@ -153,10 +243,7 @@ export class AIProviderController {
       const { id } = req.params
 
       const provider = await prisma.aIProvider.findFirst({
-        where: {
-          id,
-          user_id: req.user_id,
-        },
+        where: this.adminProviderWhere({ id }),
       })
 
       if (!provider) {
@@ -201,10 +288,7 @@ export class AIProviderController {
       }
 
       const provider = await prisma.aIProvider.findFirst({
-        where: {
-          id: provider_id,
-          user_id: req.user_id,
-        },
+        where: this.adminProviderWhere({ id: provider_id }),
       })
 
       if (!provider) {
@@ -256,9 +340,7 @@ export class AIProviderController {
       const model = await prisma.aIProviderModel.findFirst({
         where: {
           id: model_id,
-          AIProvider: {
-            user_id: req.user_id,
-          },
+          AIProvider: this.adminProviderWhere(),
         },
       })
 
@@ -296,9 +378,7 @@ export class AIProviderController {
       const model = await prisma.aIProviderModel.findFirst({
         where: {
           id: model_id,
-          AIProvider: {
-            user_id: req.user_id,
-          },
+          AIProvider: this.adminProviderWhere(),
         },
       })
 
@@ -330,10 +410,7 @@ export class AIProviderController {
 
     try {
       const provider = await prisma.aIProvider.findFirst({
-        where: {
-          id,
-          user_id: req.user_id,
-        },
+        where: this.adminProviderWhere({ id }),
       })
 
       if (!provider) {
@@ -369,9 +446,7 @@ export class AIProviderController {
       const model = await prisma.aIProviderModel.findFirst({
         where: {
           id: model_id,
-          AIProvider: {
-            user_id: req.user_id,
-          },
+          AIProvider: this.adminProviderWhere(),
         },
         include: {
           AIProvider: true,
@@ -423,7 +498,7 @@ export class AIProviderController {
             aiProvider = new ToapisProvider(provider.api_key, provider.base_url || undefined)
             break
           default:
-            throw new Error(`Unknown provider type: ${provider.type}`)
+            aiProvider = new OpenAIProvider(provider.api_key, provider.base_url || undefined)
         }
 
         const testMessage = {
@@ -479,9 +554,7 @@ export class AIProviderController {
       const model = await prisma.aIProviderModel.findFirst({
         where: {
           id: model_id,
-          AIProvider: {
-            user_id: req.user_id,
-          },
+          AIProvider: this.adminProviderWhere(),
         },
       })
 
@@ -512,6 +585,18 @@ export class AIProviderController {
     const { model_id } = req.params
 
     try {
+      const model = await prisma.aIProviderModel.findFirst({
+        where: {
+          id: model_id,
+          AIProvider: this.adminProviderWhere(),
+        },
+      })
+
+      if (!model) {
+        res.status(404).json({ error: 'Model not found' })
+        return
+      }
+
       await prisma.aIProviderModel.update({
         where: { id: model_id },
         data: { is_assistant_default: false },

@@ -18,7 +18,6 @@ const navItems: NavItem[] = [
   { icon: 'analytics' as any, label: '数据分析', href: '/analytics' },
   { icon: 'description' as any, label: '文档管理', href: '/documents' },
   { icon: 'group' as any, label: '团队管理', href: '/team' },
-  { icon: 'hub' as any, label: 'AI 提供商', href: '/settings/ai' },
   { icon: 'settings' as any, label: '设置', href: '/settings' },
 ];
 
@@ -119,7 +118,7 @@ export function Sidebar() {
             const active = location.pathname === item.href ||
               (item.href === '/projects' && location.pathname.startsWith('/projects')) ||
               (item.href === '/workspace' && location.pathname.startsWith('/workspace')) ||
-              (item.href === '/settings' && location.pathname.startsWith('/settings') && location.pathname !== '/settings/ai');
+              (item.href === '/settings' && location.pathname.startsWith('/settings'));
             const hovered = hoveredItem === item.href;
 
             return (

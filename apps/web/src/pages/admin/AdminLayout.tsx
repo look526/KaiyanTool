@@ -4,7 +4,7 @@ import { useAuth } from '../../core/store/auth.store';
 import { api } from '../../core/api/client';
 import { 
   Home, Users, Image, FileText, 
-  Menu, X, LogOut, ChevronLeft, ChevronRight 
+  Menu, X, LogOut, ChevronLeft, ChevronRight, Bot
 } from 'lucide-react';
 
 interface NavItem {
@@ -33,6 +33,11 @@ const navItems: NavItem[] = [
     name: '系统日志',
     path: '/admin/logs',
     icon: <FileText size={20} />,
+  },
+  {
+    name: 'AI 提供商',
+    path: '/admin/ai-providers',
+    icon: <Bot size={20} />,
   },
 ];
 

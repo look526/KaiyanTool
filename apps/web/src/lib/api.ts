@@ -55,6 +55,7 @@ export interface ApiClientInterface {
     search?: string;
     type?: string;
   }): Promise<{ providers: AIProvider[]; pagination: PaginationMeta }>;
+  getAdminAIProviders(): Promise<{ providers: AIProvider[]; pagination: PaginationMeta }>;
   getAIProvider(id: string): Promise<AIProvider>;
   createAIProvider(data: CreateAIProviderData): Promise<AIProvider>;
   updateAIProvider(id: string, data: UpdateAIProviderData): Promise<AIProvider>;
