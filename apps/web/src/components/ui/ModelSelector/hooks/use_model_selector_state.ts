@@ -3,6 +3,11 @@ import { apiClient } from '../../../../lib/api';
 import { cacheUtils } from '../../../../lib/modelCache';
 import { AIProviderModel, ContentType } from '../types';
 
+interface AIProviderWithModels {
+  enabled: boolean;
+  models?: AIProviderModel[];
+}
+
 /** 与剧本/小说等文本类任务兼容：仅标了 text 的模型也可用于 script 等 */
 function model_matches_content_type(m: { types?: string[] }, content_type: ContentType): boolean {
   const types = m.types ?? [];
@@ -63,7 +68,7 @@ export function use_model_selector_state(content_type: ContentType) {
       }
 
       const response = await apiClient.getAIProviders();
-      const providers_data = response.providers;
+      const providers_data = response.providers as AIProviderWithModels[];
 
       const enabled_providers = providers_data.filter(p => p.enabled);
 

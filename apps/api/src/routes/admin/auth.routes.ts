@@ -101,7 +101,7 @@ router.post('/login', asyncHandler(async (req: Request, res: Response) => {
   });
 }));
 
-router.get('/me', asyncHandler(async (req: Request, res: Response) => {
+router.get('/me', authMiddleware, asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user_id;
   if (!userId) {
     throw AppError.unauthorized();

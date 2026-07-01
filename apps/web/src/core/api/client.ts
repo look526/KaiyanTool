@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api`;
 
 // CSRF token 管理
 let csrfTokenPromise: Promise<string> | null = null;

@@ -2,6 +2,13 @@ import React, { useState } from 'react';
 import { Edit2, Trash2, X, User, Shirt, Hash, Calendar } from 'lucide-react';
 import { Character } from '../lib/api';
 
+interface WardrobeItem {
+  id: string;
+  name: string;
+  description?: string;
+  referenceImage?: string;
+}
+
 interface CharacterCardProps {
   character: Character;
   isSelected: boolean;
@@ -206,7 +213,7 @@ export function CharacterCard({
 
       {character.wardrobes && character.wardrobes.length > 0 && (
         <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {character.wardrobes.slice(0, 2).map((wardrobe) => (
+          {(character.wardrobes as WardrobeItem[]).slice(0, 2).map((wardrobe) => (
             <div
               key={wardrobe.id}
               style={{

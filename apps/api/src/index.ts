@@ -153,6 +153,7 @@ app.post('/api/metrics', cors({
 
 // 先注册不需要认证的路由
 app.use('/api/auth', authRoutes)
+app.use('/api/admin', adminRoutes)
 
 // 注册需要认证的路由
 app.use('/api/projects', projectRoutes)
@@ -185,7 +186,6 @@ app.use('/api/project-settings', projectSettingsRoutes)
 app.use('/api/chat-history', chatHistoryRoutes)
 app.use('/api', itemRoutes)
 app.use('/api/assistant', assistantRoutes)
-app.use('/api/admin', adminRoutes)
 app.use('/api/image-generation', imageGenerationRoutes)
 app.use('/api/image-enhancement', imageEnhancementRoutes)
 app.use('/api/content', contentProcessRoutes)
