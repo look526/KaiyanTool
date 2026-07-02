@@ -4,6 +4,18 @@ import { PROVIDER_TYPES } from './constants';
 import { ProviderCardProps } from './types';
 import { EmptyState } from './EmptyState';
 
+const iconButtonBase = {
+  width: '36px',
+  height: '36px',
+  borderRadius: '10px',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  transition: 'border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease, opacity 0.15s ease',
+  boxShadow: 'none',
+} as const;
+
 export function ProviderCard({
   provider,
   isExpanded,
@@ -19,16 +31,16 @@ export function ProviderCard({
   onTestModel,
   testingProvider,
   testingModel,
+  isMobile,
   isDark,
   colors,
-  accentColor,
+  accentColor = '#8b5cf6',
 }: ProviderCardProps) {
   const [testHover, setTestHover] = useState(false);
   const [editHover, setEditHover] = useState(false);
   const [deleteHover, setDeleteHover] = useState(false);
   const [keyButtonHover, setKeyButtonHover] = useState(false);
 
-  // 确保colors有默认值
   const finalColors = colors || (isDark ? {
     bgPrimary: 'rgba(5, 5, 10, 0.95)',
     bgSecondary: 'rgba(255, 255, 255, 0.03)',
@@ -52,497 +64,335 @@ export function ProviderCard({
   });
 
   const providerInfo = PROVIDER_TYPES.find((p) => p.value === provider.type) || PROVIDER_TYPES[0];
+  const modelCount = provider.models?.length || 0;
+  const providerBaseUrl = (provider as any).base_url || (provider as any).baseUrl || '-';
 
   return (
     <div
       style={{
-        padding: '28px',
-        background: finalColors.bgGlass,
-        borderRadius: '24px',
+        background: isExpanded ? finalColors.bgGlassHover : finalColors.bgGlass,
         border: isExpanded ? `1px solid ${providerInfo.color}` : `1px solid ${finalColors.border}`,
+        borderRadius: '14px',
+        overflow: 'hidden',
         transition: 'border-color 0.15s ease, background-color 0.15s ease',
         boxShadow: 'none',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-      onMouseEnter={(e) => {
-        if (!isExpanded) {
-          e.currentTarget.style.borderColor = `${providerInfo.color}40`;
-          e.currentTarget.style.backgroundColor = finalColors.bgGlassHover;
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!isExpanded) {
-          e.currentTarget.style.borderColor = finalColors.border;
-          e.currentTarget.style.backgroundColor = finalColors.bgGlass;
-        }
       }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', position: 'relative', zIndex: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <div style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: '16px',
-            background: providerInfo.color,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            boxShadow: 'none',
-            transition: 'none',
-            transform: 'none',
-          }}>
-            <providerInfo.icon style={{ width: '32px', height: '32px', color: '#ffffff' }} />
-          </div>
-
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
-              <h3 style={{
-                fontSize: '20px', 
-                fontWeight: '700', 
-                color: finalColors.textPrimary, 
-                margin: 0,
-                transition: 'color 0.15s ease',
-              }}>
-                {providerInfo.label}
-              </h3>
-              <span style={{
-                padding: '6px 14px',
-                backgroundColor: provider.enabled ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                color: provider.enabled ? '#10b981' : '#ef4444',
-                borderRadius: '20px',
-                fontSize: '12px',
-                fontWeight: '600',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'none',
-                border: `1px solid ${provider.enabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
-              }}>
-                {provider.enabled ? <CheckCircle style={{ width: '14px', height: '14px' }} /> : <XCircle style={{ width: '14px', height: '14px' }} />}
-                {provider.enabled ? '已启用' : '已禁用'}
-              </span>
-            </div>
-            <p style={{ 
-              fontSize: '14px', 
-              color: finalColors.textSecondary, 
-              margin: 0,
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : 'minmax(220px, 1.25fr) minmax(140px, 0.8fr) minmax(150px, 0.8fr) auto',
+          alignItems: 'center',
+          gap: isMobile ? '14px' : '18px',
+          padding: isMobile ? '14px' : '14px 16px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+          <div
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
+              background: providerInfo.color,
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-            }}>
-              <span>{provider.models?.length || 0} 个模型</span>
-            </p>
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <providerInfo.icon style={{ width: '20px', height: '20px', color: '#ffffff' }} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <h3
+                style={{
+                  fontSize: '15px',
+                  fontWeight: '700',
+                  color: finalColors.textPrimary,
+                  margin: 0,
+                  lineHeight: 1.35,
+                }}
+              >
+                {providerInfo.label}
+              </h3>
+              <span
+                style={{
+                  padding: '3px 8px',
+                  backgroundColor: provider.enabled ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                  color: provider.enabled ? '#10b981' : '#ef4444',
+                  borderRadius: '999px',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  border: `1px solid ${provider.enabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
+                }}
+              >
+                {provider.enabled ? <CheckCircle style={{ width: '12px', height: '12px' }} /> : <XCircle style={{ width: '12px', height: '12px' }} />}
+                {provider.enabled ? '启用' : '禁用'}
+              </span>
+            </div>
+            <div
+              style={{
+                fontSize: '12px',
+                color: finalColors.textMuted,
+                marginTop: '4px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {provider.type}
+            </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => onToggleExpand(provider.id)}
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: '12px', color: finalColors.textMuted, marginBottom: '3px' }}>模型数量</div>
+          <div style={{ fontSize: '14px', fontWeight: '700', color: finalColors.textPrimary }}>{modelCount}</div>
+        </div>
+
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: '12px', color: finalColors.textMuted, marginBottom: '3px' }}>Base URL</div>
+          <div
+            title={providerBaseUrl}
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '12px 20px',
-              background: isExpanded ? `${providerInfo.color}15` : finalColors.bgGlassHover,
-              border: isExpanded ? `1px solid ${providerInfo.color}30` : `1px solid ${finalColors.border}`,
-              borderRadius: '14px',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: isExpanded ? providerInfo.color : finalColors.textPrimary,
-              cursor: 'pointer',
-              transition: 'border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease',
-              boxShadow: 'none',
-              transform: 'none',
+              fontSize: '13px',
+              color: finalColors.textSecondary,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
           >
-            {isExpanded ? '收起' : '展开'}
-            <ChevronDown style={{ 
-              width: '18px', 
-              height: '18px', 
-              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', 
-              transition: 'transform 0.3s ease',
+            {providerBaseUrl}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'flex-end', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => onToggleExpand(provider.id)}
+            title={isExpanded ? '收起详情' : '展开详情'}
+            aria-label={isExpanded ? '收起详情' : '展开详情'}
+            style={{
+              ...iconButtonBase,
+              background: isExpanded ? `${providerInfo.color}15` : finalColors.bgGlassHover,
+              border: isExpanded ? `1px solid ${providerInfo.color}30` : `1px solid ${finalColors.border}`,
               color: isExpanded ? providerInfo.color : finalColors.textSecondary,
-            }} />
+            }}
+          >
+            <ChevronDown
+              style={{
+                width: '18px',
+                height: '18px',
+                transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s ease',
+              }}
+            />
           </button>
           <button
             onClick={() => onTest(provider.id)}
             onMouseEnter={() => setTestHover(true)}
             onMouseLeave={() => setTestHover(false)}
             disabled={testingProvider === provider.id}
+            title="测试连接"
+            aria-label="测试连接"
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '12px 20px',
-              background: testingProvider === provider.id ? `${providerInfo.color}20` : (testHover ? `${providerInfo.color}15` : finalColors.bgGlassHover),
-              border: testingProvider === provider.id ? `1px solid ${providerInfo.color}40` : (testHover ? `1px solid ${providerInfo.color}30` : `1px solid ${finalColors.border}`),
-              borderRadius: '14px',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: testingProvider === provider.id ? providerInfo.color : (testHover ? providerInfo.color : finalColors.textPrimary),
+              ...iconButtonBase,
+              background: testingProvider === provider.id ? `${providerInfo.color}15` : (testHover ? `${providerInfo.color}12` : finalColors.bgGlassHover),
+              border: testingProvider === provider.id ? `1px solid ${providerInfo.color}35` : (testHover ? `1px solid ${providerInfo.color}30` : `1px solid ${finalColors.border}`),
+              color: testingProvider === provider.id || testHover ? providerInfo.color : finalColors.textSecondary,
+              opacity: testingProvider === provider.id ? 0.75 : 1,
               cursor: testingProvider === provider.id ? 'not-allowed' : 'pointer',
-              transition: 'border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease',
-              boxShadow: 'none',
-              transform: 'none',
-              opacity: testingProvider === provider.id ? 0.8 : 1,
             }}
           >
             {testingProvider === provider.id ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ 
-                  width: '18px', 
-                  height: '18px', 
-                  borderRadius: '50%', 
-                  border: `2px solid ${providerInfo.color}`, 
-                  borderTop: '2px solid transparent', 
-                  animation: 'spin 1s linear infinite'
-                }} />
-                测试中...
-              </div>
+              <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: `2px solid ${providerInfo.color}`, borderTop: '2px solid transparent', animation: 'spin 1s linear infinite' }} />
             ) : (
-              <>
-                <TestTube style={{ width: '18px', height: '18px' }} />
-                测试
-              </>
+              <TestTube style={{ width: '17px', height: '17px' }} />
             )}
           </button>
           <button
             onClick={() => onEdit(provider)}
             onMouseEnter={() => setEditHover(true)}
             onMouseLeave={() => setEditHover(false)}
+            title="编辑提供商"
+            aria-label="编辑提供商"
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '12px 20px',
-              background: editHover ? `${providerInfo.color}15` : finalColors.bgGlassHover,
+              ...iconButtonBase,
+              background: editHover ? `${providerInfo.color}12` : finalColors.bgGlassHover,
               border: editHover ? `1px solid ${providerInfo.color}30` : `1px solid ${finalColors.border}`,
-              borderRadius: '14px',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: editHover ? providerInfo.color : finalColors.textPrimary,
-              cursor: 'pointer',
-              transition: 'border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease',
-              boxShadow: 'none',
-              transform: 'none',
+              color: editHover ? providerInfo.color : finalColors.textSecondary,
             }}
           >
-            <Pencil style={{ width: '18px', height: '18px' }} />
-            编辑
+            <Pencil style={{ width: '17px', height: '17px' }} />
           </button>
           <button
             onClick={() => onDelete(provider.id)}
             onMouseEnter={() => setDeleteHover(true)}
             onMouseLeave={() => setDeleteHover(false)}
+            title="删除提供商"
+            aria-label="删除提供商"
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '12px 20px',
+              ...iconButtonBase,
               background: deleteHover ? 'rgba(239, 68, 68, 0.1)' : finalColors.bgGlassHover,
               border: deleteHover ? '1px solid rgba(239, 68, 68, 0.3)' : `1px solid ${finalColors.border}`,
-              borderRadius: '14px',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: deleteHover ? '#ef4444' : finalColors.textPrimary,
-              cursor: 'pointer',
-              transition: 'border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease',
-              boxShadow: 'none',
-              transform: 'none',
+              color: deleteHover ? '#ef4444' : finalColors.textSecondary,
             }}
           >
-            <Trash2 style={{ width: '18px', height: '18px' }} />
-            删除
+            <Trash2 style={{ width: '17px', height: '17px' }} />
           </button>
         </div>
-
-        {isExpanded && (
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: '24px', 
-            paddingTop: '24px', 
-            borderTop: `1px solid ${finalColors.border}`,
-            animation: 'none',
-          }}>
-            <div>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                marginBottom: '16px',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Lock style={{ 
-                    width: '20px', 
-                    height: '20px', 
-                    color: finalColors.textMuted,
-                  }} />
-                  <span style={{ 
-                    fontSize: '16px', 
-                    fontWeight: '600', 
-                    color: finalColors.textPrimary,
-                  }}>
-                    API 密钥
-                  </span>
-                </div>
-                <button
-                  onClick={() => onToggleApiKeyVisibility(provider.id)}
-                  onMouseEnter={() => setKeyButtonHover(true)}
-                  onMouseLeave={() => setKeyButtonHover(false)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '10px 20px',
-                    background: keyButtonHover ? `${providerInfo.color}15` : finalColors.bgGlassHover,
-                    border: keyButtonHover ? `1px solid ${providerInfo.color}30` : `1px solid ${finalColors.border}`,
-                    borderRadius: '14px',
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    color: keyButtonHover ? providerInfo.color : finalColors.textPrimary,
-                    cursor: 'pointer',
-                    transition: 'border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease',
-                    boxShadow: 'none',
-                  }}
-                >
-                  {isApiKeyVisible ? <EyeOff style={{ width: '16px', height: '16px' }} /> : <Eye style={{ width: '16px', height: '16px' }} />}
-                  {isApiKeyVisible ? '隐藏' : '显示'}
-                </button>
-              </div>
-              <div style={{
-                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                fontSize: '14px',
-                color: finalColors.textPrimary,
-                wordBreak: 'break-all',
-                padding: '18px 20px',
-                backgroundColor: finalColors.bgGlass,
-                borderRadius: '16px',
-                border: `1px solid ${finalColors.border}`,
-                lineHeight: '1.5',
-                boxShadow: 'none',
-              }}>
-                {isApiKeyVisible ? provider.api_key : '•'.repeat(48)}
-              </div>
-            </div>
-
-            <div>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                marginBottom: '20px',
-              }}>
-                <span style={{ 
-                  fontSize: '18px', 
-                  fontWeight: '600', 
-                  color: finalColors.textPrimary,
-                }}>
-                  模型
-                </span>
-                <button
-                  onClick={() => onAddModel(provider)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    padding: '12px 24px',
-                    background: providerInfo.color,
-                    border: 'none',
-                    borderRadius: '14px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#ffffff',
-                    cursor: 'pointer',
-                    transition: 'opacity 0.15s ease',
-                    boxShadow: 'none',
-                    transform: 'none',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = '0.9';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = '1';
-                  }}
-                >
-                  <Plus style={{ width: '18px', height: '18px' }} />
-                  添加模型
-                </button>
-              </div>
-
-              {!provider.models || provider.models.length === 0 ? (
-                <EmptyState 
-                  type="models" 
-                  providerColor={providerInfo.color}
-                 
-                  colors={finalColors}
-                 
-                />
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {provider.models.map((model) => (
-                    <div
-                      key={model.id}
-                      style={{
-                        padding: '20px 24px',
-                        backgroundColor: finalColors.bgGlassHover,
-                        borderRadius: '20px',
-                        border: `1px solid ${finalColors.border}`,
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        transition: 'border-color 0.15s ease, background-color 0.15s ease',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = `${providerInfo.color}40`;
-                        e.currentTarget.style.boxShadow = 'none';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = finalColors.border;
-                        e.currentTarget.style.boxShadow = 'none';
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ 
-                          fontSize: '16px', 
-                          fontWeight: '600', 
-                          color: finalColors.textPrimary, 
-                          marginBottom: '8px',
-                        }}>
-                          {model.name}
-                        </div>
-                        <div style={{ 
-                          fontSize: '13px', 
-                          color: finalColors.textMuted, 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '12px',
-                          flexWrap: 'wrap',
-                        }}>
-                          <span>{model.model_id}</span>
-                          {model.is_assistant_default && (
-                            <span style={{
-                              padding: '6px 14px',
-                              backgroundColor: `${accentColor}15`,
-                              color: accentColor,
-                              borderRadius: '12px',
-                              fontSize: '11px',
-                              fontWeight: '600',
-                              border: `1px solid ${accentColor}30`,
-                            }}>
-                              默认模型
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '10px' }}>
-                        <button
-                          onClick={() => onEditModel(provider, model)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '44px',
-                            height: '44px',
-                            borderRadius: '12px',
-                            border: `1px solid ${finalColors.border}`,
-                            background: finalColors.bgGlass,
-                            color: finalColors.textMuted,
-                            cursor: 'pointer',
-                            transition: 'border-color 0.15s ease, color 0.15s ease',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = `${providerInfo.color}40`;
-                            e.currentTarget.style.color = providerInfo.color;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = finalColors.border;
-                            e.currentTarget.style.color = finalColors.textMuted;
-                          }}
-                        >
-                          <Pencil style={{ width: '18px', height: '18px' }} />
-                        </button>
-                        <button
-                          onClick={() => onTestModel(model.id)}
-                          disabled={testingModel === model.id}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '44px',
-                            height: '44px',
-                            borderRadius: '12px',
-                            border: testingModel === model.id ? `1px solid ${providerInfo.color}40` : `1px solid ${finalColors.border}`,
-                            background: testingModel === model.id ? `${providerInfo.color}15` : finalColors.bgGlass,
-                            color: testingModel === model.id ? providerInfo.color : finalColors.textMuted,
-                            cursor: testingModel === model.id ? 'not-allowed' : 'pointer',
-                            transition: 'border-color 0.15s ease, color 0.15s ease',
-                            opacity: testingModel === model.id ? 0.8 : 1,
-                          }}
-                          onMouseEnter={(e) => {
-                            if (testingModel !== model.id) {
-                              e.currentTarget.style.borderColor = `${providerInfo.color}40`;
-                              e.currentTarget.style.color = providerInfo.color;
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (testingModel !== model.id) {
-                              e.currentTarget.style.borderColor = finalColors.border;
-                              e.currentTarget.style.color = finalColors.textMuted;
-                            }
-                          }}
-                        >
-                          {testingModel === model.id ? (
-                            <div style={{ 
-                              width: '18px', 
-                              height: '18px', 
-                              borderRadius: '50%', 
-                              border: `2px solid ${providerInfo.color}`, 
-                              borderTop: '2px solid transparent', 
-                              animation: 'spin 1s linear infinite'
-                            }} />
-                          ) : (
-                            <TestTube style={{ width: '18px', height: '18px' }} />
-                          )}
-                        </button>
-                        <button
-                          onClick={() => onDeleteModel(provider, model)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '44px',
-                            height: '44px',
-                            borderRadius: '12px',
-                            border: `1px solid ${finalColors.border}`,
-                            background: finalColors.bgGlass,
-                            color: finalColors.textMuted,
-                            cursor: 'pointer',
-                            transition: 'border-color 0.15s ease, color 0.15s ease',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
-                            e.currentTarget.style.color = '#ef4444';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = finalColors.border;
-                            e.currentTarget.style.color = finalColors.textMuted;
-                          }}
-                        >
-                          <Trash2 style={{ width: '18px', height: '18px' }} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
+      {isExpanded && (
+        <div style={{ borderTop: `1px solid ${finalColors.border}`, padding: isMobile ? '14px' : '16px', display: 'grid', gap: '16px' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) auto',
+              gap: '12px',
+              alignItems: 'center',
+            }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <Lock style={{ width: '16px', height: '16px', color: finalColors.textMuted }} />
+                <span style={{ fontSize: '13px', fontWeight: '700', color: finalColors.textPrimary }}>API 密钥</span>
+              </div>
+              <div
+                style={{
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                  fontSize: '13px',
+                  color: finalColors.textPrimary,
+                  wordBreak: 'break-all',
+                  padding: '10px 12px',
+                  backgroundColor: finalColors.bgGlass,
+                  borderRadius: '10px',
+                  border: `1px solid ${finalColors.border}`,
+                  lineHeight: '1.5',
+                }}
+              >
+                {isApiKeyVisible ? provider.api_key : '•'.repeat(32)}
+              </div>
+            </div>
+            <button
+              onClick={() => onToggleApiKeyVisibility(provider.id)}
+              onMouseEnter={() => setKeyButtonHover(true)}
+              onMouseLeave={() => setKeyButtonHover(false)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                height: '38px',
+                padding: '0 14px',
+                background: keyButtonHover ? `${providerInfo.color}15` : finalColors.bgGlassHover,
+                border: keyButtonHover ? `1px solid ${providerInfo.color}30` : `1px solid ${finalColors.border}`,
+                borderRadius: '10px',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: keyButtonHover ? providerInfo.color : finalColors.textPrimary,
+                cursor: 'pointer',
+                transition: 'border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease',
+              }}
+            >
+              {isApiKeyVisible ? <EyeOff style={{ width: '16px', height: '16px' }} /> : <Eye style={{ width: '16px', height: '16px' }} />}
+              {isApiKeyVisible ? '隐藏' : '显示'}
+            </button>
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '10px' }}>
+              <span style={{ fontSize: '13px', fontWeight: '700', color: finalColors.textPrimary }}>模型列表</span>
+              <button
+                onClick={() => onAddModel(provider)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  height: '36px',
+                  padding: '0 14px',
+                  background: providerInfo.color,
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  transition: 'opacity 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = '0.9';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                }}
+              >
+                <Plus style={{ width: '16px', height: '16px' }} />
+                添加模型
+              </button>
+            </div>
+
+            {!provider.models || provider.models.length === 0 ? (
+              <EmptyState type="models" providerColor={providerInfo.color} colors={finalColors} />
+            ) : (
+              <div style={{ border: `1px solid ${finalColors.border}`, borderRadius: '12px', overflow: 'hidden' }}>
+                {provider.models.map((model, index) => (
+                  <div
+                    key={model.id}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: isMobile ? '1fr' : 'minmax(220px, 1fr) minmax(180px, 0.8fr) auto',
+                      gap: '12px',
+                      alignItems: 'center',
+                      padding: '12px',
+                      backgroundColor: index % 2 === 0 ? finalColors.bgGlass : finalColors.bgGlassHover,
+                      borderTop: index === 0 ? 'none' : `1px solid ${finalColors.border}`,
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '14px', fontWeight: '700', color: finalColors.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {model.name}
+                      </div>
+                      <div style={{ fontSize: '12px', color: finalColors.textMuted, marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {model.model_id}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      {model.is_assistant_default && (
+                        <span style={{ padding: '4px 8px', backgroundColor: `${accentColor}15`, color: accentColor, borderRadius: '999px', fontSize: '11px', fontWeight: '600', border: `1px solid ${accentColor}30` }}>
+                          默认模型
+                        </span>
+                      )}
+                      {(model.types || []).slice(0, 2).map((type) => (
+                        <span key={type} style={{ padding: '4px 8px', backgroundColor: finalColors.bgGlassHover, color: finalColors.textSecondary, borderRadius: '999px', fontSize: '11px', border: `1px solid ${finalColors.border}` }}>
+                          {type}
+                        </span>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: isMobile ? 'flex-start' : 'flex-end' }}>
+                      <button onClick={() => onEditModel(provider, model)} title="编辑模型" aria-label="编辑模型" style={{ ...iconButtonBase, background: finalColors.bgGlass, border: `1px solid ${finalColors.border}`, color: finalColors.textMuted }}>
+                        <Pencil style={{ width: '16px', height: '16px' }} />
+                      </button>
+                      <button onClick={() => onTestModel(model.id)} disabled={testingModel === model.id} title="测试模型" aria-label="测试模型" style={{ ...iconButtonBase, background: testingModel === model.id ? `${providerInfo.color}15` : finalColors.bgGlass, border: testingModel === model.id ? `1px solid ${providerInfo.color}35` : `1px solid ${finalColors.border}`, color: testingModel === model.id ? providerInfo.color : finalColors.textMuted, opacity: testingModel === model.id ? 0.75 : 1 }}>
+                        {testingModel === model.id ? (
+                          <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: `2px solid ${providerInfo.color}`, borderTop: '2px solid transparent', animation: 'spin 1s linear infinite' }} />
+                        ) : (
+                          <TestTube style={{ width: '16px', height: '16px' }} />
+                        )}
+                      </button>
+                      <button onClick={() => onDeleteModel(provider, model)} title="删除模型" aria-label="删除模型" style={{ ...iconButtonBase, background: finalColors.bgGlass, border: `1px solid ${finalColors.border}`, color: finalColors.textMuted }}>
+                        <Trash2 style={{ width: '16px', height: '16px' }} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

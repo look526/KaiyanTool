@@ -196,7 +196,7 @@ export default function AIProvidersPage() {
       }} />
 
       <main style={{ flex: 1, position: 'relative', zIndex: 1 }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '48px 24px 24px' }}>
+        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '48px 24px 24px' }}>
           <PageHero
             title="AI PROVIDERS"
             subtitle="管理您的 AI 服务提供商和模型配置"
@@ -299,12 +299,32 @@ export default function AIProvidersPage() {
               colors={colors}
             />
           ) : (
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(440px, 1fr))', 
-              gap: '28px',
-              marginTop: '16px',
-            }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                marginTop: '16px',
+              }}
+            >
+              {!isMobile && (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(220px, 1.25fr) minmax(140px, 0.8fr) minmax(150px, 0.8fr) auto',
+                    gap: '18px',
+                    padding: '0 16px 4px',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    color: colors.textMuted,
+                  }}
+                >
+                  <span>提供商</span>
+                  <span>模型数量</span>
+                  <span>Base URL</span>
+                  <span style={{ textAlign: 'right' }}>操作</span>
+                </div>
+              )}
               {filteredProviders.map((provider: any) => (
                 <ProviderCard
                   key={provider.id}
