@@ -49,6 +49,7 @@ export function ProviderModal({
   const customTypeValue = selectedType === 'custom' && formData.type !== 'custom' ? formData.type : '';
   const defaultBaseUrls: Record<string, string> = {
     'ecloud-seedance': 'https://zhenze-huhehaote.cmecloud.cn/api/v3',
+    'ecloud-qwen-image': 'https://moma.cmecloud.cn/v1/aigc/multimodal-generation',
   };
   const selectedDefaultBaseUrl = defaultBaseUrls[selectedType];
   const fieldStyle = {

@@ -38,6 +38,16 @@ const testModelSchema = z.object({
 })
 
 export class ModelPreferenceController {
+  private adminProviderWhere(extra: Record<string, unknown> = {}): any {
+    return {
+      enabled: true,
+      ...extra,
+      User: {
+        role: { in: ['admin', 'super_admin'] },
+      },
+    }
+  }
+
   private async recordHistory(userId: string, change_type: string, change_details: any, previous_value: any, new_value: any): Promise<void> {
     try {
       await prisma.configurationHistory.create({
@@ -334,9 +344,7 @@ export class ModelPreferenceController {
       const model = await prisma.aIProviderModel.findFirst({
         where: {
           id: model_id,
-          AIProvider: {
-            user_id: req.user_id
-          }
+          AIProvider: this.adminProviderWhere(),
         },
         include: {
           AIProvider: true
@@ -381,9 +389,7 @@ export class ModelPreferenceController {
 
       const models = await prisma.aIProviderModel.findMany({
         where: {
-          AIProvider: {
-            user_id: req.user_id
-          }
+          AIProvider: this.adminProviderWhere(),
         }
       })
 
@@ -421,9 +427,7 @@ export class ModelPreferenceController {
 
       const models = await prisma.aIProviderModel.findMany({
         where: {
-          AIProvider: {
-            user_id: req.user_id
-          }
+          AIProvider: this.adminProviderWhere(),
         },
         include: {
           AIProvider: true

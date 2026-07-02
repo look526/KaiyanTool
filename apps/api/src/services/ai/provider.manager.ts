@@ -5,8 +5,10 @@ import { ZhipuProvider } from './zhipu.provider'
 import { AntSKProvider } from './antsk.provider'
 import { SeedreamProvider } from './seedream.provider'
 import { VolcengineTTSProvider } from './volcengine-tts.provider'
+import { DeepSeekProvider } from './deepseek.provider'
 import { ToapisProvider } from './toapis.provider'
 import { ECloudSeedanceProvider } from './ecloud-seedance.provider'
+import { ECloudQwenImageProvider } from './ecloud-qwen-image.provider'
 
 export interface ModelProvider {
   id: string
@@ -39,6 +41,9 @@ export class ProviderManager {
       case 'seedream':
         provider = new SeedreamProvider(config.apiKey, config.baseUrl)
         break
+      case 'deepseek':
+        provider = new DeepSeekProvider(config.apiKey, config.baseUrl)
+        break
       case 'volcengine-tts':
         provider = new VolcengineTTSProvider(config.apiKey, config.baseUrl)
         break
@@ -47,6 +52,9 @@ export class ProviderManager {
         break
       case 'ecloud-seedance':
         provider = new ECloudSeedanceProvider(config.apiKey, config.baseUrl)
+        break
+      case 'ecloud-qwen-image':
+        provider = new ECloudQwenImageProvider(config.apiKey, config.baseUrl)
         break
       default:
         provider = new OpenAIProvider(config.apiKey, config.baseUrl)

@@ -69,6 +69,19 @@ function parseVideoPromptFlags(raw: unknown): VideoPromptFlags {
   };
 }
 
+function providerHasModelType(provider: AIProvider, type: 'image' | 'video') {
+  return (provider.models || []).some((model) => {
+    const types = (model.types || []).map((item) => String(item).toLowerCase());
+    const capabilities = (model.capabilities || []).map((item) => String(item).toLowerCase());
+    const hint = `${model.name || ''} ${model.model_id || ''}`.toLowerCase();
+
+    if (types.includes(type)) return true;
+    if (capabilities.some((capability) => capability.includes(type))) return true;
+    if (type === 'video') return /video|视频|sora|veo|seedance|kling|runway/.test(hint);
+    return /image|图片|图像|文生图|图生图|seedream|qwen-image|flux|dall|imagen/.test(hint);
+  });
+}
+
 function buildUpdateShotInputFromState(shot: Shot, state: ShotEditorState): UpdateShotInput {
   const mergedForPrompt = {
     ...shot,
@@ -479,24 +492,34 @@ export default function EpisodeDetailPage() {
     [videoProviders]
   );
 
+  const videoCapableProviders = useMemo(
+    () => enabledProviders.filter((provider) => providerHasModelType(provider, 'video')),
+    [enabledProviders]
+  );
+
+  const imageCapableProviders = useMemo(
+    () => enabledProviders.filter((provider) => providerHasModelType(provider, 'image')),
+    [enabledProviders]
+  );
+
   const activeVideoProvider = useMemo(() => {
     if (selectedProviderId) {
-      const selected = enabledProviders.find((p) => p.id === selectedProviderId);
+      const selected = videoCapableProviders.find((p) => p.id === selectedProviderId);
       if (selected) return selected;
     }
-    return enabledProviders[0] || null;
-  }, [enabledProviders, selectedProviderId]);
+    return videoCapableProviders[0] || null;
+  }, [videoCapableProviders, selectedProviderId]);
 
   /** 视频生成 API 使用 provider 数据库主键 */
   const activeVideoProviderId = activeVideoProvider?.id ?? null;
 
   const activeImageProvider = useMemo(() => {
     if (imageProviderId) {
-      const selected = enabledProviders.find((p) => p.id === imageProviderId);
+      const selected = imageCapableProviders.find((p) => p.id === imageProviderId);
       if (selected) return selected;
     }
-    return activeVideoProvider || enabledProviders[0] || null;
-  }, [enabledProviders, imageProviderId, activeVideoProvider]);
+    return imageCapableProviders[0] || null;
+  }, [imageCapableProviders, imageProviderId]);
 
   const activeImageProviderId = activeImageProvider?.id ?? null;
 
@@ -1405,7 +1428,7 @@ export default function EpisodeDetailPage() {
                           onChange={(e) => setSelectedProviderId(e.target.value || null)}
                           style={outputSelectStyle}
                         >
-                          {enabledProviders.map((provider) => (
+                          {videoCapableProviders.map((provider) => (
                             <option key={provider.id} value={provider.id}>
                               {provider.name || provider.type || 'Provider'}
                             </option>
@@ -1419,7 +1442,7 @@ export default function EpisodeDetailPage() {
                           onChange={(e) => setImageProviderId(e.target.value || null)}
                           style={outputSelectStyle}
                         >
-                          {enabledProviders.map((provider) => (
+                          {imageCapableProviders.map((provider) => (
                             <option key={`img-${provider.id}`} value={provider.id}>
                               {provider.name || provider.type || 'Provider'}
                             </option>

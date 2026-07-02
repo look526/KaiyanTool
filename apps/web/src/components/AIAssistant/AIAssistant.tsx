@@ -1,22 +1,13 @@
 import { useState, useRef, useEffect, useCallback, memo } from 'react';
-import { X, Send, MessageSquare, Sparkles, Loader2, Minimize2, Settings, Check } from 'lucide-react';
+import { X, Send, MessageSquare, Sparkles, Loader2, Minimize2, Settings } from 'lucide-react';
 import { getCsrfToken } from '../../lib/csrf';
+import { ModelSelector } from '../ui/ModelSelector';
+import { useAvailableAIModels } from '../../hooks/useAvailableAIModels';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-}
-
-interface AIProvider {
-  id: string;
-  type: string;
-  models: Array<{
-    id: string;
-    name: string;
-    types: string[];
-    isAssistantDefault?: boolean;
-  }>;
 }
 
 interface AIAssistantProps {
@@ -39,84 +30,31 @@ function AIAssistantComponent({ isOpen, onClose, onMinimize }: AIAssistantProps)
   const [isLoading, setIsLoading] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [providers, setProviders] = useState<AIProvider[]>([]);
   const [selectedProvider, setSelectedProvider] = useState<string>('');
   const [selectedModel, setSelectedModel] = useState<string>('');
-  const [defaultAssistantModelId, setDefaultAssistantModelId] = useState<string>('');
   const [csrfToken, setCsrfTokenState] = useState<string>('');
+  const { models, getModel } = useAvailableAIModels('text');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const hasInitializedRef = useRef(false);
-
-  const fetchProviders = useCallback(async () => {
-    try {
-      console.log('Fetching providers from /api/assistant/providers');
-      const response = await fetch('/api/assistant/providers', {
-        credentials: 'include'
-      });
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-      
-      const csrfTokenFromHeader = response.headers.get('X-CSRF-Token');
-      if (csrfTokenFromHeader) {
-        setCsrfTokenState(csrfTokenFromHeader);
-        localStorage.setItem('csrfToken', csrfTokenFromHeader);
-      }
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        try {
-          const errorJson = JSON.parse(errorText);
-          console.error('Parsed error:', errorJson);
-        } catch {
-          console.error('Error text:', errorText);
-        }
-        return;
-      }
-      
-      const data = await response.json();
-      console.log('Providers data:', JSON.stringify(data, null, 2));
-      setProviders(data.providers || []);
-
-      let defaultModelId = '';
-      for (const provider of data.providers || []) {
-        for (const model of provider.models || []) {
-          if (model.isAssistantDefault) {
-            defaultModelId = model.id;
-            break;
-          }
-        }
-        if (defaultModelId) break;
-      }
-      setDefaultAssistantModelId(defaultModelId);
-
-      if (!hasInitializedRef.current && data.providers && data.providers.length > 0) {
-        hasInitializedRef.current = true;
-        const firstProvider = data.providers[0];
-        setSelectedProvider(firstProvider.id);
-
-        if (defaultModelId) {
-          setSelectedModel(defaultModelId);
-        } else if (firstProvider.models && firstProvider.models.length > 0) {
-          setSelectedModel(firstProvider.models[0].id);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch providers:', error);
-      if (error instanceof Error) {
-        console.error('Error name:', error.name);
-        console.error('Error message:', error.message);
-      }
-    }
-  }, []);
 
   useEffect(() => {
     if (isOpen) {
-      fetchProviders();
       getCsrfToken().then(setCsrfTokenState).catch(console.error);
     }
-  }, [isOpen, fetchProviders]);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!selectedModel && models.length > 0) {
+      setSelectedModel(models[0].id);
+    }
+  }, [models, selectedModel]);
+
+  useEffect(() => {
+    const selected = getModel(selectedModel);
+    if (selected?.provider_id && selected.provider_id !== selectedProvider) {
+      setSelectedProvider(selected.provider_id);
+    }
+  }, [getModel, selectedModel, selectedProvider]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -131,12 +69,6 @@ function AIAssistantComponent({ isOpen, onClose, onMinimize }: AIAssistantProps)
       abortControllerRef.current?.abort();
     };
   }, []);
-
-  useEffect(() => {
-    if (!isOpen) {
-      hasInitializedRef.current = false;
-    }
-  }, [isOpen]);
 
   const handleSend = useCallback(async () => {
     const trimmedInput = input.trim();
@@ -401,87 +333,8 @@ function AIAssistantComponent({ isOpen, onClose, onMinimize }: AIAssistantProps)
             </span>
           </div>
           
-          {providers.length > 0 ? (
+          {models.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px'
-              }}>
-                <label style={{
-                  fontSize: '12px',
-                  color: 'var(--text-secondary)',
-                  fontWeight: '500'
-                }}>
-                  选择提供商
-                </label>
-                <div style={{
-                  display: 'flex',
-                  gap: '8px',
-                  flexWrap: 'wrap'
-                }}>
-                  {providers.map(provider => {
-                    const isSelected = selectedProvider === provider.id;
-                    return (
-                      <button
-                        key={provider.id}
-                        onClick={() => {
-                          setSelectedProvider(provider.id);
-                          const p = providers.find(p => p.id === provider.id);
-                          if (p && p.models && p.models.length > 0) {
-                            const defaultModel = p.models.find(m => m.isAssistantDefault);
-                            setSelectedModel(defaultModel?.id || p.models[0].id);
-                          }
-                        }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          padding: '8px 14px',
-                          borderRadius: '10px',
-                          border: isSelected ? '2px solid #6366f1' : '2px solid var(--border-primary)',
-                          backgroundColor: isSelected ? 'rgba(99, 102, 241, 0.1)' : 'var(--bg-elevated)',
-                          color: isSelected ? '#6366f1' : 'var(--text-primary)',
-                          fontSize: '13px',
-                          fontWeight: isSelected ? '600' : '500',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        {isSelected && (
-                          <Check style={{ width: '14px', height: '14px', flexShrink: 0 }} />
-                        )}
-                        <div style={{
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '6px',
-                          background: isSelected 
-                            ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' 
-                            : 'var(--bg-tertiary)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#fff',
-                          fontSize: '10px',
-                          fontWeight: '700'
-                        }}>
-                          {provider.type === 'openai' ? 'O' : 
-                           provider.type === 'google' ? 'G' : 
-                           provider.type === 'zhipuai' ? 'Z' : 
-                           provider.type === 'anthropic' ? 'A' :
-                           provider.type?.[0]?.toUpperCase() || '?'}
-                        </div>
-                        {provider.type === 'openai' ? 'OpenAI' : 
-                         provider.type === 'google' ? 'Google' : 
-                         provider.type === 'zhipuai' ? '智谱AI' : 
-                         provider.type === 'anthropic' ? 'Anthropic' :
-                         provider.type || 'Unknown'}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -494,58 +347,15 @@ function AIAssistantComponent({ isOpen, onClose, onMinimize }: AIAssistantProps)
                 }}>
                   选择模型
                 </label>
-                <div style={{
-                  display: 'flex',
-                  gap: '8px',
-                  flexWrap: 'wrap'
-                }}>
-                  {(() => {
-                    const provider = providers.find(p => p.id === selectedProvider);
-                    if (!provider || !provider.models) return null;
-                    return provider.models.map(model => {
-                      const isSelected = selectedModel === model.id;
-                      const isDefault = model.isAssistantDefault;
-                      return (
-                        <button
-                          key={model.id}
-                          onClick={() => setSelectedModel(model.id)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            padding: '8px 14px',
-                            borderRadius: '10px',
-                            border: isSelected ? '2px solid #6366f1' : '2px solid var(--border-primary)',
-                            backgroundColor: isSelected ? 'rgba(99, 102, 241, 0.1)' : 'var(--bg-elevated)',
-                            color: isSelected ? '#6366f1' : 'var(--text-primary)',
-                            fontSize: '13px',
-                            fontWeight: isSelected ? '600' : '500',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease'
-                          }}
-                        >
-                          {isSelected && (
-                            <Check style={{ width: '14px', height: '14px', flexShrink: 0 }} />
-                          )}
-                          {model.name}
-                          {isDefault && (
-                            <span style={{
-                              fontSize: '10px',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                              color: '#fff',
-                              fontWeight: '600',
-                              textShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                            }}>
-                              AI助手
-                            </span>
-                          )}
-                        </button>
-                      );
-                    });
-                  })()}
-                </div>
+                <ModelSelector
+                  content_type="text"
+                  value={selectedModel}
+                  on_change={setSelectedModel}
+                  placeholder="选择 AI 助手模型"
+                  auto_select_when_empty
+                  show_default
+                  show_last_used
+                />
               </div>
             </div>
           ) : (

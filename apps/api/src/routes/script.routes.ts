@@ -2,16 +2,25 @@ import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { parseScript, saveScript, getScript, continueScript, rewriteScript, optimizeScene, parseScriptWithAI, optimizeSceneContent, formatToScript } from '../controllers/script.controller';
 
-const router = Router();
+const createScriptRouter = (prefix = '') => {
+  const router = Router();
 
-router.post('/script/parse', authMiddleware, parseScript);
-router.post('/script/parse-ai', authMiddleware, parseScriptWithAI);
-router.post('/script/save', authMiddleware, saveScript);
-router.post('/script/continue', authMiddleware, continueScript);
-router.post('/script/rewrite', authMiddleware, rewriteScript);
-router.post('/script/optimize-scene', authMiddleware, optimizeScene);
-router.post('/script/format-to-script', authMiddleware, formatToScript);
+  router.post(`${prefix}/parse`, authMiddleware, parseScript);
+  router.post(`${prefix}/parse-ai`, authMiddleware, parseScriptWithAI);
+  router.post(`${prefix}/save`, authMiddleware, saveScript);
+  router.post(`${prefix}/continue`, authMiddleware, continueScript);
+  router.post(`${prefix}/rewrite`, authMiddleware, rewriteScript);
+  router.post(`${prefix}/optimize-scene`, authMiddleware, optimizeScene);
+  router.post(`${prefix}/format-to-script`, authMiddleware, formatToScript);
+  router.get(`${prefix}/:projectId`, authMiddleware, getScript);
+
+  return router;
+};
+
+export const scriptRouter = createScriptRouter();
+
+const router = Router();
+router.use(createScriptRouter('/script'));
 router.post('/ai/optimize', authMiddleware, optimizeSceneContent);
-router.get('/script/:projectId', authMiddleware, getScript);
 
 export default router;

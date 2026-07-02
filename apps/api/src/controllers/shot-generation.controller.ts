@@ -39,6 +39,49 @@ class ShotGenerationController {
     return provider
   }
 
+  private modelSupportsType(model: any, type: 'image' | 'video'): boolean {
+    const types = Array.isArray(model?.types) ? model.types.map((item: unknown) => String(item).toLowerCase()) : []
+    const capabilities = Array.isArray(model?.capabilities) ? model.capabilities.map((item: unknown) => String(item).toLowerCase()) : []
+    const hint = `${model?.name || ''} ${model?.model_id || ''}`.toLowerCase()
+
+    if (types.includes(type)) return true
+    if (capabilities.some((capability: string) => capability.includes(type))) return true
+    if (type === 'video') return /video|视频|sora|veo|seedance|kling|runway/.test(hint)
+    return /image|图片|图像|文生图|图生图|seedream|qwen-image|flux|dall|imagen/.test(hint)
+  }
+
+  private async getProviderModelForType(provider_id: string, type: 'image' | 'video') {
+    const providerDb = await prisma.aIProvider.findUnique({
+      where: { id: provider_id },
+      include: { AIProviderModel: true },
+    })
+
+    if (!providerDb) {
+      const error = new Error(`Provider not found: ${provider_id}`)
+      ;(error as any).status = 404
+      throw error
+    }
+
+    if (!providerDb.enabled) {
+      const error = new Error(`Provider is disabled: ${provider_id}`)
+      ;(error as any).status = 400
+      throw error
+    }
+
+    const model = providerDb.AIProviderModel.find((item: any) => this.modelSupportsType(item, type))
+    if (!model) {
+      const error = new Error(`该 Provider 未配置${type === 'video' ? '视频' : '图片'}模型，请在后台模型类型中勾选 ${type}`)
+      ;(error as any).status = 400
+      throw error
+    }
+
+    return {
+      providerDb,
+      model,
+      modelName: model.model_id || model.name,
+    }
+  }
+
   async generateStartImage(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user_id) {
@@ -479,6 +522,7 @@ class ShotGenerationController {
 
       const prompt = this.buildVideoPromptFromFlags(shot, flags)
 
+      const { modelName } = await this.getProviderModelForType(provider_id, 'video')
       const provider = await this.getManagedProvider(provider_id)
       if (!provider.createVideo) {
         res.status(400).json({ error: 'Provider does not support video generation' })
@@ -486,6 +530,7 @@ class ShotGenerationController {
       }
 
       const response = await provider.createVideo({
+        model: modelName,
         imageUrl,
         endImageUrl,
         prompt,
@@ -515,8 +560,10 @@ class ShotGenerationController {
       })
       logger.info('视频生成成功', { user_id: req.user_id, shot_id: id, provider_id, mode })
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to generate video'
+      const status = Number((error as any)?.status || 500)
       logger.error('生成视频失败', { user_id: req.user_id, shot_id: req.params.id, error })
-      res.status(500).json({ error: 'Failed to generate video' })
+      res.status(status >= 400 && status < 600 ? status : 500).json({ error: message })
     }
   }
 

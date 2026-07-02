@@ -37,6 +37,7 @@ export const PROVIDER_TYPES: ProviderType[] = [
   { value: 'deepseek', label: 'DeepSeek', icon: SearchIcon, color: '#6b7280', description: '深度求索AI模型' },
   { value: 'toapis', label: 'ToAPIs', icon: Video, color: '#ec4899', description: '多模型 AI 服务（GPT、Claude、Gemini、Sora2、VEO3）' },
   { value: 'ecloud-seedance', label: '移动云 Seedance', icon: Video, color: '#0ea5e9', description: '移动云 AICC-Doubao-Seedance 2.0 视频生成服务' },
+  { value: 'ecloud-qwen-image', label: '移动云千问 Image2', icon: Image, color: '#22c55e', description: '移动云千问图片生成与编辑服务' },
   { value: 'custom', label: '自定义', icon: SlidersHorizontal, color: '#14b8a6', description: 'OpenAI 兼容接口，可配置请求地址和模型列表' },
 ];
 

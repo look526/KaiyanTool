@@ -22,10 +22,7 @@ const ECLOUD_SEEDANCE_BASE_URL = 'https://zhenze-huhehaote.cmecloud.cn/api/v3'
 
 export class ECloudSeedanceProvider extends AIProvider {
   private readonly endpoints: EndpointPair[] = [
-    { create: '/video/generations', query: (taskId) => `/video/generations/${taskId}` },
-    { create: '/videos/generations', query: (taskId) => `/videos/generations/${taskId}` },
-    { create: '/video-generation/tasks', query: (taskId) => `/video-generation/tasks/${taskId}` },
-    { create: '/tasks', query: (taskId) => `/tasks/${taskId}` },
+    { create: '/contents/generations/tasks', query: (taskId) => `/contents/generations/tasks/${taskId}` },
   ]
 
   constructor(apiKey: string, baseUrl?: string) {
@@ -78,16 +75,18 @@ export class ECloudSeedanceProvider extends AIProvider {
       (url): url is string => typeof url === 'string' && url.trim().length > 0
     )
 
-    imageUrls.slice(0, 9).forEach((url) => {
+    imageUrls.slice(0, 9).forEach((url, index) => {
+      const role = index === 0 ? 'first_frame' : index === 1 ? 'last_frame' : 'reference_image'
+
       content.push({
         type: 'image_url',
         image_url: { url },
-        role: 'reference_image',
+        role,
       })
     })
 
     return {
-      model: ECLOUD_SEEDANCE_MODEL,
+      model: request.model || ECLOUD_SEEDANCE_MODEL,
       content,
       generate_audio: Boolean(request.sync_audio_video),
       ratio: this.normalizeRatio(request.aspectRatio),
@@ -204,7 +203,7 @@ export class ECloudSeedanceProvider extends AIProvider {
       },
     })
 
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
       const retryResponse = await fetch(url, {
         ...options,
         headers: {

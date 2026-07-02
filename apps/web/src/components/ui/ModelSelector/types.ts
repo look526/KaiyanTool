@@ -3,6 +3,9 @@ export type ContentType = 'text' | 'image' | 'video' | 'audio' | 'script' | 'nov
 export interface AIProviderModel {
   id: string;
   name: string;
+  model_id?: string | null;
+  provider_id?: string;
+  provider_type?: string;
   types: string[];
   description?: string;
   capabilities?: string[];

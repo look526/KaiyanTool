@@ -4,6 +4,9 @@ import { cacheUtils } from '../../../../lib/modelCache';
 import { AIProviderModel, ContentType } from '../types';
 
 interface AIProviderWithModels {
+  id?: string;
+  type?: string;
+  name?: string;
   enabled: boolean;
   models?: AIProviderModel[];
 }
@@ -53,8 +56,14 @@ export function use_model_selector_state(content_type: ContentType) {
       const should_use_cache = !force_refresh && cached_data && !cacheUtils.getCacheInfo().models.expired;
 
       if (should_use_cache) {
-        const enabled = cached_data!.providers.filter((p: any) => p.enabled);
-        const flat = enabled.flatMap((p: any) => p.models || []);
+        const enabled = cached_data!.providers.filter((p: any) => p.enabled !== false);
+        const flat = enabled.flatMap((p: any) =>
+          (p.models || []).map((m: any) => ({
+            ...m,
+            provider_id: p.id,
+            provider_type: p.type,
+          }))
+        );
         const unique = new Map<string, AIProviderModel>();
         for (const m of flat) {
           if (!unique.has(m.id)) unique.set(m.id, m as AIProviderModel);
@@ -70,10 +79,16 @@ export function use_model_selector_state(content_type: ContentType) {
       const response = await apiClient.getAIProviders();
       const providers_data = response.providers as AIProviderWithModels[];
 
-      const enabled_providers = providers_data.filter(p => p.enabled);
+      const enabled_providers = providers_data.filter(p => p.enabled !== false);
 
       const flat = enabled_providers.flatMap(provider =>
-        (provider.models || []).filter(m => model_matches_content_type(m, content_type))
+        (provider.models || [])
+          .filter(m => model_matches_content_type(m, content_type))
+          .map(m => ({
+            ...m,
+            provider_id: provider.id,
+            provider_type: provider.type,
+          }))
       );
       const unique_models = new Map<string, AIProviderModel>();
       for (const m of flat) {
@@ -83,7 +98,7 @@ export function use_model_selector_state(content_type: ContentType) {
 
       const models_by_type: Record<string, typeof models> = {};
       providers_data
-        .filter(p => p.enabled)
+        .filter(p => p.enabled !== false)
         .forEach(provider => {
           provider.models?.forEach(model => {
             model.types?.forEach(type => {
@@ -121,13 +136,13 @@ export function use_model_selector_state(content_type: ContentType) {
       }
 
       const prefs = await apiClient.getModelPreferences();
-      set_default_models(prefs.defaultModels || {});
-      set_last_used_models(prefs.lastUsedModels || {});
+      set_default_models(prefs.default_models || prefs.defaultModels || {});
+      set_last_used_models(prefs.last_used_models || prefs.lastUsedModels || {});
 
       cacheUtils.setPreferences({
-        defaultModels: prefs.defaultModels || {},
-        lastUsedModels: prefs.lastUsedModels || {},
-        modelParameters: prefs.modelParameters || {},
+        defaultModels: prefs.default_models || prefs.defaultModels || {},
+        lastUsedModels: prefs.last_used_models || prefs.lastUsedModels || {},
+        modelParameters: prefs.model_parameters || prefs.modelParameters || {},
         lastUpdated: Date.now(),
       });
     } catch (error) {
@@ -152,7 +167,7 @@ export function use_model_selector_state(content_type: ContentType) {
       const configurations = Object.entries({
         ...default_models,
         [type]: model_id
-      }).map(([type, model_id]) => ({ type, model_id }));
+      }).map(([content_type, model_id]) => ({ content_type, model_id }));
 
       await apiClient.setDefaultModels(configurations);
       set_default_models(prev => ({ ...prev, [type]: model_id }));

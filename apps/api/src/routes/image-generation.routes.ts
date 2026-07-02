@@ -33,9 +33,9 @@ router.post('/generate', async (req, res) => {
 
 router.post('/batch', async (req, res) => {
   try {
-    const { prompt, count = 1, referenceImageUrl, providerId, style, negativePrompt, width, height, resolution, watermark, projectId } = req.body;
+    const { prompt, count = 1, referenceImageUrl, providerId, model, style, negativePrompt, width, height, resolution, watermark, projectId, three_view } = req.body;
     
-    console.log('[DEBUG] Batch request:', { prompt, count, projectId, providerId });
+    console.log('[DEBUG] Batch request:', { prompt, count, projectId, providerId, model });
     
     const prompts = Array.from({ length: count }, () => ({
       prompt,
@@ -47,7 +47,8 @@ router.post('/batch', async (req, res) => {
       watermark,
       referenceImageUrl,
       project_id: projectId,
-      model: providerId,
+      three_view,
+      model: model || providerId,
     }));
     
     const results = await batchGenerateImages(prompts);

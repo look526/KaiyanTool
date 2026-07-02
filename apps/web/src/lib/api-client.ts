@@ -863,7 +863,7 @@ export class ApiClient {
     return this.post<any>('/image-generation/generate', data)
   }
 
-  async batchGenerateImages(data: { prompt: string; count: number; referenceImageUrl?: string; providerId?: string }) {
+  async batchGenerateImages(data: { prompt: string; count: number; style?: string; negativePrompt?: string; width?: number; height?: number; resolution?: string; projectId?: string; model?: string; providerId?: string; referenceImageUrl?: string; three_view?: boolean; watermark?: boolean }) {
     return this.post<any>('/image-generation/batch', data)
   }
 
@@ -909,8 +909,10 @@ export class ApiClient {
   async setDefaultModels(configurations: any[]) {
     const defaultModels: Record<string, string> = {}
     configurations.forEach(config => {
-      if (config.contentType && config.modelId) {
-        defaultModels[config.contentType] = config.modelId
+      const contentType = config.content_type || config.contentType || config.type
+      const modelId = config.model_id || config.modelId
+      if (contentType && modelId) {
+        defaultModels[contentType] = modelId
       }
     })
     return this.post<any>('/model-preferences/default', { default_models: defaultModels })

@@ -23,7 +23,7 @@ import projectMemberRoutes from './routes/project-member.routes'
 import uploadRoutes from './routes/upload.routes'
 import aiProviderRoutes from './routes/ai-provider.routes'
 import modelPreferenceRoutes from './routes/model-preference.routes'
-import scriptRoutes from './routes/script.routes'
+import scriptRoutes, { scriptRouter } from './routes/script.routes'
 import novelRoutes from './routes/novel.routes'
 import directorRoutes from './routes/director.routes'
 import storylineRoutes from './routes/storyline.routes'
@@ -164,7 +164,9 @@ app.use('/api/upload', uploadRoutes)
 app.use('/api/ai-providers', aiProviderRoutes)
 app.use('/api/model-preferences', modelPreferenceRoutes)
 app.use('/api', documentRoutes)
+app.use('/api/script', scriptRouter)
 app.use('/api', scriptRoutes)
+app.use('/api/novel', novelRoutes)
 app.use('/api', novelRoutes)
 app.use('/api', directorRoutes)
 app.use('/api', storylineRoutes)

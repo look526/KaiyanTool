@@ -53,22 +53,24 @@ export function Modal({
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const previousBodyOverflowRef = useRef('');
 
   useEffect(() => {
     if (open) {
       setIsVisible(true);
       setTimeout(() => setIsAnimating(true), 10);
+      previousBodyOverflowRef.current = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
     } else {
       setIsAnimating(false);
       setTimeout(() => {
         setIsVisible(false);
-        document.body.style.overflow = '';
+        document.body.style.overflow = previousBodyOverflowRef.current;
       }, 200);
     }
 
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = previousBodyOverflowRef.current;
     };
   }, [open]);
 

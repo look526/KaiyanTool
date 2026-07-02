@@ -7,6 +7,7 @@ import { SeedreamProvider } from './seedream.provider'
 import { DeepSeekProvider } from './deepseek.provider'
 import { ToapisProvider } from './toapis.provider'
 import { ECloudSeedanceProvider } from './ecloud-seedance.provider'
+import { ECloudQwenImageProvider } from './ecloud-qwen-image.provider'
 import { AIProviderConfig, AIChatMessage, AICreateImageRequest, AICreateImageResponse, AICreateVideoRequest, AICreateVideoResponse, AIResponse } from '../../types/ai.types'
 
 class AIProviderService {
@@ -40,6 +41,9 @@ class AIProviderService {
         break
       case 'ecloud-seedance':
         provider = new ECloudSeedanceProvider(config.apiKey, config.baseUrl)
+        break
+      case 'ecloud-qwen-image':
+        provider = new ECloudQwenImageProvider(config.apiKey, config.baseUrl)
         break
 
       default:

@@ -139,11 +139,22 @@ export class ToapisProvider extends AIProvider {
   }
 
   async createVideo(request: AICreateVideoRequest): Promise<AICreateVideoResponse> {
+    if (request.model === 'veo3' || request.model === 'veo3-pro') {
+      return this.createVEO3Video({
+        model: request.model,
+        prompt: request.prompt || '',
+        duration: request.duration,
+        aspect_ratio: request.aspectRatio === '9:16' || request.aspectRatio === '1:1' ? request.aspectRatio : '16:9',
+        image_urls: request.imageUrl ? [request.imageUrl] : undefined,
+        end_image_url: request.endImageUrl,
+      })
+    }
+
     const imageUrls = [request.imageUrl, request.endImageUrl].filter(
       (u): u is string => typeof u === 'string' && u.length > 0
     )
     const sora2Request: Sora2VideoRequest = {
-      model: 'sora-2',
+      model: request.model === 'sora-2-pro' || request.model === 'sora-2-vip' ? request.model : 'sora-2',
       prompt: request.prompt || '',
       duration: request.duration ?? 10,
       aspect_ratio: request.aspectRatio === '9:16' ? '9:16' : '16:9',

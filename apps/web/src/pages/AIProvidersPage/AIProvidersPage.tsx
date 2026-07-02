@@ -81,13 +81,23 @@ export default function AIProvidersPage() {
 
   const accentColor = '#8b5cf6';
   const accentLight = '#a78bfa';
+  const pageMinHeight = 'calc(100vh - 112px)';
 
   const totalModels = filteredProviders.reduce((sum: number, p: AIProvider) => sum + (p.models?.length || 0), 0);
   const enabledProviders = filteredProviders.filter((p: AIProvider) => p.enabled).length;
 
   const AddProviderButton = (
     <button
-      onClick={openAddProviderModal}
+      type="button"
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        openAddProviderModal();
+      }}
       style={{
         height: '44px',
         padding: '0 20px',
@@ -119,7 +129,7 @@ export default function AIProvidersPage() {
   if (isLoading) {
     return (
       <div style={{ 
-        minHeight: '100vh', 
+        minHeight: pageMinHeight,
         background: isDark 
           ? 'linear-gradient(180deg, #05050a 0%, #0a0a12 50%, #0f0f1a 100%)'
           : 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
@@ -176,14 +186,14 @@ export default function AIProvidersPage() {
 
   return (
     <div style={{ 
-      minHeight: '100vh', 
+      minHeight: pageMinHeight,
       background: isDark 
         ? 'linear-gradient(180deg, #05050a 0%, #0a0a12 50%, #0f0f1a 100%)'
         : 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
       display: 'flex',
       flexDirection: 'column',
       position: 'relative',
-      overflow: 'hidden',
+      overflowX: 'hidden',
     }}>
       <div style={{
         position: 'absolute',
@@ -235,6 +245,11 @@ export default function AIProvidersPage() {
               }} size={20} />
               <input
                 type="text"
+                name="ai_provider_search"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
                 placeholder="搜索提供商或模型..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -262,6 +277,7 @@ export default function AIProvidersPage() {
               />
             </div>
             <button
+              type="button"
               onClick={() => refetch()}
               onMouseEnter={() => setRefreshHover(true)}
               onMouseLeave={() => setRefreshHover(false)}

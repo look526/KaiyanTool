@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { X, Star, Clock, Image, Video, Type, Sparkles } from 'lucide-react';
 import { AIPromptEditor } from './AIPromptEditor';
-import { WorkspacePromptJson, AIProvider } from '../../types/workspace';
+import { WorkspacePromptJson } from '../../types/workspace';
 import { getModelCapabilities, isVideoModel, isImageModel, isVEO3Model, getModelDefaultParams } from '../../types/ai';
 import { ModelParameters } from '../ai/ModelParameters';
 import { filterModelsForImageGeneration } from '../../utils/workspace-model-filters';
+import { useAvailableAIModels } from '../../hooks/useAvailableAIModels';
 
 interface CanvasNode {
   id: string;
@@ -64,7 +65,6 @@ export default function NodeConfigPanel({
   isDark = true,
   colors,
 }: NodeConfigPanelProps) {
-  const [providers, setProviders] = useState<AIProvider[]>([]);
   const [selectedProvider, setSelectedProvider] = useState<string>('');
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [selectedStyle, setSelectedStyle] = useState<string>('pixar');
@@ -76,20 +76,31 @@ export default function NodeConfigPanel({
   const [extraRefFile, setExtraRefFile] = useState<File | null>(null);
 
   const accentColor = '#8b5cf6';
+  const { providers, models: imageModels } = useAvailableAIModels('image');
 
   const imageModelsForProvider = (pid: string) => {
     const p = providers.find((x) => x.id === pid);
-    return p ? filterModelsForImageGeneration(p.models as AIProvider['models']) : [];
+    return p ? filterModelsForImageGeneration(p.models || []) : [];
   };
 
   const resolveModelKeyForParams = (modelRowId: string) => {
-    const m = providers.flatMap((p) => p.models).find((x) => x.id === modelRowId);
+    const m = providers.flatMap((p) => p.models || []).find((x) => x.id === modelRowId);
     return m?.model_id || m?.name || modelRowId;
   };
 
   useEffect(() => {
-    fetchProviders();
-  }, []);
+    if (providers.length === 0) return;
+    if (selectedProvider && selectedModel) return;
+
+    const firstProvider = providers.find(p => imageModels.some(m => m.provider_id === p.id)) || providers[0];
+    const firstModel = imageModels.find(m => m.provider_id === firstProvider.id) || imageModels[0];
+
+    if (firstProvider) setSelectedProvider(firstProvider.id);
+    if (firstModel) {
+      setSelectedModel(firstModel.id);
+      setModelParams(getModelDefaultParams(firstModel.model_id || firstModel.name || firstModel.id));
+    }
+  }, [providers, imageModels, selectedProvider, selectedModel]);
 
   useEffect(() => {
     if (node?.content?.text && node.type === 'text') {
@@ -109,27 +120,6 @@ export default function NodeConfigPanel({
       setEditingText(node.content?.text || '');
     }
   }, [node?.id]);
-
-  const fetchProviders = async () => {
-    try {
-      const res = await fetch('/api/workspace/ai/providers', { credentials: 'include' });
-      const data = await res.json();
-      if (data.success && data.data?.length > 0) {
-        const list = data.data as AIProvider[];
-        setProviders(list);
-        const first = list[0];
-        setSelectedProvider(first.id);
-        const imgs = filterModelsForImageGeneration(first.models || []);
-        const pick = imgs[0] || first.models?.[0];
-        if (pick) {
-          setSelectedModel(pick.id);
-          setModelParams(getModelDefaultParams(pick.model_id || pick.name || pick.id));
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch providers:', error);
-    }
-  };
 
   const handleGenerateWithAI = () => {
     if (!node) return;
@@ -155,11 +145,8 @@ export default function NodeConfigPanel({
 
   const modelParamKey = resolveModelKeyForParams(selectedModel);
   const filteredImageModels = imageModelsForProvider(selectedProvider);
-  const fallbackModels = providers.find((p) => p.id === selectedProvider)?.models || [];
-  const textImageModelOptions =
-    filteredImageModels.length > 0 ? filteredImageModels : fallbackModels;
-  const img2imgModelOptions =
-    filteredImageModels.length > 0 ? filteredImageModels : fallbackModels;
+  const textImageModelOptions = filteredImageModels.length > 0 ? filteredImageModels : imageModels;
+  const img2imgModelOptions = filteredImageModels.length > 0 ? filteredImageModels : imageModels;
 
   return (
     <div style={{

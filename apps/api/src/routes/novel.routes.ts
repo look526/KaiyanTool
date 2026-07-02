@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { novelAnalysisService } from '../services/novel-analysis.service';
 import { authMiddleware } from '../middleware/auth.middleware';
+import { storylineAgent } from '../agents/storyline-agent';
+import { outlineAgent } from '../agents/outline-agent';
 
 const router = Router();
 
@@ -53,6 +55,50 @@ router.post('/generate-scenes', async (req, res) => {
     res.json({ scenes });
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : 'Generation failed' });
+  }
+});
+
+router.post('/generate-storyline', async (req, res) => {
+  try {
+    const description = req.body.description || req.body.content;
+    if (!description || typeof description !== 'string') {
+      return res.status(400).json({ error: '故事描述不能为空' });
+    }
+
+    const result = await storylineAgent.generateStoryline({
+      title: req.body.title || '未命名故事',
+      genre: req.body.genre || 'drama',
+      description,
+      style: req.body.style,
+      targetDuration: req.body.targetDuration,
+      targetAudience: req.body.targetAudience,
+      tone: req.body.tone,
+    }, req.user_id, req.body.model);
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Storyline generation failed' });
+  }
+});
+
+router.post('/generate-outline', async (req, res) => {
+  try {
+    if (!req.body.storylineId) {
+      return res.status(400).json({ error: 'storylineId is required' });
+    }
+
+    const result = await outlineAgent.generateOutline({
+      storylineId: req.body.storylineId,
+      title: req.body.title || '未命名大纲',
+      genre: req.body.genre || 'drama',
+      targetDuration: req.body.targetDuration || 15,
+      style: req.body.style,
+      additionalNotes: req.body.additionalNotes,
+    });
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Outline generation failed' });
   }
 });
 

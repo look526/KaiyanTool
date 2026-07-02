@@ -1,7 +1,7 @@
 export interface AIProvider {
   id: string
   name: string
-  type: 'openai' | 'google' | 'antsk' | 'zhipu' | 'seedream' | 'deepseek' | 'toapis' | 'ecloud-seedance'
+  type: 'openai' | 'google' | 'antsk' | 'zhipu' | 'seedream' | 'deepseek' | 'toapis' | 'ecloud-seedance' | 'ecloud-qwen-image'
   apiKey: string
   baseUrl?: string
   models: AIModel[]
@@ -42,7 +42,7 @@ export interface AIResponse {
 }
 
 export interface AIProviderConfig {
-  type: 'openai' | 'google' | 'antsk' | 'zhipu' | 'seedream' | 'deepseek' | 'toapis' | 'ecloud-seedance'
+  type: 'openai' | 'google' | 'antsk' | 'zhipu' | 'seedream' | 'deepseek' | 'toapis' | 'ecloud-seedance' | 'ecloud-qwen-image'
   apiKey: string
   baseUrl?: string
   models?: {
@@ -76,6 +76,7 @@ export interface AICreateImageResponse {
 }
 
 export interface AICreateVideoRequest {
+  model?: string
   imageUrl: string
   /** 第二参考帧（如九宫格末格），提供商不支持时忽略 */
   endImageUrl?: string

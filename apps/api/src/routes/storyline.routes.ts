@@ -16,7 +16,7 @@ router.post('/storyline', async (req, res) => {
       targetDuration: req.body.targetDuration,
       targetAudience: req.body.targetAudience,
       tone: req.body.tone
-    });
+    }, req.user_id, req.body.model);
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : 'Generation failed' });
@@ -48,7 +48,9 @@ router.post('/storyline/:id/refine', async (req, res) => {
   try {
     const result = await storylineAgent.refineStoryline(
       req.params.id,
-      req.body.feedback
+      req.body.feedback,
+      req.user_id,
+      req.body.model
     );
     res.json(result);
   } catch (error) {
@@ -61,7 +63,9 @@ router.post('/character-backstory', async (req, res) => {
     const result = await storylineAgent.generateCharacterBackstory(
       req.body.characterName,
       req.body.role,
-      req.body.storyContext
+      req.body.storyContext,
+      req.user_id,
+      req.body.model
     );
     res.json(result);
   } catch (error) {
@@ -73,7 +77,9 @@ router.post('/beat-details', async (req, res) => {
   try {
     const result = await storylineAgent.generateBeatDetails(
       req.body.beat,
-      req.body.context
+      req.body.context,
+      req.user_id,
+      req.body.model
     );
     res.json(result);
   } catch (error) {

@@ -43,6 +43,15 @@ const FIXED_PROVIDER_DEFAULT_MODELS: Record<string, Array<{
       capabilities: ['文生视频', '图生视频', '首尾帧', '参考图', '有声视频'],
     },
   ],
+  'ecloud-qwen-image': [
+    {
+      name: '移动云千问 Image2 Pro',
+      model_id: 'qwen/qwen-image-2.0-pro',
+      types: ['image'],
+      description: '移动云千问图像生成与编辑模型 Pro，支持文生图、图生图、多图参考和复杂文字渲染。',
+      capabilities: ['文生图', '图生图', '图像编辑', '多图参考', '复杂文字渲染'],
+    },
+  ],
 }
 
 export class AIProviderController {
@@ -473,10 +482,11 @@ export class AIProviderController {
 
       const modelTypes = testModel.types || []
       const supportsChatTest = modelTypes.length === 0 || modelTypes.some(type => ['text', 'script', 'novel', 'storyline', 'outline'].includes(type))
-      if (!supportsChatTest) {
+      const supportsImageTest = modelTypes.some(type => type === 'image')
+      if (!supportsChatTest && !supportsImageTest) {
         res.status(400).json({
           success: false,
-          message: `当前测试按钮会发送文本对话请求，但模型类型是 ${modelTypes.join('、')}，请使用对应生成业务测试该模型`,
+          message: `当前测试按钮支持文本和图片模型，模型类型是 ${modelTypes.join('、')}，请使用对应生成业务测试该模型`,
         })
         return
       }
@@ -492,6 +502,7 @@ export class AIProviderController {
         const { SeedreamProvider } = await import('../services/ai/seedream.provider')
         const { ToapisProvider } = await import('../services/ai/toapis.provider')
         const { ECloudSeedanceProvider } = await import('../services/ai/ecloud-seedance.provider')
+        const { ECloudQwenImageProvider } = await import('../services/ai/ecloud-qwen-image.provider')
 
         let aiProvider: any
 
@@ -517,22 +528,41 @@ export class AIProviderController {
           case 'ecloud-seedance':
             aiProvider = new ECloudSeedanceProvider(provider.api_key, provider.base_url || undefined)
             break
+          case 'ecloud-qwen-image':
+            aiProvider = new ECloudQwenImageProvider(provider.api_key, provider.base_url || undefined)
+            break
           default:
             aiProvider = new OpenAIProvider(provider.api_key, provider.base_url || undefined)
         }
 
-        const response = await aiProvider.chat([
-          {
-            role: 'user',
-            content: '请回复"测试成功"四个字',
-          },
-        ], { model: testModel.model_id })
+        if (supportsImageTest && !supportsChatTest) {
+          const response = await aiProvider.createImage({
+            model: testModel.model_id,
+            prompt: '一张简洁的白底测试图，画面中央写着“测试成功”四个中文字符',
+            size: '1:1',
+            n: 1,
+          })
 
-        testResult = {
-          success: true,
-          response: response.content,
-          model: response.model,
-          usage: response.usage,
+          testResult = {
+            success: true,
+            response: response.url,
+            imageUrl: response.url,
+            model: testModel.model_id,
+          }
+        } else {
+          const response = await aiProvider.chat([
+            {
+              role: 'user',
+              content: '请回复"测试成功"四个字',
+            },
+          ], { model: testModel.model_id })
+
+          testResult = {
+            success: true,
+            response: response.content,
+            model: response.model,
+            usage: response.usage,
+          }
         }
       } catch (error: any) {
         testError = error.message || 'Failed to send test message'
@@ -595,10 +625,11 @@ export class AIProviderController {
 
       const modelTypes = model.types || []
       const supportsChatTest = modelTypes.length === 0 || modelTypes.some(type => ['text', 'script', 'novel', 'storyline', 'outline'].includes(type))
-      if (!supportsChatTest) {
+      const supportsImageTest = modelTypes.some(type => type === 'image')
+      if (!supportsChatTest && !supportsImageTest) {
         res.status(400).json({
           success: false,
-          message: `当前测试按钮会发送文本对话请求，但模型类型是 ${modelTypes.join('、')}，请使用对应生成业务测试该模型`,
+          message: `当前测试按钮支持文本和图片模型，模型类型是 ${modelTypes.join('、')}，请使用对应生成业务测试该模型`,
         })
         return
       }
@@ -614,6 +645,7 @@ export class AIProviderController {
         const { SeedreamProvider } = await import('../services/ai/seedream.provider')
         const { ToapisProvider } = await import('../services/ai/toapis.provider')
         const { ECloudSeedanceProvider } = await import('../services/ai/ecloud-seedance.provider')
+        const { ECloudQwenImageProvider } = await import('../services/ai/ecloud-qwen-image.provider')
 
         let aiProvider: any
 
@@ -639,22 +671,41 @@ export class AIProviderController {
           case 'ecloud-seedance':
             aiProvider = new ECloudSeedanceProvider(provider.api_key, provider.base_url || undefined)
             break
+          case 'ecloud-qwen-image':
+            aiProvider = new ECloudQwenImageProvider(provider.api_key, provider.base_url || undefined)
+            break
           default:
             aiProvider = new OpenAIProvider(provider.api_key, provider.base_url || undefined)
         }
 
-        const testMessage = {
-          role: 'user',
-          content: '请回复"测试成功"四个字',
-        }
+        if (supportsImageTest && !supportsChatTest) {
+          const response = await aiProvider.createImage({
+            model: model.model_id || undefined,
+            prompt: '一张简洁的白底测试图，画面中央写着“测试成功”四个中文字符',
+            size: '1:1',
+            n: 1,
+          })
 
-        const response = await aiProvider.chat([testMessage], { model: model.model_id })
+          testResult = {
+            success: true,
+            response: response.url,
+            imageUrl: response.url,
+            model: model.model_id,
+          }
+        } else {
+          const testMessage = {
+            role: 'user',
+            content: '请回复"测试成功"四个字',
+          }
 
-        testResult = {
-          success: true,
-          response: response.content,
-          model: response.model,
-          usage: response.usage,
+          const response = await aiProvider.chat([testMessage], { model: model.model_id })
+
+          testResult = {
+            success: true,
+            response: response.content,
+            model: response.model,
+            usage: response.usage,
+          }
         }
       } catch (error: any) {
         testError = error.message || 'Failed to send test message'

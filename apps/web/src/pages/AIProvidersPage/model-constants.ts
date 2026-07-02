@@ -133,6 +133,15 @@ export const PROVIDER_MODELS: ProviderModels = {
       types: ['video']
     }
   ],
+  'ecloud-qwen-image': [
+    {
+      name: '移动云千问 Image2 Pro',
+      model_id: 'qwen/qwen-image-2.0-pro',
+      description: '移动云千问图像生成与编辑模型 Pro，支持文生图、图生图、多图参考和复杂文字渲染。',
+      capabilities: ['文生图', '图生图', '图像编辑', '多图参考', '复杂文字渲染'],
+      types: ['image']
+    }
+  ],
   toapis: [
     // Chat 模型
     {

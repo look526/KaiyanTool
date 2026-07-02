@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { apiClient } from '../../../lib/api';
 import { useToast, type ToastContextType } from '../../ui/Toast';
+import { cacheUtils } from '../../../lib/modelCache';
 import { 
   getFullUrl, 
   getStylePrompt, 
@@ -8,6 +9,17 @@ import {
   getThreeViewsPrompt,
   getStyleName 
 } from '../utils/imageUtils';
+
+function resolveProviderIdForModel(modelId?: string): string | undefined {
+  if (!modelId) return undefined;
+  const cached = cacheUtils.getModels();
+  for (const provider of cached?.providers || []) {
+    if ((provider.models || []).some((model: any) => model.id === modelId || model.model_id === modelId || model.name === modelId)) {
+      return provider.id;
+    }
+  }
+  return undefined;
+}
 
 interface UseImageSelectorActionsProps {
   projectId: string;
@@ -208,7 +220,8 @@ export function useImageSelectorActions({
           width,
           height,
           resolution,
-          providerId: selectedModel,
+          model: selectedModel,
+          providerId: resolveProviderIdForModel(selectedModel),
           projectId,
           referenceImageUrl,
           three_view: enableThreeViews,

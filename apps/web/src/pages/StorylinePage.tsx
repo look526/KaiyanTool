@@ -18,6 +18,7 @@ import { GlassButton } from '../components/ui/GlassButton';
 import { GlassSelect } from '../components/ui/GlassSelect';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { CompactPageHero } from '../components/ui/CompactPageHero';
+import { ModelSelector } from '../components/ui/ModelSelector';
 import { apiClient } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 
@@ -94,7 +95,10 @@ const StorylinePage: React.FC = () => {
     }
     setStep('generating');
     try {
-      const result = await (apiClient as any).generateStorylineFromForm(formData) as Storyline;
+      const result = await (apiClient as any).generateStorylineFromForm({
+        ...formData,
+        model: selectedModel || undefined,
+      }) as Storyline;
       setStoryline(result);
       setStep('result');
       addToast({ type: 'success', title: '生成成功', message: '故事线已生成完成' });
@@ -275,6 +279,22 @@ const StorylinePage: React.FC = () => {
                 onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
             </div>
+          </div>
+
+          <div style={{ position: 'relative', zIndex: 10, overflow: 'visible' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+              AI 模型
+            </label>
+            <ModelSelector
+              content_type="storyline"
+              value={selectedModel}
+              on_change={setSelectedModel}
+              auto_select_when_empty={true}
+              show_last_used={true}
+              show_default={true}
+              placeholder="选择故事线模型"
+              style={{ width: '100%' }}
+            />
           </div>
 
           <GlassButton

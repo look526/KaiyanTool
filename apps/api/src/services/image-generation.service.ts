@@ -31,6 +31,10 @@ export async function generateImage(input: z.infer<typeof ImageGenerationSchema>
   const validated = ImageGenerationSchema.parse(input);
 
   const enhancedPrompt = await buildEnhancedPrompt(validated);
+  const referenceImageUrls = [
+    ...(validated.image_urls || []),
+    validated.referenceImageUrl,
+  ].filter((url): url is string => typeof url === 'string' && url.trim().length > 0);
 
   let finalWidth = validated.width;
   let finalHeight = validated.height;
@@ -74,12 +78,18 @@ export async function generateImage(input: z.infer<typeof ImageGenerationSchema>
     });
 
     let provider: any;
+    let selectedModel: any;
 
     if (validated.model) {
       for (const p of aiProviders) {
-        const foundModel = p.AIProviderModel?.find((m: any) => m.id === validated.model || m.name === validated.model);
+        const foundModel = p.AIProviderModel?.find((m: any) =>
+          m.id === validated.model ||
+          m.model_id === validated.model ||
+          m.name === validated.model
+        );
         if (foundModel) {
           provider = p;
+          selectedModel = foundModel;
           break;
         }
       }
@@ -108,12 +118,17 @@ export async function generateImage(input: z.infer<typeof ImageGenerationSchema>
     });
 
     const result = await aiProvider.createImage({
+      model: selectedModel?.model_id || selectedModel?.name || validated.model,
       prompt: enhancedPrompt,
       size: (validated.size || '1:1') as any,
       resolution: validated.resolution || '2K',
       n: validated.n || 1,
-      image_urls: validated.image_urls,
+      image_urls: referenceImageUrls.length > 0 ? referenceImageUrls : undefined,
       style: validated.style,
+      metadata: {
+        negative_prompt: validated.negativePrompt,
+        watermark: validated.watermark || false,
+      },
     });
 
     console.log('[DEBUG] AI provider result:', {

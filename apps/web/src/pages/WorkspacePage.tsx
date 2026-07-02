@@ -474,8 +474,8 @@ export default function WorkspacePage() {
     ));
 
     try {
-      const providersRes = await apiClient.get<{ success?: boolean; data?: unknown[] }>('/workspace/ai/providers');
-      const providers = (providersRes as any)?.data || [];
+      const providersRes = await apiClient.getAIProviders();
+      const providers = providersRes.providers || [];
       const defaultProvider = providers[0];
       const finalProviderId = providerId || defaultProvider?.id || '';
       const model =

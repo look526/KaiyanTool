@@ -97,9 +97,10 @@ function AdminLayout() {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      height: '100vh',
       background: 'var(--bg-base)',
       display: 'flex',
+      overflow: 'hidden',
     }}>
       <style>{`
         @keyframes spin {
@@ -314,12 +315,15 @@ function AdminLayout() {
         transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         display: 'flex',
         flexDirection: 'column',
-        minHeight: '100vh',
+        height: '100vh',
+        minHeight: 0,
+        minWidth: 0,
       }}>
         <header style={{
           position: 'sticky',
           top: 0,
           height: '64px',
+          flexShrink: 0,
           background: 'var(--bg-elevated)',
           borderBottom: '1px solid var(--border-primary)',
           display: 'flex',
@@ -366,8 +370,11 @@ function AdminLayout() {
 
         <main style={{
           flex: 1,
+          minHeight: 0,
           padding: '24px',
-          overflow: 'auto',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
         }}>
           <Outlet />
         </main>

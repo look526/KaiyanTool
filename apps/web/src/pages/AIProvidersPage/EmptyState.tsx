@@ -102,7 +102,16 @@ export function EmptyState({
           添加您的第一个 AI 服务提供商开始使用
         </p>
         <button
-          onClick={onAddProvider}
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (document.activeElement instanceof HTMLElement) {
+              document.activeElement.blur();
+            }
+            onAddProvider?.();
+          }}
           onMouseEnter={() => setButtonHover(true)}
           onMouseLeave={() => setButtonHover(false)}
           style={{

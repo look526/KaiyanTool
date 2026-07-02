@@ -90,5 +90,5 @@ export function sentryErrorHandler(err: Error, req: any, res: any, next: any) {
   if (errorHandler) {
     return errorHandler(err, req, res, next);
   }
-  return next();
+  return next(err);
 }

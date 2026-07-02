@@ -108,7 +108,7 @@ export interface ApiClientInterface {
   optimizeShotPrompt(shotId: string, referenceImages: string[]): Promise<{ success: boolean; startPrompt: string; endPrompt: string; shot: any }>;
   optimizeScene(data: { sceneContent: string; location: string; time: string; direction?: string }): Promise<{ suggestion: string; optimized: string }>;
   generateImage(data: { prompt: string; negativePrompt?: string; width: number; height: number; style: string; projectId?: string; model?: string; category?: string; image_urls?: string[]; threeView?: boolean; resolution?: string; n?: number; watermark?: boolean }): Promise<{ asset: { url: string } }>;
-  batchGenerateImages(data: { prompt: string; count: number; style?: string; negativePrompt?: string; width?: number; height?: number; resolution?: string; projectId?: string; providerId?: string; referenceImageUrl?: string; three_view?: boolean }): Promise<{ assets: Array<{ url: string; filename: string }> }>;
+  batchGenerateImages(data: { prompt: string; count: number; style?: string; negativePrompt?: string; width?: number; height?: number; resolution?: string; projectId?: string; model?: string; providerId?: string; referenceImageUrl?: string; three_view?: boolean; watermark?: boolean }): Promise<{ assets: Array<{ url: string; filename: string }> }>;
   getProjectAssets(projectId: string, type?: string, search?: string, category?: string, source?: string): Promise<any[]>;
   polishPrompt(prompt: string, type?: string, style?: string): Promise<{ polished: string }>;
   processContentWithFile(content: string, mode: 'continue' | 'rewrite' | 'optimize', model?: string): Promise<any>;
@@ -176,7 +176,7 @@ export interface ApiClientInterface {
   getVideoStatus(shotId: string): Promise<any>;
   generateVideoFromPrompt(projectId: string, data: { prompt: string; providerId?: string; model?: string }): Promise<any>;
   continueScript(content: string, context?: string): Promise<{ success: boolean; content: string }>;
-  rewriteScript(content: string, instruction?: string): Promise<{ success: boolean; content: string }>;
+  rewriteScript(content: string, model?: string): Promise<{ success: boolean; content: string }>;
   createWardrobe(characterId: string, data: { name: string; description?: string; images?: string[] }): Promise<any>;
   deleteWardrobe(wardrobeId: string): Promise<{ message: string }>;
   getProjectMembers(projectId: string): Promise<Member[]>;

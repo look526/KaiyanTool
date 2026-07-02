@@ -1,7 +1,8 @@
-import { aiProviderService } from '../services/ai/provider.service';
 import { prisma } from '../lib/prisma';
 import logger from '../lib/logger';
 import { STORYLINE_AGENT } from '../prompts/agents';
+import { AIProviderHelper } from '../services/ai/provider-helper.service';
+import { AIChatMessage } from '../types/ai.types';
 import * as crypto from 'crypto';
 
 interface StoryInput {
@@ -37,7 +38,23 @@ interface StorylineOutput {
 export class StorylineAgent {
   constructor() {}
 
-  async generateStoryline(input: StoryInput): Promise<StorylineOutput> {
+  private async chat(
+    messages: AIChatMessage[],
+    userId?: string,
+    model?: string
+  ) {
+    const { aiProvider, modelName, providerId } = await AIProviderHelper.getProvider(userId, model, 'storyline');
+
+    logger.debug('Provider selected for storyline agent', {
+      providerId,
+      modelName,
+      userId,
+    });
+
+    return aiProvider.chat(messages, modelName ? { model: modelName } : undefined);
+  }
+
+  async generateStoryline(input: StoryInput, userId?: string, model?: string): Promise<StorylineOutput> {
     const systemPrompt = STORYLINE_AGENT.systemPrompt;
 
     const userPrompt = STORYLINE_AGENT.userPromptTemplate
@@ -50,13 +67,13 @@ export class StorylineAgent {
       .replace('{{description}}', input.description);
 
     try {
-      const response = await aiProviderService.chat(
-        'default',
+      const response = await this.chat(
         [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        undefined
+        userId,
+        model
       );
 
       const parsed = this.parseJsonResponse(response.content);
@@ -69,7 +86,9 @@ export class StorylineAgent {
 
   async refineStoryline(
     storylineId: string,
-    feedback: string
+    feedback: string,
+    userId?: string,
+    model?: string
   ): Promise<StorylineOutput> {
     const existingStoryline = await prisma.document.findUnique({
       where: { id: storylineId }
@@ -93,13 +112,13 @@ ${feedback}
 
 请返回优化后的完整故事线JSON：`;
 
-    const response = await aiProviderService.chat(
-      'default',
+    const response = await this.chat(
       [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
-      undefined
+      userId,
+      model
     );
 
     const parsed = this.parseJsonResponse(response.content);
@@ -109,7 +128,9 @@ ${feedback}
   async generateCharacterBackstory(
     characterName: string,
     role: string,
-    storyContext: string
+    storyContext: string,
+    userId?: string,
+    model?: string
   ): Promise<{
     backstory: string;
     motivations: string[];
@@ -134,10 +155,10 @@ ${feedback}
   ]
 }`;
 
-    const response = await aiProviderService.chat(
-      'default',
+    const response = await this.chat(
       [{ role: 'user', content: prompt }],
-      undefined
+      userId,
+      model
     );
 
     return this.parseJsonResponse(response.content);
@@ -145,7 +166,9 @@ ${feedback}
 
   async generateBeatDetails(
     beat: string,
-    context: { act: string; previousBeats: string[] }
+    context: { act: string; previousBeats: string[] },
+    userId?: string,
+    model?: string
   ): Promise<{
     description: string;
     purpose: string;
@@ -170,10 +193,10 @@ ${feedback}
   "duration": 建议时长（秒）
 }`;
 
-    const response = await aiProviderService.chat(
-      'default',
+    const response = await this.chat(
       [{ role: 'user', content: prompt }],
-      undefined
+      userId,
+      model
     );
 
     return this.parseJsonResponse(response.content);
