@@ -27,6 +27,24 @@ const providerModelSchema = z.object({
   capabilities: z.array(z.string()).optional().default([])
 })
 
+const FIXED_PROVIDER_DEFAULT_MODELS: Record<string, Array<{
+  name: string
+  model_id: string
+  types: string[]
+  description: string
+  capabilities: string[]
+}>> = {
+  'ecloud-seedance': [
+    {
+      name: 'Doubao Seedance 2.0',
+      model_id: 'doubao-seedance-2.0',
+      types: ['video'],
+      description: '移动云 AICC-Doubao-Seedance 2.0 视频生成模型，支持文生视频、首帧/首尾帧图生视频、多模态参考生视频和有声视频。',
+      capabilities: ['文生视频', '图生视频', '首尾帧', '参考图', '有声视频'],
+    },
+  ],
+}
+
 export class AIProviderController {
   private async getAdminProviderOwnerId(userId: string): Promise<string> {
     const adminUser = await prisma.user.findUnique({
@@ -169,6 +187,25 @@ export class AIProviderController {
           updated_at: new Date(),
         },
       })
+
+      const defaultModels = FIXED_PROVIDER_DEFAULT_MODELS[type] || []
+      if (defaultModels.length > 0) {
+        await prisma.aIProviderModel.createMany({
+          data: defaultModels.map(model => ({
+            id: crypto.randomUUID(),
+            ai_provider_id: provider.id,
+            name: model.name,
+            model_id: model.model_id,
+            types: model.types,
+            description: model.description,
+            capabilities: model.capabilities,
+            is_assistant_default: false,
+            created_at: new Date(),
+            updated_at: new Date(),
+          })),
+          skipDuplicates: true,
+        })
+      }
 
       res.status(201).json({
         id: provider.id,
@@ -454,6 +491,7 @@ export class AIProviderController {
         const { AntSKProvider } = await import('../services/ai/antsk.provider')
         const { SeedreamProvider } = await import('../services/ai/seedream.provider')
         const { ToapisProvider } = await import('../services/ai/toapis.provider')
+        const { ECloudSeedanceProvider } = await import('../services/ai/ecloud-seedance.provider')
 
         let aiProvider: any
 
@@ -475,6 +513,9 @@ export class AIProviderController {
             break
           case 'toapis':
             aiProvider = new ToapisProvider(provider.api_key, provider.base_url || undefined)
+            break
+          case 'ecloud-seedance':
+            aiProvider = new ECloudSeedanceProvider(provider.api_key, provider.base_url || undefined)
             break
           default:
             aiProvider = new OpenAIProvider(provider.api_key, provider.base_url || undefined)
@@ -572,6 +613,7 @@ export class AIProviderController {
         const { AntSKProvider } = await import('../services/ai/antsk.provider')
         const { SeedreamProvider } = await import('../services/ai/seedream.provider')
         const { ToapisProvider } = await import('../services/ai/toapis.provider')
+        const { ECloudSeedanceProvider } = await import('../services/ai/ecloud-seedance.provider')
 
         let aiProvider: any
 
@@ -593,6 +635,9 @@ export class AIProviderController {
             break
           case 'toapis':
             aiProvider = new ToapisProvider(provider.api_key, provider.base_url || undefined)
+            break
+          case 'ecloud-seedance':
+            aiProvider = new ECloudSeedanceProvider(provider.api_key, provider.base_url || undefined)
             break
           default:
             aiProvider = new OpenAIProvider(provider.api_key, provider.base_url || undefined)

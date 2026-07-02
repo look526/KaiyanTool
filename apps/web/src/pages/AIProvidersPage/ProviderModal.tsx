@@ -47,6 +47,10 @@ export function ProviderModal({
   const isKnownType = knownProviderTypes.includes(formData.type);
   const selectedType = isKnownType ? formData.type : 'custom';
   const customTypeValue = selectedType === 'custom' && formData.type !== 'custom' ? formData.type : '';
+  const defaultBaseUrls: Record<string, string> = {
+    'ecloud-seedance': 'https://zhenze-huhehaote.cmecloud.cn/api/v3',
+  };
+  const selectedDefaultBaseUrl = defaultBaseUrls[selectedType];
   const fieldStyle = {
     width: '100%',
     height: '44px',
@@ -102,7 +106,13 @@ export function ProviderModal({
               return (
                 <div
                   key={provider.value}
-                  onClick={() => onFormDataChange({ ...formData, type: provider.value })}
+                  onClick={() => onFormDataChange({
+                    ...formData,
+                    type: provider.value,
+                    base_url: defaultBaseUrls[provider.value] && !formData.base_url
+                      ? defaultBaseUrls[provider.value]
+                      : formData.base_url,
+                  })}
                   style={{
                     minHeight: '48px',
                     padding: '8px 10px',
@@ -231,11 +241,11 @@ export function ProviderModal({
               color: finalColors.textSecondary,
               marginBottom: '8px',
             }}>
-              请求地址（可选）
+              请求地址{selectedDefaultBaseUrl ? '' : '（可选）'}
             </label>
             <input
               type="text"
-              placeholder="https://api.example.com"
+              placeholder={selectedDefaultBaseUrl || 'https://api.example.com'}
               value={formData.base_url}
               onChange={(e) => onFormDataChange({ ...formData, base_url: e.target.value })}
               style={fieldStyle}

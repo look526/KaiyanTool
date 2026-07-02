@@ -1,7 +1,7 @@
 export interface AIProvider {
   id: string
   name: string
-  type: 'openai' | 'google' | 'antsk' | 'zhipu' | 'seedream' | 'deepseek' | 'toapis'
+  type: 'openai' | 'google' | 'antsk' | 'zhipu' | 'seedream' | 'deepseek' | 'toapis' | 'ecloud-seedance'
   apiKey: string
   baseUrl?: string
   models: AIModel[]
@@ -42,7 +42,7 @@ export interface AIResponse {
 }
 
 export interface AIProviderConfig {
-  type: 'openai' | 'google' | 'antsk' | 'zhipu' | 'seedream' | 'deepseek' | 'toapis'
+  type: 'openai' | 'google' | 'antsk' | 'zhipu' | 'seedream' | 'deepseek' | 'toapis' | 'ecloud-seedance'
   apiKey: string
   baseUrl?: string
   models?: {

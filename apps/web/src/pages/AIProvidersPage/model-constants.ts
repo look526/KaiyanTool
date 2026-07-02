@@ -4,6 +4,7 @@ export interface ModelInfo {
   model_id: string;
   description: string;
   capabilities: string[];
+  types?: string[];
 }
 
 export interface ProviderModels {
@@ -121,6 +122,15 @@ export const PROVIDER_MODELS: ProviderModels = {
       model_id: 'doubao-seedream-5-0',
       description: '字节跳动 Seed 团队研发的最新图像生成模型，支持文生图、图生图、多图参考，支持 2K/3K 分辨率输出，支持联网搜索获取最新现实信息',
       capabilities: ['文生图', '图生图', '多图参考', '图像编辑']
+    }
+  ],
+  'ecloud-seedance': [
+    {
+      name: 'Doubao Seedance 2.0',
+      model_id: 'doubao-seedance-2.0',
+      description: '移动云 AICC-Doubao-Seedance 2.0 视频生成模型，支持文生视频、首帧/首尾帧图生视频、多模态参考生视频，可生成有声或无声视频。',
+      capabilities: ['文生视频', '图生视频', '首尾帧', '参考图', '有声视频'],
+      types: ['video']
     }
   ],
   toapis: [

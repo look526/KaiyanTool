@@ -6,6 +6,7 @@ import { ZhipuProvider } from './zhipu.provider'
 import { SeedreamProvider } from './seedream.provider'
 import { DeepSeekProvider } from './deepseek.provider'
 import { ToapisProvider } from './toapis.provider'
+import { ECloudSeedanceProvider } from './ecloud-seedance.provider'
 import { AIProviderConfig, AIChatMessage, AICreateImageRequest, AICreateImageResponse, AICreateVideoRequest, AICreateVideoResponse, AIResponse } from '../../types/ai.types'
 
 class AIProviderService {
@@ -36,6 +37,9 @@ class AIProviderService {
         break
       case 'toapis':
         provider = new ToapisProvider(config.apiKey, config.baseUrl)
+        break
+      case 'ecloud-seedance':
+        provider = new ECloudSeedanceProvider(config.apiKey, config.baseUrl)
         break
 
       default:

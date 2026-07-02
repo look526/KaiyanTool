@@ -6,6 +6,7 @@ import { AntSKProvider } from './antsk.provider'
 import { SeedreamProvider } from './seedream.provider'
 import { VolcengineTTSProvider } from './volcengine-tts.provider'
 import { ToapisProvider } from './toapis.provider'
+import { ECloudSeedanceProvider } from './ecloud-seedance.provider'
 
 export interface ModelProvider {
   id: string
@@ -43,6 +44,9 @@ export class ProviderManager {
         break
       case 'toapis':
         provider = new ToapisProvider(config.apiKey, config.baseUrl)
+        break
+      case 'ecloud-seedance':
+        provider = new ECloudSeedanceProvider(config.apiKey, config.baseUrl)
         break
       default:
         provider = new OpenAIProvider(config.apiKey, config.baseUrl)

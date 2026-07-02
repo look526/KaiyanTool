@@ -153,6 +153,7 @@ export function ModelModal({
                           model_id: model.model_id,
                           description: model.description,
                           capabilities: model.capabilities,
+                          types: model.types || modelFormData.types,
                         });
                         setShowModelDropdown(false);
                       }}

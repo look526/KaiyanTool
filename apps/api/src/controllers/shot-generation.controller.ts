@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
-import { aiProviderService } from '../services/ai/provider.service'
+import { providerManager } from '../services/ai/provider.manager'
+import { AIProvider } from '../services/ai/provider.interface'
 import logger from '../lib/logger'
 import { buildCharacterImagePrompt } from '../config/prompt-templates'
 import { buildConsistencyParams, enhancePromptWithCharacter } from '../services/character-consistency.service'
@@ -13,6 +14,31 @@ import {
 } from '../lib/video-prompt-flags'
 
 class ShotGenerationController {
+  private async getManagedProvider(provider_id: string): Promise<AIProvider> {
+    const providerDb = await prisma.aIProvider.findUnique({
+      where: { id: provider_id },
+    })
+
+    if (!providerDb) {
+      throw new Error(`Provider not found: ${provider_id}`)
+    }
+
+    providerManager.addProvider({
+      id: providerDb.id,
+      name: providerDb.type,
+      type: providerDb.type,
+      apiKey: providerDb.api_key,
+      baseUrl: providerDb.base_url || undefined,
+    })
+
+    const provider = providerManager.getProvider(providerDb.id)
+    if (!provider) {
+      throw new Error(`Failed to initialize provider: ${provider_id}`)
+    }
+
+    return provider
+  }
+
   async generateStartImage(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user_id) {
@@ -65,7 +91,8 @@ class ShotGenerationController {
         prompt = enhancePromptWithCharacter(prompt, consistencyData.appearance_prompt)
       }
 
-      const response = await aiProviderService.createImage(provider_id, {
+      const provider = await this.getManagedProvider(provider_id)
+      const response = await provider.createImage({
         prompt,
         size: shot.aspect_ratio === '16:9' ? '1920x1080' : shot.aspect_ratio === '4:3' ? '1536x1024' : '1024x1792',
         quality: quality || 'standard',
@@ -161,7 +188,8 @@ class ShotGenerationController {
         prompt = enhancePromptWithCharacter(prompt, consistencyData.appearance_prompt)
       }
 
-      const response = await aiProviderService.createImage(provider_id, {
+      const provider = await this.getManagedProvider(provider_id)
+      const response = await provider.createImage({
         prompt,
         size: shot.aspect_ratio === '16:9' ? '1920x1080' : shot.aspect_ratio === '4:3' ? '1536x1024' : '1024x1792',
         quality: quality || 'standard',
@@ -255,16 +283,17 @@ class ShotGenerationController {
       }
 
       const imageSize = shot.aspect_ratio === '16:9' ? '1920x1080' : shot.aspect_ratio === '4:3' ? '1536x1024' : '1024x1792'
+      const provider = await this.getManagedProvider(provider_id)
       
       const [startResponse, endResponse] = await Promise.all([
-        aiProviderService.createImage(provider_id, {
+        provider.createImage({
           prompt: start_prompt,
           size: imageSize,
           quality: quality || 'standard',
           style: 'vivid',
           image_urls: consistencyData?.image_urls,
         }),
-        aiProviderService.createImage(provider_id, {
+        provider.createImage({
           prompt: end_prompt,
           size: imageSize,
           quality: quality || 'standard',
@@ -450,7 +479,13 @@ class ShotGenerationController {
 
       const prompt = this.buildVideoPromptFromFlags(shot, flags)
 
-      const response = await aiProviderService.createVideo(provider_id, {
+      const provider = await this.getManagedProvider(provider_id)
+      if (!provider.createVideo) {
+        res.status(400).json({ error: 'Provider does not support video generation' })
+        return
+      }
+
+      const response = await provider.createVideo({
         imageUrl,
         endImageUrl,
         prompt,
