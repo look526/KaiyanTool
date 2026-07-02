@@ -407,6 +407,12 @@ export class AIProviderController {
     try {
       const provider = await prisma.aIProvider.findFirst({
         where: this.adminProviderWhere({ id }),
+        include: {
+          AIProviderModel: {
+            orderBy: { created_at: 'asc' },
+            take: 1,
+          },
+        },
       })
 
       if (!provider) {
@@ -414,16 +420,101 @@ export class AIProviderController {
         return
       }
 
+      if (!provider.enabled) {
+        res.status(400).json({ error: 'Provider is not enabled' })
+        return
+      }
+
+      const testModel = provider.AIProviderModel[0]
+      if (!testModel?.model_id) {
+        res.status(400).json({
+          success: false,
+          message: '请先为该提供商添加至少一个模型，再测试真实连接',
+        })
+        return
+      }
+
+      const modelTypes = testModel.types || []
+      const supportsChatTest = modelTypes.length === 0 || modelTypes.some(type => ['text', 'script', 'novel', 'storyline', 'outline'].includes(type))
+      if (!supportsChatTest) {
+        res.status(400).json({
+          success: false,
+          message: `当前测试按钮会发送文本对话请求，但模型类型是 ${modelTypes.join('、')}，请使用对应生成业务测试该模型`,
+        })
+        return
+      }
+
+      let testResult: any = null
+      let testError: string | null = null
+
+      try {
+        const { ZhipuProvider } = await import('../services/ai/zhipu.provider')
+        const { OpenAIProvider } = await import('../services/ai/openai.provider')
+        const { GoogleProvider } = await import('../services/ai/google.provider')
+        const { AntSKProvider } = await import('../services/ai/antsk.provider')
+        const { SeedreamProvider } = await import('../services/ai/seedream.provider')
+        const { ToapisProvider } = await import('../services/ai/toapis.provider')
+
+        let aiProvider: any
+
+        switch (provider.type) {
+          case 'zhipu':
+            aiProvider = new ZhipuProvider(provider.api_key, provider.base_url || undefined)
+            break
+          case 'openai':
+            aiProvider = new OpenAIProvider(provider.api_key, provider.base_url || undefined)
+            break
+          case 'google':
+            aiProvider = new GoogleProvider(provider.api_key, provider.base_url || undefined)
+            break
+          case 'antsk':
+            aiProvider = new AntSKProvider(provider.api_key, provider.base_url || undefined)
+            break
+          case 'seedream':
+            aiProvider = new SeedreamProvider(provider.api_key, provider.base_url || undefined)
+            break
+          case 'toapis':
+            aiProvider = new ToapisProvider(provider.api_key, provider.base_url || undefined)
+            break
+          default:
+            aiProvider = new OpenAIProvider(provider.api_key, provider.base_url || undefined)
+        }
+
+        const response = await aiProvider.chat([
+          {
+            role: 'user',
+            content: '请回复"测试成功"四个字',
+          },
+        ], { model: testModel.model_id })
+
+        testResult = {
+          success: true,
+          response: response.content,
+          model: response.model,
+          usage: response.usage,
+        }
+      } catch (error: any) {
+        testError = error.message || 'Failed to send test message'
+        logger.error('Failed to test AI provider with model', { user_id: req.user_id, provider_id: id, model_id: testModel.id, error: error.message })
+      }
+
       res.json({
-        success: true,
-        message: 'Provider is accessible',
+        success: testError === null,
+        message: testError ? `测试失败: ${testError}` : '测试成功',
         provider: {
           id: provider.id,
           type: provider.type,
           enabled: provider.enabled,
         },
+        model: {
+          id: testModel.id,
+          name: testModel.name,
+          model_id: testModel.model_id,
+        },
+        testResult,
+        testError,
       })
-      logger.info('AI provider tested successfully', { user_id: req.user_id, provider_id: id })
+      logger.info('AI provider tested', { user_id: req.user_id, provider_id: id, success: testError === null })
     } catch (error) {
       logger.error('Failed to test AI provider', { user_id: req.user_id, provider_id: req.params.id, error })
       res.status(500).json({ error: 'Failed to test provider' })
@@ -458,6 +549,16 @@ export class AIProviderController {
 
       if (!provider.enabled) {
         res.status(400).json({ error: 'Provider is not enabled' })
+        return
+      }
+
+      const modelTypes = model.types || []
+      const supportsChatTest = modelTypes.length === 0 || modelTypes.some(type => ['text', 'script', 'novel', 'storyline', 'outline'].includes(type))
+      if (!supportsChatTest) {
+        res.status(400).json({
+          success: false,
+          message: `当前测试按钮会发送文本对话请求，但模型类型是 ${modelTypes.join('、')}，请使用对应生成业务测试该模型`,
+        })
         return
       }
 

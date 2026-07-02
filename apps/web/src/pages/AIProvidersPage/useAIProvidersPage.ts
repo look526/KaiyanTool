@@ -165,10 +165,14 @@ export function useAIProvidersPage() {
   const handleTestProvider = useCallback(async (id: string) => {
     setTestingProvider(id);
     try {
-      await apiClient.testAIProvider(id);
-      addToast({ title: '连接成功', message: 'API 连接测试通过', type: 'success' });
+      const result = await apiClient.testAIProvider(id);
+      if (result.success) {
+        addToast({ title: '真实测试成功', message: result.message || 'API 连接和模型调用测试通过', type: 'success' });
+      } else {
+        addToast({ title: '真实测试失败', message: result.message || 'API 连接或模型调用测试失败', type: 'error' });
+      }
     } catch (error: any) {
-      addToast({ title: '连接失败', message: error.message, type: 'error' });
+      addToast({ title: '真实测试失败', message: error.message, type: 'error' });
     } finally {
       setTestingProvider(null);
     }
