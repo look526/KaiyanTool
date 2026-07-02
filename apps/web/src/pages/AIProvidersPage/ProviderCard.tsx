@@ -63,7 +63,10 @@ export function ProviderCard({
     borderHover: 'rgba(139, 92, 246, 0.25)',
   });
 
-  const providerInfo = PROVIDER_TYPES.find((p) => p.value === provider.type) || PROVIDER_TYPES[0];
+  const customProviderInfo = PROVIDER_TYPES.find((p) => p.value === 'custom') || PROVIDER_TYPES[0];
+  const knownProviderInfo = PROVIDER_TYPES.find((p) => p.value === provider.type);
+  const providerInfo = knownProviderInfo || customProviderInfo;
+  const providerLabel = knownProviderInfo ? knownProviderInfo.label : provider.type;
   const modelCount = provider.models?.length || 0;
   const providerBaseUrl = (provider as any).base_url || (provider as any).baseUrl || '-';
 
@@ -113,7 +116,7 @@ export function ProviderCard({
                   lineHeight: 1.35,
                 }}
               >
-                {providerInfo.label}
+                {providerLabel}
               </h3>
               <span
                 style={{

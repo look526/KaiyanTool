@@ -16,6 +16,7 @@ export interface ModalProps {
   iconColor?: string;
   className?: string;
   animation?: 'fade' | 'slide' | 'zoom';
+  overlayVariant?: 'default' | 'light';
 }
 
 const SIZE_CONFIG = {
@@ -47,6 +48,7 @@ export function Modal({
   icon,
   iconColor,
   className,
+  overlayVariant = 'default',
 }: ModalProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -144,6 +146,7 @@ export function Modal({
   if (!isVisible && !isAnimating) return null;
 
   const sizeConfig = SIZE_CONFIG[size];
+  const isLightOverlay = overlayVariant === 'light';
 
   return (
     <div
@@ -152,13 +155,13 @@ export function Modal({
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-        backdropFilter: 'blur(2px)',
+        backgroundColor: isLightOverlay ? 'rgba(0, 0, 0, 0.18)' : 'rgba(0, 0, 0, 0.6)',
+        backdropFilter: isLightOverlay ? 'none' : 'blur(2px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 9999,
-        padding: '48px 24px',
+        padding: isLightOverlay ? '24px' : '48px 24px',
         animation: isAnimating ? 'modal-overlay-enter 0.2s ease-out' : 'modal-overlay-exit 0.2s ease-out',
       }}
     >
@@ -169,8 +172,8 @@ export function Modal({
           borderRadius: '16px',
           maxWidth: sizeConfig.maxWidth,
           width: '100%',
-          maxHeight: 'calc(100vh - 72px)',
-          margin: '36px auto',
+          maxHeight: isLightOverlay ? 'calc(100vh - 48px)' : 'calc(100vh - 72px)',
+          margin: isLightOverlay ? '24px auto' : '36px auto',
           overflow: 'auto',
           padding: sizeConfig.padding,
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',

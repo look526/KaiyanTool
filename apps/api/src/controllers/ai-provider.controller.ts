@@ -327,10 +327,6 @@ export class AIProviderController {
       const rawData = providerModelSchema.partial().parse(req.body)
       
       const updateData: any = { ...rawData }
-      if (rawData.model_id) {
-        updateData.model_id = rawData.model_id
-        delete updateData.model_id
-      }
       
       if (rawData.types && rawData.types.length > 0) {
         updateData.types = rawData.types

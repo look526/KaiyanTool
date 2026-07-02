@@ -77,6 +77,7 @@ export function ProviderModal({
       onClose={onClose}
       title={isEdit ? '编辑 AI 服务提供商' : '添加 AI 服务提供商'}
       size="xxlarge"
+      overlayVariant="light"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div>

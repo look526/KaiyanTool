@@ -20,6 +20,7 @@ export function ModelModal({
 }: ModelModalProps) {
   const [showModelDropdown, setShowModelDropdown] = useState(false);
   const availableModels = getModelsByProvider(providerType);
+  const canSelectKnownModel = availableModels.length > 0;
   // 确保colors有默认值
   const defaultColors = isDark ? {
     bgPrimary: 'rgba(5, 5, 10, 0.95)',
@@ -74,6 +75,7 @@ export function ModelModal({
       onClose={onClose}
       title={isEdit ? '编辑模型配置' : '添加新模型'}
       size="xxlarge"
+      overlayVariant="light"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div>
@@ -86,108 +88,141 @@ export function ModelModal({
             color: finalColors.textPrimary,
             marginBottom: '8px',
           }}>
-            选择模型 <span style={{ color: '#ef4444' }}>*</span>
+            {canSelectKnownModel ? '选择模型' : '模型名称'} <span style={{ color: '#ef4444' }}>*</span>
           </label>
-          <div style={{ position: 'relative' }}>
-            <div
-              onClick={() => setShowModelDropdown(!showModelDropdown)}
-              style={{
-                width: '100%',
-                height: '44px',
-                padding: '0 14px',
-                fontSize: '14px',
-                color: finalColors.textPrimary,
-                backgroundColor: finalColors.bgGlass,
-                border: `1px solid ${finalColors.border}`,
-                borderRadius: '10px',
-                outline: 'none',
-                transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
-                boxShadow: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = accentColor;
-                e.currentTarget.style.boxShadow = `0 0 0 3px ${accentColor}15`;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = finalColors.border;
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <span>{modelFormData.name || '请选择模型'}</span>
-              <ChevronDown style={{ 
-                width: '20px', 
-                height: '20px', 
-                color: finalColors.textSecondary,
-                transition: 'transform 0.3s ease',
-                transform: showModelDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
-              }} />
-            </div>
-            {showModelDropdown && (
-              <div style={{
-                position: 'absolute',
-                top: '50px',
-                left: 0,
-                right: 0,
-                backgroundColor: finalColors.bgPrimary,
-                border: `1px solid ${finalColors.border}`,
-                borderRadius: '10px',
-                boxShadow: 'none',
-                zIndex: 1000,
-                maxHeight: '240px',
-                overflowY: 'auto',
-              }}>
-                {availableModels.map((model) => (
-                  <div
-                    key={model.model_id}
-                    onClick={() => {
-                      onModelFormDataChange({
-                        ...modelFormData,
-                        name: model.name,
-                        model_id: model.model_id,
-                        description: model.description,
-                        capabilities: model.capabilities,
-                      });
-                      setShowModelDropdown(false);
-                    }}
-                    style={{
-                      padding: '12px 14px',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.15s ease',
-                      borderBottom: `1px solid ${finalColors.border}`,
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = finalColors.bgGlassHover;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                  >
-                    <div style={{ fontWeight: '600', color: finalColors.textPrimary, marginBottom: '4px' }}>
-                      {model.name}
-                    </div>
-                    <div style={{ fontSize: '12px', color: finalColors.textMuted, marginBottom: '8px' }}>
-                      {model.model_id}
-                    </div>
-                    <div style={{ fontSize: '12px', color: finalColors.textSecondary, lineHeight: '1.4' }}>
-                      {model.description}
-                    </div>
-                  </div>
-                ))}
+          {canSelectKnownModel ? (
+            <div style={{ position: 'relative' }}>
+              <div
+                onClick={() => setShowModelDropdown(!showModelDropdown)}
+                style={{
+                  width: '100%',
+                  height: '44px',
+                  padding: '0 14px',
+                  fontSize: '14px',
+                  color: finalColors.textPrimary,
+                  backgroundColor: finalColors.bgGlass,
+                  border: `1px solid ${finalColors.border}`,
+                  borderRadius: '10px',
+                  outline: 'none',
+                  transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                  boxShadow: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = accentColor;
+                  e.currentTarget.style.boxShadow = `0 0 0 3px ${accentColor}15`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = finalColors.border;
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <span>{modelFormData.name || '请选择模型'}</span>
+                <ChevronDown style={{
+                  width: '20px',
+                  height: '20px',
+                  color: finalColors.textSecondary,
+                  transition: 'transform 0.3s ease',
+                  transform: showModelDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
+                }} />
               </div>
-            )}
-          </div>
+              {showModelDropdown && (
+                <div style={{
+                  position: 'absolute',
+                  top: '50px',
+                  left: 0,
+                  right: 0,
+                  backgroundColor: finalColors.bgPrimary,
+                  border: `1px solid ${finalColors.border}`,
+                  borderRadius: '10px',
+                  boxShadow: 'none',
+                  zIndex: 1000,
+                  maxHeight: '240px',
+                  overflowY: 'auto',
+                }}>
+                  {availableModels.map((model) => (
+                    <div
+                      key={model.model_id}
+                      onClick={() => {
+                        onModelFormDataChange({
+                          ...modelFormData,
+                          name: model.name,
+                          model_id: model.model_id,
+                          description: model.description,
+                          capabilities: model.capabilities,
+                        });
+                        setShowModelDropdown(false);
+                      }}
+                      style={{
+                        padding: '12px 14px',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.15s ease',
+                        borderBottom: `1px solid ${finalColors.border}`,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = finalColors.bgGlassHover;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      <div style={{ fontWeight: '600', color: finalColors.textPrimary, marginBottom: '4px' }}>
+                        {model.name}
+                      </div>
+                      <div style={{ fontSize: '12px', color: finalColors.textMuted, marginBottom: '8px' }}>
+                        {model.model_id}
+                      </div>
+                      <div style={{ fontSize: '12px', color: finalColors.textSecondary, lineHeight: '1.4' }}>
+                        {model.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <input
+              type="text"
+              placeholder="例如：GPT-4o、DeepSeek Chat、My Vision Model"
+              value={modelFormData.name}
+              onChange={(e) => onModelFormDataChange({ ...modelFormData, name: e.target.value })}
+              style={fieldStyle}
+              onFocus={(e) => focusField(e.currentTarget)}
+              onBlur={(e) => blurField(e.currentTarget)}
+            />
+          )}
           <p style={{
             fontSize: '12px',
             color: finalColors.textMuted,
             margin: '6px 0 0 0',
             lineHeight: '1.4',
           }}>
-            从列表中选择一个适合的模型
+            {canSelectKnownModel ? '从列表中选择一个适合的模型，也可以在下方调整描述和能力标签' : '自定义供应商没有预设模型，请手动填写模型名称和模型 ID'}
           </p>
+        </div>
+
+        <div>
+          <label style={{
+            display: 'block',
+            fontSize: '13px',
+            fontWeight: '700',
+            color: finalColors.textPrimary,
+            marginBottom: '8px',
+          }}>
+            模型 ID <span style={{ color: '#ef4444' }}>*</span>
+          </label>
+          <input
+            type="text"
+            placeholder="例如：gpt-4o、deepseek-chat、qwen-plus"
+            value={modelFormData.model_id}
+            onChange={(e) => onModelFormDataChange({ ...modelFormData, model_id: e.target.value })}
+            style={fieldStyle}
+            onFocus={(e) => focusField(e.currentTarget)}
+            onBlur={(e) => blurField(e.currentTarget)}
+          />
         </div>
 
         <div>

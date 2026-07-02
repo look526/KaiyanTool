@@ -44,9 +44,14 @@ export function useAIProvidersPage() {
 
   const filteredProviders = useMemo(() => {
     if (!Array.isArray(providers)) return [];
+    const query = searchQuery.toLowerCase();
     return providers.filter((p: any) =>
-      p.type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.models?.some((m: AIProviderModel) => m.name?.toLowerCase().includes(searchQuery.toLowerCase()))
+      p.type?.toLowerCase().includes(query) ||
+      p.base_url?.toLowerCase().includes(query) ||
+      p.models?.some((m: AIProviderModel) =>
+        m.name?.toLowerCase().includes(query) ||
+        m.model_id?.toLowerCase().includes(query)
+      )
     );
   }, [providers, searchQuery]);
 
