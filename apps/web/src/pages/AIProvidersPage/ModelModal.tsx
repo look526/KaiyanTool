@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { CheckSquare, Square, Save, Loader2, Sparkles, ChevronDown } from 'lucide-react';
+import { CheckSquare, Square, Save, Loader2, ChevronDown } from 'lucide-react';
 import { Modal } from '../../components/ui/ModalModern';
 import { CONTENT_TYPES } from './constants';
 import { ModelModalProps } from './types';
-import { getModelsByProvider, ModelInfo } from './model-constants';
+import { getModelsByProvider } from './model-constants';
 
 export function ModelModal({
   open,
@@ -44,51 +44,65 @@ export function ModelModal({
   };
 
   const finalColors = colors || defaultColors;
+  const fieldStyle = {
+    width: '100%',
+    height: '44px',
+    padding: '0 14px',
+    fontSize: '14px',
+    color: finalColors.textPrimary,
+    backgroundColor: finalColors.bgGlass,
+    border: `1px solid ${finalColors.border}`,
+    borderRadius: '10px',
+    outline: 'none',
+    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+    boxSizing: 'border-box' as const,
+  };
+
+  const focusField = (element: HTMLInputElement | HTMLTextAreaElement) => {
+    element.style.borderColor = accentColor;
+    element.style.boxShadow = `0 0 0 3px ${accentColor}15`;
+  };
+
+  const blurField = (element: HTMLInputElement | HTMLTextAreaElement) => {
+    element.style.borderColor = finalColors.border;
+    element.style.boxShadow = 'none';
+  };
 
   return (
     <Modal
       open={open}
       onClose={onClose}
       title={isEdit ? '编辑模型配置' : '添加新模型'}
-      size="large"
+      size="xxlarge"
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div>
           <label style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            fontSize: '16px',
+            fontSize: '14px',
             fontWeight: '700',
             color: finalColors.textPrimary,
-            marginBottom: '14px',
+            marginBottom: '8px',
           }}>
             选择模型 <span style={{ color: '#ef4444' }}>*</span>
-            <Sparkles style={{ 
-              width: '16px', 
-              height: '16px', 
-              color: accentColor,
-              animation: 'pulse 2s infinite',
-            }} />
           </label>
           <div style={{ position: 'relative' }}>
             <div
               onClick={() => setShowModelDropdown(!showModelDropdown)}
               style={{
                 width: '100%',
-                height: '52px',
-                padding: '0 24px',
+                height: '44px',
+                padding: '0 14px',
                 fontSize: '14px',
                 color: finalColors.textPrimary,
                 backgroundColor: finalColors.bgGlass,
                 border: `1px solid ${finalColors.border}`,
-                borderRadius: '16px',
+                borderRadius: '10px',
                 outline: 'none',
-                transition: 'all 0.3s ease',
-                boxShadow: isDark 
-                  ? '0 8px 24px rgba(0, 0, 0, 0.15)' 
-                  : '0 4px 12px rgba(0, 0, 0, 0.05)',
-                backdropFilter: 'blur(10px)',
+                transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                boxShadow: 'none',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -96,15 +110,11 @@ export function ModelModal({
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = accentColor;
-                e.currentTarget.style.boxShadow = `0 0 0 3px ${accentColor}15, 0 8px 24px ${accentColor}10`;
-                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = `0 0 0 3px ${accentColor}15`;
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderColor = finalColors.border;
-                e.currentTarget.style.boxShadow = isDark 
-                  ? '0 8px 24px rgba(0, 0, 0, 0.15)' 
-                  : '0 4px 12px rgba(0, 0, 0, 0.05)';
-                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
               }}
             >
               <span>{modelFormData.name || '请选择模型'}</span>
@@ -119,16 +129,15 @@ export function ModelModal({
             {showModelDropdown && (
               <div style={{
                 position: 'absolute',
-                top: '60px',
+                top: '50px',
                 left: 0,
                 right: 0,
                 backgroundColor: finalColors.bgPrimary,
                 border: `1px solid ${finalColors.border}`,
-                borderRadius: '16px',
-                boxShadow: `0 20px 40px rgba(0, 0, 0, 0.15), 0 0 30px ${accentColor}10`,
-                backdropFilter: 'blur(20px)',
+                borderRadius: '10px',
+                boxShadow: 'none',
                 zIndex: 1000,
-                maxHeight: '300px',
+                maxHeight: '240px',
                 overflowY: 'auto',
               }}>
                 {availableModels.map((model) => (
@@ -145,18 +154,16 @@ export function ModelModal({
                       setShowModelDropdown(false);
                     }}
                     style={{
-                      padding: '16px 24px',
+                      padding: '12px 14px',
                       cursor: 'pointer',
-                      transition: 'all 0.3s ease',
+                      transition: 'background-color 0.15s ease',
                       borderBottom: `1px solid ${finalColors.border}`,
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = finalColors.bgGlassHover;
-                      e.currentTarget.style.transform = 'translateX(8px)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = 'transparent';
-                      e.currentTarget.style.transform = 'translateX(0)';
                     }}
                   >
                     <div style={{ fontWeight: '600', color: finalColors.textPrimary, marginBottom: '4px' }}>
@@ -174,11 +181,10 @@ export function ModelModal({
             )}
           </div>
           <p style={{
-            fontSize: '14px',
+            fontSize: '12px',
             color: finalColors.textMuted,
-            marginTop: '10px',
-            margin: '10px 0 0 0',
-            lineHeight: '1.5',
+            margin: '6px 0 0 0',
+            lineHeight: '1.4',
           }}>
             从列表中选择一个适合的模型
           </p>
@@ -189,20 +195,14 @@ export function ModelModal({
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            fontSize: '16px',
+            fontSize: '14px',
             fontWeight: '700',
             color: finalColors.textPrimary,
-            marginBottom: '20px',
+            marginBottom: '8px',
           }}>
             选择内容类型（可多选）
-            <Sparkles style={{ 
-              width: '16px', 
-              height: '16px', 
-              color: accentColor,
-              animation: 'pulse 2s infinite',
-            }} />
           </label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' }}>
             {CONTENT_TYPES.map((type) => {
               const isSelected = modelFormData.types.includes(type.value);
               return (
@@ -215,62 +215,56 @@ export function ModelModal({
                     onModelFormDataChange({ ...modelFormData, types: newTypes });
                   }}
                   style={{
-                    padding: '24px',
-                    borderRadius: '20px',
-                    border: `2px solid ${isSelected ? type.color : finalColors.border}`,
+                    minHeight: '46px',
+                    padding: '8px 10px',
+                    borderRadius: '10px',
+                    border: `1px solid ${isSelected ? type.color : finalColors.border}`,
                     backgroundColor: isSelected ? `${type.color}08` : finalColors.bgGlass,
                     cursor: 'pointer',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    transition: 'border-color 0.15s ease, background-color 0.15s ease',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '16px',
+                    gap: '8px',
                     position: 'relative',
                     overflow: 'hidden',
-                    backdropFilter: 'blur(20px)',
                   }}
                   onMouseEnter={(e) => {
                     if (!isSelected) {
                       e.currentTarget.style.borderColor = type.color;
                       e.currentTarget.style.backgroundColor = `${type.color}05`;
-                      e.currentTarget.style.transform = 'translateY(-6px)';
-                      e.currentTarget.style.boxShadow = `0 12px 32px ${type.color}20`;
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isSelected) {
                       e.currentTarget.style.borderColor = finalColors.border;
                       e.currentTarget.style.backgroundColor = finalColors.bgGlass;
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = 'none';
                     }
                   }}
                 >
                   <div style={{
-                    width: '28px',
-                    height: '28px',
+                    width: '18px',
+                    height: '18px',
                     flexShrink: 0,
                   }}>
                     {isSelected ? (
-                      <CheckSquare style={{ width: '28px', height: '28px', color: type.color }} />
+                      <CheckSquare style={{ width: '18px', height: '18px', color: type.color }} />
                     ) : (
-                      <Square style={{ width: '28px', height: '28px', color: finalColors.textMuted }} />
+                      <Square style={{ width: '18px', height: '18px', color: finalColors.textMuted }} />
                     )}
                   </div>
                   <div style={{
-                    width: '52px',
-                    height: '52px',
-                    borderRadius: '16px',
-                    background: `linear-gradient(135deg, ${type.color} 0%, ${type.color}cc 100%)`,
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    background: type.color,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: `0 12px 32px ${type.color}40`,
-                    transition: 'all 0.3s ease',
-                    transform: isSelected ? 'scale(1.05)' : 'scale(1)',
+                    flexShrink: 0,
                   }}>
-                    <type.icon style={{ width: '24px', height: '24px', color: '#ffffff' }} />
+                    <type.icon style={{ width: '15px', height: '15px', color: '#ffffff' }} />
                   </div>
-                  <span style={{ fontSize: '16px', fontWeight: '700', color: finalColors.textPrimary }}>
+                  <span style={{ fontSize: '13px', fontWeight: '700', color: finalColors.textPrimary, whiteSpace: 'nowrap' }}>
                     {type.label}
                   </span>
                 </div>
@@ -282,10 +276,10 @@ export function ModelModal({
         <div>
           <label style={{
             display: 'block',
-            fontSize: '16px',
+            fontSize: '13px',
             fontWeight: '700',
             color: finalColors.textSecondary,
-            marginBottom: '14px',
+            marginBottom: '8px',
           }}>
             模型描述（可选）
           </label>
@@ -295,45 +289,33 @@ export function ModelModal({
             onChange={(e) => onModelFormDataChange({ ...modelFormData, description: e.target.value })}
             style={{
               width: '100%',
-              minHeight: '140px',
-              padding: '20px 24px',
-              borderRadius: '16px',
+              minHeight: '88px',
+              padding: '12px 14px',
+              borderRadius: '10px',
               border: `1px solid ${finalColors.border}`,
               backgroundColor: finalColors.bgGlass,
               color: finalColors.textPrimary,
               fontSize: '14px',
               resize: 'vertical',
               outline: 'none',
-              transition: 'all 0.3s ease',
-              lineHeight: '1.6',
+              transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+              lineHeight: '1.5',
               fontFamily: 'ui-sans-serif, system-ui, -apple-system, sans-serif',
-              boxShadow: isDark 
-                ? '0 8px 24px rgba(0, 0, 0, 0.15)' 
-                : '0 4px 12px rgba(0, 0, 0, 0.05)',
-              backdropFilter: 'blur(10px)',
+              boxShadow: 'none',
+              boxSizing: 'border-box',
             }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = accentColor;
-              e.currentTarget.style.boxShadow = `0 0 0 3px ${accentColor}15, 0 8px 24px ${accentColor}10`;
-              e.currentTarget.style.transform = 'translateY(-2px)';
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = finalColors.border;
-              e.currentTarget.style.boxShadow = isDark 
-                ? '0 8px 24px rgba(0, 0, 0, 0.15)' 
-                : '0 4px 12px rgba(0, 0, 0, 0.05)';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
+            onFocus={(e) => focusField(e.currentTarget)}
+            onBlur={(e) => blurField(e.currentTarget)}
           />
         </div>
 
         <div>
           <label style={{
             display: 'block',
-            fontSize: '16px',
+            fontSize: '13px',
             fontWeight: '700',
             color: finalColors.textSecondary,
-            marginBottom: '14px',
+            marginBottom: '8px',
           }}>
             能力标签（可选）
           </label>
@@ -345,78 +327,43 @@ export function ModelModal({
               ...modelFormData,
               capabilities: e.target.value.split(',').map(c => c.trim()).filter(c => c),
             })}
-            style={{
-              width: '100%',
-              height: '52px',
-              padding: '0 24px',
-              fontSize: '14px',
-              color: finalColors.textPrimary,
-              backgroundColor: finalColors.bgGlass,
-              border: `1px solid ${finalColors.border}`,
-              borderRadius: '16px',
-              outline: 'none',
-              transition: 'all 0.3s ease',
-              boxShadow: isDark 
-                ? '0 8px 24px rgba(0, 0, 0, 0.15)' 
-                : '0 4px 12px rgba(0, 0, 0, 0.05)',
-              backdropFilter: 'blur(10px)',
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = accentColor;
-              e.currentTarget.style.boxShadow = `0 0 0 3px ${accentColor}15, 0 8px 24px ${accentColor}10`;
-              e.currentTarget.style.transform = 'translateY(-2px)';
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = finalColors.border;
-              e.currentTarget.style.boxShadow = isDark 
-                ? '0 8px 24px rgba(0, 0, 0, 0.15)' 
-                : '0 4px 12px rgba(0, 0, 0, 0.05)';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
+            style={fieldStyle}
+            onFocus={(e) => focusField(e.currentTarget)}
+            onBlur={(e) => blurField(e.currentTarget)}
           />
           <p style={{
-            fontSize: '14px',
+            fontSize: '12px',
             color: finalColors.textMuted,
-            marginTop: '10px',
-            margin: '10px 0 0 0',
-            lineHeight: '1.5',
+            margin: '6px 0 0 0',
+            lineHeight: '1.4',
           }}>
             这些标签将帮助用户更好地了解模型的能力
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', paddingTop: '12px' }}>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', paddingTop: '4px' }}>
           <button
             onClick={onClose}
             style={{
-              height: '56px',
-              padding: '0 36px',
-              fontSize: '15px',
+              height: '42px',
+              padding: '0 22px',
+              fontSize: '14px',
               fontWeight: '600',
               color: finalColors.textSecondary,
               backgroundColor: finalColors.bgGlass,
               border: `1px solid ${finalColors.border}`,
-              borderRadius: '16px',
+              borderRadius: '10px',
               cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: isDark 
-                ? '0 8px 24px rgba(0, 0, 0, 0.15)' 
-                : '0 4px 12px rgba(0, 0, 0, 0.05)',
-              backdropFilter: 'blur(10px)',
+              transition: 'border-color 0.15s ease, color 0.15s ease',
+              boxShadow: 'none',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = accentColor;
               e.currentTarget.style.color = finalColors.textPrimary;
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = `0 8px 24px ${accentColor}20`;
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.borderColor = finalColors.border;
               e.currentTarget.style.color = finalColors.textSecondary;
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = isDark 
-                ? '0 8px 24px rgba(0, 0, 0, 0.15)' 
-                : '0 4px 12px rgba(0, 0, 0, 0.05)';
             }}
           >
             取消
@@ -425,41 +372,38 @@ export function ModelModal({
             onClick={onSave}
             disabled={saving}
             style={{
-              height: '56px',
-              padding: '0 40px',
-              fontSize: '15px',
+              height: '42px',
+              padding: '0 24px',
+              fontSize: '14px',
               fontWeight: '600',
               color: '#ffffff',
-              background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}cc 100%)`,
+              background: accentColor,
               border: 'none',
-              borderRadius: '16px',
+              borderRadius: '10px',
               cursor: saving ? 'not-allowed' : 'pointer',
               opacity: saving ? 0.7 : 1,
-              transition: 'all 0.3s ease',
-              boxShadow: `0 8px 24px ${accentColor}40`,
-              transform: 'translateY(0)',
+              transition: 'opacity 0.15s ease',
+              boxShadow: 'none',
             }}
             onMouseEnter={(e) => {
               if (!saving) {
-                e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
-                e.currentTarget.style.boxShadow = `0 12px 32px ${accentColor}50`;
+                e.currentTarget.style.opacity = '0.9';
               }
             }}
             onMouseLeave={(e) => {
               if (!saving) {
-                e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                e.currentTarget.style.boxShadow = `0 8px 24px ${accentColor}40`;
+                e.currentTarget.style.opacity = '1';
               }
             }}
           >
             {saving ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-                <Loader2 style={{ width: '20px', height: '20px', animation: 'spin 1s linear infinite' }} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <Loader2 style={{ width: '18px', height: '18px', animation: 'spin 1s linear infinite' }} />
                 <span>保存中...</span>
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-                <Save style={{ width: '20px', height: '20px' }} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <Save style={{ width: '18px', height: '18px' }} />
                 <span>保存模型</span>
               </div>
             )}
@@ -467,18 +411,6 @@ export function ModelModal({
         </div>
       </div>
 
-      <style>{`
-        @keyframes modalFadeIn {
-          from {
-            opacity: 0;
-            transform: scale(0.95) translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
-        }
-      `}</style>
     </Modal>
   );
 }

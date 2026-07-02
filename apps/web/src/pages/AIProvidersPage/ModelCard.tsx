@@ -1,8 +1,6 @@
-import { useState } from 'react';
 import { Edit2, TestTube, Trash2, CheckCircle, Sparkles, Loader2 } from 'lucide-react';
 import { CONTENT_TYPES } from './constants';
 import { AIProviderModel } from './types';
-import { useTheme } from '../../contexts/ThemeContext';
 
 interface ModelCardProps {
   model: AIProviderModel;
@@ -46,11 +44,11 @@ const ActionButton = ({
       border: 'none',
       cursor: disabled ? 'not-allowed' : 'pointer',
       opacity: disabled ? 0.5 : 1,
-      transition: 'var(--transition-base)',
+      transition: 'border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease',
       ...(variant === 'primary' && {
-        background: 'var(--gradient-primary)',
+        background: 'var(--accent-primary)',
         color: '#ffffff',
-        boxShadow: 'var(--shadow-accent)',
+        boxShadow: 'none',
       }),
       ...(variant === 'secondary' && {
         background: 'var(--bg-hover)',
@@ -60,12 +58,12 @@ const ActionButton = ({
       ...(variant === 'danger' && {
         background: 'var(--btn-danger-bg)',
         color: '#ffffff',
-        boxShadow: 'var(--btn-danger-shadow)',
+        boxShadow: 'none',
       }),
       ...(variant === 'success' && {
-        background: 'var(--gradient-success)',
+        background: '#10b981',
         color: '#ffffff',
-        boxShadow: 'var(--success-shadow)',
+        boxShadow: 'none',
       }),
     }}
   >
@@ -77,7 +75,6 @@ const ActionButton = ({
 export function ModelCard({
   model,
   isAdmin,
-  providerColor,
   testingModel,
   onEdit,
   onDelete,
@@ -85,10 +82,6 @@ export function ModelCard({
   onSetAssistantDefault,
   onUnsetAssistantDefault,
 }: ModelCardProps) {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
-  const [hovered, setHovered] = useState(false);
-
   const getContentTypeInfo = (type: string) => CONTENT_TYPES.find((c) => c.value === type) || CONTENT_TYPES[0];
   const contentTypeInfo = (model.types && model.types.length > 0) ? getContentTypeInfo(model.types[0]) : CONTENT_TYPES[0];
 
@@ -97,22 +90,20 @@ export function ModelCard({
       style={{
         padding: '24px',
         backgroundColor: 'var(--bg-surface)',
-        borderRadius: '20px',
+        borderRadius: '16px',
         border: '1px solid var(--border-primary)',
-        boxShadow: 'var(--shadow-md)',
-        transition: 'var(--transition-base)',
+        boxShadow: 'none',
+        transition: 'border-color 0.15s ease, background-color 0.15s ease',
         position: 'relative',
         overflow: 'hidden',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-4px)';
-        e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
         e.currentTarget.style.borderColor = contentTypeInfo.color;
+        e.currentTarget.style.backgroundColor = 'var(--bg-elevated)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = 'var(--shadow-md)';
         e.currentTarget.style.borderColor = 'var(--border-primary)';
+        e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
@@ -121,19 +112,19 @@ export function ModelCard({
             style={{
               width: '56px',
               height: '56px',
-              borderRadius: '16px',
-              background: `linear-gradient(135deg, ${contentTypeInfo.color} 0%, ${contentTypeInfo.color}dd 100%)`,
+              borderRadius: '14px',
+              background: contentTypeInfo.color,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: `0 8px 20px ${contentTypeInfo.color}35`,
+              boxShadow: 'none',
               flexShrink: 0,
             }}
           >
             <contentTypeInfo.icon style={{ width: '28px', height: '28px', color: '#ffffff' }} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h4 style={{ fontSize: '18px', fontWeight: 'var(--font-weight-bold)', color: 'var(--text-primary)', marginBottom: '8px', margin: 0, letterSpacing: '-0.3px' }}>
+            <h4 style={{ fontSize: '18px', fontWeight: 'var(--font-weight-bold)', color: 'var(--text-primary)', marginBottom: '8px', margin: 0 }}>
               {model.name}
             </h4>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>

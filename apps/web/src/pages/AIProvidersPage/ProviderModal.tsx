@@ -18,7 +18,6 @@ export function ProviderModal({
   accentColor = '#8b5cf6',
 }: ProviderModalProps) {
   const [cancelHover, setCancelHover] = useState(false);
-  const [saveHover, setSaveHover] = useState(false);
 
   // 确保colors有默认值
   const defaultColors = isDark ? {
@@ -335,8 +334,6 @@ export function ProviderModal({
           <button
             onClick={onSave}
             disabled={saving}
-            onMouseEnter={() => setSaveHover(true)}
-            onMouseLeave={() => setSaveHover(false)}
             style={{
               height: '42px',
               padding: '0 24px',
@@ -349,9 +346,7 @@ export function ProviderModal({
               cursor: saving ? 'not-allowed' : 'pointer',
               opacity: saving ? 0.7 : 1,
               transition: 'opacity 0.15s ease, background-color 0.15s ease',
-              boxShadow: saveHover
-                ? `0 6px 16px ${accentColor}35`
-                : 'none',
+              boxShadow: 'none',
               width: isMobile ? '100%' : 'auto',
             }}
           >

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle, XCircle, ChevronDown, TestTube, Pencil, Trash2, Plus, Lock, Eye, EyeOff, Sparkles } from 'lucide-react';
+import { CheckCircle, XCircle, ChevronDown, TestTube, Pencil, Trash2, Plus, Lock, Eye, EyeOff } from 'lucide-react';
 import { PROVIDER_TYPES } from './constants';
 import { ProviderCardProps } from './types';
 import { EmptyState } from './EmptyState';
@@ -8,7 +8,6 @@ export function ProviderCard({
   provider,
   isExpanded,
   isApiKeyVisible,
-  isAdmin,
   onToggleExpand,
   onToggleApiKeyVisibility,
   onEdit,
@@ -18,17 +17,12 @@ export function ProviderCard({
   onEditModel,
   onDeleteModel,
   onTestModel,
-  onSetAssistantDefault,
-  onUnsetAssistantDefault,
   testingProvider,
   testingModel,
-  isMobile,
-  isTablet,
   isDark,
   colors,
   accentColor,
 }: ProviderCardProps) {
-  const [expandHover, setExpandHover] = useState(false);
   const [testHover, setTestHover] = useState(false);
   const [editHover, setEditHover] = useState(false);
   const [deleteHover, setDeleteHover] = useState(false);
@@ -64,63 +58,40 @@ export function ProviderCard({
       style={{
         padding: '28px',
         background: finalColors.bgGlass,
-        backdropFilter: 'blur(20px)',
         borderRadius: '24px',
         border: isExpanded ? `1px solid ${providerInfo.color}` : `1px solid ${finalColors.border}`,
-        transition: 'all 0.3s ease',
-        boxShadow: isDark 
-          ? '0 20px 40px rgba(0, 0, 0, 0.15), 0 0 30px rgba(139, 92, 246, 0.1)'
-          : '0 8px 24px rgba(0, 0, 0, 0.05)',
+        transition: 'border-color 0.15s ease, background-color 0.15s ease',
+        boxShadow: 'none',
         position: 'relative',
         overflow: 'hidden',
       }}
       onMouseEnter={(e) => {
         if (!isExpanded) {
-          e.currentTarget.style.transform = 'translateY(-6px)';
           e.currentTarget.style.borderColor = `${providerInfo.color}40`;
-          e.currentTarget.style.boxShadow = isDark 
-            ? '0 28px 56px rgba(0, 0, 0, 0.25), 0 0 40px rgba(139, 92, 246, 0.15)'
-            : '0 16px 36px rgba(0, 0, 0, 0.12)';
+          e.currentTarget.style.backgroundColor = finalColors.bgGlassHover;
         }
       }}
       onMouseLeave={(e) => {
         if (!isExpanded) {
-          e.currentTarget.style.transform = 'translateY(0)';
           e.currentTarget.style.borderColor = finalColors.border;
-          e.currentTarget.style.boxShadow = isDark 
-            ? '0 20px 40px rgba(0, 0, 0, 0.15), 0 0 30px rgba(139, 92, 246, 0.1)'
-            : '0 8px 24px rgba(0, 0, 0, 0.05)';
+          e.currentTarget.style.backgroundColor = finalColors.bgGlass;
         }
       }}
     >
-      {/* 装饰性光晕 */}
-      {isExpanded && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          width: '200px',
-          height: '200px',
-          background: `radial-gradient(circle, ${providerInfo.color}20 0%, transparent 70%)`,
-          pointerEvents: 'none',
-          zIndex: 0,
-        }} />
-      )}
-
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', position: 'relative', zIndex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           <div style={{
             width: '64px',
             height: '64px',
             borderRadius: '16px',
-            background: `linear-gradient(135deg, ${providerInfo.color} 0%, ${providerInfo.color}cc 100%)`,
+            background: providerInfo.color,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
-            boxShadow: `0 12px 32px ${providerInfo.color}40`,
-            transition: 'all 0.3s ease',
-            transform: isExpanded ? 'scale(1.05)' : 'scale(1)',
+            boxShadow: 'none',
+            transition: 'none',
+            transform: 'none',
           }}>
             <providerInfo.icon style={{ width: '32px', height: '32px', color: '#ffffff' }} />
           </div>
@@ -132,12 +103,7 @@ export function ProviderCard({
                 fontWeight: '700', 
                 color: finalColors.textPrimary, 
                 margin: 0,
-                background: isExpanded 
-                  ? `linear-gradient(135deg, ${providerInfo.color} 0%, ${providerInfo.color}cc 100%)`
-                  : 'none',
-                WebkitBackgroundClip: isExpanded ? 'text' : 'none',
-                WebkitTextFillColor: isExpanded ? 'transparent' : finalColors.textPrimary,
-                transition: 'all 0.3s ease',
+                transition: 'color 0.15s ease',
               }}>
                 {providerInfo.label}
               </h3>
@@ -151,7 +117,7 @@ export function ProviderCard({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                transition: 'all 0.2s ease',
+                transition: 'none',
                 border: `1px solid ${provider.enabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
               }}>
                 {provider.enabled ? <CheckCircle style={{ width: '14px', height: '14px' }} /> : <XCircle style={{ width: '14px', height: '14px' }} />}
@@ -167,14 +133,6 @@ export function ProviderCard({
               gap: '6px',
             }}>
               <span>{provider.models?.length || 0} 个模型</span>
-              {isExpanded && (
-                <Sparkles style={{ 
-                  width: '14px', 
-                  height: '14px', 
-                  color: providerInfo.color,
-                  animation: 'pulse 1.5s infinite',
-                }} />
-              )}
             </p>
           </div>
         </div>
@@ -182,8 +140,6 @@ export function ProviderCard({
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <button
             onClick={() => onToggleExpand(provider.id)}
-            onMouseEnter={() => setExpandHover(true)}
-            onMouseLeave={() => setExpandHover(false)}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -196,11 +152,9 @@ export function ProviderCard({
               fontWeight: '600',
               color: isExpanded ? providerInfo.color : finalColors.textPrimary,
               cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: expandHover 
-                ? `0 8px 24px ${providerInfo.color}20` 
-                : '0 4px 12px rgba(0, 0, 0, 0.05)',
-              transform: expandHover ? 'translateY(-2px)' : 'translateY(0)',
+              transition: 'border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease',
+              boxShadow: 'none',
+              transform: 'none',
             }}
           >
             {isExpanded ? '收起' : '展开'}
@@ -229,11 +183,9 @@ export function ProviderCard({
               fontWeight: '600',
               color: testingProvider === provider.id ? providerInfo.color : (testHover ? providerInfo.color : finalColors.textPrimary),
               cursor: testingProvider === provider.id ? 'not-allowed' : 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: testingProvider === provider.id 
-                ? `0 8px 24px ${providerInfo.color}30` 
-                : (testHover ? `0 8px 24px ${providerInfo.color}20` : '0 4px 12px rgba(0, 0, 0, 0.05)'),
-              transform: testHover && testingProvider !== provider.id ? 'translateY(-2px)' : 'translateY(0)',
+              transition: 'border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease',
+              boxShadow: 'none',
+              transform: 'none',
               opacity: testingProvider === provider.id ? 0.8 : 1,
             }}
           >
@@ -272,11 +224,9 @@ export function ProviderCard({
               fontWeight: '600',
               color: editHover ? providerInfo.color : finalColors.textPrimary,
               cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: editHover 
-                ? `0 8px 24px ${providerInfo.color}20` 
-                : '0 4px 12px rgba(0, 0, 0, 0.05)',
-              transform: editHover ? 'translateY(-2px)' : 'translateY(0)',
+              transition: 'border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease',
+              boxShadow: 'none',
+              transform: 'none',
             }}
           >
             <Pencil style={{ width: '18px', height: '18px' }} />
@@ -298,11 +248,9 @@ export function ProviderCard({
               fontWeight: '600',
               color: deleteHover ? '#ef4444' : finalColors.textPrimary,
               cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: deleteHover 
-                ? '0 8px 24px rgba(239, 68, 68, 0.2)' 
-                : '0 4px 12px rgba(0, 0, 0, 0.05)',
-              transform: deleteHover ? 'translateY(-2px)' : 'translateY(0)',
+              transition: 'border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease',
+              boxShadow: 'none',
+              transform: 'none',
             }}
           >
             <Trash2 style={{ width: '18px', height: '18px' }} />
@@ -317,7 +265,7 @@ export function ProviderCard({
             gap: '24px', 
             paddingTop: '24px', 
             borderTop: `1px solid ${finalColors.border}`,
-            animation: 'slideDown 0.3s ease',
+            animation: 'none',
           }}>
             <div>
               <div style={{ 
@@ -356,10 +304,8 @@ export function ProviderCard({
                     fontWeight: '600',
                     color: keyButtonHover ? providerInfo.color : finalColors.textPrimary,
                     cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    boxShadow: keyButtonHover 
-                      ? `0 4px 12px ${providerInfo.color}20` 
-                      : '0 2px 8px rgba(0, 0, 0, 0.05)',
+                    transition: 'border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease',
+                    boxShadow: 'none',
                   }}
                 >
                   {isApiKeyVisible ? <EyeOff style={{ width: '16px', height: '16px' }} /> : <Eye style={{ width: '16px', height: '16px' }} />}
@@ -376,8 +322,7 @@ export function ProviderCard({
                 borderRadius: '16px',
                 border: `1px solid ${finalColors.border}`,
                 lineHeight: '1.5',
-                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.08)',
-                backdropFilter: 'blur(10px)',
+                boxShadow: 'none',
               }}>
                 {isApiKeyVisible ? provider.api_key : '•'.repeat(48)}
               </div>
@@ -404,24 +349,22 @@ export function ProviderCard({
                     alignItems: 'center',
                     gap: '10px',
                     padding: '12px 24px',
-                    background: `linear-gradient(135deg, ${providerInfo.color} 0%, ${providerInfo.color}cc 100%)`,
+                    background: providerInfo.color,
                     border: 'none',
                     borderRadius: '14px',
                     fontSize: '14px',
                     fontWeight: '600',
                     color: '#ffffff',
                     cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    boxShadow: `0 8px 24px ${providerInfo.color}40`,
-                    transform: 'translateY(-2px)',
+                    transition: 'opacity 0.15s ease',
+                    boxShadow: 'none',
+                    transform: 'none',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
-                    e.currentTarget.style.boxShadow = `0 12px 32px ${providerInfo.color}50`;
+                    e.currentTarget.style.opacity = '0.9';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px) scale(1)';
-                    e.currentTarget.style.boxShadow = `0 8px 24px ${providerInfo.color}40`;
+                    e.currentTarget.style.opacity = '1';
                   }}
                 >
                   <Plus style={{ width: '18px', height: '18px' }} />
@@ -450,17 +393,14 @@ export function ProviderCard({
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        transition: 'all 0.3s ease',
-                        backdropFilter: 'blur(10px)',
+                        transition: 'border-color 0.15s ease, background-color 0.15s ease',
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.borderColor = `${providerInfo.color}40`;
-                        e.currentTarget.style.transform = 'translateX(6px) translateY(-2px)';
-                        e.currentTarget.style.boxShadow = `0 8px 24px ${providerInfo.color}20`;
+                        e.currentTarget.style.boxShadow = 'none';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.borderColor = finalColors.border;
-                        e.currentTarget.style.transform = 'translateX(0) translateY(0)';
                         e.currentTarget.style.boxShadow = 'none';
                       }}
                     >
@@ -511,17 +451,15 @@ export function ProviderCard({
                             background: finalColors.bgGlass,
                             color: finalColors.textMuted,
                             cursor: 'pointer',
-                            transition: 'all 0.3s ease',
+                            transition: 'border-color 0.15s ease, color 0.15s ease',
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.borderColor = `${providerInfo.color}40`;
                             e.currentTarget.style.color = providerInfo.color;
-                            e.currentTarget.style.transform = 'scale(1.1)';
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.borderColor = finalColors.border;
                             e.currentTarget.style.color = finalColors.textMuted;
-                            e.currentTarget.style.transform = 'scale(1)';
                           }}
                         >
                           <Pencil style={{ width: '18px', height: '18px' }} />
@@ -540,21 +478,19 @@ export function ProviderCard({
                             background: testingModel === model.id ? `${providerInfo.color}15` : finalColors.bgGlass,
                             color: testingModel === model.id ? providerInfo.color : finalColors.textMuted,
                             cursor: testingModel === model.id ? 'not-allowed' : 'pointer',
-                            transition: 'all 0.3s ease',
+                            transition: 'border-color 0.15s ease, color 0.15s ease',
                             opacity: testingModel === model.id ? 0.8 : 1,
                           }}
                           onMouseEnter={(e) => {
                             if (testingModel !== model.id) {
                               e.currentTarget.style.borderColor = `${providerInfo.color}40`;
                               e.currentTarget.style.color = providerInfo.color;
-                              e.currentTarget.style.transform = 'scale(1.1)';
                             }
                           }}
                           onMouseLeave={(e) => {
                             if (testingModel !== model.id) {
                               e.currentTarget.style.borderColor = finalColors.border;
                               e.currentTarget.style.color = finalColors.textMuted;
-                              e.currentTarget.style.transform = 'scale(1)';
                             }
                           }}
                         >
@@ -584,17 +520,15 @@ export function ProviderCard({
                             background: finalColors.bgGlass,
                             color: finalColors.textMuted,
                             cursor: 'pointer',
-                            transition: 'all 0.3s ease',
+                            transition: 'border-color 0.15s ease, color 0.15s ease',
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
                             e.currentTarget.style.color = '#ef4444';
-                            e.currentTarget.style.transform = 'scale(1.1)';
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.borderColor = finalColors.border;
                             e.currentTarget.style.color = finalColors.textMuted;
-                            e.currentTarget.style.transform = 'scale(1)';
                           }}
                         >
                           <Trash2 style={{ width: '18px', height: '18px' }} />
@@ -609,18 +543,6 @@ export function ProviderCard({
         )}
       </div>
 
-      <style>{`
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
     </div>
   );
 }

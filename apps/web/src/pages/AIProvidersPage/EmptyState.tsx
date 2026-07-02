@@ -55,6 +55,7 @@ export function EmptyState({
   };
 
   const finalColors = colors || defaultColors;
+  const activeColor = providerColor || accentColor;
 
   if (type === 'providers') {
     return (
@@ -63,14 +64,10 @@ export function EmptyState({
           padding: '64px',
           textAlign: 'center',
           background: finalColors.bgGlass,
-          backdropFilter: 'blur(20px)',
-          borderRadius: '24px',
-          border: `2px dashed ${finalColors.border}`,
-          transition: 'all 0.3s ease',
-          boxShadow: isDark 
-            ? '0 20px 40px rgba(0, 0, 0, 0.15), 0 0 30px rgba(139, 92, 246, 0.1)'
-            : '0 8px 24px rgba(0, 0, 0, 0.05), 0 0 20px rgba(139, 92, 246, 0.05)',
-          transform: cardHover ? 'translateY(-4px)' : 'translateY(0)',
+          borderRadius: '16px',
+          border: `2px dashed ${cardHover ? accentColor : finalColors.border}`,
+          transition: 'border-color 0.15s ease, background-color 0.15s ease',
+          boxShadow: 'none',
         }}
         onMouseEnter={() => setCardHover(true)}
         onMouseLeave={() => setCardHover(false)}
@@ -79,14 +76,12 @@ export function EmptyState({
           width: '80px',
           height: '80px',
           margin: '0 auto 24px',
-          background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}cc 100%)`,
-          borderRadius: '24px',
+          background: accentColor,
+          borderRadius: '18px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: `0 8px 24px ${accentColor}40`,
-          transition: 'all 0.3s ease',
-          transform: cardHover ? 'scale(1.05)' : 'scale(1)',
+          boxShadow: 'none',
         }}>
           <Settings style={{ width: '40px', height: '40px', color: '#ffffff' }} />
         </div>
@@ -95,7 +90,6 @@ export function EmptyState({
           fontWeight: '700',
           color: finalColors.textPrimary,
           margin: '0 0 16px 0',
-          transition: 'all 0.3s ease',
         }}>
           暂无 AI 服务提供商
         </h2>
@@ -104,7 +98,6 @@ export function EmptyState({
           color: finalColors.textSecondary,
           margin: '0 0 32px 0',
           lineHeight: '1.6',
-          transition: 'all 0.3s ease',
         }}>
           添加您的第一个 AI 服务提供商开始使用
         </p>
@@ -125,11 +118,9 @@ export function EmptyState({
             fontWeight: '600',
             color: 'white',
             cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            boxShadow: buttonHover 
-              ? `0 12px 32px ${accentColor}50`
-              : `0 8px 24px ${accentColor}40`,
-            transform: buttonHover ? 'translateY(-2px) scale(1.02)' : 'translateY(0) scale(1)',
+            transition: 'opacity 0.15s ease',
+            boxShadow: 'none',
+            opacity: buttonHover ? 0.9 : 1,
           }}
         >
           <Plus style={{ width: '20px', height: '20px' }} />
@@ -145,42 +136,32 @@ export function EmptyState({
         padding: '64px',
         textAlign: 'center',
         background: finalColors.bgGlass,
-        backdropFilter: 'blur(20px)',
-        borderRadius: '24px',
-        border: `2px dashed ${finalColors.border}`,
-        transition: 'all 0.3s ease',
-        boxShadow: isDark 
-          ? '0 20px 40px rgba(0, 0, 0, 0.15), 0 0 30px rgba(139, 92, 246, 0.1)'
-          : '0 8px 24px rgba(0, 0, 0, 0.05), 0 0 20px rgba(139, 92, 246, 0.05)',
-        transform: cardHover ? 'translateY(-4px)' : 'translateY(0)',
+        borderRadius: '16px',
+        border: `2px dashed ${cardHover ? activeColor : finalColors.border}`,
+        transition: 'border-color 0.15s ease, background-color 0.15s ease',
+        boxShadow: 'none',
       }}
       onMouseEnter={(e) => {
         setCardHover(true);
         if (providerColor) {
-          e.currentTarget.style.borderColor = providerColor;
           e.currentTarget.style.background = `${providerColor}08`;
         }
       }}
       onMouseLeave={(e) => {
         setCardHover(false);
-        e.currentTarget.style.borderColor = finalColors.border;
         e.currentTarget.style.background = finalColors.bgGlass;
       }}
     >
       <div style={{
         width: '64px',
         height: '64px',
-        borderRadius: '20px',
-        background: providerColor ? `linear-gradient(135deg, ${providerColor} 0%, ${providerColor}cc 100%)` : `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}cc 100%)`,
+        borderRadius: '16px',
+        background: activeColor,
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: '24px',
-        boxShadow: providerColor 
-          ? `0 8px 24px ${providerColor}40`
-          : `0 8px 24px ${accentColor}40`,
-        transition: 'all 0.3s ease',
-        transform: cardHover ? 'scale(1.05)' : 'scale(1)',
+        boxShadow: 'none',
       }}>
         <LayoutGrid style={{ width: '32px', height: '32px', color: '#ffffff' }} />
       </div>
@@ -189,7 +170,6 @@ export function EmptyState({
         fontWeight: '700',
         color: finalColors.textPrimary,
         margin: '0 0 16px 0',
-        transition: 'all 0.3s ease',
       }}>
         暂无模型
       </h3>
@@ -198,7 +178,6 @@ export function EmptyState({
         color: finalColors.textSecondary,
         margin: 0,
         lineHeight: '1.6',
-        transition: 'all 0.3s ease',
       }}>
         点击上方"添加模型"按钮开始配置您的第一个AI模型
       </p>

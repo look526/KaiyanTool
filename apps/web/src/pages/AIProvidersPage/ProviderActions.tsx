@@ -39,7 +39,7 @@ const ActionButton = ({
       border: 'none',
       cursor: disabled ? 'not-allowed' : 'pointer',
       opacity: disabled ? 0.5 : 1,
-      transition: 'all 0.2s ease',
+      transition: 'border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease',
       ...(variant === 'secondary' && {
         background: 'var(--bg-surface)',
         color: 'var(--text-primary)',
@@ -90,7 +90,7 @@ const IconButton = ({
       border: 'none',
       cursor: disabled ? 'not-allowed' : 'pointer',
       opacity: disabled ? 0.5 : 1,
-      transition: 'all 0.2s ease',
+      transition: 'border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease',
       ...(variant === 'secondary' && {
         background: 'var(--bg-surface)',
         color: 'var(--text-secondary)',

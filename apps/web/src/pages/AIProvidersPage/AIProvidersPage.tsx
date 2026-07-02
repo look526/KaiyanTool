@@ -101,7 +101,7 @@ export default function AIProvidersPage() {
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
-        boxShadow: `0 4px 12px ${accentColor}30`,
+        boxShadow: 'none',
         transition: 'background-color 0.15s ease, opacity 0.15s ease',
       }}
       onMouseEnter={(e) => {
@@ -149,7 +149,7 @@ export default function AIProvidersPage() {
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 24px',
-            boxShadow: `0 8px 24px ${accentColor}40`,
+            boxShadow: 'none',
           }}>
             <Loader2 style={{ 
               animation: 'spin 1s linear infinite', 
@@ -368,16 +368,6 @@ export default function AIProvidersPage() {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
-        }
-        @keyframes pulse {
-          0%, 100% {
-            opacity: 1;
-            transform: scale(1);
-          }
-          50% {
-            opacity: 0.7;
-            transform: scale(1.05);
-          }
         }
       `}</style>
     </div>

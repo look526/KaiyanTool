@@ -85,16 +85,14 @@ export function TestProgressPanel({ testingProvider, testingModel, isDark = true
         bottom: '32px',
         right: '32px',
         background: colors.bgPrimary,
-        backdropFilter: 'blur(20px)',
-        border: `2px solid ${getBorderColor()}`,
-        borderRadius: '16px',
-        padding: '20px 24px',
-        boxShadow: `0 12px 32px rgba(0, 0, 0, 0.15), 0 0 20px ${accentColor}10`,
+        border: `1px solid ${getBorderColor()}`,
+        borderRadius: '12px',
+        padding: '16px 18px',
+        boxShadow: 'none',
         display: 'flex',
         alignItems: 'center',
         gap: '16px',
         zIndex: 1000,
-        animation: 'slideIn 0.3s ease',
         minWidth: '280px',
       }}
     >
@@ -133,18 +131,8 @@ export function TestProgressPanel({ testingProvider, testingModel, isDark = true
           {message}
         </div>
       </div>
-      
+
       <style>{`
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateX(100%) translateY(100%);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0) translateY(0);
-          }
-        }
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
